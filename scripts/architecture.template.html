@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cybersleeve Architecture</title>
+<style>
+:root{
+  --bg:#f4f6fb; --panel:#ffffff; --ink:#18203a; --muted:#5a6483; --line:#d6dbec;
+  --accent:#0a7fa8; --c-numbers:#7a5cd6; --c-core:#2a8f6a; --c-content:#b8860b; --c-app:#c9453f; --c-ui:#d6812a; --c-entry:#2a7fb8;
+  --warn:#b8541b; --ok:#2a8f6a; --code:#eaeef8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c1020; --panel:#151b30; --ink:#e4ebff; --muted:#93a0c4; --line:#2a3354;
+    --accent:#19e3ff; --c-numbers:#a58cff; --c-core:#4fd1a0; --c-content:#e6c24d; --c-app:#ff7a73; --c-ui:#f2a45a; --c-entry:#5db8f0;
+    --warn:#f09a63; --ok:#4fd1a0; --code:#1f2742;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c1020; --panel:#151b30; --ink:#e4ebff; --muted:#93a0c4; --line:#2a3354;
+  --accent:#19e3ff; --c-numbers:#a58cff; --c-core:#4fd1a0; --c-content:#e6c24d; --c-app:#ff7a73; --c-ui:#f2a45a; --c-entry:#5db8f0;
+  --warn:#f09a63; --ok:#4fd1a0; --code:#1f2742;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+code,.mono{font-family:ui-monospace,Consolas,"Cascadia Mono",monospace;font-size:.88em}
+code{background:var(--code);padding:1px 5px;border-radius:4px}
+pre{background:var(--code);padding:10px 12px;border-radius:8px;overflow-x:auto;margin:6px 0}
+pre code{background:none;padding:0}
+header{padding:28px 16px 8px;max-width:1100px;margin:0 auto}
+h1{margin:0 0 4px;font-size:28px}
+.sub{color:var(--muted);margin:0}
+nav{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .in{max-width:1100px;margin:0 auto;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;align-items:center}
+nav a{white-space:nowrap;color:var(--muted);text-decoration:none;padding:4px 10px;border-radius:14px;font-size:13px}
+nav a:hover,nav a.on{background:var(--panel);color:var(--accent)}
+nav button{margin-left:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:3px 10px;cursor:pointer;font-size:12px}
+main{max-width:1100px;margin:0 auto;padding:0 16px 60px}
+section{margin-top:36px;scroll-margin-top:56px}
+h2{font-size:21px;margin:0 0 4px}
+h3{font-size:15px;margin:0 0 4px}
+.lead{color:var(--muted);margin:0 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:800px){.g4,.g3{grid-template-columns:repeat(2,1fr)} .g2{grid-template-columns:1fr}}
+@media(max-width:480px){.g4,.g3{grid-template-columns:1fr}}
+.stat b{display:block;font-size:26px;color:var(--accent)} .stat span{color:var(--muted);font-size:13px}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.scroll{overflow-x:auto}
+svg{display:block;width:100%;height:auto}
+svg text{fill:var(--ink);font-family:system-ui,sans-serif}
+svg .mut{fill:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 0;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tip{color:var(--muted);font-size:13px;margin:8px 0 0}
+.badge{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:9px;border:1px solid var(--line);color:var(--muted);margin-right:4px;vertical-align:1px}
+.badge.ok{color:var(--ok);border-color:var(--ok)} .badge.bad{color:var(--warn);border-color:var(--warn)}
+.risk{border-left:4px solid var(--warn)} .risk p,.card p{margin:0;color:var(--muted)}
+.assume{border-left:4px solid var(--c-content)}
+input[type=search]{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:14px;margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:3px 11px;cursor:pointer;font-size:12px}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chips label{font-size:13px;color:var(--muted);margin-left:8px}
+details summary{cursor:pointer;color:var(--accent);font-size:12.5px}
+details dl{margin:6px 0 0;font-size:13.5px}
+details dt{font-weight:600;margin-top:6px} details dd{margin:0 0 0 14px;color:var(--muted);white-space:pre-wrap}
+.node{cursor:pointer}
+.edge{fill:none;stroke:var(--line);stroke-width:1.2;transition:.15s}
+.edge.re{stroke-dasharray:4 3}
+.edge.hi{stroke:var(--accent);stroke-width:2.2}
+.edge.dim,.node.dim{opacity:.12}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.tgroup{margin:6px 0 0;font-size:13.5px}
+.tgroup summary{color:var(--ink)}
+.t-pass{color:var(--ok)} .t-fail{color:var(--warn);font-weight:700}
+.tlist{margin:4px 0 8px 18px;padding:0;font-size:13px;color:var(--muted)}
+@media print{nav{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cybersleeve &ndash; Architecture Overview</h1>
+  <p class="sub" id="meta"></p>
+</header>
+<nav><div class="in">
+  <a href="#summary">Summary</a><a href="#files">Files</a><a href="#arch">Architecture</a><a href="#solid">SOLID</a><a href="#model">Domain model</a><a href="#config">Configuration</a>
+  <a href="#state">State lifetimes</a><a href="#tick">Tick loop</a><a href="#calls">Call graph</a><a href="#funcs">Function reference</a><a href="#tests">Tests</a><a href="#risks">Risks</a>
+  <button id="theme">Toggle theme</button>
+</div></nav>
+<main>
+
+<section id="summary">
+  <h2>At a glance</h2>
+  <p class="lead">An installable idle game (PWA) in strict TypeScript. Game rules are framework-free and run against injected interfaces; the browser is only a thin shell.</p>
+  <div class="grid g4" id="stats"></div>
+  <div class="grid g3" style="margin-top:12px">
+    <div class="card"><h3>Pure core</h3><p><code>core/</code> has no DOM, timers or storage. Time enters only through <code>GameEngine.tick(deltaMs)</code>, so the whole game is deterministic and unit-testable.</p></div>
+    <div class="card"><h3>Big numbers by interface</h3><p>All amounts are <code>BigNum</code>. One adapter file wraps <code>break_infinity.js</code>; swapping the library touches nothing else.</p></div>
+    <div class="card"><h3>Data-driven content</h3><p>Actions, buyables and tuning are plain data in <code>content/gameConfig.ts</code>. New content is data, not code.</p></div>
+  </div>
+</section>
+
+<section id="files">
+  <h2>Files &amp; module dependencies</h2>
+  <p class="lead">Generated from the <code>import</code> statements. Arrows point from the importer to what it depends on. Hover or tap a file to isolate its edges; dashed lines are barrel re-exports.</p>
+  <div class="card scroll"><svg id="depGraph" role="img" aria-label="Module dependency graph"></svg>
+    <div class="legend" id="depLegend"></div></div>
+  <div class="card scroll" style="margin-top:12px"><table>
+    <thead><tr><th>File</th><th>Lines</th><th>Role</th><th>Imports</th></tr></thead>
+    <tbody id="fileRows"></tbody></table>
+    <p class="tip">Role text is the <code>@module</code> doc comment of each file. External libraries: <code>break_infinity.js</code> (only in <code>BreakInfinityNum.ts</code>), Vite + vite-plugin-pwa (build), Vitest (tests).</p>
+  </div>
+</section>
+
+<section id="arch">
+  <h2>Architecture</h2>
+  <p class="lead">Layers depend downwards only. Everything that touches the outside world sits behind a small interface.</p>
+  <div class="card scroll">
+  <svg viewBox="0 0 960 560" role="img" aria-label="Layered architecture"><g id="archSvg"></g></svg>
+  <div class="legend" id="archLegend"></div></div>
+</section>
+
+<section id="solid">
+  <h2>SOLID in practice</h2>
+  <p class="lead">How each principle shows up in the code.</p>
+  <div class="grid g2" id="solidGrid"></div>
+</section>
+
+<section id="model">
+  <h2>Domain model</h2>
+  <p class="lead">Definitions (static content) are separate from state (what changes while playing). Mechanics are specified in <code>DESIGN.md</code>.</p>
+  <div class="grid g2">
+    <div class="card scroll"><h3>GameState</h3><table>
+      <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody>
+      <tr><td><code>credits</code></td><td>BigNum</td><td>Main currency</td></tr>
+      <tr><td><code>network</code></td><td>BigNum</td><td>Network nodes built; each produces passive credits</td></tr>
+      <tr><td><code>actions[id]</code></td><td>ActionState</td><td><code>xp</code>, <code>sleeveXp</code> (survives re-sleeve), <code>runsTowardSleeveXp</code> (completed runs since the last sleeve-XP point, survives re-sleeve), <code>running</code>, <code>progressMs</code></td></tr>
+      <tr><td><code>purchased[id]</code></td><td>number</td><td>Copies owned per buyable (absent = 0)</td></tr></tbody></table></div>
+    <div class="card scroll"><h3>Definitions (content)</h3><table>
+      <thead><tr><th>Type</th><th>Fields</th></tr></thead><tbody>
+      <tr><td><code>ActionDefinition</code></td><td>id, name, baseDurationMs, reward, rewardKind (credits | networkNodes), xpPerRun, optional rewardPerNetworkNode / heatPerRun / requiredAccessLevel, optional levels / sleeveLevels / speedScaling overrides</td></tr>
+      <tr><td><code>BuyableDefinition</code></td><td>id, actionId (the action it belongs to; absent = sleeve-wide), name, description, optional symbol, cost, effect, optional requires / maxPurchases / costGrowth</td></tr>
+      <tr><td><code>BuyableEffect</code></td><td><code>autoRun</code> | <code>outputMultiplier(factor)</code> (action effects) | <code>interfaceSpeed(amount)</code> | <code>accessLevel(level)</code> (sleeve effects), applied once per copy owned &ndash; union, extend in <code>effects.ts</code></td></tr>
+      <tr><td><code>GameConfig</code></td><td>actions, buyables, progression, speed, global, network, sleeve, engine, runtime (see Configuration)</td></tr></tbody></table></div>
+  </div>
+  <div class="grid g2" style="margin-top:12px">
+    <div class="card"><h3>Level rule</h3>
+      <p>Levels start at 1. Defaults: level 2 at 10 XP, then x10 per level, i.e. <code>threshold(level n+1) = firstLevelXp &times; growthFactor^(n&minus;1)</code>. Both numbers are configurable, per track (each action and each action's own sleeve level). A logarithm gives the estimate, which is corrected against exact thresholds, so boundaries are exact and valid far beyond the double range.</p>
+      <svg viewBox="0 0 520 70" id="levelStrip" role="img" aria-label="Level thresholds"></svg></div>
+    <div class="card"><h3>Speed &amp; rewards</h3>
+      <pre><code>speed    = f(actionLevel) &times; f(sleeveLevel) &times; interfaceSpeed &times; global.speed
+           f = linear: 1 + (L&minus;1)&times;perLevel   (default: = L)
+               exponential: base^(L&minus;1)
+duration = baseDuration / speed
+per run  = reward &times; (nodes, if rewardPerNetworkNode) &times; outputMultiplier &times; global.reward
+           credits are then multiplied by (1 &minus; heat/100), at least 0; network nodes are not taxed
+passive  = network nodes &times; creditsPerNodePerSecond &times; global.reward &times; (1 &minus; heat/100)  credits per second
+heat     = sleeve.baseHeat, + heatPerRun per completed run, &minus; heatCooldownAmount per heatCooldownMs while heat &gt; 0 (reset by re-sleeve)
+           xpPerRun &times; outputMultiplier &times; global.xp XP
+outputMultiplier = &prod; factor^copiesOwned
+sleeve XP (per action): +sleeveXpPerGrant per runsPerSleeveXp runs of that action</code></pre>
+      <p>Worked example: action level 3, sleeve level 2, interface speed 1, base 10 s &rarr; 10 s / 6 = 1.67 s.</p></div>
+  </div>
+  <div class="card scroll" style="margin-top:12px"><h3>Content of milestone 1 (<code>content/gameConfig.ts</code>)</h3><table>
+    <thead><tr><th>Item</th><th>Value</th></tr></thead><tbody>
+    <tr><td>Action &ldquo;Earn credits&rdquo;</td><td>1 s base, +0.5 credits and +1 XP per run, click to start</td></tr>
+    <tr><td>Action &ldquo;Grow network&rdquo;</td><td>3 s base, +1 network node and +1 XP per run, no credits. Each node produces 0.05 credits per second, even while no action runs. Own action level and own sleeve level.</td></tr>
+    <tr><td>Action &ldquo;Push malware&rdquo;</td><td>6 s base, needs access level 2. Pays 1 credit per network node owned and adds 1 heat per run.</td></tr>
+    <tr><td>Sleeve widget</td><td>Global stats and global buyables. Access level (1) gates actions; interface speed (10 %, shown as a percentage) multiplies the speed of every action; heat (0) taxes all credits earned (1 % per point) and cools down by 1 every 60 s while above 0. Buyables: Interface boost (+0.05 interface speed: 10 % to 15 %, one-time) and Access upgrade (access level 2)</td></tr>
+    <tr><td>Auto-run</td><td>10,000 credits &ndash; restarts the action automatically (leftover time carries over)</td></tr>
+    <tr><td>Dual processors</td><td>15 credits &ndash; output multiplier &times;2 (credits, XP and counted runs)</td></tr>
+    <tr><td>Duplicate processors</td><td>Appears once Dual processors is owned. First copy 150 credits (10&times; Dual), each further copy costs 10&times; more (150, 1.5K, 15K, ...). Unlimited copies; each doubles the output again (2<sup>n</sup>).</td></tr>
+    <tr><td>Re-sleeve</td><td>always allowed for now (<code>alwaysAllowResleeve</code> policy)</td></tr></tbody></table></div>
+</section>
+
+<section id="config">
+  <h2>Configuration</h2>
+  <p class="lead">Every progression number lives in <code>src/content/gameConfig.ts</code> (typed as <code>GameConfig</code>). Change a value, not code. <code>createGame</code> validates the configuration and refuses to start with a list of problems. The full variable reference is <code>docs/CONFIG.md</code>.</p>
+  <div class="card scroll"><table>
+    <thead><tr><th>Section</th><th>Variables</th><th>Effect</th></tr></thead><tbody>
+    <tr><td><code>actions[]</code></td><td>baseDurationMs, reward, rewardKind?, rewardPerNetworkNode?, heatPerRun?, requiredAccessLevel?, xpPerRun, levels?, speedScaling?</td><td>Per action: run time, credits and XP per run, optional own level rule / speed scaling</td></tr>
+    <tr><td><code>buyables[]</code></td><td>cost, effect (autoRun | outputMultiplier + factor), requires?, maxPurchases?, costGrowth?</td><td>Per buyable: price, what it does, gating, repeatability, price growth per copy</td></tr>
+    <tr><td><code>progression</code></td><td>runsPerSleeveXp, sleeveXpPerGrant, actionLevels, sleeveLevels, startingCredits</td><td>XP and level thresholds, sleeve XP rate, starting credits</td></tr>
+    <tr><td><code>speed</code></td><td>actionLevel, sleeveLevel (linear perLevel | exponential base)</td><td>How much each level is worth as a speed multiplier</td></tr>
+    <tr><td><code>global</code></td><td>speedMultiplier, rewardMultiplier, xpMultiplier, costMultiplier</td><td>Broad levers: one number scales all speed, rewards, XP or prices</td></tr>
+    <tr><td><code>engine</code></td><td>maxBatchesPerTick</td><td>Safety cap on run batches per action per tick</td></tr>
+    <tr><td><code>runtime</code></td><td>stepMs, maxDeltaMs, autosaveMs, fastForwardFactor</td><td>Timer step, gap cap (no offline progress), autosave interval, test fast-forward factor</td></tr>
+    </tbody></table>
+    <p class="tip">Derive a variant for experiments with <code>createConfig(gameConfig, { global: { speedMultiplier: 10 } })</code>. Unit tests use their own fixed config (<code>src/testing/testConfig.ts</code>), so retuning the game never breaks them.</p></div>
+</section>
+
+<section id="state">
+  <h2>State lifetimes</h2>
+  <p class="lead">What survives a re-sleeve, a reload, and a new game.</p>
+  <div class="card scroll"><table id="lifeTable"></table>
+    <p class="tip"><b style="color:var(--ok)">&#10003;</b> kept &nbsp; <b style="color:var(--warn)">&#10007;</b> reset. Saves are versioned JSON (<code>SAVE_VERSION</code> = 3; versions 1 and 2 still load, their global sleeve XP moves to the first action) with numbers as strings; unknown ids are ignored and corrupt saves load as a fresh game.</p></div>
+</section>
+
+<section id="tick">
+  <h2>Tick loop</h2>
+  <p class="lead">Timer-driven so it keeps running in background tabs.</p>
+  <div class="card scroll"><svg viewBox="0 0 900 790" role="img" aria-label="Tick loop"><g id="tickSvg"></g></svg></div>
+</section>
+
+<section id="calls">
+  <h2>Runtime call graph</h2>
+  <p class="lead">Who calls whom at runtime (curated; the module-level view above is generated). Hover or tap a node.</p>
+  <div class="card scroll"><svg id="cg" role="img" aria-label="Runtime call graph"></svg>
+    <div class="legend" id="cgLegend"></div></div>
+</section>
+
+<section id="funcs">
+  <h2>Function reference</h2>
+  <p class="lead">Generated from the TSDoc comments in <code>src/</code>. Expand a row for parameters, return value and call relations.</p>
+  <input type="search" id="q" placeholder="Search name, summary or file...">
+  <div class="chips" id="modChips"></div>
+  <div class="chips" id="kindChips"></div>
+  <div class="card scroll"><table>
+    <thead><tr><th>Symbol</th><th>Location</th><th>Summary</th></tr></thead>
+    <tbody id="ftbody"></tbody></table>
+    <p class="tip" id="fcount"></p></div>
+</section>
+
+<section id="tests">
+  <h2>Tests</h2>
+  <p class="lead">Results of the Vitest run made when this page was generated.</p>
+  <div class="card" id="testBox"></div>
+</section>
+
+<section id="risks">
+  <h2>Assumptions &amp; known limitations</h2>
+  <p class="lead">Decisions awaiting confirmation (see <code>DESIGN.md</code>) and honest gaps.</p>
+  <div class="grid g2" id="riskGrid"></div>
+</section>
+
+</main>
+<script>
+(function(){
+"use strict";
+var DATA = "__DATA__";
+var NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent,text){
+  var e=document.createElementNS(NS,tag);
+  for(var k in attrs) e.setAttribute(k,attrs[k]);
+  if(text!=null) e.textContent=text;
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+var COLOR={numbers:"var(--c-numbers)",core:"var(--c-core)",content:"var(--c-content)",app:"var(--c-app)",ui:"var(--c-ui)","(entry)":"var(--c-entry)"};
+function legend(id,items){
+  document.getElementById(id).innerHTML=items.map(function(i){return "<span><i style='background:"+i[1]+"'></i>"+i[0]+"</span>";}).join("");
+}
+
+/* theme + nav */
+var root=document.documentElement;
+try{var th=localStorage.getItem("cs-theme"); if(th) root.setAttribute("data-theme",th);}catch(e){}
+document.getElementById("theme").onclick=function(){
+  var dark=root.getAttribute("data-theme")==="dark"||(!root.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme: dark)").matches);
+  var n=dark?"light":"dark"; root.setAttribute("data-theme",n);
+  try{localStorage.setItem("cs-theme",n);}catch(e){}
+};
+var links=[].slice.call(document.querySelectorAll("nav a"));
+var secs=links.map(function(a){return document.querySelector(a.getAttribute("href"));});
+addEventListener("scroll",function(){
+  var y=scrollY+90,cur=0;
+  secs.forEach(function(s,i){if(s.offsetTop<=y)cur=i;});
+  links.forEach(function(a,i){a.classList.toggle("on",i===cur);});
+},{passive:true});
+
+/* generic highlight graph */
+function drawGraph(svg,spec){
+  var W=1000,n=spec.cols.length,colW=W/n,nodeW=Math.min(168,colW-34),nodeH=24,rowH=36;
+  var counts=spec.cols.map(function(){return 0;}),pos={},maxRows=0;
+  spec.nodes.forEach(function(nd){pos[nd.id]={col:nd.col,row:counts[nd.col]++}; });
+  counts.forEach(function(c){maxRows=Math.max(maxRows,c);});
+  spec.nodes.forEach(function(nd){
+    var p=pos[nd.id],off=(maxRows-counts[p.col])*rowH/2;
+    p.x=p.col*colW+(colW-nodeW)/2; p.y=52+off+p.row*rowH;
+  });
+  var H=52+maxRows*rowH+24; svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  spec.cols.forEach(function(c,i){el("text",{x:i*colW+colW/2,y:24,"text-anchor":"middle","font-size":12,"font-weight":700,class:"mut"},svg,c.toUpperCase());});
+  var eg=el("g",{},svg),ng=el("g",{},svg),edges=[],nodes={};
+  spec.edges.forEach(function(e){
+    var a=pos[e[0]],b=pos[e[1]]; if(!a||!b||e[0]===e[1]) return;
+    var d,y1=a.y+nodeH/2,y2=b.y+nodeH/2;
+    if(a.col===b.col){
+      var bow=26+Math.abs(a.row-b.row)*3; var x=a.x+nodeW;
+      d="M"+x+" "+y1+" C"+(x+bow)+" "+y1+" "+(x+bow)+" "+y2+" "+x+" "+y2;
+    } else if(b.col>a.col){
+      var x1=a.x+nodeW,x2=b.x,m=(x1+x2)/2; d="M"+x1+" "+y1+" C"+m+" "+y1+" "+m+" "+y2+" "+x2+" "+y2;
+    } else {
+      var x3=a.x,x4=b.x+nodeW,m2=(x3+x4)/2; d="M"+x3+" "+y1+" C"+m2+" "+y1+" "+m2+" "+y2+" "+x4+" "+y2;
+    }
+    var p=el("path",{d:d,class:"edge"+(e[2]?" re":"")},eg); edges.push({p:p,a:e[0],b:e[1]});
+  });
+  spec.nodes.forEach(function(nd){
+    var p=pos[nd.id];
+    var g=el("g",{class:"node",tabindex:0},ng);
+    el("title",{},g,nd.title||nd.label);
+    el("rect",{x:p.x,y:p.y,width:nodeW,height:nodeH,rx:6,fill:"var(--panel)",stroke:nd.color,"stroke-width":1.8},g);
+    var label=nd.label; if(label.length>26) label=label.slice(0,25)+"…";
+    el("text",{x:p.x+nodeW/2,y:p.y+16,"text-anchor":"middle","font-size":11.5},g,label);
+    nodes[nd.id]=g;
+    function on(){
+      var rel={}; rel[nd.id]=1;
+      edges.forEach(function(e){
+        var hit=e.a===nd.id||e.b===nd.id;
+        e.p.classList.toggle("hi",hit); e.p.classList.toggle("dim",!hit);
+        if(hit){rel[e.a]=1;rel[e.b]=1;}
+      });
+      Object.keys(nodes).forEach(function(k){nodes[k].classList.toggle("dim",!rel[k]);});
+    }
+    function off(){
+      edges.forEach(function(e){e.p.classList.remove("hi","dim");});
+      Object.keys(nodes).forEach(function(k){nodes[k].classList.remove("dim");});
+    }
+    g.addEventListener("mouseenter",on);g.addEventListener("mouseleave",off);
+    g.addEventListener("focus",on);g.addEventListener("blur",off);g.addEventListener("click",on);
+  });
+}
+
+/* meta + stats */
+(function(){
+  var d=DATA;
+  document.getElementById("meta").textContent="Generated "+d.generatedAt.replace("T"," ").slice(0,16)+" UTC · package v"+d.packageVersion+" · run `npm run docs` to refresh";
+  var srcLines=d.files.reduce(function(n,f){return n+f.lines;},0);
+  var syms=d.files.reduce(function(n,f){return n+f.symbols.length;},0);
+  var cov=d.coverage.exported?Math.round(100*d.coverage.documented/d.coverage.exported):100;
+  var items=[
+    [d.files.length,"source files ("+srcLines+" lines)"],
+    [syms,"symbols extracted (classes, functions, methods, types)"],
+    [d.tests.ran?d.tests.passed+"/"+d.tests.total:"n/a","unit tests passing"],
+    [cov+"%","exported symbols with a doc comment ("+d.coverage.documented+"/"+d.coverage.exported+")"]
+  ];
+  document.getElementById("stats").innerHTML=items.map(function(i){return "<div class='card stat'><b>"+i[0]+"</b><span>"+i[1]+"</span></div>";}).join("");
+})();
+
+/* module dependency graph (generated) */
+(function(){
+  var order=["(entry)","ui","app","content","core","numbers"];
+  var nodes=[],edges=[];
+  var sorted=DATA.files.slice().sort(function(a,b){
+    var m=order.indexOf(a.module)-order.indexOf(b.module);
+    return m||a.path.localeCompare(b.path);
+  });
+  sorted.forEach(function(f){
+    nodes.push({id:f.path,label:f.path.split("/").pop(),title:f.path+" — "+(f.moduleDoc||"").split("\n")[0],col:order.indexOf(f.module),color:COLOR[f.module]});
+  });
+  DATA.files.forEach(function(f){
+    f.imports.forEach(function(i){ if(i.target) edges.push([f.path,i.target,i.reexport]); });
+  });
+  drawGraph(document.getElementById("depGraph"),{cols:order.map(function(o){return o==="(entry)"?"entry":o+"/";}),nodes:nodes,edges:edges});
+  legend("depLegend",order.map(function(o){return [o==="(entry)"?"entry":o+"/",COLOR[o]];}).concat([["dashed = barrel re-export","var(--line)"]]));
+
+  var rows="";
+  sorted.forEach(function(f){
+    var imps=f.imports.map(function(i){return i.target?"<code>"+esc(i.target)+"</code>":"<code>"+esc(i.spec)+"</code>";}).join(", ");
+    rows+="<tr><td><code>"+esc(f.path)+"</code></td><td>"+f.lines+"</td><td>"+esc((f.moduleDoc||"").split("\n\n")[0].replace(/\n/g," "))+"</td><td style='font-size:12.5px'>"+(imps||"&ndash;")+"</td></tr>";
+  });
+  DATA.cssFiles.forEach(function(f){rows+="<tr><td><code>"+esc(f.path)+"</code></td><td>"+f.lines+"</td><td>Styles</td><td>&ndash;</td></tr>";});
+  document.getElementById("fileRows").innerHTML=rows;
+})();
+
+/* layered architecture (curated) */
+(function(){
+  var g=document.getElementById("archSvg");
+  el("defs",{},g).innerHTML='<marker id="am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>';
+  function box(x,y,w,h,title,lines,c){
+    el("rect",{x:x,y:y,width:w,height:h,rx:9,fill:"var(--panel)",stroke:c,"stroke-width":2},g);
+    el("rect",{x:x,y:y,width:w,height:24,rx:9,fill:c,opacity:.18},g);
+    el("text",{x:x+w/2,y:y+17,"text-anchor":"middle","font-size":13,"font-weight":700},g,title);
+    lines.forEach(function(l,i){el("text",{x:x+w/2,y:y+43+i*16,"text-anchor":"middle","font-size":11.5,class:"mut"},g,l);});
+  }
+  function port(x,y,w,label,c){
+    el("rect",{x:x,y:y,width:w,height:22,rx:11,fill:"none",stroke:c,"stroke-width":1.5,"stroke-dasharray":"4 3"},g);
+    el("text",{x:x+w/2,y:y+15,"text-anchor":"middle","font-size":11},g,label);
+  }
+  function arrow(x1,y1,x2,y2,dash){
+    el("path",{d:"M"+x1+" "+y1+" L"+x2+" "+y2,stroke:"var(--muted)","stroke-width":1.6,fill:"none","marker-end":"url(#am)","stroke-dasharray":dash||""},g);
+  }
+  // Browser
+  box(20,10,920,60,"Browser",["DOM · setTimeout · localStorage · service worker / manifest (PWA)"],"var(--muted)");
+  // main
+  box(20,95,920,52,"main.ts  (entry / wiring)",["loads save, builds engine, starts loop, mounts UI, autosave"],COLOR["(entry)"]);
+  // ui + app
+  box(20,175,440,100,"ui/",["viewModel.ts: state → display data (pure, tested)","dom.ts: builds DOM once, updates text per step","style.css"],COLOR.ui);
+  box(500,175,440,100,"app/",["createGame (composition root) · GameLoop","SaveGame (keeps a backup of unreadable saves) · SpeedToggle (x10 test aid) · new-game handler"],COLOR.app);
+  port(540,285,120,"Scheduler",COLOR.app); port(680,285,140,"KeyValueStore",COLOR.app); port(840,285,100,"Tickable",COLOR.app);
+  // core
+  box(20,330,600,150,"core/  (pure game rules)",["GameEngine – orchestrates tick, buy, re-sleeve","Progression · Shop · Economy · effects · speed · level · state","serialization · heat · overflow policy · types · resleeve policy"],COLOR.core);
+  port(40,445,130,"SpeedModifier",COLOR.core); port(190,445,150,"ResleevePolicy",COLOR.core);
+  box(660,340,280,80,"content/",["gameConfig.ts – actions, buyables, tuning (data)"],COLOR.content);
+  // numbers
+  box(20,505,920,50,"numbers/   BigNum – NumberFactory – formatBigNum  →  BreakInfinityNum adapter (only importer of break_infinity.js)",[],COLOR.numbers);
+  arrow(480,70,480,95); arrow(240,147,240,175); arrow(720,147,720,175);
+  arrow(460,225,500,225); arrow(240,275,240,330); arrow(720,310,420,380);
+  arrow(780,420,780,505); arrow(320,480,320,505);
+  el("text",{x:466,y:216,"font-size":10.5,class:"mut"},g,"reads");
+  legend("archLegend",[["entry",COLOR["(entry)"]],["ui/",COLOR.ui],["app/",COLOR.app],["core/",COLOR.core],["content/",COLOR.content],["numbers/",COLOR.numbers],["dashed = injected interface (port)","var(--line)"]]);
+})();
+
+/* SOLID */
+(function(){
+  var S=[
+   ["S – Single responsibility","Progression (XP/levels), Shop (purchases), Economy (reward and tax formulas), effects (buyable effects), speed (multiplier), serialization, GameLoop, SaveGame, SpeedToggle each have one job. GameEngine only orchestrates them."],
+   ["O – Open/closed","New speed factor = new SpeedModifier. New content or retuning = data in gameConfig.ts. New buyable effect = one union member plus one case in effects.ts."],
+   ["L – Liskov","Anything satisfying BigNum, Scheduler, KeyValueStore, ResleevePolicy or Tickable can be substituted; tests use fakes for the scheduler and storage."],
+   ["I – Interface segregation","Small ports: Scheduler (3 methods), Tickable (1), KeyValueStore (2), ResleevePolicy (1), SpeedControl (3). Consumers see only what they use."],
+   ["D – Dependency inversion","GameEngine receives Progression, Shop, modifiers, policy and number factory through its constructor; createGame is the single composition root. Game code never imports break_infinity.js."],
+   ["Testability","No global mutable state, no hidden clocks: time is an argument, storage and scheduling are injected. See the Tests section."]
+  ];
+  document.getElementById("solidGrid").innerHTML=S.map(function(s){return "<div class='card'><h3>"+s[0]+"</h3><p>"+s[1]+"</p></div>";}).join("");
+})();
+
+/* level strip */
+(function(){
+  var svg=document.getElementById("levelStrip");
+  var xs=["0","10","100","1K","10K","100K"];
+  el("line",{x1:20,y1:30,x2:500,y2:30,stroke:"var(--line)","stroke-width":3},svg);
+  xs.forEach(function(x,i){
+    var cx=40+i*88;
+    el("circle",{cx:cx,cy:30,r:9,fill:"var(--c-core)"},svg);
+    el("text",{x:cx,y:34,"text-anchor":"middle","font-size":10,fill:"#fff",style:"fill:#fff"},svg,String(i+1));
+    el("text",{x:cx,y:58,"text-anchor":"middle","font-size":11,class:"mut"},svg,x+" XP");
+  });
+})();
+
+/* state lifetimes */
+(function(){
+  var rows=[
+   ["actions[].sleeveXp, runsTowardSleeveXp",1,1,0],
+   ["credits",0,1,0],
+   ["network (nodes)",0,1,0],
+   ["actions[].xp, running, progressMs",0,1,0],
+   ["purchased (copies of auto-run, dual, duplicate processors)",0,1,0],
+   ["Speed toggle (x10)",1,0,0]
+  ];
+  var h="<thead><tr><th>Field</th><th>Re-sleeve</th><th>Reload (saved)</th><th>New game</th></tr></thead><tbody>";
+  function cell(k){return "<td style='text-align:center;font-weight:700;color:var(--"+(k?"ok":"warn")+")'>"+(k?"✓":"✗")+"</td>";}
+  rows.forEach(function(r){ h+="<tr><td>"+r[0]+"</td>"+cell(r[1])+cell(r[2])+cell(0)+"</tr>"; });
+  document.getElementById("lifeTable").innerHTML=h+"</tbody>";
+})();
+
+/* tick flow */
+(function(){
+  var g=document.getElementById("tickSvg");
+  el("defs",{},g).innerHTML='<marker id="at" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>';
+  var steps=[
+   ["Timer fires (setTimeout, 50 ms)","Keeps firing in background tabs (throttled, not stopped)","var(--c-app)"],
+   ["GameLoop.step: measure real elapsed time","delta = min(now − last, 10 min) × timeScale (x1, or x10 with the toggle)","var(--c-app)"],
+   ["GameEngine.tick(delta)","first passive income (nodes × rate × delta, after heat tax) and heat cooldown (closed form), then every unlocked action; finally the OverflowPolicy clamps any non-finite amount","var(--c-core)"],
+   ["Auto-run owned? mark action running","resolveEffects(buyables, state, action)","var(--c-core)"],
+   ["Advance progress","duration = base / (actionLevel × that action's sleeveLevel); not enough time left → progress += remaining, stop","var(--c-core)"],
+   ["Batch completes: completeRuns(n)","n runs at once, n = as many as fit in the time left but no more than reach the next level change (Progression.runsBeforeLevelChange); credits via Economy.creditsForRuns (arithmetic series for the heat tax), XP and counted runs ×n","var(--c-core)"],
+   ["Manual: stop and drop leftover. Auto: next batch","cost depends on the number of level changes, not on the number of runs; capped at maxBatchesPerTick per action per tick","var(--c-core)"],
+   ["onStep: render if page visible","buildViewModel → update DOM text; skipped while document.hidden","var(--c-ui)"],
+   ["Schedule next step; autosave every 10 s and on hide","SaveGame.save → localStorage","var(--c-app)"]
+  ];
+  var x=130,w=620,h=52,gap=22,y=8;
+  steps.forEach(function(s,i){
+    var yy=y+i*(h+gap);
+    el("rect",{x:x,y:yy,width:w,height:h,rx:8,fill:"var(--panel)",stroke:s[2],"stroke-width":2},g);
+    el("circle",{cx:x-26,cy:yy+h/2,r:13,fill:s[2],opacity:.2},g);
+    el("text",{x:x-26,y:yy+h/2+4,"text-anchor":"middle","font-size":12,"font-weight":700},g,String(i+1));
+    el("text",{x:x+14,y:yy+21,"font-size":14,"font-weight":700},g,s[0]);
+    el("text",{x:x+14,y:yy+40,"font-size":11.5,class:"mut"},g,s[1]);
+    if(i<steps.length-1) el("line",{x1:x+w/2,y1:yy+h,x2:x+w/2,y2:yy+h+gap-1,stroke:"var(--muted)","stroke-width":1.5,"marker-end":"url(#at)"},g);
+  });
+  var lastY=y+(steps.length-1)*(h+gap)+h/2;
+  el("path",{d:"M"+(x-4)+" "+lastY+" L"+(x-90)+" "+lastY+" L"+(x-90)+" "+(y+h/2)+" L"+(x-40)+" "+(y+h/2),fill:"none",stroke:"var(--muted)","stroke-width":1.5,"stroke-dasharray":"5 4","marker-end":"url(#at)"},g);
+  var inner0=y+3*(h+gap)-6,inner1=y+6*(h+gap)+h+6;
+  el("path",{d:"M"+(x+w+14)+" "+inner0+" L"+(x+w+26)+" "+inner0+" L"+(x+w+26)+" "+inner1+" L"+(x+w+14)+" "+inner1,fill:"none",stroke:"var(--c-core)","stroke-width":2},g);
+  el("text",{x:x+w+34,y:(inner0+inner1)/2-4,"font-size":12,"font-weight":700},g,"per action");
+  el("text",{x:x+w+34,y:(inner0+inner1)/2+12,"font-size":12,class:"mut"},g,"repeat while");
+  el("text",{x:x+w+34,y:(inner0+inner1)/2+28,"font-size":12,class:"mut"},g,"time remains");
+})();
+
+/* runtime call graph (curated) */
+(function(){
+  var C={app:"var(--c-app)",core:"var(--c-core)",ui:"var(--c-ui)",num:"var(--c-numbers)",entry:"var(--c-entry)"};
+  var nodes=[
+   {id:"timer",label:"setTimeout (50 ms)",col:0,color:C.entry},
+   {id:"click",label:"click handlers",col:0,color:C.entry},
+   {id:"main",label:"main.ts startup",col:0,color:C.entry},
+   {id:"step",label:"GameLoop.step",col:1,color:C.app},
+   {id:"render",label:"render (dom.ts)",col:1,color:C.ui},
+   {id:"vm",label:"buildViewModel",col:1,color:C.ui},
+   {id:"cg",label:"createGame",col:1,color:C.app},
+   {id:"validate",label:"validateConfig",col:3,color:C.core},
+   {id:"speedmods",label:"createSpeedModifiers",col:3,color:C.core},
+   {id:"save",label:"SaveGame",col:1,color:C.app},
+   {id:"tick",label:"GameEngine.tick",col:2,color:C.core},
+   {id:"start",label:"startAction",col:2,color:C.core},
+   {id:"buy",label:"GameEngine.buy",col:2,color:C.core},
+   {id:"resleeve",label:"GameEngine.resleeve",col:2,color:C.core},
+   {id:"dur",label:"currentDurationMs/Speed",col:2,color:C.core},
+   {id:"complete",label:"completeRun",col:2,color:C.core},
+   {id:"record",label:"Progression.recordRuns",col:3,color:C.core},
+   {id:"plevel",label:"Progression levels",col:3,color:C.core},
+   {id:"shop",label:"Shop.buy",col:3,color:C.core},
+   {id:"effects",label:"resolveEffects",col:3,color:C.core},
+   {id:"speed",label:"speedMultiplier",col:3,color:C.core},
+   {id:"policy",label:"ResleevePolicy",col:3,color:C.core},
+   {id:"ser",label:"(de)serializeState",col:3,color:C.core},
+   {id:"reset",label:"resetForResleeve",col:4,color:C.core},
+   {id:"init",label:"createInitialState",col:4,color:C.core},
+   {id:"lvl",label:"levelForXp / xpForNextLevel",col:4,color:C.core},
+   {id:"effdur",label:"effectiveDurationMs",col:4,color:C.core},
+   {id:"fmt",label:"formatBigNum",col:4,color:C.num},
+   {id:"big",label:"BigNum (adapter)",col:4,color:C.num}
+  ];
+  var edges=[
+   ["timer","step"],["click","start"],["click","buy"],["click","resleeve"],["main","cg"],["main","save"],["main","step"],
+   ["step","tick"],["step","render"],["render","vm"],
+   ["vm","dur"],["vm","effects"],["vm","lvl"],["vm","fmt"],
+   ["tick","effects"],["tick","dur"],["tick","complete"],
+   ["dur","plevel"],["dur","speed"],["dur","effdur"],["plevel","lvl"],
+   ["complete","record"],["complete","big"],["record","lvl"],["record","big"],
+   ["buy","shop"],["shop","big"],
+   ["resleeve","policy"],["resleeve","reset"],["reset","init"],["init","big"],
+   ["cg","init"],["cg","validate"],["cg","speedmods"],["save","ser"],["ser","init"],["ser","big"],["fmt","big"],["lvl","big"]
+  ];
+  drawGraph(document.getElementById("cg"),{cols:["Entry points","app / ui","GameEngine","Services","Pure helpers & numbers"],nodes:nodes,edges:edges});
+  legend("cgLegend",[["entry / browser",C.entry],["app",C.app],["ui",C.ui],["core",C.core],["numbers",C.num]]);
+})();
+
+/* function reference (generated) */
+(function(){
+  var all=[];
+  DATA.files.forEach(function(f){f.symbols.forEach(function(s){all.push(s);});});
+  var mods=["All"].concat(["(entry)","numbers","core","content","app","ui"].filter(function(m){return DATA.files.some(function(f){return f.module===m;});}));
+  var kinds=["All","class","interface","type","function","const","method","getter","constructor"];
+  var modByFile={}; DATA.files.forEach(function(f){modByFile[f.path]=f.module;});
+  var state={mod:"All",kind:"All",q:"",exp:false};
+  var mc=document.getElementById("modChips"),kc=document.getElementById("kindChips"),tb=document.getElementById("ftbody");
+  function chip(parent,label,key){
+    var b=document.createElement("button");b.className="chip"+(state[key]===label?" on":"");b.textContent=label;
+    b.onclick=function(){state[key]=label;[].forEach.call(parent.querySelectorAll(".chip"),function(c){c.classList.toggle("on",c.textContent===label);});render();};
+    parent.appendChild(b);
+  }
+  mods.forEach(function(m){chip(mc,m,"mod");});
+  kinds.forEach(function(k){chip(kc,k,"kind");});
+  var lab=document.createElement("label");lab.innerHTML="<input type='checkbox' id='expOnly'> exported/public only";kc.appendChild(lab);
+  lab.querySelector("input").onchange=function(e){state.exp=e.target.checked;render();};
+  document.getElementById("q").addEventListener("input",function(e){state.q=e.target.value.toLowerCase();render();});
+  function detail(s){
+    var d=s.doc; if(!d) return "<span class='badge bad'>undocumented</span>";
+    var h="<details><summary>details</summary><dl>";
+    h+="<dt>Signature</dt><dd><code>"+esc(s.signature)+"</code></dd>";
+    if(d.summary) h+="<dt>Description</dt><dd>"+esc(d.summary)+"</dd>";
+    if(d.remarks) h+="<dt>Remarks</dt><dd>"+esc(d.remarks)+"</dd>";
+    if(d.params.length) h+="<dt>Parameters</dt><dd>"+d.params.map(function(p){return "<code>"+esc(p.name)+"</code> – "+esc(p.text);}).join("\n")+"</dd>";
+    if(d.returns) h+="<dt>Returns</dt><dd>"+esc(d.returns)+"</dd>";
+    if(d.throws) h+="<dt>Throws</dt><dd>"+esc(d.throws)+"</dd>";
+    if(d.calls) h+="<dt>Calls</dt><dd>"+esc(d.calls)+"</dd>";
+    if(d.calledBy) h+="<dt>Called by</dt><dd>"+esc(d.calledBy)+"</dd>";
+    return h+"</dl></details>";
+  }
+  function render(){
+    var n=0,h="";
+    all.forEach(function(s){
+      var m=modByFile[s.file];
+      if(state.mod!=="All"&&m!==state.mod) return;
+      if(state.kind!=="All"&&s.kind!==state.kind) return;
+      if(state.exp&&!s.exported) return;
+      var sum=s.doc?s.doc.summary.split("\n\n")[0].replace(/\n/g," "):"";
+      if(state.q&&((s.name+" "+(s.owner||"")+" "+sum+" "+s.file).toLowerCase().indexOf(state.q)<0)) return;
+      n++;
+      h+="<tr><td><span class='badge'>"+s.kind+"</span><code>"+esc((s.owner?s.owner+".":"")+s.name)+"</code>"+(s.exported?"":" <span class='badge'>internal</span>")+"</td>"+
+         "<td style='white-space:nowrap'><code>"+esc(s.file)+":"+s.line+"</code></td><td>"+esc(sum)+detail(s)+"</td></tr>";
+    });
+    tb.innerHTML=h;
+    document.getElementById("fcount").textContent=n+" of "+all.length+" symbols shown · documentation coverage of exported symbols: "+DATA.coverage.documented+"/"+DATA.coverage.exported+
+      (DATA.undocumented.length?" · missing: "+DATA.undocumented.join(", "):"");
+  }
+  render();
+})();
+
+/* tests */
+(function(){
+  var t=DATA.tests,box=document.getElementById("testBox");
+  if(!t.ran){box.innerHTML="<p>Tests were not run when this page was generated.</p>";return;}
+  var h="<p><span class='badge "+(t.failed?"bad":"ok")+"'>"+(t.failed?t.failed+" failing":"all passing")+"</span> <b>"+t.passed+"</b> of <b>"+t.total+"</b> tests passed. Run with <code>npm test</code>.</p>";
+  t.files.slice().sort(function(a,b){return a.file.localeCompare(b.file);}).forEach(function(f){
+    var count=f.groups.reduce(function(n,g){return n+g.tests.length;},0);
+    h+="<details class='tgroup' open><summary><code>"+esc(f.file)+"</code> – "+count+" tests</summary>";
+    f.groups.forEach(function(g){
+      h+="<div class='tgroup'><b>"+esc(g.name)+"</b><ul class='tlist'>"+g.tests.map(function(x){
+        return "<li class='"+(x.status==="passed"?"t-pass":"t-fail")+"'>"+(x.status==="passed"?"✓ ":"✗ ")+esc(x.title)+"</li>";
+      }).join("")+"</ul></div>";
+    });
+    h+="</details>";
+  });
+  box.innerHTML=h;
+})();
+
+/* risks */
+(function(){
+  var R=[
+   ["assume","Assumption: sleeve-XP counter","Sleeve XP is granted in whole points from a run counter that survives re-sleeving. Awaiting confirmation."],
+   ["assume","Assumption: dual processors","The ×2 output multiplier also doubles XP and counted runs (two parallel runs = two completed actions), not just credits."],
+   ["assume","Assumption: purchases reset on re-sleeve","Buyables are one-time and are lost on re-sleeve. Easy to change if they should persist."],
+   ["assume","Open: re-sleeve requirement","Currently always allowed (replaceable ResleevePolicy) so the mechanic can be tested."],
+   ["risk","Background throttling","Browsers throttle timers in hidden tabs (about 1 call/s, later about 1/min). The loop simulates the full real-time gap, so nothing is lost, but updates are coarse. Gaps over 10 minutes are capped."],
+   ["risk","No offline progress (deferred)","Closing the app or sleeping the device stops progress beyond the 10-minute cap. Out of scope for now by decision; the save has no timestamp yet, which the future mechanic will need (save format v4)."],
+   ["risk","Untested glue","dom.ts and main.ts are thin and not unit-tested. The target is desktop browsers for now; the PWA build still works but mobile layout and install flow are out of scope."],
+   ["risk","Extreme tuning","Exponential level scaling or very large global.speedMultiplier can push speed beyond the double range (duration 0); the per-tick batch cap then limits the damage, but such settings are not meaningful. validateConfig only checks basic ranges, not whether the progression is fun."],
+   ["risk","Number precision","Runs counter and level numbers are plain JS numbers (exact up to 2^53). BigNum keeps about 15 significant digits, so tiny additions to huge values are absorbed by design. Overflow (exponent ≥ 9e15) is reported by isFinite() and repaired every tick by the default OverflowPolicy (clamp to the largest finite value); the real reaction, the "infinity" prestige, is not designed yet."],
+   ["risk","Test aids in production","The Speed x10 toggle, the Reset save button (wipes everything, no confirmation) and the always-allowed Re-sleeve button (two clicks to confirm) are visible to every player and must be removed or hidden before release."],
+   ["risk","Tick granularity","Passive income and heat cooling use the nodes and heat at the START of a tick, and heat added by runs only starts cooling on the next tick. Results therefore differ slightly with tick size (a 50 ms step versus one long tick) by design; run results themselves are exact either way (tests compare both)."],
+   ["risk","Doc generator limits","This page is built by parsing the sources with the TypeScript compiler API, using an aliased TypeScript 5 (typescript5) because the project itself compiles with TypeScript 7, which has no JavaScript API. Only top-level declarations and class members are read; the doc-comment format is a leading block comment with TSDoc tags plus Called by:/Calls: lines. The coverage figure and the undocumented list show what was found."]
+  ];
+  document.getElementById("riskGrid").innerHTML=R.map(function(r){return "<div class='card "+(r[0]==="risk"?"risk":"assume")+"'><h3>"+r[1]+"</h3><p>"+r[2]+"</p></div>";}).join("");
+})();
+})();
+</script>
+</body>
+</html>

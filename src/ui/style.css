@@ -1,0 +1,275 @@
+:root {
+  --bg: #0b0f1a;
+  --panel: #141a2b;
+  --ink: #e6f1ff;
+  --muted: #8da2c0;
+  --cyan: #19e3ff;
+  --magenta: #ff2bd6;
+  --line: #26304d;
+  --teal: #14a89a;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font:
+    16px / 1.4 system-ui,
+    sans-serif;
+}
+#app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px;
+  align-items: start;
+}
+.actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+.action.empty {
+  min-height: 120px;
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.5;
+}
+.sleeve-widget {
+  display: grid;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.sleeve-widget h2 {
+  margin: 0;
+}
+.stats {
+  display: grid;
+  gap: 4px;
+}
+.stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.stat-label {
+  color: var(--muted);
+}
+.stat-value {
+  font-weight: 700;
+  color: var(--cyan);
+}
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+header {
+  display: grid;
+  gap: 2px;
+}
+.credits {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+.network {
+  color: var(--muted);
+  font-size: 14px;
+}
+section {
+  display: grid;
+  gap: 10px;
+}
+h2 {
+  margin: 6px 0 0;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+button {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button:not(:disabled):hover {
+  border-color: var(--cyan);
+}
+.action {
+  display: grid;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.action-main {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+.action-main:not(:disabled):hover {
+  border-color: transparent;
+}
+.action-title {
+  font-weight: 700;
+}
+.action-info,
+.action-reward {
+  color: var(--muted);
+  font-size: 13px;
+}
+.bar {
+  height: 12px;
+  background: #0a0e18;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--cyan), var(--magenta));
+}
+.xp {
+  display: grid;
+  gap: 2px;
+}
+.xp-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.xp-bar {
+  height: 6px;
+  background: #1b2030;
+  border: 1px solid #2c3345;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.xp-fill {
+  height: 100%;
+  width: 0;
+  background: var(--teal);
+}
+.action.running {
+  border-color: var(--magenta);
+}
+.action.locked {
+  opacity: 0.55;
+  border-style: dashed;
+}
+.upgrades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sleeve-widget .upgrade:hover::after,
+.sleeve-widget .upgrade:focus-visible::after {
+  left: auto;
+  right: 0;
+}
+.upgrades:empty {
+  display: none;
+}
+.upgrade {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  text-align: center;
+  font-weight: 700;
+  line-height: 42px;
+}
+.upgrade.owned {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.upgrade:hover::after,
+.upgrade:focus-visible::after {
+  content: attr(data-tip);
+  white-space: pre-line;
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  width: max-content;
+  max-width: 240px;
+  padding: 8px 10px;
+  border: 1px solid var(--cyan);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  pointer-events: none;
+}
+.upgrade:disabled {
+  opacity: 1;
+  color: #5b6b86;
+} /* dimmed by colour, not opacity, so the tooltip stays readable */
+.resleeve-row {
+  display: flex;
+  gap: 8px;
+}
+.resleeve {
+  flex: 1;
+  border-color: var(--magenta);
+  text-align: center;
+}
+.resleeve.armed {
+  background: var(--magenta);
+  color: var(--bg);
+  font-weight: 700;
+}
+.resleeve-cancel[hidden] {
+  display: none;
+}
+.corner-controls {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+.corner-controls button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.speed-toggle.on {
+  border-color: var(--magenta);
+  color: var(--magenta);
+}
+.reset-save {
+  border-color: var(--magenta);
+}

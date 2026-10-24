@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Derivative Clicker Architecture</title>
+<style>
+:root{
+  --bg:#f6f7fb; --panel:#ffffff; --ink:#1c2233; --muted:#5d667d; --line:#d9dded;
+  --accent:#4a5fd6; --c-data:#7a5cd6; --c-logic:#2a8f6a; --c-ui:#d6812a; --c-io:#2a7fb8; --c-loop:#c9453f; --c-util:#7b8294;
+  --warn:#b8541b; --code:#eef0f8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12151f; --panel:#1b2030; --ink:#e6e9f5; --muted:#99a1ba; --line:#2f3650;
+    --accent:#8a9bff; --c-data:#a58cff; --c-logic:#4fd1a0; --c-ui:#f2a45a; --c-io:#5db8f0; --c-loop:#ff7a73; --c-util:#98a0b6;
+    --warn:#f09a63; --code:#252b40;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12151f; --panel:#1b2030; --ink:#e6e9f5; --muted:#99a1ba; --line:#2f3650;
+  --accent:#8a9bff; --c-data:#a58cff; --c-logic:#4fd1a0; --c-ui:#f2a45a; --c-io:#5db8f0; --c-loop:#ff7a73; --c-util:#98a0b6;
+  --warn:#f09a63; --code:#252b40;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+code,.mono{font-family:ui-monospace,Consolas,"Cascadia Mono",monospace;font-size:.88em}
+code{background:var(--code);padding:1px 5px;border-radius:4px}
+header{padding:28px 16px 8px;max-width:1100px;margin:0 auto}
+h1{margin:0 0 4px;font-size:28px}
+.sub{color:var(--muted);margin:0}
+nav{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .in{max-width:1100px;margin:0 auto;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;align-items:center}
+nav a{white-space:nowrap;color:var(--muted);text-decoration:none;padding:4px 10px;border-radius:14px;font-size:13px}
+nav a:hover,nav a.on{background:var(--panel);color:var(--accent)}
+nav button{margin-left:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:3px 10px;cursor:pointer;font-size:12px}
+main{max-width:1100px;margin:0 auto;padding:0 16px 60px}
+section{margin-top:36px;scroll-margin-top:56px}
+h2{font-size:21px;margin:0 0 4px}
+.lead{color:var(--muted);margin:0 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,1fr)} .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:800px){.g4,.g3{grid-template-columns:repeat(2,1fr)} .g2{grid-template-columns:1fr}}
+@media(max-width:480px){.g4,.g3{grid-template-columns:1fr}}
+.stat b{display:block;font-size:26px;color:var(--accent)} .stat span{color:var(--muted);font-size:13px}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.scroll{overflow-x:auto}
+svg{display:block;width:100%;height:auto}
+svg text{fill:var(--ink);font-family:system-ui,sans-serif}
+svg .mut{fill:var(--muted)}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;color:#fff;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 0;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.risk{border-left:4px solid var(--warn)}
+.risk h3,.card h3{margin:0 0 4px;font-size:15px}
+.risk p,.card p{margin:0;color:var(--muted)}
+input[type=search]{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:14px;margin-bottom:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:3px 11px;cursor:pointer;font-size:12px}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.bgrid{display:grid;grid-template-columns:70px repeat(5,1fr);gap:4px;font-size:12px}
+.bgrid div{padding:7px 6px;border-radius:6px;background:var(--code);min-height:46px}
+.bgrid .h{background:none;font-weight:700;color:var(--muted);min-height:0;text-transform:uppercase;font-size:11px}
+.bgrid .t{background:none;font-weight:700;display:flex;align-items:center}
+.bgrid small{display:block;color:var(--muted);font-size:10.5px}
+.s0{border-left:3px solid var(--c-logic)} .s1{border-left:3px solid var(--c-io)} .s2{border-left:3px solid var(--c-ui)} .s3{border-left:3px solid var(--c-data)} .s4{border-left:3px solid var(--c-loop)}
+.node{cursor:pointer}
+.edge{fill:none;stroke:var(--line);stroke-width:1.2;transition:.15s}
+.edge.hi{stroke:var(--accent);stroke-width:2.2}
+.edge.dim,.node.dim{opacity:.15}
+.tip{color:var(--muted);font-size:13px;margin-top:8px}
+@media print{nav{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Derivative Clicker &ndash; Architecture Overview</h1>
+  <p class="sub">Source: <code>C:\Code\DerivativeClicker-gh-pages</code> &middot; version 0.341 (Jan 2015) &middot; static client-only incremental game</p>
+</header>
+<nav><div class="in">
+  <a href="#summary">Summary</a><a href="#files">Files</a><a href="#arch">Architecture</a><a href="#model">Domain model</a>
+  <a href="#state">State lifetimes</a><a href="#tick">Tick loop</a><a href="#calls">Call graph</a><a href="#funcs">Function reference</a><a href="#risks">Risks</a>
+  <button id="theme">Toggle theme</button>
+</div></nav>
+<main>
+
+<section id="summary">
+  <h2>At a glance</h2>
+  <p class="lead">No build step, no backend. One mutable global <code>player</code> object, saved to <code>localStorage</code>, drives everything.</p>
+  <div class="grid g4">
+    <div class="card stat"><b>~1,700</b><span>lines of JS across 4 files</span></div>
+    <div class="card stat"><b>~50</b><span>named functions in script.js</span></div>
+    <div class="card stat"><b>35</b><span>buildings (7 tiers &times; 5 slots)</span></div>
+    <div class="card stat"><b>24</b><span>reset-currency buyables, 31 achievements</span></div>
+  </div>
+  <div class="grid g3" style="margin-top:12px">
+    <div class="card"><h3>Single global state</h3><p><code>player</code> plus small globals <code>globalMult</code>, <code>numTiers</code>, <code>enableChart</code>, <code>isActive</code>.</p></div>
+    <div class="card"><h3>Imperative tick loop</h3><p><code>update()</code> reschedules itself with <code>setTimeout</code>; rendering re-templates and replaces innerHTML.</p></div>
+    <div class="card"><h3>Two prestige layers</h3><p>Tier resets (reset currency) and an infini-reset triggered when money overflows to <code>Infinity</code>.</p></div>
+  </div>
+</section>
+
+<section id="files">
+  <h2>File map &amp; load order</h2>
+  <p class="lead">All scripts share the global scope, so order matters.</p>
+  <div class="card scroll" style="margin-bottom:12px">
+  <svg viewBox="0 0 900 120" role="img" aria-label="Script load order">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+    <g id="loadOrder"></g>
+  </svg>
+  <p class="tip"><code>data.js</code> needs the constructors; <code>script.js</code> needs <code>startPlayer</code> and the templates already in the DOM; <code>charts.js</code> needs <code>player</code> and <code>displayNum</code>. Quirk: <code>startPlayer</code> reads <code>versionNum</code> before its <code>var</code> line runs (hoisted &rarr; <code>undefined</code>); <code>versionControl</code> repairs it.</p>
+  </div>
+  <div class="card scroll"><table>
+    <thead><tr><th>File</th><th>Lines</th><th>Role</th></tr></thead>
+    <tbody>
+    <tr><td><code>index.html</code></td><td>746</td><td>Layout, 5 jQuery-UI tabs, Underscore <code>&lt;script type="text/template"&gt;</code> templates, inline <code>onclick</code> handlers, script loading</td></tr>
+    <tr><td><code>js/script.js</code></td><td>1160</td><td>All game logic: economy, save/load, resets, rendering, purchases, tick loop</td></tr>
+    <tr><td><code>js/data.js</code></td><td>199</td><td><code>startPlayer</code>, <code>resetPlayer</code>, <code>infiniResetPlayer</code>, constants</td></tr>
+    <tr><td><code>js/charts.js</code></td><td>124</td><td>Highcharts &ldquo;Money vs Time&rdquo; graph and its settings</td></tr>
+    <tr><td><code>js/building.js</code></td><td>27</td><td>Constructors <code>Building</code>, <code>CurrBuyable</code>, <code>Achievement</code></td></tr>
+    <tr><td><code>newplayer.html</code>, <code>guide.css</code></td><td>171</td><td>Static &ldquo;How to Play&rdquo; guide</td></tr>
+    <tr><td>CSS &amp; <code>img/</code></td><td>&ndash;</td><td>Game styling, jQuery-UI theme, tooltipster; donate images</td></tr>
+    </tbody></table>
+    <p class="tip">Libraries: jQuery 1.10.2, jQuery UI 1.10.4, Underscore, Highcharts, Tooltipster 3.0.5, Google Analytics. <code>js/libs/*</code> is referenced but absent from the repo; the CDN copies, loaded as well, make it work (so each library is requested twice).</p>
+  </div>
+</section>
+
+<section id="arch">
+  <h2>Architecture</h2>
+  <p class="lead">Data flows from user input and the timer into one state object, then out to the DOM.</p>
+  <div class="card scroll">
+  <svg viewBox="0 0 960 470" role="img" aria-label="Architecture diagram">
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>
+    </defs>
+    <g id="archSvg"></g>
+  </svg>
+  <div class="legend">
+    <span><i style="background:var(--c-data)"></i>Data / state</span><span><i style="background:var(--c-logic)"></i>Game logic</span>
+    <span><i style="background:var(--c-ui)"></i>Rendering / DOM</span><span><i style="background:var(--c-io)"></i>Persistence &amp; IO</span><span><i style="background:var(--c-loop)"></i>Timers</span>
+  </div></div>
+</section>
+
+<section id="model">
+  <h2>Domain model</h2>
+  <p class="lead"><code>player.buildings[0..34]</code>: index = <code>5 &times; tier + slot</code>. Slot decides behaviour; hover a cell for detail.</p>
+  <div class="card scroll"><div class="bgrid" id="bgrid" style="min-width:640px"></div>
+    <div class="legend">
+      <span><i style="background:var(--c-logic)"></i>0 Derivative: money (tier 1), feeds lower tier</span>
+      <span><i style="background:var(--c-io)"></i>1 Proof maker: money &rarr; proofs</span>
+      <span><i style="background:var(--c-ui)"></i>2 Proof-cost building (&times;3 growth)</span>
+      <span><i style="background:var(--c-data)"></i>3 Clicker: money per click</span>
+      <span><i style="background:var(--c-loop)"></i>4 Mathematician: tick speed and reset currency</span>
+    </div>
+  </div>
+  <div class="grid g2" style="margin-top:12px">
+    <div class="card"><h3>Building record</h3>
+      <p><code>Building(factor, moneyCost, proofCost)</code> &rarr; <code>{owned, manual, factor, moneyCost, proofCost}</code>. <code>owned</code> includes generated units; <code>manual</code> counts only purchased ones and feeds <code>calcMult</code>. Cost grows geometrically; bulk price = <code>price &times; (f<sup>n</sup>&minus;1)/(f&minus;1)</code>.</p></div>
+    <div class="card"><h3>Reset-currency buyables (24)</h3>
+      <p>4 columns &times; 6 tiers, each requires the one below it:<br>unlock tiers 5&ndash;7 &amp; cost-factor cuts &middot; click improvers &middot; building-tick cuts &middot; autoclick-tick cuts &amp; conversion-factor cuts. Stored column-major, displayed row-major.</p></div>
+  </div>
+  <div class="card" style="margin-top:12px"><h3>Multiplier formulas</h3>
+    <p class="mono">mult[t] = 1 + tierUpgrades[t] &times; f[t] &times; &Sigma; manual(tier t)&nbsp;&nbsp;&nbsp;f = [.0005, .002, .005, .01, .02, .04, .06]<br>
+    globalMult[t] = 1 + resetCurr[t] &times; 0.01<br>
+    updateInterval = 1000 &times; 0.98^ln(mathematicians &times; mult[0] &times; globalMult[0] + 1)</p></div>
+</section>
+
+<section id="state">
+  <h2>State lifetimes</h2>
+  <p class="lead">Which <code>player</code> fields survive each kind of reset (the init objects are merged over <code>player</code> with <code>$.extend(true, …)</code>).</p>
+  <div class="card scroll"><table id="lifeTable"></table>
+    <p class="tip">Legend: <b style="color:var(--c-logic)">&#10003;</b> kept &nbsp; <b style="color:var(--c-loop)">&#10007;</b> reset to starting value.</p></div>
+</section>
+
+<section id="tick">
+  <h2>Tick loop</h2>
+  <p class="lead"><code>update()</code> &ndash; every <code>updateInterval &times; timeMult</code> ms.</p>
+  <div class="card scroll">
+  <svg viewBox="0 0 900 760" role="img" aria-label="Tick loop flowchart"><g id="tickSvg"></g></svg>
+  </div>
+</section>
+
+<section id="calls">
+  <h2>Call graph</h2>
+  <p class="lead">Hover or tap a function to highlight what it calls and who calls it.</p>
+  <div class="card scroll"><svg id="cg" viewBox="0 0 1000 640" role="img" aria-label="Call graph"></svg>
+  <div class="legend" id="cgLegend"></div></div>
+</section>
+
+<section id="funcs">
+  <h2>Function reference</h2>
+  <p class="lead">Every function and method, grouped by responsibility.</p>
+  <input type="search" id="q" placeholder="Search by name or description...">
+  <div class="chips" id="chips"></div>
+  <div class="card scroll"><table>
+    <thead><tr><th>Symbol</th><th>File</th><th>Group</th><th>What it does</th></tr></thead>
+    <tbody id="ftbody"></tbody></table>
+    <p class="tip" id="fcount"></p></div>
+</section>
+
+<section id="risks">
+  <h2>Observations &amp; risks</h2>
+  <p class="lead">My reading of the code; none of this was run.</p>
+  <div class="grid g2" id="riskGrid"></div>
+</section>
+
+</main>
+<script>
+(function(){
+"use strict";
+var NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent,text){
+  var e=document.createElementNS(NS,tag);
+  for(var k in attrs) e.setAttribute(k,attrs[k]);
+  if(text!=null) e.textContent=text;
+  if(parent) parent.appendChild(e);
+  return e;
+}
+var COL={data:"var(--c-data)",logic:"var(--c-logic)",ui:"var(--c-ui)",io:"var(--c-io)",loop:"var(--c-loop)",util:"var(--c-util)"};
+
+/* ---------- theme ---------- */
+var root=document.documentElement;
+try{var th=localStorage.getItem("dc-theme"); if(th) root.setAttribute("data-theme",th);}catch(e){}
+document.getElementById("theme").onclick=function(){
+  var dark=root.getAttribute("data-theme")==="dark"||(!root.getAttribute("data-theme")&&matchMedia("(prefers-color-scheme: dark)").matches);
+  var n=dark?"light":"dark"; root.setAttribute("data-theme",n);
+  try{localStorage.setItem("dc-theme",n);}catch(e){}
+};
+
+/* ---------- nav highlight ---------- */
+var links=[].slice.call(document.querySelectorAll("nav a"));
+var secs=links.map(function(a){return document.querySelector(a.getAttribute("href"));});
+addEventListener("scroll",function(){
+  var y=scrollY+90, cur=0;
+  secs.forEach(function(s,i){ if(s.offsetTop<=y) cur=i; });
+  links.forEach(function(a,i){a.classList.toggle("on",i===cur);});
+},{passive:true});
+
+/* ---------- load order ---------- */
+(function(){
+  var g=document.getElementById("loadOrder");
+  var items=[["building.js","constructors",COL.data],["data.js","initial state",COL.data],["script.js","game logic + tick",COL.logic],["charts.js","Highcharts",COL.ui]];
+  items.forEach(function(it,i){
+    var x=20+i*220;
+    el("rect",{x:x,y:30,width:170,height:58,rx:8,fill:"none",stroke:it[2],"stroke-width":2},g);
+    el("text",{x:x+85,y:55,"text-anchor":"middle","font-size":15,"font-weight":700},g,it[0]);
+    el("text",{x:x+85,y:75,"text-anchor":"middle","font-size":12,class:"mut"},g,it[1]);
+    el("text",{x:x+8,y:22,"font-size":11,class:"mut"},g,String(i+1));
+    if(i<3) el("line",{x1:x+172,y1:59,x2:x+216,y2:59,stroke:"var(--muted)","stroke-width":1.5,"marker-end":"url(#ar)"},g);
+  });
+})();
+
+/* ---------- architecture diagram ---------- */
+(function(){
+  var g=document.getElementById("archSvg");
+  function box(x,y,w,h,title,lines,c){
+    el("rect",{x:x,y:y,width:w,height:h,rx:9,fill:"var(--panel)",stroke:c,"stroke-width":2},g);
+    el("rect",{x:x,y:y,width:w,height:24,rx:9,fill:c,opacity:.18},g);
+    el("text",{x:x+w/2,y:y+17,"text-anchor":"middle","font-size":13,"font-weight":700},g,title);
+    lines.forEach(function(l,i){el("text",{x:x+w/2,y:y+43+i*16,"text-anchor":"middle","font-size":11.5,class:"mut"},g,l);});
+  }
+  function arrow(x1,y1,x2,y2,label,lx,ly,dash){
+    el("path",{d:"M"+x1+" "+y1+" L"+x2+" "+y2,stroke:"var(--muted)","stroke-width":1.6,fill:"none","marker-end":"url(#a2)","stroke-dasharray":dash||""},g);
+    if(label) el("text",{x:lx,y:ly,"font-size":11,class:"mut","text-anchor":"middle"},g,label);
+  }
+  box(20,30,200,86,"User input",["HTML onclick handlers","#moneyButton click","tab clicks"],COL.ui);
+  box(20,200,200,86,"Timers",["update(): setTimeout loop","setInterval(save, 60 s)","chart sampler"],COL.loop);
+  box(20,370,200,76,"localStorage",["playerStored","enableChart"],COL.io);
+
+  box(300,30,220,110,"Actions",["buyBuilding / buyTierUpgrade","buyUpgrade / buyCurrBuyable","moneyButtonClick","reset / infiniReset"],COL.logic);
+  box(300,170,220,116,"Global state: player",["money, buildings[35], mult[7]","resetCurr[7], currBuyables[24]","achievements[31], stats","+ globalMult[], numTiers"],COL.data);
+  box(300,316,220,130,"Persistence",["save / load / wipe","exportSave / importSave","versionControl (migrations)","fixJSON"],COL.io);
+
+  box(600,30,200,86,"data.js templates",["startPlayer","resetPlayer","infiniResetPlayer"],COL.data);
+  box(600,200,200,86,"update* renderers",["Underscore templates","displayNum formatting","button lighting"],COL.ui);
+  box(600,370,200,76,"Highcharts",["Money vs Time","logarithmic / linear"],COL.ui);
+
+  box(850,200,100,86,"DOM",["#info #tabs","#chart..."],COL.ui);
+
+  arrow(220,73,300,73,"calls",260,66);
+  arrow(220,243,300,230,"tick mutates",262,226);
+  arrow(220,243,300,150,"",0,0);
+  arrow(410,140,410,170,"",0,0);
+  arrow(520,230,600,243,"read",560,228);
+  arrow(520,260,600,260,"",0,0);
+  arrow(800,243,850,243,"innerHTML",825,232);
+  arrow(410,286,410,316,"",0,0);
+  arrow(300,380,220,400,"R/W",262,382);
+  arrow(520,230,600,73,"deepObjCopy",545,130,"4 3");
+  arrow(520,280,600,400,"player.money",590,350);
+  arrow(800,408,880,290,"",0,0);
+  arrow(120,116,120,200,"",0,0);
+})();
+
+/* ---------- building grid ---------- */
+(function(){
+  var names=[
+   ["Derivative 1","Combinatorics","Computer","High schooler","Mathematician"],
+   ["Derivative 2","Probability","Assembly line","Undergraduate","Andrew Wiles"],
+   ["Derivative 3","Number theory","Factory","Graduate student","Kurt G\u00f6del"],
+   ["Derivative 4","Calculus","Factory architect","Postdoc","B. Riemann"],
+   ["Derivative 5","Algebra","Design school","Research scientist","Carl Gauss"],
+   ["Derivative 6","Geometry","Dean of architecture","Lab manager","L. Euler"],
+   ["Derivative 7","Arithmetic","Chancellor","Research lab","Isaac Newton"]];
+  var head=["","slot 0","slot 1","slot 2","slot 3","slot 4"];
+  var g=document.getElementById("bgrid");
+  head.forEach(function(h){var d=document.createElement("div");d.className="h";d.textContent=h;g.appendChild(d);});
+  var locked=[4,5,6];
+  names.forEach(function(row,t){
+    var d=document.createElement("div");d.className="t";d.textContent="Tier "+(t+1)+(locked.indexOf(t)>-1?" \ud83d\udd12":"");
+    d.title=locked.indexOf(t)>-1?"Unlocked by a reset-currency buyable":"";g.appendChild(d);
+    row.forEach(function(n,s){
+      var c=document.createElement("div");c.className="s"+s;
+      c.innerHTML=n+"<small>["+(5*t+s)+"]</small>";
+      g.appendChild(c);
+    });
+  });
+})();
+
+/* ---------- state lifetimes ---------- */
+(function(){
+  var rows=[
+   ["money, buildings, upgrades, mult, rates",0,0,0],
+   ["clickTracker, updateInterval, timeMult",0,0,0],
+   ["resetCurrTracker, per-tick trackers",0,0,0],
+   ["resetCurr[], numResets[]",1,0,0],
+   ["currBuyables[24], resetCurrFactor, buildingInterval, autoclickInterval, clicksToGain",1,0,0],
+   ["proofsToNextCurr, mathematiciansToNextCurr (+ trackers)",1,0,0],
+   ["total* statistics",1,0,0],
+   ["achievements[]",1,1,0],
+   ["infiniCurr, infiniResetDone",1,1,0],
+   ["settings: sciNotation, minTickLength, chart*, numToBuy, versionNum",1,1,0]
+  ];
+  var t=document.getElementById("lifeTable");
+  var h="<thead><tr><th>Field group</th><th>Tier reset<br><small>resetPlayer</small></th><th>Infini-reset<br><small>infiniResetPlayer</small></th><th>Wipe / new game<br><small>startPlayer</small></th></tr></thead><tbody>";
+  function cell(k){return "<td style='text-align:center;font-weight:700;color:var(--"+(k?"c-logic":"c-loop")+")'>"+(k?"\u2713":"\u2717")+"</td>";}
+  rows.forEach(function(r){
+    var infiniKeep=r[2];
+    h+="<tr><td>"+r[0]+"</td>"+cell(r[1])+cell(infiniKeep)+cell(0)+"</tr>";
+  });
+  t.innerHTML=h+"</tbody>";
+})();
+
+/* ---------- tick flow ---------- */
+(function(){
+  var g=document.getElementById("tickSvg");
+  el("defs",{},g).innerHTML='<marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>';
+  var steps=[
+   ["Measure elapsed time","If window inactive, accumulate catch-up (intervalTracker)",COL.loop],
+   ["Add income","deriv1 + computers, \u00d7 mult \u00d7 globalMult \u00d7 timeMult",COL.logic],
+   ["Make proofs","limited by money (costPerProof = $5)",COL.logic],
+   ["Every buildingInterval ticks","inventoryAdder(n): higher tiers generate lower tiers",COL.logic],
+   ["Every autoclickInterval ticks","moneyButtonClick(autoclickers \u00d7 n)",COL.logic],
+   ["Reset currency from proofs & mathematicians","loop, or closed-form 7th-root approximation when huge",COL.data],
+   ["Recompute rates","moneyPerClick / PerSecond / proofsPerSecond / net",COL.logic],
+   ["Advance counters; recompute updateInterval","1000 \u00d7 0.98^ln(mathematicians\u2026)",COL.data],
+   ["Money infinite?","yes \u2192 infiniReset()",COL.loop],
+   ["Refresh active tab only + updateMoney()","0 inventory, 1 upgrades, 2 prestige, 4 stats+achievements",COL.ui],
+   ["Fix timeMult; schedule next tick","setTimeout(update, updateInterval \u00d7 timeMult)",COL.loop]
+  ];
+  var x=130,w=520,h=46,gap=20,y=10;
+  steps.forEach(function(s,i){
+    var yy=y+i*(h+gap);
+    el("rect",{x:x,y:yy,width:w,height:h,rx:8,fill:"var(--panel)",stroke:s[2],"stroke-width":2},g);
+    el("circle",{cx:x-26,cy:yy+h/2,r:13,fill:s[2],opacity:.2},g);
+    el("text",{x:x-26,y:yy+h/2+4,"text-anchor":"middle","font-size":12,"font-weight":700},g,String(i+1));
+    el("text",{x:x+14,y:yy+19,"font-size":14,"font-weight":700},g,s[0]);
+    el("text",{x:x+14,y:yy+36,"font-size":11.5,class:"mut"},g,s[1]);
+    if(i<steps.length-1) el("line",{x1:x+w/2,y1:yy+h,x2:x+w/2,y2:yy+h+gap-1,stroke:"var(--muted)","stroke-width":1.5,"marker-end":"url(#a3)"},g);
+  });
+  // inner loop bracket (steps 2-8)
+  var top=y+1*(h+gap)-6,bot=y+7*(h+gap)+h+6;
+  el("path",{d:"M"+(x+w+16)+" "+top+" L"+(x+w+30)+" "+top+" L"+(x+w+30)+" "+bot+" L"+(x+w+16)+" "+bot,fill:"none",stroke:"var(--c-loop)","stroke-width":2},g);
+  el("text",{x:x+w+38,y:(top+bot)/2-8,"font-size":12,"font-weight":700,fill:"var(--c-loop)"},g,"do { \u2026 }");
+  el("text",{x:x+w+38,y:(top+bot)/2+8,"font-size":12,class:"mut"},g,"while inactive");
+  el("text",{x:x+w+38,y:(top+bot)/2+24,"font-size":12,class:"mut"},g,"and catch-up left");
+  // loop back
+  var last=y+10*(h+gap)+h/2;
+  el("path",{d:"M"+(x-50)+" "+last+" L"+(x-100)+" "+last+" L"+(x-100)+" "+(y+h/2)+" L"+(x-44)+" "+(y+h/2),fill:"none",stroke:"var(--muted)","stroke-width":1.5,"stroke-dasharray":"5 4","marker-end":"url(#a3)"},g);
+  el("text",{x:x-108,y:(y+last)/2,"font-size":11,class:"mut","text-anchor":"middle",transform:"rotate(-90 "+(x-108)+" "+((y+last)/2)+")"},g,"next tick (setTimeout)");
+})();
+
+/* ---------- call graph ---------- */
+var CG={
+ cols:["Entry points","Actions","Logic helpers","Renderers","Persistence"],
+ nodes:{
+  ready:[0,"$(document).ready","logic"], update:[0,"update (tick)","loop"], click:[0,"#moneyButton click","ui"], buy:[0,"HTML buy buttons","ui"], resetBtn:[0,"Reset / Wipe / Import","ui"],
+  moneyButtonClick:[1,"moneyButtonClick","logic"], buyBuilding:[1,"buyBuilding","logic"], buyTierUpgrade:[1,"buyTierUpgrade / buyUpgrade","logic"], buyCurrBuyable:[1,"buyCurrBuyable","logic"],
+  reset:[1,"reset","logic"], infiniReset:[1,"infiniReset","logic"], inventoryAdder:[1,"inventoryAdder","logic"],
+  addMoney:[2,"addMoney / addProofs","logic"], calcMult:[2,"calcMult","logic"], calcGlobalMult:[2,"calcGlobalMult","logic"], calcTotalPrice:[2,"calcTotalPrice","logic"], deepObjCopy:[2,"deepObjCopy","util"], displayNum:[2,"displayNum","util"],
+  updateAll:[3,"updateAll","ui"], updateMoney:[3,"updateMoney","ui"], updateInventory:[3,"updateInventory","ui"], updateUpgrades:[3,"updateUpgrades","ui"], updatePrestige:[3,"updatePrestige","ui"],
+  updateResetCurrBuyables:[3,"updateResetCurrBuyables","ui"], updateStats:[3,"updateStats / Achievements","ui"],
+  load:[4,"load","io"], save:[4,"save","io"], versionControl:[4,"versionControl","io"], importSave:[4,"importSave / wipe","io"]
+ },
+ edges:[
+  ["ready","load"],["ready","versionControl"],["ready","calcMult"],["ready","calcGlobalMult"],["ready","updateAll"],
+  ["update","addMoney"],["update","inventoryAdder"],["update","moneyButtonClick"],["update","infiniReset"],["update","updateInventory"],["update","updateUpgrades"],["update","updatePrestige"],["update","updateStats"],["update","updateMoney"],
+  ["click","moneyButtonClick"],["buy","buyBuilding"],["buy","buyTierUpgrade"],["buy","buyCurrBuyable"],["resetBtn","reset"],["resetBtn","importSave"],
+  ["moneyButtonClick","addMoney"],["moneyButtonClick","updateMoney"],["moneyButtonClick","updateInventory"],
+  ["buyBuilding","calcTotalPrice"],["buyBuilding","addMoney"],["buyBuilding","calcMult"],["buyBuilding","updateMoney"],["buyBuilding","updateInventory"],
+  ["buyTierUpgrade","calcTotalPrice"],["buyTierUpgrade","addMoney"],["buyTierUpgrade","calcMult"],["buyTierUpgrade","updateUpgrades"],["buyTierUpgrade","updateMoney"],
+  ["buyCurrBuyable","calcGlobalMult"],["buyCurrBuyable","updatePrestige"],["buyCurrBuyable","updateResetCurrBuyables"],
+  ["reset","calcGlobalMult"],["reset","deepObjCopy"],["reset","displayNum"],["reset","updateAll"],
+  ["infiniReset","deepObjCopy"],["infiniReset","calcMult"],["infiniReset","calcGlobalMult"],["infiniReset","updateAll"],
+  ["importSave","deepObjCopy"],["importSave","versionControl"],["importSave","save"],["importSave","calcGlobalMult"],["importSave","updateAll"],
+  ["updateAll","updateMoney"],["updateAll","updateInventory"],["updateAll","updateUpgrades"],["updateAll","updateStats"],["updateAll","updatePrestige"],["updateAll","updateResetCurrBuyables"],
+  ["updateInventory","calcTotalPrice"],["updateInventory","displayNum"],["updateUpgrades","calcTotalPrice"],["updateUpgrades","displayNum"],["updateMoney","displayNum"],["updatePrestige","displayNum"],["updateStats","displayNum"]
+ ]
+};
+(function(){
+  var svg=document.getElementById("cg");
+  var W=1000,colW=W/CG.cols.length, rowH=34, nodeW=168, nodeH=24;
+  var pos={}, counts=CG.cols.map(function(){return 0;});
+  var maxRows=0;
+  Object.keys(CG.nodes).forEach(function(k){var c=CG.nodes[k][0]; pos[k]={col:c,row:counts[c]++}; maxRows=Math.max(maxRows,counts[c]);});
+  Object.keys(pos).forEach(function(k){
+    var p=pos[k], n=counts[p.col], off=(maxRows-n)*rowH/2;
+    p.x=p.col*colW+(colW-nodeW)/2; p.y=52+off+p.row*rowH;
+  });
+  var H=52+maxRows*rowH+20; svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  CG.cols.forEach(function(c,i){el("text",{x:i*colW+colW/2,y:24,"text-anchor":"middle","font-size":12,"font-weight":700,class:"mut"},svg,c.toUpperCase());});
+  var eg=el("g",{},svg), ng=el("g",{},svg), edges=[], nodes={};
+  CG.edges.forEach(function(e){
+    var a=pos[e[0]],b=pos[e[1]]; if(!a||!b) return;
+    var x1=a.x+nodeW,y1=a.y+nodeH/2,x2=b.x,y2=b.y+nodeH/2, d;
+    if(b.col===a.col){ d="M"+(a.x+nodeW/2)+" "+(a.y+nodeH)+" C"+(a.x+nodeW/2)+" "+(a.y+nodeH+20)+" "+(b.x+nodeW/2)+" "+(b.y-20)+" "+(b.x+nodeW/2)+" "+b.y; }
+    else if(b.col<a.col){ x1=a.x;x2=b.x+nodeW; var m=(x1+x2)/2; d="M"+x1+" "+y1+" C"+m+" "+y1+" "+m+" "+y2+" "+x2+" "+y2; }
+    else { var m2=(x1+x2)/2; d="M"+x1+" "+y1+" C"+m2+" "+y1+" "+m2+" "+y2+" "+x2+" "+y2; }
+    var p=el("path",{d:d,class:"edge"},eg); edges.push({p:p,a:e[0],b:e[1]});
+  });
+  Object.keys(CG.nodes).forEach(function(k){
+    var n=CG.nodes[k],p=pos[k];
+    var g=el("g",{class:"node",tabindex:0},ng);
+    el("rect",{x:p.x,y:p.y,width:nodeW,height:nodeH,rx:6,fill:"var(--panel)",stroke:COL[n[2]],"stroke-width":1.8},g);
+    el("text",{x:p.x+nodeW/2,y:p.y+16,"text-anchor":"middle","font-size":11.5},g,n[1]);
+    nodes[k]=g;
+    function on(){
+      var rel={}; rel[k]=1;
+      edges.forEach(function(e){
+        var hit=e.a===k||e.b===k;
+        e.p.classList.toggle("hi",hit); e.p.classList.toggle("dim",!hit);
+        if(hit){rel[e.a]=1;rel[e.b]=1;}
+      });
+      Object.keys(nodes).forEach(function(n2){nodes[n2].classList.toggle("dim",!rel[n2]);});
+    }
+    function off(){
+      edges.forEach(function(e){e.p.classList.remove("hi","dim");});
+      Object.keys(nodes).forEach(function(n2){nodes[n2].classList.remove("dim");});
+    }
+    g.addEventListener("mouseenter",on); g.addEventListener("mouseleave",off);
+    g.addEventListener("focus",on); g.addEventListener("blur",off);
+    g.addEventListener("click",on);
+  });
+  document.getElementById("cgLegend").innerHTML=
+    "<span><i style='background:var(--c-loop)'></i>Timer</span><span><i style='background:var(--c-logic)'></i>Logic</span><span><i style='background:var(--c-ui)'></i>UI / render</span><span><i style='background:var(--c-io)'></i>Persistence</span><span><i style='background:var(--c-util)'></i>Utility</span><span>Simplified: trivial helpers and the rate-add functions are omitted or merged.</span>";
+})();
+
+/* ---------- function reference ---------- */
+var F=[
+ ["Building(factor, moneyCost, proofCost)","building.js","Constructors","Building record: owned, manual, factor, moneyCost, proofCost"],
+ ["Building.prototype.add(num)","building.js","Constructors","owned += num (unused)"],
+ ["CurrBuyable(cost, text)","building.js","Constructors","Reset-currency purchasable {owned, cost[6]}; text param unused"],
+ ["CurrBuyable.prototype.buy()","building.js","Constructors","Sets owned = true (unused; buyCurrBuyable mutates directly)"],
+ ["Achievement(name, text, condition)","building.js","Constructors","condition is a string compiled with new Function(\"return ...\")"],
+ ["addMoney(m)","script.js","Economy","Adds money (2 dp rounding), tracks totalMoneyEarned, clamps at 0"],
+ ["addMoneyPerSecond / addNetMoneyPerSecond / addMoneyPerClick","script.js","Economy","Rounded increments of the rate fields"],
+ ["addProofs(p)","script.js","Economy","Adds proofs, decrements proofsToNextCurr, charges costPerProof"],
+ ["calcMult(tier)","script.js","Economy","mult[tier-1] from tierUpgrades x factor x manual buildings of the tier"],
+ ["calcGlobalMult()","script.js","Economy","globalMult[i] = 1 + resetCurr[i] x 0.01"],
+ ["calcTotalPrice(price, factor, n)","script.js","Economy","Geometric series sum: cost of buying n"],
+ ["checkAchievement(i)","script.js","Economy","Evaluates a condition once and stamps achieved/time"],
+ ["factorial(n)","script.js","Utility","Unused"],
+ ["displayNum(num, ifMoney)","script.js","Utility","Formats with K/M/B...Sg suffixes or scientific notation"],
+ ["getNumToBuy(num)","script.js","Utility","Sets buy amount (-1 = Max), refreshes labels and inventory"],
+ ["cloneFunc(fn)","script.js","Utility","Re-creates a function from its source text"],
+ ["deepObjCopy(obj)","script.js","Utility","Custom deep clone (arrays, objects, functions); loses prototypes"],
+ ["ifUnlockedTier(tier)","script.js","Utility","currBuyables[tier-5].owned"],
+ ["ifMoreDerivs(tier)","script.js","Utility","Text snippet for reset confirmation (unused)"],
+ ["init()","script.js","Persistence","player = deepObjCopy(startPlayer)"],
+ ["save()","script.js","Persistence","Writes playerStored + enableChart to localStorage; GA event"],
+ ["load()","script.js","Persistence","$.extend(true, player, stored)"],
+ ["wipe()","script.js","Persistence","Confirmed full reset to a new game"],
+ ["exportSave() / importSave()","script.js","Persistence","Base64(JSON) export / import; import runs versionControl(true)"],
+ ["fixJSON()","script.js","Persistence","Rehydrates achievement time strings into Date"],
+ ["versionControl(ifImport)","script.js","Persistence","Migration ladder keyed on versionNum (wipes < 0.22; patches 0.3, 0.32, 0.33, 0.34)"],
+ ["toggleSciNotation()","script.js","Settings","Flips sciNotation; refreshes reset-buyable titles"],
+ ["setMinTickLength()","script.js","Settings","Prompt; recomputes timeMult"],
+ ["reset(tier)","script.js","Prestige","Needs 7e9 mathematicians of the tier; confirm; cascades reset currency; merges resetPlayer"],
+ ["infiniReset()","script.js","Prestige","On non-finite money: merges infiniResetPlayer, infiniCurr++"],
+ ["updateMoney()","script.js","Rendering","Fills #info header table"],
+ ["updateInventory()","script.js","Rendering","Fills #firstRows, #row5-7; lights buttons by affordability"],
+ ["updateUpgrades()","script.js","Rendering","Fills #upgrades; hides tier 5-7 rows; lights buttons"],
+ ["updateStats()","script.js","Rendering","Fills #statContainer"],
+ ["updateAchievements()","script.js","Rendering","Diffs earned achievements vs DOM; builds tooltip divs"],
+ ["updatePrestige()","script.js","Rendering","Fills #prestige; hysteresis toggles 'to-next' vs 'per-tick' views"],
+ ["updateResetCurrBuyables()","script.js","Rendering","Owned / affordable / locked state and tooltips for the 24 buyables"],
+ ["updateResetCurrBuyablesTitles()","script.js","Rendering","Sets the 24 tooltip texts"],
+ ["updateInfini()","script.js","Rendering","Renders the Infini tab; creates or removes the tab dynamically"],
+ ["updateAll()","script.js","Rendering","Calls all renderers"],
+ ["moneyButtonClick(amount)","script.js","Actions","Click money; every clicksToGain clicks cascades click buildings; bulk path above 5000 periods; used by autoclicker"],
+ ["buyBuilding(i)","script.js","Actions","Resolves count ('Max' by loop), pays, raises cost, recalculates mult, applies rate effect (switch on 0-4)"],
+ ["buyTierUpgrade(i)","script.js","Actions","Per-tier multiplier upgrade (cost x1000 each)"],
+ ["buyUpgrade(i)","script.js","Actions","0 = autoclicker, 1 = click power"],
+ ["buyCurrBuyable(i)","script.js","Actions","Checks chain and cost; applies effect by index"],
+ ["update()","script.js","Loop","Main tick; reschedules itself (see tick loop)"],
+ ["inventoryAdder(amount)","script.js","Loop","Every buildingInterval: higher tiers generate lower ones; fast path for amount >= 250"],
+ ["$(document).ready(...)","script.js","Bootstrap","Tabs, load, versionControl, fixJSON, tooltips, calcMult x7, calcGlobalMult, updateAll, bind #moneyButton"],
+ ["window.onfocus / onblur","script.js","Bootstrap","Maintain isActive"],
+ ["chartTimeoutRunner()","charts.js","Charts","Self-rescheduling sampler; appends player.money, shifts at chartLength"],
+ ["#chartAxisToggle handler","charts.js","Charts","Toggles log / linear y-axis"],
+ ["#submitChartSettings handler","charts.js","Charts","Validates delay >= 500 ms and points 1-10000"]
+];
+(function(){
+  var groups=[]; F.forEach(function(f){if(groups.indexOf(f[2])<0) groups.push(f[2]);});
+  var active="All", q="";
+  var chips=document.getElementById("chips"), tb=document.getElementById("ftbody");
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+  function render(){
+    var n=0, h="";
+    F.forEach(function(f){
+      if(active!=="All"&&f[2]!==active) return;
+      if(q&&(f.join(" ").toLowerCase().indexOf(q)<0)) return;
+      n++; h+="<tr><td><code>"+esc(f[0])+"</code></td><td>"+f[1]+"</td><td>"+f[2]+"</td><td>"+esc(f[3])+"</td></tr>";
+    });
+    tb.innerHTML=h; document.getElementById("fcount").textContent=n+" of "+F.length+" symbols shown";
+  }
+  ["All"].concat(groups).forEach(function(g){
+    var b=document.createElement("button");b.className="chip"+(g==="All"?" on":"");b.textContent=g;
+    b.onclick=function(){active=g;[].forEach.call(chips.children,function(c){c.classList.toggle("on",c===b);});render();};
+    chips.appendChild(b);
+  });
+  document.getElementById("q").addEventListener("input",function(e){q=e.target.value.toLowerCase();render();});
+  render();
+})();
+
+/* ---------- risks ---------- */
+(function(){
+  var R=[
+   ["Magic index arithmetic","5*i+3, Math.ceil(index/5.0+0.1) and (i%6)*4+floor(i/6) are the main comprehension and bug risk. The 4x6 buyable grid is stored column-major but laid out row-major in the DOM."],
+   ["Hand-written render functions","updateInventory, updatePrestige and updateUpgrades hard-code every field for ~35 buildings and 7 tiers. Data-driven loops would shrink them a lot."],
+   ["Triplicated data","data.js repeats the buildings and currBuyables lists three times; resetPlayer and infiniResetPlayer must be kept in sync by hand."],
+   ["String-compiled achievements","Conditions use new Function. deepObjCopy + cloneFunc keep them alive across JSON round-trips; loaded saves lose prototype methods (harmless today as they are unused)."],
+   ["Implicit globals and unguarded calls","i in several for(i = ...) loops, buttonList in updateUpgrades. ga() is called unguarded and breaks if analytics is blocked."],
+   ["Libraries loaded twice","index.html references js/libs/* that is not in the repo, and also loads CDN copies of the same libraries."],
+   ["Dead code","factorial, Building.add, CurrBuyable.buy, ifMoreDerivs, and CurrBuyable's text argument."],
+   ["Floating-point drift","Money rounded to 2 dp; huge-number paths use closed-form approximations with a fudge factor (the 1e106 branch)."]
+  ];
+  document.getElementById("riskGrid").innerHTML=R.map(function(r){return "<div class='card risk'><h3>"+r[0]+"</h3><p>"+r[1]+"</p></div>";}).join("");
+})();
+})();
+</script>
+</body>
+</html>

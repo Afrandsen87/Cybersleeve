@@ -1,0 +1,32 @@
+{
+  "name": "cybersleeve",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cybersleeve - a cyberpunk idle/incremental game (installable PWA)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "docs": "node scripts/generate-docs.mjs",
+    "lint": "biome lint",
+    "format": "biome format --write",
+    "check": "npm run typecheck && biome check && npm test && npm run build",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "break_infinity.js": "^2.2.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.2",
+    "@vitest/coverage-v8": "^5.0.5",
+    "typescript": "^7.0.2",
+    "typescript5": "npm:typescript@^5.9.3",
+    "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.5"
+  }
+}
