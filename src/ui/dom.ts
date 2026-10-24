@@ -6,7 +6,8 @@
  */
 import type { GameEngine } from '../core';
 import { ConfirmGate } from './confirmGate';
-import { buildViewModel, type BuyableView } from './viewModel';
+import { installTooltips } from './tooltip';
+import { buildViewModel, type BuyableView, type SleeveSection } from './viewModel';
 
 /** Number of cells in the action grid (3 columns x 2 rows). Cells without an action are shown empty. */
 const ACTION_GRID_SLOTS = 6;
@@ -39,8 +40,11 @@ interface SleeveWidget {
   readonly root: HTMLElement;
   readonly access: HTMLElement;
   readonly interfaceSpeed: HTMLElement;
+  readonly circumvention: HTMLElement;
+  readonly infamy: HTMLElement;
   readonly heat: HTMLElement;
   readonly heatCooldown: XpBar;
+  readonly infamyCooldown: XpBar;
   readonly buyables: ReadonlyMap<string, HTMLButtonElement>;
 }
 
@@ -65,11 +69,17 @@ interface XpBar {
 export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedControl, onResetSave: () => void): () => void {
   const initial = buildViewModel(engine);
   root.innerHTML = '';
+  installTooltips(root.ownerDocument);
 
   const header = h('header');
   const credits = h('div', 'credits');
-  const network = h('div', 'network');
-  header.append(credits, network);
+  header.append(credits);
+
+  /** A click on a purchase: owned auto-run buyables switch on or off, everything else is bought. */
+  const toggleable = new Set(
+    [...initial.actions.flatMap((a) => a.buyables), ...initial.sleeve.buyables].filter((b) => b.toggleable).map((b) => b.id),
+  );
+  const activate = (id: string): unknown => (toggleable.has(id) && engine.ownedCount(id) > 0 ? engine.toggleAutoRun(id) : engine.buy(id));
 
   const actionsEl = h('section', 'actions');
   const cards = new Map<string, ActionCard>();
@@ -88,7 +98,7 @@ export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedContr
     const levelXp = xpBar();
     const sleeveXp = xpBar();
 
-    const { element: upgrades, buttons: buyables } = upgradeRow(a.buyables, (id) => engine.buy(id));
+    const { element: upgrades, buttons: buyables } = upgradeRow(a.buyables, activate);
 
     root.append(button, levelXp.root, sleeveXp.root, upgrades);
     actionsEl.append(root);
@@ -97,7 +107,8 @@ export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedContr
 
   for (let i = initial.actions.length; i < ACTION_GRID_SLOTS; i++) actionsEl.append(h('div', 'action empty'));
 
-  const sleeveWidget = buildSleeveWidget(initial.sleeve.buyables, (id) => engine.buy(id));
+  const sleeveWidget = buildSleeveWidget(initial.sleeve.sections, activate);
+  const networkWidget = buildNetworkWidget();
 
   // Re-sleeving wipes most progress, so it takes two clicks: the first arms the gate, the second confirms.
   const resleeveGate = new ConfirmGate();
@@ -128,33 +139,39 @@ export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedContr
   const corner = h('div', 'corner-controls');
   corner.append(resetBtn, speedBtn);
 
+  const side = h('div', 'side');
+  side.append(sleeveWidget.root, networkWidget.root);
   const layout = h('div', 'layout');
-  layout.append(actionsEl, sleeveWidget.root);
+  layout.append(actionsEl, side);
   root.append(corner, header, layout, resleeveRow);
 
   function render(): void {
     const vm = buildViewModel(engine);
     credits.textContent = `${vm.creditsText} credits`;
-    network.textContent = `Network: ${vm.networkText} nodes (+${vm.passiveIncomeText} credits/s)`;
+    networkWidget.nodes.textContent = vm.networkText;
+    networkWidget.income.textContent = `+${vm.passiveIncomeText}`;
+    networkWidget.payout.textContent = vm.payoutPerNodeText;
+    setRowTip(networkWidget.payout, vm.payoutTip);
     for (const a of vm.actions) {
       const card = cards.get(a.id);
       if (!card) continue;
       card.title.textContent = a.name;
-      card.info.textContent = a.unlocked
-        ? `${a.speedText} speed | ${a.durationText} per run${a.auto ? ' | auto' : ''}`
-        : `Locked: needs access level ${a.requiredAccessLevel}`;
-      setXpBar(card.levelXp, `Level ${a.level}`, a.xpText, a.nextLevelXpText, a.levelProgressPercent);
+      card.info.textContent = a.lockedReason
+        ? `Locked: ${a.lockedReason}`
+        : `Action speed ${a.speedText} | ${a.durationText}${a.startCostText ? ` | costs ${a.startCostText}` : ''}${a.auto ? ' | auto' : ''}`;
+      setXpBar(card.levelXp, `Lv ${a.level}`, a.xpText, a.nextLevelXpText, a.levelProgressPercent);
       setXpBar(
         card.sleeveXp,
-        `Sleeve level ${a.sleeve.level}`,
+        `Sleeve Lv ${a.sleeve.level}`,
         a.sleeve.xpText,
         a.sleeve.nextLevelXpText,
         a.sleeve.progressPercent,
-        `${a.sleeve.runsToNextXp} runs to next XP`,
+        `${a.sleeve.runsToNextXp} runs`,
       );
       card.reward.textContent =
-        `+${a.rewardText} ${a.rewardUnit} per run (output x${a.outputMultiplierText})` +
-        (a.heatPerRun > 0 ? ` | +${a.heatPerRun} heat per run` : '');
+        `+${a.rewardText} ${a.rewardUnit}/run` +
+        (a.outputMultiplierText !== '1' ? ` | x${a.outputMultiplierText}` : '') +
+        (a.heatPerRun > 0 ? ` | +${a.heatPerRun} heat` : '');
       card.button.disabled = !a.unlocked;
       card.root.classList.toggle('locked', !a.unlocked);
       card.bar.style.width = `${a.progressPercent}%`;
@@ -163,9 +180,17 @@ export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedContr
     }
     sleeveWidget.access.textContent = vm.sleeve.accessLevelText;
     sleeveWidget.interfaceSpeed.textContent = vm.sleeve.interfaceSpeedText;
+    setRowTip(sleeveWidget.interfaceSpeed, vm.sleeve.interfaceSpeedTip);
+    sleeveWidget.circumvention.textContent = vm.sleeve.circumventionText;
+    setRowTip(sleeveWidget.circumvention, vm.sleeve.circumventionTip);
+    sleeveWidget.infamy.textContent = vm.sleeve.infamyText;
+    setRowTip(sleeveWidget.infamy, vm.sleeve.infamyTip);
     sleeveWidget.heat.textContent = vm.sleeve.heatText;
+    setRowTip(sleeveWidget.heat, vm.sleeve.heatTip);
     sleeveWidget.heatCooldown.label.textContent = vm.sleeve.heatCooling ? 'Heat cooldown' : 'Heat cooldown (paused: no heat)';
     sleeveWidget.heatCooldown.fill.style.width = `${vm.sleeve.heatCooldownPercent}%`;
+    sleeveWidget.infamyCooldown.label.textContent = vm.sleeve.infamyCooling ? 'Infamy cooldown' : 'Infamy cooldown (paused: no infamy)';
+    sleeveWidget.infamyCooldown.fill.style.width = `${vm.sleeve.infamyCooldownPercent}%`;
     renderUpgrades(sleeveWidget.buyables, vm.sleeve.buyables);
     if (!vm.canResleeve) resleeveGate.cancel();
     resleeveBtn.disabled = !vm.canResleeve;
@@ -202,15 +227,42 @@ function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, views: 
     const upgrade = buttons.get(b.id);
     if (!upgrade) continue;
     upgrade.hidden = !b.available;
-    upgrade.disabled = b.maxed || !b.affordable;
+    upgrade.disabled = !b.clickable;
     upgrade.classList.toggle('owned', b.owned > 0);
-    const owned = b.repeatable ? ` (owned: ${b.owned})` : '';
-    upgrade.dataset['tip'] = b.maxed ? `${b.name} - owned\n${b.description}` : `${b.name}${owned}\n${b.costText} credits\n${b.description}`;
+    upgrade.classList.toggle('off', b.toggleable && b.owned > 0 && !b.enabled);
+    upgrade.classList.toggle('ready', b.ready);
+    upgrade.dataset['tip'] = b.tip;
   }
 }
 
-/** Builds the Sleeve widget: global stats and the sleeve-wide purchases. */
-function buildSleeveWidget(views: readonly BuyableView[], buy: (id: string) => unknown): SleeveWidget {
+/** Handles to update the Network widget. */
+interface NetworkWidget {
+  readonly root: HTMLElement;
+  readonly nodes: HTMLElement;
+  readonly income: HTMLElement;
+  readonly payout: HTMLElement;
+}
+
+/** Builds the Network widget: nodes, passive income and the payout per node. */
+function buildNetworkWidget(): NetworkWidget {
+  const root = h('aside', 'network-widget');
+  const stats = h('div', 'stats');
+  const stat = (label: string): HTMLElement => {
+    const row = h('div', 'stat');
+    const value = h('span', 'stat-value');
+    row.append(h('span', 'stat-label', label), value);
+    stats.append(row);
+    return value;
+  };
+  const nodes = stat('Nodes');
+  const income = stat('Credits per second');
+  const payout = stat('Payout per node');
+  root.append(h('h2', undefined, 'Network'), stats);
+  return { root, nodes, income, payout };
+}
+
+/** Builds the Sleeve widget: global stats and the sleeve-wide purchases, one titled row per section. */
+function buildSleeveWidget(sections: readonly SleeveSection[], buy: (id: string) => unknown): SleeveWidget {
   const root = h('aside', 'sleeve-widget');
   const stats = h('div', 'stats');
   const stat = (label: string): HTMLElement => {
@@ -222,12 +274,21 @@ function buildSleeveWidget(views: readonly BuyableView[], buy: (id: string) => u
   };
   const access = stat('Access level');
   const interfaceSpeed = stat('Interface speed');
+  const circumvention = stat('Circumvention');
   const heat = stat('Heat');
   const heatCooldown = xpBar();
   stats.append(heatCooldown.root);
-  const { element, buttons } = upgradeRow(views, buy);
-  root.append(h('h2', undefined, 'Sleeve'), stats, element);
-  return { root, access, interfaceSpeed, heat, heatCooldown, buyables: buttons };
+  const infamy = stat('Infamy');
+  const infamyCooldown = xpBar();
+  stats.append(infamyCooldown.root);
+  root.append(h('h2', undefined, 'Sleeve'), stats);
+  const buttons = new Map<string, HTMLButtonElement>();
+  for (const section of sections) {
+    const row = upgradeRow(section.buyables, buy);
+    root.append(h('h3', 'section-title', section.title), row.element);
+    for (const [id, button] of row.buttons) buttons.set(id, button);
+  }
+  return { root, access, interfaceSpeed, circumvention, infamy, heat, heatCooldown, infamyCooldown, buyables: buttons };
 }
 
 /** Builds an empty small experience bar (label above a thin grey/teal bar). */
@@ -241,8 +302,13 @@ function xpBar(): XpBar {
   return { root, label, fill };
 }
 
+/** Puts a hover tip on a stat's whole row (label and value), given its value element. */
+function setRowTip(value: HTMLElement, tip: string): void {
+  (value.parentElement ?? value).dataset['tip'] = tip;
+}
+
 function setXpBar(bar: XpBar, name: string, xp: string, next: string, percent: number, extra?: string): void {
-  bar.label.textContent = `${name} - XP ${xp}/${next}${extra ? ` | ${extra}` : ''}`;
+  bar.label.textContent = `${name} - ${xp}/${next} XP${extra ? ` | ${extra}` : ''}`;
   bar.fill.style.width = `${percent}%`;
 }
 

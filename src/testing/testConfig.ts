@@ -40,7 +40,17 @@ export const testConfig: GameConfig = {
   },
   global: { speedMultiplier: 1, rewardMultiplier: 1, xpMultiplier: 1, costMultiplier: 1 },
   network: { creditsPerNodePerSecond: 0.05 },
-  sleeve: { baseAccessLevel: 1, baseInterfaceSpeed: 1, baseHeat: 0, heatCooldownMs: 60_000, heatCooldownAmount: 1 },
+  sleeve: {
+    baseAccessLevel: 1,
+    baseInterfaceSpeed: 1,
+    baseHeat: 0,
+    heatCooldownMs: 60_000,
+    heatCooldownAmount: 1,
+    baseCircumvention: 1,
+    circumventionReductionPerOrder: 0.005,
+    infamyHeatSlowdown: 0.1,
+    infamyDecayPeriodMs: 600_000,
+  },
   engine: { maxBatchesPerTick: 1_000 },
   runtime: { stepMs: 50, maxDeltaMs: 600_000, autosaveMs: 10_000, fastForwardFactor: 10 },
 };
@@ -52,6 +62,65 @@ export const networkAction: GameConfig['actions'][number] = {
   baseDurationMs: 20_000,
   reward: num(1),
   rewardKind: 'networkNodes',
+  xpPerRun: num(1),
+};
+
+/** A test action that costs 50 nodes per run, pays +1 Circumvention, needs 1000 nodes to unlock and stays unlocked (1 s runs). */
+export const killAction: GameConfig['actions'][number] = {
+  id: 'kill',
+  name: 'Kill',
+  baseDurationMs: 1_000,
+  reward: num(1),
+  rewardKind: 'circumvention',
+  startCost: { currency: 'networkNodes', amount: num(50) },
+  unlock: { kind: 'nodes', amount: 1000 },
+  xpPerRun: num(1),
+};
+
+/** A test action that costs 1% of the current nodes (rounded down, so at least 100 nodes) per run and pays +1 Circumvention (1 s runs). */
+export const percentKillAction: GameConfig['actions'][number] = {
+  id: 'pkill',
+  name: 'PKill',
+  baseDurationMs: 1_000,
+  reward: num(1),
+  rewardKind: 'circumvention',
+  startCost: { currency: 'networkNodes', fractionOfBalance: 0.01 },
+  xpPerRun: num(1),
+};
+
+/** A test action that adds 0.001 to the node payout multiplier per run and 1 heat (1 s runs). */
+export const payoutAction: GameConfig['actions'][number] = {
+  id: 'push',
+  name: 'Push',
+  baseDurationMs: 1_000,
+  reward: num(0.001),
+  rewardKind: 'nodePayout',
+  heatPerRun: 1,
+  xpPerRun: num(1),
+};
+
+/** A test action unlocked by owning the `unlock` buyable: +1 Infamy, removes 25% of the nodes and adds 50 heat (1 s runs). */
+export const legendAction: GameConfig['actions'][number] = {
+  id: 'legend',
+  name: 'Legend',
+  baseDurationMs: 1_000,
+  reward: num(1),
+  rewardKind: 'infamy',
+  unlock: { kind: 'buyable', buyableId: 'unlock' },
+  completionEffects: [
+    { kind: 'removeNodesFraction', fraction: 0.25 },
+    { kind: 'addHeat', heat: 50 },
+  ],
+  xpPerRun: num(1),
+};
+
+/** A test action that pays interface speed instead of credits (1 s runs, 0.001 per run). */
+export const practiceAction: GameConfig['actions'][number] = {
+  id: 'practice',
+  name: 'Practice',
+  baseDurationMs: 1_000,
+  reward: num(0.001),
+  rewardKind: 'interfaceSpeed',
   xpPerRun: num(1),
 };
 

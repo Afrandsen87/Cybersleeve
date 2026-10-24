@@ -27,6 +27,14 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
     network: factory.fromNumber(0),
     heat: config.sleeve.baseHeat,
     heatCooldownMs: 0,
+    circumvention: factory.fromNumber(config.sleeve.baseCircumvention),
+    infamy: 0,
+    infamyCooldownMs: 0,
+    networkRemainder: 0,
+    nodePayoutBonus: 0,
+    unlockedActions: {},
+    autoRunOff: {},
+    interfaceSpeedBonus: 0,
     actions,
     purchased: {},
   };
@@ -54,7 +62,7 @@ export function resetForNewGame(
  *
  * @remarks
  * Kept: every action's sleeve XP and its run counter towards the next sleeve-XP batch.
- * Reset: credits (to the starting amount), the network, heat (to `sleeve.baseHeat`) and its cooldown, all action XP/progress, all purchases.
+ * Reset: credits (to the starting amount), the network, the interface speed bonus earned by actions, Circumvention, Infamy and its cycle, the node payout bonus, the growth carry, unlocked actions, auto-run switches, heat (to `sleeve.baseHeat`) and its cooldown, all action XP/progress, all purchases.
  *
  * Called by: `engine.ts`.
  *
@@ -72,6 +80,14 @@ export function resetForResleeve(
   state.network = fresh.network;
   state.heat = fresh.heat;
   state.heatCooldownMs = fresh.heatCooldownMs;
+  state.interfaceSpeedBonus = fresh.interfaceSpeedBonus;
+  state.circumvention = fresh.circumvention;
+  state.infamy = fresh.infamy;
+  state.infamyCooldownMs = fresh.infamyCooldownMs;
+  state.networkRemainder = fresh.networkRemainder;
+  state.nodePayoutBonus = fresh.nodePayoutBonus;
+  state.unlockedActions = fresh.unlockedActions;
+  state.autoRunOff = fresh.autoRunOff;
   for (const [id, action] of Object.entries(fresh.actions)) {
     const old = state.actions[id];
     if (old) {

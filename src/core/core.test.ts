@@ -171,8 +171,23 @@ describe('heatTaxFactor', () => {
 
 describe('resolveSleeveStats', () => {
   it('reports the current heat from the state', () => {
-    const stats = resolveSleeveStats(config.buyables, { purchased: {}, heat: 4 }, config.sleeve);
+    const stats = resolveSleeveStats(
+      config.buyables,
+      { purchased: {}, heat: 4, interfaceSpeedBonus: 0, network: num(0), circumvention: num(1), infamy: 0, nodePayoutBonus: 0 },
+      config.sleeve,
+      numberFactory,
+    );
     expect(stats.heat).toBe(4);
+  });
+
+  it('multiplies the interface speed by 1 + the bonus earned by actions (0.5 * 1.25 = 0.625)', () => {
+    const stats = resolveSleeveStats(
+      [],
+      { purchased: {}, heat: 0, interfaceSpeedBonus: 0.25, network: num(0), circumvention: num(1), infamy: 0, nodePayoutBonus: 0 },
+      { ...config.sleeve, baseInterfaceSpeed: 0.5 },
+      numberFactory,
+    );
+    expect(stats.interfaceSpeed).toBeCloseTo(0.625, 10);
   });
 
   it('a new game starts with the configured base heat', () => {
@@ -555,7 +570,6 @@ describe('config helpers', () => {
       'runtime.autosaveMs',
       'fastForwardFactor',
       'network.creditsPerNodePerSecond',
-      'is sleeve-wide and must not have an actionId',
       'needs an actionId',
       'interface speed amount must be >= 0',
       'access level must be an integer >= 1',

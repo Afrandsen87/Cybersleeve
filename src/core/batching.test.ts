@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
-import { malwareAction, networkAction, setCredits, testConfig } from '../testing/testConfig';
+import { killAction, legendAction, malwareAction, networkAction, percentKillAction, setCredits, testConfig } from '../testing/testConfig';
 import { createConfig } from './index';
 
 const three = () => createConfig(testConfig, { actions: [testConfig.actions[0]!, networkAction, malwareAction] });
@@ -106,6 +106,69 @@ describe('closed-form runs match completing runs one at a time', () => {
     const { once, stepped } = twins(3_000_125, 6_001, setup, config); // an end time that is not an exact run boundary, where float rounding could tip one twin over
     expect(once.getState().network.gt(num(100))).toBe(true);
     expectSame(once, stepped, ['net']);
+  });
+});
+
+describe('start costs and completion effects match run-by-run play', () => {
+  const unlock = { id: 'unlock', name: 'Unlock', description: '', cost: num(1), effect: { kind: 'unlock' } } as const;
+  const autoFor = (actionId: string) =>
+    ({ id: `auto-${actionId}`, name: 'Auto', description: '', actionId, cost: num(1), effect: { kind: 'autoRun' } }) as const;
+  /** Infamy decay is linear per tick but the tick order differs, so it is switched off when comparing tick sizes. */
+  const config = () =>
+    runsOnly(
+      createConfig(testConfig, {
+        actions: [testConfig.actions[0]!, killAction, legendAction],
+        buyables: [unlock, autoFor('kill'), autoFor('legend')],
+        sleeve: { infamyDecayPeriodMs: 1e15 },
+      }),
+    );
+  const mutable = (g: ReturnType<typeof createGame>) => g.getState() as { network: unknown; unlockedActions: Record<string, boolean> };
+
+  it('auto-running Kill servers pays 50 nodes per run and adds 1 Circumvention per run', () => {
+    const setup: Setup = (g) => {
+      setCredits(g, num(5));
+      g.buy('auto-kill');
+      mutable(g).unlockedActions['kill'] = true;
+      mutable(g).network = num(500);
+    };
+    const { once, stepped } = twins(5_000, 5, setup, config());
+    expect(once.getState().circumvention.eq(stepped.getState().circumvention)).toBe(true);
+    closeTo(once.getState().network, stepped.getState().network);
+    expect(once.getState().circumvention.eq(num(6))).toBe(true);
+  });
+
+  it('auto-running with a share-of-nodes cost takes 1% of what is held at the start of every run', () => {
+    const cfg = runsOnly(
+      createConfig(testConfig, {
+        actions: [testConfig.actions[0]!, percentKillAction],
+        buyables: [autoFor('pkill')],
+        sleeve: { infamyDecayPeriodMs: 1e15 },
+      }),
+    );
+    const setup: Setup = (g) => {
+      setCredits(g, num(5));
+      g.buy('auto-pkill');
+      mutable(g).network = num(10_000);
+    };
+    const { once, stepped } = twins(5_000, 5, setup, cfg);
+    expect(once.getState().network.eq(stepped.getState().network)).toBe(true);
+    expect(once.getState().circumvention.eq(stepped.getState().circumvention)).toBe(true);
+    expect(once.getState().network.toNumber()).toBeLessThan(10_000);
+  });
+
+  it('auto-running Legend removes a quarter of the nodes per run, however the runs are batched', () => {
+    const setup: Setup = (g) => {
+      setCredits(g, num(5));
+      g.buy('unlock');
+      g.buy('auto-legend');
+      mutable(g).network = num(1000);
+    };
+    const { once, stepped } = twins(5_000, 5, setup, config());
+    closeTo(once.getState().network, stepped.getState().network);
+    closeTo(num(once.getState().infamy), num(stepped.getState().infamy));
+    expect(once.getState().infamy).toBeCloseTo(5, 6);
+    expect(once.getState().heat).toBe(250); // 5 runs x 50 heat
+    expect(stepped.getState().heat).toBe(250);
   });
 });
 

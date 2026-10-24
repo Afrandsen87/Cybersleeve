@@ -11,7 +11,7 @@
  */
 import type { BigNum } from '../numbers';
 
-/** Identifier of an action (e.g. `"earn-credits"`). Never shown to the player. */
+/** Identifier of an action (e.g. `"practice-hacking"`). Never shown to the player. */
 export type ActionId = string;
 /** Identifier of a buyable (e.g. `"auto-run"`). Never shown to the player. */
 export type BuyableId = string;
@@ -39,8 +39,42 @@ export interface LevelRuleConfig {
  */
 export type LevelScaling = { readonly kind: 'linear'; readonly perLevel: number } | { readonly kind: 'exponential'; readonly base: number };
 
-/** What a completed run pays out: `credits` go to the credit balance, `networkNodes` grow the network. */
-export type RewardKind = 'credits' | 'networkNodes';
+/**
+ * What a completed run pays out: `credits` go to the credit balance, `networkNodes` grow the network,
+ * `interfaceSpeed` adds to a multiplier on the sleeve's interface speed (until the next re-sleeve), `circumvention` adds to
+ * the Circumvention stat (which lowers the heat tax), `infamy` adds to Infamy (which slows heat cooldown) and `nodePayout`
+ * adds to a multiplier on what every network node produces. Network nodes are always whole numbers: a `networkNodes`
+ * reward is rounded down per run.
+ */
+export type RewardKind = 'credits' | 'networkNodes' | 'interfaceSpeed' | 'circumvention' | 'infamy' | 'nodePayout';
+
+/** When an action becomes available besides the access level. */
+export type UnlockRule =
+  /** Once the network has reached `amount` nodes; stays unlocked afterwards (until re-sleeving). */
+  | { readonly kind: 'nodes'; readonly amount: number }
+  /** While the buyable is owned. */
+  | { readonly kind: 'buyable'; readonly buyableId: BuyableId };
+
+/** Something that happens each time an action completes a run, besides its reward. */
+export type CompletionEffect =
+  /** Removes this fraction of the current network nodes (0.25 = a quarter), rounded down to whole nodes for each run. */
+  | { readonly kind: 'removeNodesFraction'; readonly fraction: number }
+  /** Adds this much heat on top of the current heat. */
+  | { readonly kind: 'addHeat'; readonly heat: number };
+
+/**
+ * A price paid every time a run starts (manually or by auto-run). It is `amount` plus `fractionOfBalance` of the balance held
+ * at that moment (network nodes: rounded down to whole nodes). A fraction-based cost that comes to 0 cannot be paid, so
+ * the run cannot start: with 1% of nodes you need at least 100 nodes.
+ */
+export interface StartCost {
+  /** What is paid. */
+  readonly currency: Currency;
+  /** A fixed amount per run (>= 0). Default: 0. */
+  readonly amount?: BigNum;
+  /** The share (0..1) of the current balance paid per run. Default: none. */
+  readonly fractionOfBalance?: number;
+}
 
 /** Static description of an action the character can perform. */
 export interface ActionDefinition {
@@ -59,6 +93,12 @@ export interface ActionDefinition {
   readonly heatPerRun?: number;
   /** Access level the sleeve needs before this action can be performed (integer >= 1). Default: 1. */
   readonly requiredAccessLevel?: number;
+  /** Extra condition that must hold before this action can be performed. Default: none. */
+  readonly unlock?: UnlockRule;
+  /** Paid each time a run starts; without enough of the currency the run cannot start. Such actions complete one run per batch. */
+  readonly startCost?: StartCost;
+  /** Applied after each completed run (in order). */
+  readonly completionEffects?: readonly CompletionEffect[];
   /** Action experience gained per completed run (before output multipliers). */
   readonly xpPerRun: BigNum;
   /** Overrides `progression.actionLevels` for this action. */
@@ -74,28 +114,52 @@ export interface ActionDefinition {
  * An effect applies once per copy owned (see `BuyableDefinition.maxPurchases`).
  *
  * - Action effects (`autoRun`, `outputMultiplier`) change the action the buyable belongs to.
- * - Sleeve effects (`interfaceSpeed`, `accessLevel`) change the global sleeve stats; the buyable has no action.
+ * - Sleeve effects (`interfaceSpeed`, `accessLevel`, `networkGrowth`, `interfaceSpeedPerLnNodes`, `sleeveXpReduction`) change the
+ *   game as a whole; the buyable may still belong to an action, which only decides on which card it is shown.
+ * - `levelBonusFromSleeveLevel` links two actions: it adds one action's sleeve level to another action's level for speed.
  */
 export type BuyableEffect =
   | { readonly kind: 'autoRun' }
   | { readonly kind: 'outputMultiplier'; readonly factor: number }
   | { readonly kind: 'interfaceSpeed'; readonly amount: number }
-  | { readonly kind: 'accessLevel'; readonly level: number };
+  | { readonly kind: 'accessLevel'; readonly level: number }
+  /** Multiplies the credits each network node produces by this factor per copy. */
+  | { readonly kind: 'nodePayoutMultiplier'; readonly factor: number }
+  /** Multiplies the Circumvention stat by this factor per copy. */
+  | { readonly kind: 'circumventionMultiplier'; readonly factor: number }
+  /** No effect of its own: owning it satisfies an action's `unlock: { kind: 'buyable' }` rule. */
+  | { readonly kind: 'unlock' }
+  /** Network nodes grow by this fraction of themselves per second (0.000001 = 0.0001 percent), compounding; only whole nodes are added, the rest is carried. */
+  | { readonly kind: 'networkGrowth'; readonly ratePerSecond: number }
+  /** Multiplies the base interface speed by `1 + perLn * ln(nodes)` (never below 1), before the run multiplier. */
+  | { readonly kind: 'interfaceSpeedPerLnNodes'; readonly perLn: number }
+  /** Adds the sleeve level of `sourceActionId` to the level of `targetActionId` when computing speed (not its XP progress). */
+  | { readonly kind: 'levelBonusFromSleeveLevel'; readonly sourceActionId: ActionId; readonly targetActionId: ActionId }
+  /**
+   * Lowers the XP needed for every sleeve level of every OTHER action by `min(maxReduction, perLevel * sleeve level of
+   * sourceActionId)`, as a fraction (0.25 = 25 percent less XP). The source action itself is not affected.
+   */
+  | { readonly kind: 'sleeveXpReduction'; readonly sourceActionId: ActionId; readonly perLevel: number; readonly maxReduction: number };
 
-/** Kinds of {@link BuyableEffect} that belong to an action (all others are sleeve-wide). */
+/** Kinds of {@link BuyableEffect} that change the action the buyable belongs to (and so need an `actionId`). */
 export const ACTION_EFFECT_KINDS: readonly BuyableEffect['kind'][] = ['autoRun', 'outputMultiplier'];
 
-/** Static description of a purchase (one-time or repeatable). It belongs to one action, or to the sleeve when it has no action. */
+/** What a buyable is paid with. */
+export type Currency = 'credits' | 'networkNodes';
+
+/** Static description of a purchase (one-time or repeatable). It is shown on its action's card, or in the Sleeve widget when it has no action. */
 export interface BuyableDefinition {
   readonly id: BuyableId;
-  /** The action this purchase belongs to and whose behaviour its effect changes. Absent for sleeve-wide (global) purchases. */
+  /** The action whose card shows this purchase (and whose behaviour an action effect changes). Absent: shown in the Sleeve widget. */
   readonly actionId?: ActionId;
   readonly name: string;
   readonly description: string;
   /** Short text shown on the purchase's square button (default: initials of `name`). */
   readonly symbol?: string;
-  /** Price in credits of the first copy (before `global.costMultiplier`). */
+  /** Price of the first copy, in `currency` (before `global.costMultiplier`). */
   readonly cost: BigNum;
+  /** What the price is paid in. Default: credits. Paying in network nodes removes those nodes. */
+  readonly currency?: Currency;
   readonly effect: BuyableEffect;
   /** Buyables that must be owned before this one becomes available. Default: none. */
   readonly requires?: readonly BuyableId[];
@@ -151,6 +215,14 @@ export interface SleeveConfig {
   readonly heatCooldownMs: number;
   /** Heat removed each time a cooldown cycle completes (> 0). */
   readonly heatCooldownAmount: number;
+  /** Circumvention of a new sleeve (>= 1). The stat is multiplied by buyables and raised by actions. */
+  readonly baseCircumvention: number;
+  /** Share of the heat tax removed per order of magnitude of Circumvention (0.005 = 0.5%; 100% is reached at 1e200). */
+  readonly circumventionReductionPerOrder: number;
+  /** Each point of Infamy makes a heat cooldown cycle this much longer (0.1 = 10% slower per point; >= 0). */
+  readonly infamyHeatSlowdown: number;
+  /** Infamy falls by exactly 1 each time this many ms have passed (a cycle, like the heat cooldown; > 0). */
+  readonly infamyDecayPeriodMs: number;
 }
 
 /** The passive-income network built by actions paying `networkNodes`. */
@@ -217,6 +289,22 @@ export interface GameState {
   heat: number;
   /** Time spent on the current heat cooldown cycle, in ms. Only advances while heat > 0. Reset by re-sleeving. */
   heatCooldownMs: number;
+  /** Circumvention earned so far, starting at `sleeve.baseCircumvention`; buyable multipliers come on top. Reset by re-sleeving. */
+  circumvention: BigNum;
+  /** Infamy: slows heat cooldown, decays over time. Reset by re-sleeving. */
+  infamy: number;
+  /** Time spent on the current Infamy decay cycle, in ms. Only advances while Infamy > 0. Reset by re-sleeving. */
+  infamyCooldownMs: number;
+  /** Fraction of a node (0..1) the network has grown by itself but not yet completed; carried between ticks. Reset by re-sleeving. */
+  networkRemainder: number;
+  /** Bonus gained from actions paying `nodePayout`: what each node produces is multiplied by `1 + this`. Reset by re-sleeving. */
+  nodePayoutBonus: number;
+  /** Actions that were unlocked by a `nodes` rule and stay unlocked. Reset by re-sleeving. */
+  unlockedActions: Record<ActionId, boolean>;
+  /** Auto-run buyables the player has switched off (absent or false: running). Reset by re-sleeving. */
+  autoRunOff: Record<BuyableId, boolean>;
+  /** Multiplier bonus gained from actions paying `interfaceSpeed`: interface speed is multiplied by `1 + this`. Reset by re-sleeving. */
+  interfaceSpeedBonus: number;
   actions: Record<ActionId, ActionState>;
   /** Copies owned per buyable id. Absent means 0. */
   purchased: Record<BuyableId, number>;
@@ -231,6 +319,14 @@ export interface GameStateView {
   readonly network: BigNum;
   readonly heat: number;
   readonly heatCooldownMs: number;
+  readonly circumvention: BigNum;
+  readonly infamy: number;
+  readonly infamyCooldownMs: number;
+  readonly networkRemainder: number;
+  readonly nodePayoutBonus: number;
+  readonly unlockedActions: Readonly<Record<ActionId, boolean>>;
+  readonly autoRunOff: Readonly<Record<BuyableId, boolean>>;
+  readonly interfaceSpeedBonus: number;
   readonly actions: Readonly<Record<ActionId, Readonly<ActionState>>>;
   readonly purchased: Readonly<Record<BuyableId, number>>;
 }

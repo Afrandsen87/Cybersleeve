@@ -44,9 +44,18 @@ export function createClampOverflowPolicy(factory: NumberFactory): OverflowPolic
       };
       clamp(state, 'credits');
       clamp(state, 'network');
+      clamp(state, 'circumvention');
       for (const action of Object.values(state.actions)) {
         clamp(action, 'xp');
         clamp(action, 'sleeveXp');
+      }
+      if (!Number.isFinite(state.nodePayoutBonus)) {
+        state.nodePayoutBonus = Number.isNaN(state.nodePayoutBonus) ? 0 : Number.MAX_SAFE_INTEGER;
+        changed = true;
+      }
+      if (!Number.isFinite(state.infamy)) {
+        state.infamy = Number.isNaN(state.infamy) ? 0 : Number.MAX_SAFE_INTEGER;
+        changed = true;
       }
       if (!Number.isFinite(state.heat)) {
         state.heat = Number.isNaN(state.heat) ? 0 : Number.MAX_SAFE_INTEGER;

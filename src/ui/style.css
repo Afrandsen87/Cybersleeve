@@ -35,7 +35,8 @@ body {
 }
 .actions {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: start;
+  grid-auto-rows: 1fr; /* every card gets the same size */
+  align-items: stretch;
 }
 .action.empty {
   min-height: 120px;
@@ -43,7 +44,13 @@ body {
   background: transparent;
   opacity: 0.5;
 }
-.sleeve-widget {
+.side {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.sleeve-widget,
+.network-widget {
   display: grid;
   gap: 10px;
   background: var(--panel);
@@ -51,8 +58,22 @@ body {
   border-radius: 10px;
   padding: 12px;
 }
-.sleeve-widget h2 {
+.sleeve-widget h2,
+.network-widget h2 {
   margin: 0;
+}
+.section-title {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.upgrade.ready:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
 }
 .stats {
   display: grid;
@@ -121,6 +142,7 @@ button:not(:disabled):hover {
 }
 .action {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -129,6 +151,7 @@ button:not(:disabled):hover {
 }
 .action-main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding: 0;
   background: none;
@@ -144,7 +167,16 @@ button:not(:disabled):hover {
 .action-info,
 .action-reward {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
+}
+/* One line per text, never wrapped: long text is cut with an ellipsis so all cards stay the same size. */
+.action-title,
+.action-info,
+.action-reward,
+.xp-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .bar {
   height: 12px;
@@ -191,11 +223,6 @@ button:not(:disabled):hover {
   gap: 8px;
   margin-top: 4px;
 }
-.sleeve-widget .upgrade:hover::after,
-.sleeve-widget .upgrade:focus-visible::after {
-  left: auto;
-  right: 0;
-}
 .upgrades:empty {
   display: none;
 }
@@ -212,13 +239,18 @@ button:not(:disabled):hover {
   border-color: var(--teal);
   color: var(--teal);
 }
-.upgrade:hover::after,
-.upgrade:focus-visible::after {
-  content: attr(data-tip);
+.upgrade.owned.off {
+  border-color: var(--line);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.stat[data-tip] {
+  cursor: help;
+}
+/* One shared tooltip box, positioned by tooltip.ts so it always stays inside the window. */
+.tooltip {
   white-space: pre-line;
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 6px);
+  position: fixed;
   z-index: 20;
   width: max-content;
   max-width: 240px;
@@ -232,6 +264,9 @@ button:not(:disabled):hover {
   line-height: 1.35;
   text-align: left;
   pointer-events: none;
+}
+.tooltip[hidden] {
+  display: none;
 }
 .upgrade:disabled {
   opacity: 1;

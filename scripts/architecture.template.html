@@ -165,17 +165,22 @@ heat     = sleeve.baseHeat, + heatPerRun per completed run, &minus; heatCooldown
            xpPerRun &times; outputMultiplier &times; global.xp XP
 outputMultiplier = &prod; factor^copiesOwned
 sleeve XP (per action): +sleeveXpPerGrant per runsPerSleeveXp runs of that action</code></pre>
-      <p>Worked example: action level 3, sleeve level 2, interface speed 1, base 10 s &rarr; 10 s / 6 = 1.67 s.</p></div>
+      <p>Worked example (level worth 0.05 per level): action level 3, sleeve level 2, interface speed 1, base 10 s &rarr; 10 s / (1.1 &times; 1.05) = 8.66 s.</p></div>
   </div>
   <div class="card scroll" style="margin-top:12px"><h3>Content of milestone 1 (<code>content/gameConfig.ts</code>)</h3><table>
     <thead><tr><th>Item</th><th>Value</th></tr></thead><tbody>
-    <tr><td>Action &ldquo;Earn credits&rdquo;</td><td>1 s base, +0.5 credits and +1 XP per run, click to start</td></tr>
+    <tr><td>Action &ldquo;Practice Hacking&rdquo;</td><td>1 s base, +0.001 to the interface-speed multiplier (no credits) and +1 XP per run, click to start</td></tr>
     <tr><td>Action &ldquo;Grow network&rdquo;</td><td>3 s base, +1 network node and +1 XP per run, no credits. Each node produces 0.05 credits per second, even while no action runs. Own action level and own sleeve level.</td></tr>
-    <tr><td>Action &ldquo;Push malware&rdquo;</td><td>6 s base, needs access level 2. Pays 1 credit per network node owned and adds 1 heat per run.</td></tr>
-    <tr><td>Sleeve widget</td><td>Global stats and global buyables. Access level (1) gates actions; interface speed (10 %, shown as a percentage) multiplies the speed of every action; heat (0) taxes all credits earned (1 % per point) and cools down by 1 every 60 s while above 0. Buyables: Interface boost (+0.05 interface speed: 10 % to 15 %, one-time) and Access upgrade (access level 2)</td></tr>
+    <tr><td>Action &ldquo;Push malware&rdquo;</td><td>6 s base, needs access level 2. Each run adds 0.1 % to the node payout multiplier (1000 runs give x2) and 1 heat; no credits.</td></tr>
+    <tr><td>Action &ldquo;Kill servers&rdquo;</td><td>2 min base, costs 1 % of the nodes per run (rounded down, so at least 100 nodes are needed; spent at the start), +1 Circumvention per run. Unlocks at 1000 nodes and stays unlocked.</td></tr>
+    <tr><td>Action &ldquo;Legend&rdquo;</td><td>5 min base, unlocked by the Unlock Legend buyable. Each run: +1 Infamy, removes 25 % of the nodes, adds 50 heat.</td></tr>
+    <tr><td>Circumvention / Infamy</td><td>Circumvention lowers heat&rsquo;s effect by 0.5 % per order of magnitude (100 % at 1e200), so credits stop at 100 / (1 &minus; reduction) heat. Infamy makes heat cool 10 % slower per point and falls by exactly 1 each 10 minute cycle (with a progress bar). Network nodes are always whole numbers.</td></tr>
+    <tr><td>Sleeve widget</td><td>Global stats and global buyables. Access level (1) gates actions; interface speed (0.1, shown as a number; multiplied by 1 + 0.001 per Practice Hacking run, so 1000 runs double it and 3000 quadruple it) multiplies the speed of every action; heat (0) taxes all credits earned (1 % per point) and cools down by 1 every 60 s while above 0. Buyables: Interface boost (+0.05 interface speed: 0.1 to 0.15, one-time) and Access upgrade (access level 2)</td></tr>
     <tr><td>Auto-run</td><td>10,000 credits &ndash; restarts the action automatically (leftover time carries over)</td></tr>
-    <tr><td>Dual processors</td><td>15 credits &ndash; output multiplier &times;2 (credits, XP and counted runs)</td></tr>
-    <tr><td>Duplicate processors</td><td>Appears once Dual processors is owned. First copy 150 credits (10&times; Dual), each further copy costs 10&times; more (150, 1.5K, 15K, ...). Unlimited copies; each doubles the output again (2<sup>n</sup>).</td></tr>
+    <tr><td>Skill transfer / Study methods</td><td>50,000 credits: adds Practice Hacking&rsquo;s sleeve level to Grow Network&rsquo;s level (speed only). 1e15 credits: other actions&rsquo; sleeve levels need 0.01 % less XP per sleeve level of Practice Hacking, at most 25 % (Practice Hacking itself is not affected).</td></tr>
+    <tr><td>Grow Network buyables</td><td>Auto-run (100); Parallel nodes (10,000, &times;1000 per copy, &times;2 output); Self-replication (1e10: nodes grow 0.0001 % of themselves per second); Network synergy (1e35: base interface speed &times; (1 + ln(nodes)/100)).</td></tr>
+    <tr><td>Node uplink (Sleeve)</td><td>Paid in 100 network nodes (each copy 100,000&times; more): +0.1 base interface speed.</td></tr>
+    <tr><td>Duplicate processors</td><td>Always available. First copy 150 credits, each further copy costs 10&times; more (150, 1.5K, 15K, ...). Unlimited copies; each doubles the output again (2<sup>n</sup>).</td></tr>
     <tr><td>Re-sleeve</td><td>always allowed for now (<code>alwaysAllowResleeve</code> policy)</td></tr></tbody></table></div>
 </section>
 
@@ -439,7 +444,7 @@ function drawGraph(svg,spec){
    ["credits",0,1,0],
    ["network (nodes)",0,1,0],
    ["actions[].xp, running, progressMs",0,1,0],
-   ["purchased (copies of auto-run, dual, duplicate processors)",0,1,0],
+   ["purchased (copies of auto-run, duplicate processors)",0,1,0],
    ["Speed toggle (x10)",1,0,0]
   ];
   var h="<thead><tr><th>Field</th><th>Re-sleeve</th><th>Reload (saved)</th><th>New game</th></tr></thead><tbody>";
@@ -605,7 +610,7 @@ function drawGraph(svg,spec){
 (function(){
   var R=[
    ["assume","Assumption: sleeve-XP counter","Sleeve XP is granted in whole points from a run counter that survives re-sleeving. Awaiting confirmation."],
-   ["assume","Assumption: dual processors","The ×2 output multiplier also doubles XP and counted runs (two parallel runs = two completed actions), not just credits."],
+   ["assume","Assumption: output multipliers","The ×2 output multiplier of Duplicate processors also doubles XP, counted runs and the interface speed multiplier gained per run (two parallel runs = two completed actions)."],
    ["assume","Assumption: purchases reset on re-sleeve","Buyables are one-time and are lost on re-sleeve. Easy to change if they should persist."],
    ["assume","Open: re-sleeve requirement","Currently always allowed (replaceable ResleevePolicy) so the mechanic can be tested."],
    ["risk","Background throttling","Browsers throttle timers in hidden tabs (about 1 call/s, later about 1/min). The loop simulates the full real-time gap, so nothing is lost, but updates are coarse. Gaps over 10 minutes are capped."],

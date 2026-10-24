@@ -1,10 +1,10 @@
 /**
  * @module core
  *
- * Purchases ("buyables") paid with credits: one-time or repeatable, optionally gated.
+ * Purchases ("buyables") paid with credits or network nodes: one-time or repeatable, optionally gated.
  */
 import type { BigNum, NumberFactory } from '../numbers';
-import type { BuyableDefinition, BuyableId, GameState } from './types';
+import type { BuyableDefinition, BuyableId, Currency, GameState } from './types';
 
 /** Why a purchase did or did not happen. */
 export type PurchaseResult = 'purchased' | 'max-reached' | 'locked' | 'cannot-afford' | 'unknown';
@@ -32,6 +32,12 @@ export class Shop {
     for (const b of buyables) this.byId.set(b.id, b);
   }
 
+  /** Rounds up to a whole number. */
+  private roundUp(n: BigNum): BigNum {
+    const whole = n.floor();
+    return whole.eq(n) ? n : whole.add(this.factory.fromNumber(1));
+  }
+
   /** Copies of a buyable owned (0 if none or unknown). */
   owned(state: GameState, id: BuyableId): number {
     return state.purchased[id] ?? 0;
@@ -51,19 +57,30 @@ export class Shop {
   }
 
   /**
-   * Price of the NEXT copy: `cost * costGrowth^owned * global.costMultiplier`.
+   * Price of the NEXT copy, in the buyable's currency: `cost * costGrowth^owned * global.costMultiplier`. Prices in network
+   * nodes are rounded up to a whole node.
    * @throws Error if the id is unknown
    */
   costOf(state: GameState, id: BuyableId): BigNum {
     const b = this.byId.get(id);
     if (!b) throw new Error(`Unknown buyable: ${id}`);
     const growth = this.factory.fromNumber(b.costGrowth ?? 1).pow(this.owned(state, id));
-    return b.cost.mul(growth).mul(this.factory.fromNumber(this.costMultiplier));
+    const price = b.cost.mul(growth).mul(this.factory.fromNumber(this.costMultiplier));
+    return b.currency === 'networkNodes' ? this.roundUp(price) : price;
   }
 
-  /** True when the buyable exists, is available, not maxed, and credits cover the next price. */
+  /** What the buyable is paid in (credits unless it says otherwise). @throws Error if the id is unknown */
+  currencyOf(id: BuyableId): Currency {
+    const b = this.byId.get(id);
+    if (!b) throw new Error(`Unknown buyable: ${id}`);
+    return b.currency ?? 'credits';
+  }
+
+  /** True when the buyable exists, is available, not maxed, and its currency covers the next price. */
   canBuy(state: GameState, id: BuyableId): boolean {
-    return this.byId.has(id) && this.isAvailable(state, id) && !this.isMaxed(state, id) && state.credits.gte(this.costOf(state, id));
+    return (
+      this.byId.has(id) && this.isAvailable(state, id) && !this.isMaxed(state, id) && this.balance(state, id).gte(this.costOf(state, id))
+    );
   }
 
   /**
@@ -75,9 +92,15 @@ export class Shop {
     if (!this.isAvailable(state, id)) return 'locked';
     if (this.isMaxed(state, id)) return 'max-reached';
     const price = this.costOf(state, id);
-    if (state.credits.lt(price)) return 'cannot-afford';
-    state.credits = state.credits.sub(price);
+    if (this.balance(state, id).lt(price)) return 'cannot-afford';
+    if (this.currencyOf(id) === 'networkNodes') state.network = state.network.sub(price);
+    else state.credits = state.credits.sub(price);
     state.purchased[id] = this.owned(state, id) + 1;
     return 'purchased';
+  }
+
+  /** What the player holds of the buyable's currency. */
+  private balance(state: GameState, id: BuyableId): BigNum {
+    return this.currencyOf(id) === 'networkNodes' ? state.network : state.credits;
   }
 }

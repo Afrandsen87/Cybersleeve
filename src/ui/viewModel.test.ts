@@ -2,28 +2,185 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
-import { malwareAction, networkAction, setCredits, testConfig } from '../testing/testConfig';
+import {
+  killAction,
+  legendAction,
+  malwareAction,
+  networkAction,
+  payoutAction,
+  percentKillAction,
+  setCredits,
+  testConfig,
+} from '../testing/testConfig';
 import { buildViewModel, formatSeconds } from './viewModel';
 
 const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
+
+describe('view model - unlocks, start costs and toggles', () => {
+  const unlock = { id: 'unlock', name: 'Unlock Legend', description: '', cost: num(1), effect: { kind: 'unlock' } } as const;
+  const withNew = (buyables = [...testConfig.buyables, unlock]) =>
+    game({ actions: [testConfig.actions[0]!, killAction, legendAction], buyables });
+
+  it('names why an action is locked in a few words and shows its start cost', () => {
+    const vm = buildViewModel(withNew());
+    const [a, kill, legend] = vm.actions;
+    expect(a!.lockedReason).toBeNull();
+    expect(a!.startCostText).toBeNull();
+    expect(kill!.lockedReason).toBe('Needs 1K nodes');
+    expect(kill!.startCostText).toBe('50 nodes');
+    expect(legend!.lockedReason).toBe('Needs Unlock Legend');
+  });
+
+  it('shows no reason once an action is unlocked', () => {
+    const g = withNew();
+    setCredits(g, num(1));
+    g.buy('unlock');
+    expect(buildViewModel(g).actions[2]!.lockedReason).toBeNull();
+  });
+
+  it('an owned auto-run is a clickable toggle that reports its state in the tip', () => {
+    const g = withNew();
+    setCredits(g, num(100));
+    g.buy('auto');
+    let auto = buildViewModel(g).actions[0]!.buyables.find((b) => b.id === 'auto')!;
+    expect(auto.toggleable).toBe(true);
+    expect(auto.maxed).toBe(true);
+    expect(auto.clickable).toBe(true);
+    expect(auto.enabled).toBe(true);
+    expect(auto.tip).toContain('ON');
+    g.toggleAutoRun('auto');
+    auto = buildViewModel(g).actions[0]!.buyables.find((b) => b.id === 'auto')!;
+    expect(auto.enabled).toBe(false);
+    expect(auto.clickable).toBe(true);
+    expect(auto.tip).toContain('OFF');
+  });
+
+  it('other buyables are not toggles and are clickable only while affordable', () => {
+    const g = withNew();
+    const dual = buildViewModel(g).actions[0]!.buyables.find((b) => b.id === 'dual')!;
+    expect(dual.toggleable).toBe(false);
+    expect(dual.clickable).toBe(false);
+    setCredits(g, num(100));
+    expect(buildViewModel(g).actions[0]!.buyables.find((b) => b.id === 'dual')!.clickable).toBe(true);
+  });
+
+  it('shows Circumvention, Infamy and the heat tax after Circumvention, each with an explaining tip', () => {
+    const g = withNew();
+    const state = g.getState() as { heat: number; infamy: number; circumvention: unknown };
+    state.heat = 150;
+    state.infamy = 2;
+    state.circumvention = num('1e100');
+    const sleeve = buildViewModel(g).sleeve;
+    expect(sleeve.circumventionText).toBe('1e100');
+    expect(sleeve.circumventionTip).toContain('50% less heat effect');
+    expect(sleeve.heatText).toBe('150');
+    expect(sleeve.heatTip).toContain('150 x 0.5 = 75% tax');
+    expect(sleeve.heatTip).toContain('Credits stop at 200 heat');
+    expect(sleeve.infamyText).toBe('2');
+    expect(sleeve.infamyTip).toContain('x1.2 as long');
+  });
+});
+
+describe('view model - sleeve sections, light-up and the newer texts', () => {
+  const buy = (id: string, extra = {}) =>
+    ({ id, name: id, description: '', cost: num(1), effect: { kind: 'accessLevel', level: 2 }, ...extra }) as const;
+  const sections = (buyables: object[]) =>
+    buildViewModel(game({ buyables })).sleeve.sections.map((s) => [s.title, s.buyables.map((b) => b.id)]);
+
+  it('splits the Sleeve purchases into rebuyable, one-time and paid in nodes, each sorted by base price', () => {
+    expect(
+      sections([
+        buy('one-big', { cost: num(1000) }),
+        buy('re-big', { cost: num(100), maxPurchases: Infinity }),
+        buy('nodes', { cost: num(100), currency: 'networkNodes', maxPurchases: Infinity }),
+        buy('one-small', { cost: num(1) }),
+        buy('re-small', { cost: num(50), maxPurchases: Infinity }),
+        buy('nodes-once', { cost: num(5), currency: 'networkNodes' }),
+      ]),
+    ).toEqual([
+      ['Rebuyable', ['re-small', 're-big']],
+      ['One-time', ['one-small', 'one-big']],
+      ['Paid in nodes', ['nodes-once', 'nodes']],
+    ]);
+  });
+
+  it('leaves out empty sections and action buyables, and keeps the flat list in configuration order', () => {
+    const vm = buildViewModel(game({ buyables: [buy('b', { cost: num(9) }), buy('a', { cost: num(2) }), buy('mine', { actionId: 'a' })] }));
+    expect(vm.sleeve.sections.map((s) => s.title)).toEqual(['One-time']);
+    expect(vm.sleeve.sections[0]!.buyables.map((b) => b.id)).toEqual(['a', 'b']);
+    expect(vm.sleeve.buyables.map((b) => b.id)).toEqual(['b', 'a']);
+  });
+
+  it('a rebuyable lights up only after it was bought once and the next copy is affordable', () => {
+    const g = game({ buyables: [buy('re', { cost: num(10), costGrowth: 10, maxPurchases: Infinity }), buy('once', { cost: num(1) })] });
+    const ready = (id: string) => buildViewModel(g).sleeve.buyables.find((b) => b.id === id)!.ready;
+    setCredits(g, num(10));
+    expect(ready('re')).toBe(false); // affordable, but never bought
+    g.buy('re');
+    setCredits(g, num(99));
+    expect(ready('re')).toBe(false); // next copy costs 100
+    setCredits(g, num(100));
+    expect(ready('re')).toBe(true);
+    g.buy('once');
+    expect(ready('once')).toBe(false); // not a rebuyable
+  });
+
+  it("shows the start cost of a share-of-balance action with today's amount", () => {
+    const g = game({ actions: [testConfig.actions[0]!, percentKillAction] });
+    const text = () => buildViewModel(g).actions[1]!.startCostText;
+    expect(text()).toBe('1% of nodes (0)');
+    (g.getState() as { network: unknown }).network = num(250);
+    expect(text()).toBe('1% of nodes (2)');
+  });
+
+  it('shows the Infamy cycle as a bar that is paused at 0 Infamy', () => {
+    const g = game();
+    const s = g.getState() as { infamy: number; infamyCooldownMs: number };
+    expect(buildViewModel(g).sleeve.infamyCooling).toBe(false);
+    s.infamy = 2;
+    s.infamyCooldownMs = 300_000;
+    const sleeve = buildViewModel(g).sleeve;
+    expect(sleeve.infamyCooling).toBe(true);
+    expect(sleeve.infamyCooldownPercent).toBeCloseTo(50, 8);
+  });
+
+  it('shows the node payout multiplier with a tip, and names the Push malware reward unit', () => {
+    const g = game({ actions: [testConfig.actions[0]!, payoutAction] });
+    (g.getState() as { nodePayoutBonus: number }).nodePayoutBonus = 0.5;
+    const vm = buildViewModel(g);
+    expect(vm.payoutPerNodeText).toBe('x1.5');
+    expect(vm.payoutTip).toContain('x1.5 (1 + 0.5 earned from actions)');
+    expect(vm.actions[1]!.rewardUnit).toBe('node payout');
+    expect(vm.actions[1]!.rewardText).toBe('0.001');
+  });
+});
 
 describe('view model - sleeve widget', () => {
   it('shows the starting stats and only the global buyables', () => {
     const vm = buildViewModel(game());
     expect(vm.sleeve.accessLevelText).toBe('1');
-    expect(vm.sleeve.interfaceSpeedText).toBe('100%');
-    expect(vm.sleeve.heatText).toBe('0 (0% tax)');
+    expect(vm.sleeve.interfaceSpeedText).toBe('1');
+    expect(vm.sleeve.heatText).toBe('0');
     expect(vm.sleeve.buyables.map((b) => b.id)).toEqual(['speed', 'access']);
     expect(vm.actions[0]!.buyables.map((b) => b.id)).toEqual(['auto', 'dual', 'dup']);
   });
 
-  it('updates the stats after buying the global buyables (100% + 5 = 105%, access level 2)', () => {
+  it('the interface speed tooltip shows the calculation: (base + boosts) x (1 + earned)', () => {
+    const g = game({ sleeve: { baseInterfaceSpeed: 0.1 } });
+    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = 1;
+    const tip = buildViewModel(g).sleeve.interfaceSpeedTip;
+    expect(tip).toContain('0.1 (base + boosts)');
+    expect(tip).toContain('x 2 (1 + 1 earned from actions)');
+    expect(tip).toContain('= 0.2');
+  });
+
+  it('updates the stats after buying the global buyables (1 + 0.05 = 1.05, access level 2)', () => {
     const g = game();
     setCredits(g, num(1100));
     expect(g.buy('speed')).toBe('purchased');
     expect(g.buy('access')).toBe('purchased');
     const vm = buildViewModel(g);
-    expect(vm.sleeve.interfaceSpeedText).toBe('105%');
+    expect(vm.sleeve.interfaceSpeedText).toBe('1.05');
     expect(vm.sleeve.accessLevelText).toBe('2');
     expect(vm.sleeve.buyables.map((b) => b.maxed)).toEqual([true, true]);
   });
@@ -31,7 +188,8 @@ describe('view model - sleeve widget', () => {
   it('never shows a tax above 100% even when heat is higher', () => {
     const g = game();
     (g.getState() as { heat: number }).heat = 250;
-    expect(buildViewModel(g).sleeve.heatText).toBe('250 (100% tax)');
+    expect(buildViewModel(g).sleeve.heatText).toBe('250');
+    expect(buildViewModel(g).sleeve.heatTip).toContain('= 100% tax');
   });
 });
 
@@ -71,7 +229,8 @@ describe('view model - locked actions and heat', () => {
     g.startAction('mal');
     g.tick(6_000);
     const vm = buildViewModel(g);
-    expect(vm.sleeve.heatText).toBe('1 (1% tax)');
+    expect(vm.sleeve.heatText).toBe('1');
+    expect(vm.sleeve.heatTip).toContain('= 1% tax');
     expect(vm.actions.find((a) => a.id === 'mal')!.rewardText).toBe('9.9');
   });
 });
@@ -85,7 +244,7 @@ describe('view model', () => {
     expect(earn.buyables.map((b) => b.id)).toEqual(['auto', 'dual', 'dup']);
     expect(net.buyables).toEqual([]);
     expect(earn.rewardUnit).toBe('credits');
-    expect(net.rewardUnit).toBe('network nodes');
+    expect(net.rewardUnit).toBe('nodes');
     expect(vm.networkText).toBe('0');
     expect(vm.passiveIncomeText).toBe('0');
   });

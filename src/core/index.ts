@@ -10,8 +10,16 @@ export {
   speedMultiplier,
   effectiveDurationMs,
 } from './speed';
-export { type ActionEffects, type SleeveStats, resolveEffects, resolveSleeveStats } from './effects';
+export {
+  type ActionEffects,
+  type SleeveStats,
+  resolveEffects,
+  resolveLevelBonus,
+  resolveNetworkGrowth,
+  resolveSleeveStats,
+} from './effects';
 export { type HeatCooldownState, coolHeat, heatTaxFactor } from './heat';
+export { applyCompletionEffects } from './completion';
 export { Economy } from './economy';
 export { type OverflowPolicy, createClampOverflowPolicy } from './overflow';
 export { Progression } from './progression';

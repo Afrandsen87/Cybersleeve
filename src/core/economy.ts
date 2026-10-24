@@ -47,14 +47,18 @@ export class Economy {
 
   /**
    * What one run actually adds to the balance at the given heat: the gross reward, and for credits also after the
-   * heat tax. Network nodes are not taxed.
+   * heat tax. Everything else is untaxed. Network nodes are whole: the gross amount is rounded down.
    *
    * @param def the action
    * @param gross result of {@link Economy.grossReward}
    * @param heat current heat
+   * @param reduction share of the heat's effect removed by Circumvention (0..1)
    */
-  payout(def: ActionDefinition, gross: BigNum, heat: number): BigNum {
-    return def.rewardKind === 'networkNodes' ? gross : gross.mul(this.factory.fromNumber(heatTaxFactor(heat)));
+  payout(def: ActionDefinition, gross: BigNum, heat: number, reduction = 0): BigNum {
+    if (def.rewardKind === undefined || def.rewardKind === 'credits') {
+      return gross.mul(this.factory.fromNumber(heatTaxFactor(heat, reduction)));
+    }
+    return def.rewardKind === 'networkNodes' ? gross.floor() : gross;
   }
 
   /**
@@ -68,14 +72,18 @@ export class Economy {
    * @param runs number of runs (>= 0)
    * @param heat heat before the first run
    * @param heatPerRun heat each run adds (>= 0)
+   * @param reduction share of the heat's effect removed by Circumvention (0..1); heat and heat per run both count
+   *   `(1 - reduction)` times as much towards the tax
    * @returns the total credits after tax
    */
-  creditsForRuns(gross: BigNum, runs: number, heat: number, heatPerRun: number): BigNum {
+  creditsForRuns(gross: BigNum, runs: number, heat: number, heatPerRun: number, reduction = 0): BigNum {
     if (!(runs > 0)) return this.factory.fromNumber(0);
-    if (!(heatPerRun > 0)) return gross.mul(this.factory.fromNumber(runs * heatTaxFactor(heat)));
-    if (heat >= 100) return this.factory.fromNumber(0);
-    const paying = Math.min(runs, Math.ceil((100 - Math.max(0, heat)) / heatPerRun));
-    const keepSum = paying * heatTaxFactor(heat) - (heatPerRun / 100) * ((paying * (paying - 1)) / 2);
+    const effective = Math.max(0, heat) * (1 - reduction);
+    const step = heatPerRun * (1 - reduction);
+    if (!(step > 0)) return gross.mul(this.factory.fromNumber(runs * heatTaxFactor(effective)));
+    if (effective >= 100) return this.factory.fromNumber(0);
+    const paying = Math.min(runs, Math.ceil((100 - effective) / step));
+    const keepSum = paying * heatTaxFactor(effective) - (step / 100) * ((paying * (paying - 1)) / 2);
     return gross.mul(this.factory.fromNumber(Math.max(0, keepSum)));
   }
 
@@ -90,12 +98,14 @@ export class Economy {
   }
 
   /**
-   * Credits the network delivers per second: `nodes * creditsPerNodePerSecond * global.rewardMultiplier * keep`.
+   * Credits the network delivers per second: `nodes * creditsPerNodePerSecond * global.rewardMultiplier * payoutMultiplier * keep`.
    *
    * @param network network nodes owned
    * @param heat current heat (for the tax)
+   * @param reduction share of the heat's effect removed by Circumvention (0..1)
+   * @param payoutMultiplier multiplier on what each node produces (from buyables; default 1)
    */
-  passiveCreditsPerSecond(network: BigNum, heat: number): BigNum {
-    return network.mul(this.factory.fromNumber(this.nodeRate * heatTaxFactor(heat)));
+  passiveCreditsPerSecond(network: BigNum, heat: number, reduction = 0, payoutMultiplier = 1): BigNum {
+    return network.mul(this.factory.fromNumber(this.nodeRate * payoutMultiplier * heatTaxFactor(heat, reduction)));
   }
 }

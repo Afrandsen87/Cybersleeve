@@ -55,6 +55,9 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
   };
 }
 
+const REWARD_KINDS: readonly string[] = ['credits', 'networkNodes', 'interfaceSpeed', 'circumvention', 'infamy', 'nodePayout'];
+const CURRENCIES: readonly string[] = ['credits', 'networkNodes'];
+
 const positive = (v: number): boolean => Number.isFinite(v) && v > 0;
 const positiveInt = (v: number): boolean => Number.isInteger(v) && v >= 1;
 
@@ -68,6 +71,62 @@ function checkScaling(where: string, s: LevelScaling, errors: string[]): void {
     if (!positive(s.perLevel)) errors.push(`${where}.perLevel must be a number > 0`);
   } else if (!(Number.isFinite(s.base) && s.base >= 1)) {
     errors.push(`${where}.base must be a number >= 1`);
+  }
+}
+
+/** Checks the unlock rule, start cost and completion effects of one action. */
+function checkActionRules(a: GameConfig['actions'][number], buyableIds: ReadonlySet<string>, errors: string[]): void {
+  const where = `action "${a.id}"`;
+  if (a.unlock?.kind === 'nodes' && !positive(a.unlock.amount)) errors.push(`${where}: unlock node count must be > 0`);
+  if (a.unlock?.kind === 'buyable' && !buyableIds.has(a.unlock.buyableId)) {
+    errors.push(`${where}: unlock refers to unknown buyable "${a.unlock.buyableId}"`);
+  }
+  if (a.startCost) {
+    if (!CURRENCIES.includes(a.startCost.currency)) errors.push(`${where}: startCost has an unknown currency`);
+    const { amount, fractionOfBalance } = a.startCost;
+    if (amount === undefined && fractionOfBalance === undefined) errors.push(`${where}: startCost needs an amount or a fractionOfBalance`);
+    if (amount !== undefined && (!amount.isFinite() || amount.isNegative())) errors.push(`${where}: startCost amount must be >= 0`);
+    if (fractionOfBalance !== undefined && !(Number.isFinite(fractionOfBalance) && fractionOfBalance > 0 && fractionOfBalance <= 1)) {
+      errors.push(`${where}: startCost fractionOfBalance must be between 0 and 1`);
+    }
+  }
+  for (const e of a.completionEffects ?? []) {
+    if (e.kind === 'removeNodesFraction' && !(Number.isFinite(e.fraction) && e.fraction >= 0 && e.fraction <= 1)) {
+      errors.push(`${where}: removeNodesFraction must be between 0 and 1`);
+    }
+    if (e.kind === 'addHeat' && !(Number.isFinite(e.heat) && e.heat >= 0)) errors.push(`${where}: addHeat must be >= 0`);
+  }
+}
+
+/** Checks the numbers and action references of the newer effect kinds of one buyable. */
+function checkEffect(b: GameConfig['buyables'][number], actionIds: ReadonlySet<string>, errors: string[]): void {
+  const e = b.effect;
+  const where = `buyable "${b.id}"`;
+  switch (e.kind) {
+    case 'nodePayoutMultiplier':
+    case 'circumventionMultiplier':
+      if (!(Number.isFinite(e.factor) && e.factor >= 1)) errors.push(`${where}: ${e.kind} factor must be >= 1`);
+      break;
+    case 'networkGrowth':
+      if (!(Number.isFinite(e.ratePerSecond) && e.ratePerSecond >= 0)) errors.push(`${where}: network growth rate must be >= 0`);
+      break;
+    case 'interfaceSpeedPerLnNodes':
+      if (!(Number.isFinite(e.perLn) && e.perLn >= 0)) errors.push(`${where}: perLn must be >= 0`);
+      break;
+    case 'levelBonusFromSleeveLevel':
+      for (const id of [e.sourceActionId, e.targetActionId]) {
+        if (!actionIds.has(id)) errors.push(`${where}: level bonus refers to unknown action "${id}"`);
+      }
+      break;
+    case 'sleeveXpReduction':
+      if (!actionIds.has(e.sourceActionId)) errors.push(`${where}: XP reduction refers to unknown action "${e.sourceActionId}"`);
+      if (!(Number.isFinite(e.perLevel) && e.perLevel > 0)) errors.push(`${where}: XP reduction perLevel must be > 0`);
+      if (!(Number.isFinite(e.maxReduction) && e.maxReduction >= 0 && e.maxReduction < 1)) {
+        errors.push(`${where}: XP reduction maxReduction must be in [0, 1)`);
+      }
+      break;
+    default:
+      break;
   }
 }
 
@@ -116,7 +175,7 @@ export function validateConfig(config: GameConfig): string[] {
     if (!positive(a.baseDurationMs)) errors.push(`action "${a.id}": baseDurationMs must be > 0`);
     if (!a.reward.isFinite() || a.reward.isNegative()) errors.push(`action "${a.id}": reward must be >= 0`);
     if (!a.xpPerRun.isFinite() || a.xpPerRun.isNegative()) errors.push(`action "${a.id}": xpPerRun must be >= 0`);
-    if (a.rewardKind === 'networkNodes' && a.rewardPerNetworkNode) {
+    if ((a.rewardKind === 'networkNodes' || a.rewardKind === 'interfaceSpeed' || a.rewardKind === 'nodePayout') && a.rewardPerNetworkNode) {
       errors.push(`action "${a.id}": cannot pay network nodes per network node (the network would compound on itself)`);
     }
     if (a.levels) checkLevelRule(`action "${a.id}".levels`, a.levels, errors);
@@ -127,7 +186,7 @@ export function validateConfig(config: GameConfig): string[] {
       errors.push(`action "${a.id}": heatPerRun must be >= 0`);
     }
     if (a.sleeveLevels) checkLevelRule(`action "${a.id}".sleeveLevels`, a.sleeveLevels, errors);
-    if (a.rewardKind !== undefined && a.rewardKind !== 'credits' && a.rewardKind !== 'networkNodes') {
+    if (a.rewardKind !== undefined && !REWARD_KINDS.includes(a.rewardKind)) {
       errors.push(`action "${a.id}": unknown rewardKind`);
     }
     if (a.speedScaling) checkScaling(`action "${a.id}".speedScaling`, a.speedScaling, errors);
@@ -138,16 +197,19 @@ export function validateConfig(config: GameConfig): string[] {
     if (buyableIds.has(b.id)) errors.push(`duplicate buyable id "${b.id}"`);
     buyableIds.add(b.id);
   }
+  for (const a of config.actions) checkActionRules(a, buyableIds, errors);
   for (const b of config.buyables) {
     if (!b.cost.isFinite() || b.cost.isNegative()) errors.push(`buyable "${b.id}": cost must be >= 0`);
     const actionEffect = ACTION_EFFECT_KINDS.includes(b.effect.kind);
     if (actionEffect && b.actionId === undefined) errors.push(`buyable "${b.id}": ${b.effect.kind} needs an actionId`);
-    if (!actionEffect && b.actionId !== undefined)
-      errors.push(`buyable "${b.id}": ${b.effect.kind} is sleeve-wide and must not have an actionId`);
     if (b.actionId !== undefined && !actionIds.has(b.actionId)) errors.push(`buyable "${b.id}": belongs to unknown action "${b.actionId}"`);
     if (b.effect.kind === 'interfaceSpeed' && !(Number.isFinite(b.effect.amount) && b.effect.amount >= 0)) {
       errors.push(`buyable "${b.id}": interface speed amount must be >= 0`);
     }
+    if (b.currency !== undefined && !CURRENCIES.includes(b.currency)) {
+      errors.push(`buyable "${b.id}": unknown currency`);
+    }
+    checkEffect(b, actionIds, errors);
     if (b.effect.kind === 'accessLevel' && !(Number.isInteger(b.effect.level) && b.effect.level >= 1)) {
       errors.push(`buyable "${b.id}": access level must be an integer >= 1`);
     }
@@ -183,6 +245,12 @@ export function validateConfig(config: GameConfig): string[] {
   if (!(Number.isFinite(sl.baseHeat) && sl.baseHeat >= 0)) errors.push('sleeve.baseHeat must be >= 0');
   if (!positive(sl.heatCooldownMs)) errors.push('sleeve.heatCooldownMs must be > 0');
   if (!positive(sl.heatCooldownAmount)) errors.push('sleeve.heatCooldownAmount must be > 0');
+  if (!(Number.isFinite(sl.baseCircumvention) && sl.baseCircumvention >= 1)) errors.push('sleeve.baseCircumvention must be >= 1');
+  if (!(Number.isFinite(sl.circumventionReductionPerOrder) && sl.circumventionReductionPerOrder >= 0)) {
+    errors.push('sleeve.circumventionReductionPerOrder must be >= 0');
+  }
+  if (!(Number.isFinite(sl.infamyHeatSlowdown) && sl.infamyHeatSlowdown >= 0)) errors.push('sleeve.infamyHeatSlowdown must be >= 0');
+  if (!positive(sl.infamyDecayPeriodMs)) errors.push('sleeve.infamyDecayPeriodMs must be > 0');
 
   checkScaling('speed.actionLevel', config.speed.actionLevel, errors);
   checkScaling('speed.sleeveLevel', config.speed.sleeveLevel, errors);

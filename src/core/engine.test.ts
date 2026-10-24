@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
-import { malwareAction, networkAction, setCredits, setSleeveXp, testConfig } from '../testing/testConfig';
+import { malwareAction, networkAction, practiceAction, setCredits, setSleeveXp, testConfig } from '../testing/testConfig';
 import { createConfig } from './index';
 
 const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
@@ -303,12 +303,12 @@ describe('GameEngine - network action and passive income', () => {
 
 describe('GameEngine - sleeve stats and global buyables', () => {
   it('start at the configured values: access level 1, interface speed (test config: 1), heat 0', () => {
-    expect(game().sleeveStats()).toEqual({ accessLevel: 1, interfaceSpeed: 1, heat: 0 });
+    expect(game().sleeveStats()).toMatchObject({ accessLevel: 1, interfaceSpeed: 1, heat: 0 });
   });
 
   it('the start values come from the config', () => {
     const g = game({ sleeve: { baseAccessLevel: 3, baseInterfaceSpeed: 5, baseHeat: 2 } });
-    expect(g.sleeveStats()).toEqual({ accessLevel: 3, interfaceSpeed: 5, heat: 2 });
+    expect(g.sleeveStats()).toMatchObject({ accessLevel: 3, interfaceSpeed: 5, heat: 2 });
   });
 
   it('interface boost adds 0.05; access upgrade raises access level to 2', () => {
@@ -347,7 +347,7 @@ describe('GameEngine - sleeve stats and global buyables', () => {
     expect(g.outputMultiplier('a').eq(num(1))).toBe(true);
     expect(g.isAutoRun('a')).toBe(false);
     g.resleeve();
-    expect(g.sleeveStats()).toEqual({ accessLevel: 1, interfaceSpeed: 1, heat: 0 });
+    expect(g.sleeveStats()).toMatchObject({ accessLevel: 1, interfaceSpeed: 1, heat: 0 });
   });
 });
 
@@ -427,6 +427,68 @@ describe('GameEngine - heat tax', () => {
     g.resleeve();
     expect(g.getState().heat).toBe(0);
     expect(g.sleeveStats().heat).toBe(0);
+  });
+});
+
+describe('GameEngine - interface speed reward', () => {
+  const practice = (overrides = {}) => game({ actions: [practiceAction], buyables: [], sleeve: { baseInterfaceSpeed: 1 }, ...overrides });
+
+  it('a completed run raises interface speed by the reward and pays no credits', () => {
+    const g = practice();
+    g.startAction('practice');
+    g.tick(1_000);
+    expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(1.001, 10);
+    expect(g.getState().credits.isZero()).toBe(true);
+  });
+
+  it('is not taxed by heat', () => {
+    const g = practice();
+    (g.getState() as { heat: number }).heat = 100;
+    g.startAction('practice');
+    g.tick(1_000);
+    expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(1.001, 10);
+    expect(g.payoutPerRun('practice').toNumber()).toBeCloseTo(0.001, 10);
+  });
+
+  it('batched auto runs give the same gain as the runs completed (10 runs -> +0.01)', () => {
+    const g = practice();
+    g.startAction('practice');
+    g.tick(1_000);
+    expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(1.001, 10);
+    const auto = game({
+      actions: [practiceAction],
+      buyables: [{ id: 'auto', name: 'Auto', description: '', actionId: 'practice', cost: num(0), effect: { kind: 'autoRun' } }],
+      sleeve: { baseInterfaceSpeed: 1 },
+    });
+    auto.buy('auto');
+    auto.tick(10_000);
+    expect(auto.sleeveStats().interfaceSpeed).toBeGreaterThan(1.009);
+  });
+
+  it('is a multiplier with diminishing returns: 1000 runs double the speed, 3000 runs quadruple it', () => {
+    const g = practice({ sleeve: { baseInterfaceSpeed: 0.1 } });
+    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = 1;
+    expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(0.2, 10);
+    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = 3;
+    expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(0.4, 10);
+  });
+
+  it('boosts to the base speed scale the earned multiplier too', () => {
+    const g = practice({
+      sleeve: { baseInterfaceSpeed: 1 },
+      buyables: [{ id: 'b', name: 'B', description: '', cost: num(0), effect: { kind: 'interfaceSpeed', amount: 1 } }],
+    });
+    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = 1;
+    g.buy('b');
+    expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(4, 10); // (1 + 1) * (1 + 1)
+  });
+
+  it('re-sleeving resets the bonus', () => {
+    const g = practice();
+    g.startAction('practice');
+    g.tick(1_000);
+    g.resleeve();
+    expect(g.sleeveStats().interfaceSpeed).toBe(1);
   });
 });
 

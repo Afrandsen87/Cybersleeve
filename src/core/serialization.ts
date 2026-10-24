@@ -29,6 +29,14 @@ interface SaveData {
   network: string;
   heat?: number;
   heatCooldownMs?: number;
+  interfaceSpeedBonus?: number;
+  circumvention?: string;
+  infamy?: number;
+  infamyCooldownMs?: number;
+  networkRemainder?: number;
+  nodePayoutBonus?: number;
+  unlockedActions?: Record<string, boolean>;
+  autoRunOff?: Record<string, boolean>;
   actions: Record<string, { xp: string; sleeveXp: string; runsTowardSleeveXp: number; running: boolean; progressMs: number }>;
   purchased: Record<string, number>;
 }
@@ -48,6 +56,14 @@ export function serializeState(state: GameStateView): string {
     network: state.network.toString(),
     heat: state.heat,
     heatCooldownMs: state.heatCooldownMs,
+    interfaceSpeedBonus: state.interfaceSpeedBonus,
+    circumvention: state.circumvention.toString(),
+    infamy: state.infamy,
+    infamyCooldownMs: state.infamyCooldownMs,
+    networkRemainder: state.networkRemainder,
+    nodePayoutBonus: state.nodePayoutBonus,
+    unlockedActions: { ...state.unlockedActions },
+    autoRunOff: { ...state.autoRunOff },
     actions: Object.fromEntries(
       Object.entries(state.actions).map(([id, a]) => [
         id,
@@ -94,12 +110,31 @@ export function deserializeState(
     const state = createInitialState(config, factory);
     state.credits = readAmount(raw['credits'], factory);
     if (version === SAVE_VERSION) {
-      state.network = readAmount(raw['network'], factory);
+      state.network = readAmount(raw['network'], factory).floor(); // nodes are whole
       // Optional: saves written before heat existed have neither; they keep the fresh-game values.
       const heat = raw['heat'];
       if (typeof heat === 'number' && Number.isFinite(heat) && heat >= 0) state.heat = heat;
       const cooldown = raw['heatCooldownMs'];
       if (typeof cooldown === 'number' && Number.isFinite(cooldown) && cooldown >= 0) state.heatCooldownMs = cooldown;
+      const bonus = raw['interfaceSpeedBonus'];
+      if (typeof bonus === 'number' && Number.isFinite(bonus) && bonus >= 0) state.interfaceSpeedBonus = bonus;
+      // Optional as well: saves from before these stats keep the fresh-game values.
+      if (typeof raw['circumvention'] === 'string') {
+        const circumvention = readAmount(raw['circumvention'], factory);
+        if (circumvention.gte(factory.fromNumber(config.sleeve.baseCircumvention))) state.circumvention = circumvention;
+      }
+      const infamy = raw['infamy'];
+      if (typeof infamy === 'number' && Number.isFinite(infamy) && infamy >= 0) state.infamy = Math.floor(infamy);
+      state.infamyCooldownMs = readTime(raw['infamyCooldownMs']);
+      const remainder = raw['networkRemainder'];
+      if (typeof remainder === 'number' && Number.isFinite(remainder) && remainder >= 0 && remainder < 1)
+        state.networkRemainder = remainder;
+      const payout = raw['nodePayoutBonus'];
+      if (typeof payout === 'number' && Number.isFinite(payout) && payout >= 0) state.nodePayoutBonus = payout;
+      const savedUnlocked = isRecord(raw['unlockedActions']) ? raw['unlockedActions'] : {};
+      for (const a of config.actions) if (a.unlock?.kind === 'nodes' && savedUnlocked[a.id] === true) state.unlockedActions[a.id] = true;
+      const savedOff = isRecord(raw['autoRunOff']) ? raw['autoRunOff'] : {};
+      for (const b of config.buyables) if (b.effect.kind === 'autoRun' && savedOff[b.id] === true) state.autoRunOff[b.id] = true;
     }
 
     const runsPerSleeveXp = config.progression.runsPerSleeveXp;

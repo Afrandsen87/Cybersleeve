@@ -34,6 +34,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
   it('every buyable can be bought once enough credits are available (no dead gates)', () => {
     const g = createGame();
     setCredits(g, num('1e100'));
+    (g.getState() as { network: unknown }).network = num('1e100'); // some buyables are paid in network nodes
     // Buy in config order, repeating until nothing more can be bought once (a gate may be listed after what it unlocks).
     for (let pass = 0; pass < gameConfig.buyables.length; pass++) {
       for (const b of gameConfig.buyables) if (g.canBuy(b.id)) expect(g.buy(b.id)).toBe('purchased');
@@ -41,14 +42,25 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     for (const b of gameConfig.buyables) expect(g.ownedCount(b.id), `${b.id} was never purchasable`).toBeGreaterThan(0);
   });
 
-  it('a fresh game runs: starting the first action eventually pays credits or network nodes', () => {
+  it('every action can be unlocked by playing (no action is permanently locked)', () => {
+    const g = createGame();
+    setCredits(g, num('1e100'));
+    (g.getState() as { network: unknown }).network = num('1e100');
+    for (let pass = 0; pass < gameConfig.buyables.length; pass++) {
+      for (const b of gameConfig.buyables) if (g.canBuy(b.id)) g.buy(b.id);
+    }
+    g.tick(1);
+    for (const a of gameConfig.actions) expect(g.isUnlocked(a.id), `${a.id} stays locked`).toBe(true);
+  });
+
+  it('a fresh game runs: starting the first action eventually pays credits, network nodes or interface speed', () => {
     const g = createGame();
     const first = gameConfig.actions[0]!;
     g.startAction(first.id);
     g.tick(g.currentDurationMs(first.id) + 1);
     const s = g.getState();
     expect(s.actions[first.id]!.xp.isZero()).toBe(false);
-    expect(s.credits.isZero() && s.network.isZero()).toBe(false);
+    expect(s.credits.isZero() && s.network.isZero() && s.interfaceSpeedBonus === 0).toBe(false);
   });
 
   it('the view model builds for the real content', () => {

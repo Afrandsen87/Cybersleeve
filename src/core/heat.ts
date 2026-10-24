@@ -1,7 +1,7 @@
 /**
  * @module core
  *
- * Heat: a tax on all credits earned (one point of heat is one percent) and its cooldown.
+ * Heat: a tax on all credits earned (one point of heat is one percent, lowered by Circumvention) and its cooldown.
  */
 
 /** Heat and the progress of its current cooldown cycle. */
@@ -18,11 +18,13 @@ export interface HeatCooldownState {
  * Called by: `engine.ts`, `economy.ts`.
  *
  * @param heat heat points (>= 0; NaN and negatives count as 0)
- * @returns `1 - heat / 100`, never below 0 (at 100 heat or more nothing is kept)
+ * @param reduction share of the heat's effect removed by Circumvention (0..1; default 0)
+ * @returns `1 - heat * (1 - reduction) / 100`, never below 0. With no reduction, 100 heat or more keeps nothing; with a 50%
+ *   reduction, credits only stop at 200 heat.
  */
-export function heatTaxFactor(heat: number): number {
+export function heatTaxFactor(heat: number, reduction = 0): number {
   if (!(heat > 0)) return 1;
-  return Math.max(0, 1 - heat / 100);
+  return Math.max(0, 1 - (heat * (1 - reduction)) / 100);
 }
 
 /**
