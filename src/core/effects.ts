@@ -137,7 +137,8 @@ export function resolveSleeveStats(
   }
   const orders = circumvention.log10();
   const heatReduction = Number.isFinite(orders) && orders > 0 ? Math.min(1, sleeve.circumventionReductionPerOrder * orders) : 0;
-  const interfaceEarnedFactor = 1 + state.interfaceSpeedBonus;
+  const interfaceEarnedFactor = 1 + saturatingNumber(state.interfaceSpeedBonus);
+  const nodePayoutEarnedFactor = 1 + saturatingNumber(state.nodePayoutBonus);
   return {
     accessLevel,
     interfaceSpeed: interfaceBase * interfaceNetworkFactor * interfaceEarnedFactor,
@@ -148,10 +149,19 @@ export function resolveSleeveStats(
     circumvention,
     heatReduction,
     infamy: state.infamy,
-    nodePayoutMultiplier: nodePayoutBuyableFactor * (1 + state.nodePayoutBonus),
+    nodePayoutMultiplier: nodePayoutBuyableFactor * nodePayoutEarnedFactor,
     nodePayoutBuyableFactor,
-    nodePayoutEarnedFactor: 1 + state.nodePayoutBonus,
+    nodePayoutEarnedFactor,
   };
+}
+
+/**
+ * A `BigNum` as a JS number for the factors that multiply speed and payouts. The bonuses are stored unbounded; the
+ * factors derived from them are doubles and saturate at the largest double instead of becoming `Infinity`.
+ */
+function saturatingNumber(n: BigNum): number {
+  const v = n.toNumber();
+  return Number.isNaN(v) ? 0 : Math.min(v, Number.MAX_VALUE);
 }
 
 /** `ln(n)`, but never below 0 (so a network of 0 or 1 nodes adds nothing). */

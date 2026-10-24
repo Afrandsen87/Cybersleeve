@@ -20,6 +20,8 @@ export {
 } from './effects';
 export { type HeatCooldownState, coolHeat, heatTaxFactor } from './heat';
 export { applyCompletionEffects } from './completion';
+export { SCALAR_FIELDS, type ScalarField } from './fields';
+export { REWARD_KINDS, REWARD_TARGETS, payReward } from './rewards';
 export { Economy } from './economy';
 export { type OverflowPolicy, createClampOverflowPolicy } from './overflow';
 export { Progression } from './progression';

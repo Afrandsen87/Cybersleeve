@@ -50,6 +50,8 @@ export interface BigNum {
   isNegative(): boolean;
   /** False for NaN or +/-Infinity (overflow). */
   isFinite(): boolean;
+  /** True only for NaN (a bug upstream, as opposed to overflow). */
+  isNaN(): boolean;
 
   /**
    * `floor(log10(|value|))`, i.e. the order of magnitude.

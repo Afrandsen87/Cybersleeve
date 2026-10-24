@@ -3,7 +3,8 @@
  *
  * Reaction to numbers growing beyond the representable range.
  */
-import type { BigNum, NumberFactory } from '../numbers';
+import type { NumberFactory } from '../numbers';
+import { repairBig, repairScalars } from './fields';
 import type { GameState } from './types';
 
 /**
@@ -19,47 +20,27 @@ export interface OverflowPolicy {
 }
 
 /**
- * Builds the default policy: every non-finite amount (credits, network, action XP, sleeve XP) is clamped to the
- * largest finite value, or to zero when it is negative; non-finite heat is clamped to the largest safe integer
- * (NaN becomes 0). This keeps the state valid, saveable and displayable instead of corrupted.
+ * Builds the default policy: every non-finite scalar (see `fields.ts`) and every action's XP and sleeve XP is repaired.
+ * Positive overflow is clamped to the largest finite value (the largest safe integer for plain numbers), negative
+ * overflow becomes zero, and NaN becomes zero: NaN is a bug upstream and must never be turned into a windfall. This keeps
+ * the state valid, saveable and displayable instead of corrupted.
  *
- * Called by: `app/createGame.ts`. Calls: `NumberFactory.maxValue`.
+ * Called by: `app/createGame.ts`. Calls: `repairScalars`, `repairBig`.
  *
  * @param factory number factory
  */
 export function createClampOverflowPolicy(factory: NumberFactory): OverflowPolicy {
-  const fix = (value: BigNum): BigNum | null => {
-    if (value.isFinite()) return null;
-    return value.isNegative() ? factory.fromNumber(0) : factory.maxValue();
-  };
   return {
     apply(state) {
-      let changed = false;
-      const clamp = <K extends string, T extends Record<K, BigNum>>(target: T, key: K): void => {
-        const fixed = fix(target[key]);
-        if (fixed) {
-          target[key] = fixed as T[K];
-          changed = true;
-        }
-      };
-      clamp(state, 'credits');
-      clamp(state, 'network');
-      clamp(state, 'circumvention');
+      let changed = repairScalars(state, factory);
       for (const action of Object.values(state.actions)) {
-        clamp(action, 'xp');
-        clamp(action, 'sleeveXp');
-      }
-      if (!Number.isFinite(state.nodePayoutBonus)) {
-        state.nodePayoutBonus = Number.isNaN(state.nodePayoutBonus) ? 0 : Number.MAX_SAFE_INTEGER;
-        changed = true;
-      }
-      if (!Number.isFinite(state.infamy)) {
-        state.infamy = Number.isNaN(state.infamy) ? 0 : Number.MAX_SAFE_INTEGER;
-        changed = true;
-      }
-      if (!Number.isFinite(state.heat)) {
-        state.heat = Number.isNaN(state.heat) ? 0 : Number.MAX_SAFE_INTEGER;
-        changed = true;
+        for (const key of ['xp', 'sleeveXp'] as const) {
+          const fixed = repairBig(action[key], factory);
+          if (fixed) {
+            action[key] = fixed;
+            changed = true;
+          }
+        }
       }
       return changed;
     },

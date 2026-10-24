@@ -298,35 +298,23 @@ export interface GameState {
   /** Fraction of a node (0..1) the network has grown by itself but not yet completed; carried between ticks. Reset by re-sleeving. */
   networkRemainder: number;
   /** Bonus gained from actions paying `nodePayout`: what each node produces is multiplied by `1 + this`. Reset by re-sleeving. */
-  nodePayoutBonus: number;
+  nodePayoutBonus: BigNum;
   /** Actions that were unlocked by a `nodes` rule and stay unlocked. Reset by re-sleeving. */
   unlockedActions: Record<ActionId, boolean>;
   /** Auto-run buyables the player has switched off (absent or false: running). Reset by re-sleeving. */
   autoRunOff: Record<BuyableId, boolean>;
   /** Multiplier bonus gained from actions paying `interfaceSpeed`: interface speed is multiplied by `1 + this`. Reset by re-sleeving. */
-  interfaceSpeedBonus: number;
+  interfaceSpeedBonus: BigNum;
   actions: Record<ActionId, ActionState>;
   /** Copies owned per buyable id. Absent means 0. */
   purchased: Record<BuyableId, number>;
 }
 
+/** `T` with every property read-only, recursively. `BigNum` values are immutable already and stay as they are. */
+export type DeepReadonly<T> = T extends BigNum ? T : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;
+
 /**
  * Read-only view of {@link GameState}, handed out by the engine so callers cannot mutate it.
- * (`BigNum` values are immutable, so one level of `readonly` per object is enough.)
+ * Derived from `GameState`, so a new field never has to be added twice.
  */
-export interface GameStateView {
-  readonly credits: BigNum;
-  readonly network: BigNum;
-  readonly heat: number;
-  readonly heatCooldownMs: number;
-  readonly circumvention: BigNum;
-  readonly infamy: number;
-  readonly infamyCooldownMs: number;
-  readonly networkRemainder: number;
-  readonly nodePayoutBonus: number;
-  readonly unlockedActions: Readonly<Record<ActionId, boolean>>;
-  readonly autoRunOff: Readonly<Record<BuyableId, boolean>>;
-  readonly interfaceSpeedBonus: number;
-  readonly actions: Readonly<Record<ActionId, Readonly<ActionState>>>;
-  readonly purchased: Readonly<Record<BuyableId, number>>;
-}
+export type GameStateView = DeepReadonly<GameState>;

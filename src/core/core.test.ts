@@ -173,7 +173,7 @@ describe('resolveSleeveStats', () => {
   it('reports the current heat from the state', () => {
     const stats = resolveSleeveStats(
       config.buyables,
-      { purchased: {}, heat: 4, interfaceSpeedBonus: 0, network: num(0), circumvention: num(1), infamy: 0, nodePayoutBonus: 0 },
+      { purchased: {}, heat: 4, interfaceSpeedBonus: num(0), network: num(0), circumvention: num(1), infamy: 0, nodePayoutBonus: num(0) },
       config.sleeve,
       numberFactory,
     );
@@ -183,7 +183,7 @@ describe('resolveSleeveStats', () => {
   it('multiplies the interface speed by 1 + the bonus earned by actions (0.5 * 1.25 = 0.625)', () => {
     const stats = resolveSleeveStats(
       [],
-      { purchased: {}, heat: 0, interfaceSpeedBonus: 0.25, network: num(0), circumvention: num(1), infamy: 0, nodePayoutBonus: 0 },
+      { purchased: {}, heat: 0, interfaceSpeedBonus: num(0.25), network: num(0), circumvention: num(1), infamy: 0, nodePayoutBonus: num(0) },
       { ...config.sleeve, baseInterfaceSpeed: 0.5 },
       numberFactory,
     );

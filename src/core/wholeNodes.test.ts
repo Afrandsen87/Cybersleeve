@@ -27,7 +27,7 @@ const free = (id: string, actionId: string | undefined, effect: BuyableDefinitio
 });
 const game = (actions: (typeof testConfig.actions)[number][], buyables: BuyableDefinition[] = [], overrides = {}) =>
   createGame({ config: createConfig(testConfig, { actions, buyables, ...overrides }) });
-const state = (g: { getState(): unknown }) => g.getState() as { network: ReturnType<typeof num>; nodePayoutBonus: number; heat: number };
+const state = (g: { getState(): unknown }) => g.getState() as { network: ReturnType<typeof num>; nodePayoutBonus: ReturnType<typeof num>; heat: number };
 
 describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () => {
   const pkill = (nodes: number, buyables: BuyableDefinition[] = []) => {
@@ -160,7 +160,7 @@ describe('node payout bonus (Push malware)', () => {
     const g = push();
     g.startAction('push');
     g.tick(1_000);
-    expect(state(g).nodePayoutBonus).toBeCloseTo(0.001, 10);
+    expect(state(g).nodePayoutBonus.toNumber()).toBeCloseTo(0.001, 10);
     expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(1.001, 10);
     expect(state(g).heat).toBe(1);
     expect(g.getState().credits.isZero()).toBe(true);
@@ -174,9 +174,9 @@ describe('node payout bonus (Push malware)', () => {
 
   it('is additive with diminishing returns: 1000 runs give x2, 3000 runs x4', () => {
     const g = push();
-    state(g).nodePayoutBonus = 1;
+    state(g).nodePayoutBonus = num(1);
     expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(2, 10);
-    state(g).nodePayoutBonus = 3;
+    state(g).nodePayoutBonus = num(3);
     expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(4, 10);
   });
 
@@ -184,7 +184,7 @@ describe('node payout bonus (Push malware)', () => {
     const g = push([free('np', undefined, { kind: 'nodePayoutMultiplier', factor: 1.5 })]);
     setCredits(g, num(1));
     g.buy('np');
-    state(g).nodePayoutBonus = 1;
+    state(g).nodePayoutBonus = num(1);
     state(g).network = num(100);
     expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(3, 10);
     expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(100 * 0.05 * 3, 10);
@@ -192,9 +192,9 @@ describe('node payout bonus (Push malware)', () => {
 
   it('is reset by re-sleeving', () => {
     const g = push();
-    state(g).nodePayoutBonus = 0.5;
+    state(g).nodePayoutBonus = num(0.5);
     g.resleeve();
-    expect(state(g).nodePayoutBonus).toBe(0);
+    expect(state(g).nodePayoutBonus.isZero()).toBe(true);
   });
 });
 
@@ -207,19 +207,19 @@ describe('saving whole nodes and the newer fields', () => {
     s.infamy = 2;
     s.infamyCooldownMs = 123_000;
     s.networkRemainder = 0.25;
-    s.nodePayoutBonus = 0.042;
+    s.nodePayoutBonus = num(0.042);
     const restored = deserializeState(serializeState(s), config, numberFactory)!;
     expect(restored.infamy).toBe(2);
     expect(restored.infamyCooldownMs).toBe(123_000);
     expect(restored.networkRemainder).toBe(0.25);
-    expect(restored.nodePayoutBonus).toBe(0.042);
+    expect(restored.nodePayoutBonus.toNumber()).toBeCloseTo(0.042, 12);
   });
 
   it('older saves without them load with fresh-game values', () => {
     const json = base();
     for (const key of ['infamyCooldownMs', 'networkRemainder', 'nodePayoutBonus']) delete json[key];
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect([restored.infamyCooldownMs, restored.networkRemainder, restored.nodePayoutBonus]).toEqual([0, 0, 0]);
+    expect([restored.infamyCooldownMs, restored.networkRemainder, restored.nodePayoutBonus.toNumber()]).toEqual([0, 0, 0]);
   });
 
   it('floors a saved fractional node count and rejects nonsense values', () => {
@@ -231,7 +231,7 @@ describe('saving whole nodes and the newer fields', () => {
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
     expect(restored.network.toNumber()).toBe(12);
     expect(restored.networkRemainder).toBe(0);
-    expect(restored.nodePayoutBonus).toBe(0);
+    expect(restored.nodePayoutBonus.isZero()).toBe(true);
     expect(restored.infamyCooldownMs).toBe(0);
   });
 });

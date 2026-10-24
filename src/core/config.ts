@@ -3,8 +3,10 @@
  *
  * Helpers for working with {@link GameConfig}: deriving variants and validating values.
  */
+import { REWARD_KINDS } from './rewards';
 import { ACTION_EFFECT_KINDS } from './types';
 import type {
+  BuyableEffect,
   EngineConfig,
   GameConfig,
   GlobalTuning,
@@ -55,7 +57,6 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
   };
 }
 
-const REWARD_KINDS: readonly string[] = ['credits', 'networkNodes', 'interfaceSpeed', 'circumvention', 'infamy', 'nodePayout'];
 const CURRENCIES: readonly string[] = ['credits', 'networkNodes'];
 
 const positive = (v: number): boolean => Number.isFinite(v) && v > 0;
@@ -98,36 +99,58 @@ function checkActionRules(a: GameConfig['actions'][number], buyableIds: Readonly
   }
 }
 
-/** Checks the numbers and action references of the newer effect kinds of one buyable. */
+/** What an effect validator may look at besides the effect itself. */
+interface EffectContext {
+  /** Prefix for messages, e.g. `buyable "x"`. */
+  readonly where: string;
+  readonly actionIds: ReadonlySet<string>;
+  readonly errors: string[];
+}
+
+const factorAtLeastOne = (e: { kind: string; factor: number }, { where, errors }: EffectContext): void => {
+  if (!(Number.isFinite(e.factor) && e.factor >= 1)) errors.push(`${where}: ${e.kind} factor must be >= 1`);
+};
+
+/**
+ * One validator per effect kind. The mapped type makes the compiler demand an entry for every kind of
+ * {@link BuyableEffect}, so a new kind cannot be added without saying how it is validated.
+ */
+const EFFECT_CHECKS: { readonly [K in BuyableEffect['kind']]: (effect: Extract<BuyableEffect, { kind: K }>, ctx: EffectContext) => void } = {
+  autoRun: () => {},
+  unlock: () => {},
+  outputMultiplier: factorAtLeastOne,
+  nodePayoutMultiplier: factorAtLeastOne,
+  circumventionMultiplier: factorAtLeastOne,
+  interfaceSpeed: (e, { where, errors }) => {
+    if (!(Number.isFinite(e.amount) && e.amount >= 0)) errors.push(`${where}: interface speed amount must be >= 0`);
+  },
+  accessLevel: (e, { where, errors }) => {
+    if (!(Number.isInteger(e.level) && e.level >= 1)) errors.push(`${where}: access level must be an integer >= 1`);
+  },
+  networkGrowth: (e, { where, errors }) => {
+    if (!(Number.isFinite(e.ratePerSecond) && e.ratePerSecond >= 0)) errors.push(`${where}: network growth rate must be >= 0`);
+  },
+  interfaceSpeedPerLnNodes: (e, { where, errors }) => {
+    if (!(Number.isFinite(e.perLn) && e.perLn >= 0)) errors.push(`${where}: perLn must be >= 0`);
+  },
+  levelBonusFromSleeveLevel: (e, { where, actionIds, errors }) => {
+    for (const id of [e.sourceActionId, e.targetActionId]) {
+      if (!actionIds.has(id)) errors.push(`${where}: level bonus refers to unknown action "${id}"`);
+    }
+  },
+  sleeveXpReduction: (e, { where, actionIds, errors }) => {
+    if (!actionIds.has(e.sourceActionId)) errors.push(`${where}: XP reduction refers to unknown action "${e.sourceActionId}"`);
+    if (!(Number.isFinite(e.perLevel) && e.perLevel > 0)) errors.push(`${where}: XP reduction perLevel must be > 0`);
+    if (!(Number.isFinite(e.maxReduction) && e.maxReduction >= 0 && e.maxReduction < 1)) {
+      errors.push(`${where}: XP reduction maxReduction must be in [0, 1)`);
+    }
+  },
+};
+
+/** Validates the numbers and action references of one buyable's effect. */
 function checkEffect(b: GameConfig['buyables'][number], actionIds: ReadonlySet<string>, errors: string[]): void {
-  const e = b.effect;
-  const where = `buyable "${b.id}"`;
-  switch (e.kind) {
-    case 'nodePayoutMultiplier':
-    case 'circumventionMultiplier':
-      if (!(Number.isFinite(e.factor) && e.factor >= 1)) errors.push(`${where}: ${e.kind} factor must be >= 1`);
-      break;
-    case 'networkGrowth':
-      if (!(Number.isFinite(e.ratePerSecond) && e.ratePerSecond >= 0)) errors.push(`${where}: network growth rate must be >= 0`);
-      break;
-    case 'interfaceSpeedPerLnNodes':
-      if (!(Number.isFinite(e.perLn) && e.perLn >= 0)) errors.push(`${where}: perLn must be >= 0`);
-      break;
-    case 'levelBonusFromSleeveLevel':
-      for (const id of [e.sourceActionId, e.targetActionId]) {
-        if (!actionIds.has(id)) errors.push(`${where}: level bonus refers to unknown action "${id}"`);
-      }
-      break;
-    case 'sleeveXpReduction':
-      if (!actionIds.has(e.sourceActionId)) errors.push(`${where}: XP reduction refers to unknown action "${e.sourceActionId}"`);
-      if (!(Number.isFinite(e.perLevel) && e.perLevel > 0)) errors.push(`${where}: XP reduction perLevel must be > 0`);
-      if (!(Number.isFinite(e.maxReduction) && e.maxReduction >= 0 && e.maxReduction < 1)) {
-        errors.push(`${where}: XP reduction maxReduction must be in [0, 1)`);
-      }
-      break;
-    default:
-      break;
-  }
+  const check = EFFECT_CHECKS[b.effect.kind] as (effect: BuyableEffect, ctx: EffectContext) => void;
+  check(b.effect, { where: `buyable "${b.id}"`, actionIds, errors });
 }
 
 /**
@@ -203,19 +226,10 @@ export function validateConfig(config: GameConfig): string[] {
     const actionEffect = ACTION_EFFECT_KINDS.includes(b.effect.kind);
     if (actionEffect && b.actionId === undefined) errors.push(`buyable "${b.id}": ${b.effect.kind} needs an actionId`);
     if (b.actionId !== undefined && !actionIds.has(b.actionId)) errors.push(`buyable "${b.id}": belongs to unknown action "${b.actionId}"`);
-    if (b.effect.kind === 'interfaceSpeed' && !(Number.isFinite(b.effect.amount) && b.effect.amount >= 0)) {
-      errors.push(`buyable "${b.id}": interface speed amount must be >= 0`);
-    }
     if (b.currency !== undefined && !CURRENCIES.includes(b.currency)) {
       errors.push(`buyable "${b.id}": unknown currency`);
     }
     checkEffect(b, actionIds, errors);
-    if (b.effect.kind === 'accessLevel' && !(Number.isInteger(b.effect.level) && b.effect.level >= 1)) {
-      errors.push(`buyable "${b.id}": access level must be an integer >= 1`);
-    }
-    if (b.effect.kind === 'outputMultiplier' && !(Number.isFinite(b.effect.factor) && b.effect.factor >= 1)) {
-      errors.push(`buyable "${b.id}": output multiplier factor must be >= 1`);
-    }
     for (const r of b.requires ?? []) {
       if (!buyableIds.has(r)) errors.push(`buyable "${b.id}": requires unknown buyable "${r}"`);
       if (r === b.id) errors.push(`buyable "${b.id}": cannot require itself`);

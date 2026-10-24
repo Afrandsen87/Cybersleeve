@@ -4,7 +4,11 @@
  * Creation and resetting of {@link GameState}.
  */
 import type { NumberFactory } from '../numbers';
+import { initialScalars } from './fields';
 import type { ActionState, GameConfig, GameState } from './types';
+
+/** The scalar fields of the state (see `fields.ts`). */
+type ScalarKey = Exclude<keyof GameState, 'unlockedActions' | 'autoRunOff' | 'actions' | 'purchased'>;
 
 /** A fresh action state: no XP, no sleeve XP, idle. */
 function freshActionState(factory: NumberFactory): ActionState {
@@ -23,18 +27,9 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
   const actions: GameState['actions'] = {};
   for (const a of config.actions) actions[a.id] = freshActionState(factory);
   return {
-    credits: factory.fromNumber(config.progression.startingCredits),
-    network: factory.fromNumber(0),
-    heat: config.sleeve.baseHeat,
-    heatCooldownMs: 0,
-    circumvention: factory.fromNumber(config.sleeve.baseCircumvention),
-    infamy: 0,
-    infamyCooldownMs: 0,
-    networkRemainder: 0,
-    nodePayoutBonus: 0,
+    ...(initialScalars(config, factory) as Pick<GameState, ScalarKey>),
     unlockedActions: {},
     autoRunOff: {},
-    interfaceSpeedBonus: 0,
     actions,
     purchased: {},
   };
@@ -61,8 +56,9 @@ export function resetForNewGame(
  * Applies a re-sleeve to `state`.
  *
  * @remarks
- * Kept: every action's sleeve XP and its run counter towards the next sleeve-XP batch.
- * Reset: credits (to the starting amount), the network, the interface speed bonus earned by actions, Circumvention, Infamy and its cycle, the node payout bonus, the growth carry, unlocked actions, auto-run switches, heat (to `sleeve.baseHeat`) and its cooldown, all action XP/progress, all purchases.
+ * Starts from a fresh game state and carries over only what survives: every action's sleeve XP and its run counter
+ * towards the next sleeve-XP batch. Everything else resets, including fields added in the future (nothing has to be
+ * listed here to be reset).
  *
  * Called by: `engine.ts`.
  *
@@ -76,18 +72,6 @@ export function resetForResleeve(
   factory: NumberFactory,
 ): void {
   const fresh = createInitialState(config, factory);
-  state.credits = fresh.credits;
-  state.network = fresh.network;
-  state.heat = fresh.heat;
-  state.heatCooldownMs = fresh.heatCooldownMs;
-  state.interfaceSpeedBonus = fresh.interfaceSpeedBonus;
-  state.circumvention = fresh.circumvention;
-  state.infamy = fresh.infamy;
-  state.infamyCooldownMs = fresh.infamyCooldownMs;
-  state.networkRemainder = fresh.networkRemainder;
-  state.nodePayoutBonus = fresh.nodePayoutBonus;
-  state.unlockedActions = fresh.unlockedActions;
-  state.autoRunOff = fresh.autoRunOff;
   for (const [id, action] of Object.entries(fresh.actions)) {
     const old = state.actions[id];
     if (old) {
@@ -95,6 +79,5 @@ export function resetForResleeve(
       action.runsTowardSleeveXp = old.runsTowardSleeveXp;
     }
   }
-  state.actions = fresh.actions;
-  state.purchased = fresh.purchased;
+  Object.assign(state, fresh);
 }

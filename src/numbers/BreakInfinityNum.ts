@@ -62,6 +62,10 @@ class BreakInfinityNum implements BigNum {
   isNegative(): boolean {
     return this.value.lt(0);
   }
+  /** True when the mantissa or exponent is NaN. */
+  isNaN(): boolean {
+    return Number.isNaN(this.value.m) || Number.isNaN(this.value.e);
+  }
   /** False when the value is NaN or at/after the library saturation point (exponent >= 9e15). */
   isFinite(): boolean {
     return Number.isFinite(this.value.m) && Math.abs(this.value.e) < EXPONENT_LIMIT;

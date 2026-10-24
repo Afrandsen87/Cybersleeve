@@ -146,7 +146,7 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
 
   it('shows the node payout multiplier with a tip, and names the Push malware reward unit', () => {
     const g = game({ actions: [testConfig.actions[0]!, payoutAction] });
-    (g.getState() as { nodePayoutBonus: number }).nodePayoutBonus = 0.5;
+    (g.getState() as { nodePayoutBonus: ReturnType<typeof num> }).nodePayoutBonus = num(0.5);
     const vm = buildViewModel(g);
     expect(vm.payoutPerNodeText).toBe('x1.5');
     expect(vm.payoutTip).toContain('x1.5 (1 + 0.5 earned from actions)');
@@ -167,7 +167,7 @@ describe('view model - sleeve widget', () => {
 
   it('the interface speed tooltip shows the calculation: (base + boosts) x (1 + earned)', () => {
     const g = game({ sleeve: { baseInterfaceSpeed: 0.1 } });
-    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = 1;
+    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(1);
     const tip = buildViewModel(g).sleeve.interfaceSpeedTip;
     expect(tip).toContain('0.1 (base + boosts)');
     expect(tip).toContain('x 2 (1 + 1 earned from actions)');

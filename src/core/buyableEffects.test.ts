@@ -121,7 +121,7 @@ describe('interface speed from the network size', () => {
     setCredits(g, num(1));
     g.buy('syn');
     setNetwork(g, nodes);
-    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = bonus;
+    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(bonus);
     return g.sleeveStats();
   };
 

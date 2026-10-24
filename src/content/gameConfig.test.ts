@@ -60,7 +60,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     g.tick(g.currentDurationMs(first.id) + 1);
     const s = g.getState();
     expect(s.actions[first.id]!.xp.isZero()).toBe(false);
-    expect(s.credits.isZero() && s.network.isZero() && s.interfaceSpeedBonus === 0).toBe(false);
+    expect(s.credits.isZero() && s.network.isZero() && s.interfaceSpeedBonus.isZero()).toBe(false);
   });
 
   it('the view model builds for the real content', () => {

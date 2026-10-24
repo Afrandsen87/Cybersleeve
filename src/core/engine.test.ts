@@ -467,9 +467,9 @@ describe('GameEngine - interface speed reward', () => {
 
   it('is a multiplier with diminishing returns: 1000 runs double the speed, 3000 runs quadruple it', () => {
     const g = practice({ sleeve: { baseInterfaceSpeed: 0.1 } });
-    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = 1;
+    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(1);
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(0.2, 10);
-    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = 3;
+    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(3);
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(0.4, 10);
   });
 
@@ -478,7 +478,7 @@ describe('GameEngine - interface speed reward', () => {
       sleeve: { baseInterfaceSpeed: 1 },
       buyables: [{ id: 'b', name: 'B', description: '', cost: num(0), effect: { kind: 'interfaceSpeed', amount: 1 } }],
     });
-    (g.getState() as { interfaceSpeedBonus: number }).interfaceSpeedBonus = 1;
+    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(1);
     g.buy('b');
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(4, 10); // (1 + 1) * (1 + 1)
   });

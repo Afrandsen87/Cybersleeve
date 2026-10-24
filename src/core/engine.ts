@@ -11,6 +11,7 @@ import type { BigNum, NumberFactory } from '../numbers';
 import type { Economy } from './economy';
 import { resolveEffects, resolveLevelBonus, resolveNetworkGrowth, resolveSleeveStats, type SleeveStats } from './effects';
 import { applyCompletionEffects } from './completion';
+import { payReward } from './rewards';
 import { coolHeat, heatTaxFactor } from './heat';
 import type { OverflowPolicy } from './overflow';
 import type { Progression } from './progression';
@@ -478,26 +479,12 @@ export class GameEngine {
     const multiplier = this.outputMultiplier(def.id);
     const gross = this.economy.grossReward(def, this.state.network, multiplier);
     const heatPerRun = def.heatPerRun ?? 0;
-    switch (def.rewardKind) {
-      case 'networkNodes':
-        this.state.network = this.state.network.add(gross.floor().mul(count)); // whole nodes per run
-        break;
-      case 'nodePayout':
-        this.state.nodePayoutBonus += gross.mul(count).toNumber();
-        break;
-      case 'interfaceSpeed':
-        this.state.interfaceSpeedBonus += gross.mul(count).toNumber();
-        break;
-      case 'circumvention':
-        this.state.circumvention = this.state.circumvention.add(gross.mul(count));
-        break;
-      case 'infamy':
-        this.state.infamy += gross.mul(count).toNumber();
-        break;
-      default:
-        this.state.credits = this.state.credits.add(
-          this.economy.creditsForRuns(gross, runs, this.state.heat, heatPerRun, this.sleeveStats().heatReduction),
-        );
+    if (def.rewardKind === undefined || def.rewardKind === 'credits') {
+      this.state.credits = this.state.credits.add(
+        this.economy.creditsForRuns(gross, runs, this.state.heat, heatPerRun, this.sleeveStats().heatReduction),
+      );
+    } else {
+      payReward(this.state, def.rewardKind, gross, count);
     }
     this.state.heat += runs * heatPerRun;
     this.latchUnlocks(); // before completion effects can shrink the network
