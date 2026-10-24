@@ -316,6 +316,11 @@ export class GameEngine {
    * tick (nodes finished during this tick start producing on the next one), then it grows by its own growth rate, and heat cools down; then every action
    * advances. Heat that actions add during the tick only starts cooling on the next tick.
    *
+   * A tick longer than `engine.maxSliceMs` is cut into equal slices (at most `engine.maxSlicesPerTick`) that run one after another,
+   * so feedback between systems (interface speed rising with each run, heat cooling while the network pays, nodes grown
+   * by one action paying for another) follows the same course for one long tick as for many short ones. Beyond the
+   * slice cap the slices get longer and those effects become approximate; the cost of a tick is bounded either way.
+   *
    * Runs are computed in closed form: all runs between two level changes are applied as one batch, so the cost of a
    * tick does not depend on how many runs it contains. At most `engine.maxBatchesPerTick` batches are processed per
    * action; time beyond that is discarded. When a non-auto action completes, leftover time is discarded and the action
@@ -325,6 +330,20 @@ export class GameEngine {
    */
   tick(deltaMs: number): void {
     if (!(deltaMs > 0)) return;
+    const { maxSliceMs, maxSlicesPerTick } = this.config.engine;
+    const wanted = Math.ceil(deltaMs / maxSliceMs);
+    if (wanted > maxSlicesPerTick) {
+      for (let i = 0; i < maxSlicesPerTick; i++) this.advance(deltaMs / maxSlicesPerTick);
+      return;
+    }
+    // Whole slices of maxSliceMs and a shorter last one: for whole milliseconds the split is exact, so no rounding error
+    // creeps into the cooldown timers.
+    for (let i = 0; i < wanted - 1; i++) this.advance(maxSliceMs);
+    this.advance(deltaMs - (wanted - 1) * maxSliceMs);
+  }
+
+  /** One slice of a tick: every system advances by `deltaMs`, then overflow is repaired. */
+  private advance(deltaMs: number): void {
     this.latchUnlocks();
     this.payPassiveIncome(deltaMs);
     this.growNetwork(deltaMs);

@@ -51,7 +51,7 @@ export const testConfig: GameConfig = {
     infamyHeatSlowdown: 0.1,
     infamyDecayPeriodMs: 600_000,
   },
-  engine: { maxBatchesPerTick: 1_000 },
+  engine: { maxBatchesPerTick: 1_000, maxSliceMs: 1_000, maxSlicesPerTick: 64 },
   runtime: { stepMs: 50, maxDeltaMs: 600_000, autosaveMs: 10_000, fastForwardFactor: 10 },
 };
 

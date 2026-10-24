@@ -133,7 +133,7 @@ describe('GameEngine - configurable progression', () => {
   });
 
   it('maxBatchesPerTick comes from the config: one batch stops at the first level change, the rest of the tick is dropped', () => {
-    const g = game({ engine: { maxBatchesPerTick: 1 } });
+    const g = game({ engine: { maxBatchesPerTick: 1, maxSlicesPerTick: 1 } });
     setCredits(g, num(10));
     g.buy('auto');
     g.tick(10_000_000);

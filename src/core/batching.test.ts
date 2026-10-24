@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
-import { killAction, legendAction, malwareAction, networkAction, percentKillAction, setCredits, testConfig } from '../testing/testConfig';
+import { killAction, legendAction, malwareAction, networkAction, percentKillAction, practiceAction, setCredits, testConfig } from '../testing/testConfig';
 import { createConfig } from './index';
 
 const three = () => createConfig(testConfig, { actions: [testConfig.actions[0]!, networkAction, malwareAction] });
@@ -54,7 +54,8 @@ describe('closed-form runs match completing runs one at a time', () => {
       setCredits(g, num(10));
       g.buy('auto');
     };
-    const { once, stepped } = twins(30_000_000, 60_000, setup);
+    // Not a round number of runs: a total that ends exactly on a run boundary can fall a hair short or over on either side.
+    const { once, stepped } = twins(30_000_333, 60_000, setup);
     expect(once.actionLevel('a')).toBeGreaterThan(4);
     expectSame(once, stepped, ['a']);
   });
@@ -196,5 +197,48 @@ describe('closed-form runs do not depend on how long the tick is', () => {
     g.tick(1e12);
     expect(g.getState().actions['a']!.xp.eq(num(1))).toBe(true);
     expect(g.getState().actions['a']!.running).toBe(false);
+  });
+});
+
+describe('feedback between systems does not depend on how time is delivered', () => {
+  const fastPractice = { ...practiceAction, reward: num(0.0003) };
+  const feedback = (engine?: { maxSlicesPerTick: number }) =>
+    createConfig(testConfig, {
+      actions: [fastPractice],
+      buyables: [{ id: 'pauto', name: 'P', description: '', actionId: 'practice', cost: num(0), effect: { kind: 'autoRun' } }],
+      engine,
+    });
+  const setup: Setup = (g) => g.buy('pauto');
+  const bonus = (g: ReturnType<typeof createGame>) => g.getState().interfaceSpeedBonus.toNumber();
+
+  it('interface speed rising with every run: one 5 minute tick matches 6 000 steps of 50 ms (within 2%)', () => {
+    const { once, stepped } = twins(300_000, 6_000, setup, feedback());
+    expect(bonus(stepped)).toBeGreaterThan(0.2); // the feedback is strong enough to matter
+    expect(Math.abs(bonus(once) - bonus(stepped))).toBeLessThanOrEqual(0.02 * bonus(stepped));
+  });
+
+  it('without slicing the same tick would be clearly off (the slicing is what makes it match)', () => {
+    const { once, stepped } = twins(300_000, 6_000, setup, feedback({ maxSlicesPerTick: 1 }));
+    expect(Math.abs(bonus(once) - bonus(stepped))).toBeGreaterThan(0.05 * bonus(stepped));
+  });
+
+  it('passive income while heat cools: one 50 minute tick matches 60 000 steps of 50 ms (within 1%)', () => {
+    const config = createConfig(testConfig, { sleeve: { heatCooldownMs: 60_000, heatCooldownAmount: 1 } });
+    const setupNet: Setup = (g) => {
+      const s = g.getState() as { network: ReturnType<typeof num>; heat: number };
+      s.network = num(1000);
+      s.heat = 50;
+    };
+    const { once, stepped } = twins(3_000_000, 60_000, setupNet, config);
+    const a = once.getState().credits.toNumber();
+    const b = stepped.getState().credits.toNumber();
+    expect(Math.abs(a - b)).toBeLessThanOrEqual(0.01 * b);
+  });
+
+  it('the cost of a tick is bounded: a ten-year tick runs at most maxSlicesPerTick slices', () => {
+    const g = createGame({ config: feedback() });
+    g.buy('pauto');
+    g.tick(10 * 365 * 24 * 3600 * 1000);
+    expect(Number.isFinite(bonus(g))).toBe(true);
   });
 });

@@ -338,6 +338,10 @@ export const gameConfig: GameConfig = {
   engine: {
     /** Safety cap on run batches per action per tick (a batch is the stretch of runs between two level changes). */
     maxBatchesPerTick: 1_000,
+    /** Longest stretch simulated in one go (ms); longer ticks are sliced. */
+    maxSliceMs: 1_000,
+    /** Most slices per tick; bounds the cost of very long ticks. */
+    maxSlicesPerTick: 64,
   },
 
   runtime: {

@@ -275,6 +275,8 @@ export function validateConfig(config: GameConfig): string[] {
   }
 
   if (!positiveInt(config.engine.maxBatchesPerTick)) errors.push('engine.maxBatchesPerTick must be an integer >= 1');
+  if (!positive(config.engine.maxSliceMs)) errors.push('engine.maxSliceMs must be > 0');
+  if (!positiveInt(config.engine.maxSlicesPerTick)) errors.push('engine.maxSlicesPerTick must be an integer >= 1');
 
   const r = config.runtime;
   for (const key of ['stepMs', 'maxDeltaMs', 'autosaveMs'] as const) {

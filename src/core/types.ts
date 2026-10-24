@@ -239,6 +239,18 @@ export interface EngineConfig {
    * Time beyond the cap is discarded.
    */
   readonly maxBatchesPerTick: number;
+  /**
+   * Longest stretch of game time simulated in one go, in ms (> 0). A longer tick is cut into equal slices of at most this
+   * length and the slices run one after another, so effects that feed back on themselves (interface speed growing
+   * with every run, heat cooling while the network pays, ...) follow the same course however the time is delivered.
+   * A normal 50 ms step is one slice.
+   */
+  readonly maxSliceMs: number;
+  /**
+   * Most slices one tick is cut into (integer >= 1). Bounds the cost of a very long tick; beyond it the slices simply
+   * get longer (and the feedback effects above become approximate again).
+   */
+  readonly maxSlicesPerTick: number;
 }
 
 /** Timing and test-aid settings used by the browser shell. */
