@@ -3,7 +3,7 @@
  *
  * Pure translation of game state into display-ready data. No DOM access, fully testable.
  */
-import type { ActionDefinition, BuyableDefinition, Currency, GameConfig, GameEngine, RewardKind, SleeveStats } from '../core';
+import type { ActionDefinition, BuyableDefinition, Currency, GameConfig, GameQueries, RewardKind, SleeveStats } from '../core';
 import type { BigNum } from '../numbers';
 import { formatBigNum, numberFactory, type NumberFactory } from '../numbers';
 
@@ -298,12 +298,12 @@ export function formatSeconds(ms: number): string {
  * Builds the view model for the current engine state.
  *
  * Called by: `ui/dom.ts` every step.
- * Calls: `GameEngine` queries, `formatBigNum`.
+ * Calls: {@link GameQueries}, `formatBigNum`.
  *
  * @param engine the engine to read from
  * @param factory number factory (for formatting numbers that are plain JS values)
  */
-export function buildViewModel(engine: GameEngine, factory: NumberFactory = numberFactory): ViewModel {
+export function buildViewModel(engine: GameQueries, factory: NumberFactory = numberFactory): ViewModel {
   const state = engine.getState();
   const config = engine.getConfig();
 

@@ -4,7 +4,7 @@
  * Thin DOM binding. Builds the screen once, then only updates text/attributes each frame.
  * All decisions about WHAT to show live in `viewModel.ts` (tested); this file only places it.
  */
-import type { GameEngine } from '../core';
+import type { GameCommands, GameQueries } from '../core';
 import { ConfirmGate } from './confirmGate';
 import { installTooltips } from './tooltip';
 import { buildViewModel, type BuyableView, type SleeveSection } from './viewModel';
@@ -58,7 +58,7 @@ interface XpBar {
 /**
  * Mounts the game UI into `root` and returns a function that refreshes it.
  *
- * Called by: `main.ts`. Calls: `buildViewModel`, `GameEngine.startAction/buy/resleeve`.
+ * Called by: `main.ts`. Calls: `buildViewModel`, {@link GameCommands} (`startAction`, `activateBuyable`, `resleeve`).
  *
  * @param root container element
  * @param engine the engine to display and command
@@ -66,7 +66,7 @@ interface XpBar {
  * @param onResetSave called when the temporary "Reset save" button is pressed; must wipe the game and the stored save
  * @returns `render`, to be called after every tick
  */
-export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedControl, onResetSave: () => void): () => void {
+export function mountUi(root: HTMLElement, engine: GameQueries & GameCommands, speed: SpeedControl, onResetSave: () => void): () => void {
   const initial = buildViewModel(engine);
   root.innerHTML = '';
   installTooltips(root.ownerDocument);
@@ -75,11 +75,8 @@ export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedContr
   const credits = h('div', 'credits');
   header.append(credits);
 
-  /** A click on a purchase: owned auto-run buyables switch on or off, everything else is bought. */
-  const toggleable = new Set(
-    [...initial.actions.flatMap((a) => a.buyables), ...initial.sleeve.buyables].filter((b) => b.toggleable).map((b) => b.id),
-  );
-  const activate = (id: string): unknown => (toggleable.has(id) && engine.ownedCount(id) > 0 ? engine.toggleAutoRun(id) : engine.buy(id));
+  /** A click on a purchase: the engine decides whether it buys or switches an auto-run. */
+  const activate = (id: string): unknown => engine.activateBuyable(id);
 
   const actionsEl = h('section', 'actions');
   const cards = new Map<string, ActionCard>();
@@ -114,7 +111,8 @@ export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedContr
   const resleeveGate = new ConfirmGate();
   const resleeveBtn = h('button', 'resleeve') as HTMLButtonElement;
   resleeveBtn.addEventListener('click', () => {
-    if (resleeveGate.request()) engine.resleeve();
+    if (!engine.canResleeve()) resleeveGate.cancel();
+    else if (resleeveGate.request()) engine.resleeve();
     render();
   });
   const resleeveCancel = h('button', 'resleeve-cancel', 'Cancel') as HTMLButtonElement;
@@ -147,18 +145,21 @@ export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedContr
 
   function render(): void {
     const vm = buildViewModel(engine);
-    credits.textContent = `${vm.creditsText} credits`;
-    networkWidget.nodes.textContent = vm.networkText;
-    networkWidget.income.textContent = `+${vm.passiveIncomeText}`;
-    networkWidget.payout.textContent = vm.payoutPerNodeText;
+    setText(credits, `${vm.creditsText} credits`);
+    setText(networkWidget.nodes, vm.networkText);
+    setText(networkWidget.income, `+${vm.passiveIncomeText}`);
+    setText(networkWidget.payout, vm.payoutPerNodeText);
     setRowTip(networkWidget.payout, vm.payoutTip);
     for (const a of vm.actions) {
       const card = cards.get(a.id);
       if (!card) continue;
-      card.title.textContent = a.name;
-      card.info.textContent = a.lockedReason
-        ? `Locked: ${a.lockedReason}`
-        : `Action speed ${a.speedText} | ${a.durationText}${a.startCostText ? ` | costs ${a.startCostText}` : ''}${a.auto ? ' | auto' : ''}`;
+      setText(card.title, a.name);
+      setText(
+        card.info,
+        a.lockedReason
+          ? `Locked: ${a.lockedReason}`
+          : `Action speed ${a.speedText} | ${a.durationText}${a.startCostText ? ` | costs ${a.startCostText}` : ''}${a.auto ? ' | auto' : ''}`,
+      );
       setXpBar(card.levelXp, `Lv ${a.level}`, a.xpText, a.nextLevelXpText, a.levelProgressPercent);
       setXpBar(
         card.sleeveXp,
@@ -168,40 +169,41 @@ export function mountUi(root: HTMLElement, engine: GameEngine, speed: SpeedContr
         a.sleeve.progressPercent,
         `${a.sleeve.runsToNextXp} runs`,
       );
-      card.reward.textContent =
+      setText(
+        card.reward,
         `+${a.rewardText} ${a.rewardUnit}/run` +
-        (a.outputMultiplierText !== '1' ? ` | x${a.outputMultiplierText}` : '') +
-        (a.heatPerRun > 0 ? ` | +${a.heatPerRun} heat` : '');
+          (a.outputMultiplierText !== '1' ? ` | x${a.outputMultiplierText}` : '') +
+          (a.heatPerRun > 0 ? ` | +${a.heatPerRun} heat` : ''),
+      );
       card.button.disabled = !a.unlocked;
       card.root.classList.toggle('locked', !a.unlocked);
-      card.bar.style.width = `${a.progressPercent}%`;
+      setWidth(card.bar, `${a.progressPercent}%`);
       card.root.classList.toggle('running', a.running);
       renderUpgrades(card.buyables, a.buyables);
     }
-    sleeveWidget.access.textContent = vm.sleeve.accessLevelText;
-    sleeveWidget.interfaceSpeed.textContent = vm.sleeve.interfaceSpeedText;
+    setText(sleeveWidget.access, vm.sleeve.accessLevelText);
+    setText(sleeveWidget.interfaceSpeed, vm.sleeve.interfaceSpeedText);
     setRowTip(sleeveWidget.interfaceSpeed, vm.sleeve.interfaceSpeedTip);
-    sleeveWidget.circumvention.textContent = vm.sleeve.circumventionText;
+    setText(sleeveWidget.circumvention, vm.sleeve.circumventionText);
     setRowTip(sleeveWidget.circumvention, vm.sleeve.circumventionTip);
-    sleeveWidget.infamy.textContent = vm.sleeve.infamyText;
+    setText(sleeveWidget.infamy, vm.sleeve.infamyText);
     setRowTip(sleeveWidget.infamy, vm.sleeve.infamyTip);
-    sleeveWidget.heat.textContent = vm.sleeve.heatText;
+    setText(sleeveWidget.heat, vm.sleeve.heatText);
     setRowTip(sleeveWidget.heat, vm.sleeve.heatTip);
-    sleeveWidget.heatCooldown.label.textContent = vm.sleeve.heatCooling ? 'Heat cooldown' : 'Heat cooldown (paused: no heat)';
-    sleeveWidget.heatCooldown.fill.style.width = `${vm.sleeve.heatCooldownPercent}%`;
-    sleeveWidget.infamyCooldown.label.textContent = vm.sleeve.infamyCooling ? 'Infamy cooldown' : 'Infamy cooldown (paused: no infamy)';
-    sleeveWidget.infamyCooldown.fill.style.width = `${vm.sleeve.infamyCooldownPercent}%`;
+    setText(sleeveWidget.heatCooldown.label, vm.sleeve.heatCooling ? 'Heat cooldown' : 'Heat cooldown (paused: no heat)');
+    setWidth(sleeveWidget.heatCooldown.fill, `${vm.sleeve.heatCooldownPercent}%`);
+    setText(sleeveWidget.infamyCooldown.label, vm.sleeve.infamyCooling ? 'Infamy cooldown' : 'Infamy cooldown (paused: no infamy)');
+    setWidth(sleeveWidget.infamyCooldown.fill, `${vm.sleeve.infamyCooldownPercent}%`);
     renderUpgrades(sleeveWidget.buyables, vm.sleeve.buyables);
-    if (!vm.canResleeve) resleeveGate.cancel();
+    const armed = resleeveGate.isArmed && vm.canResleeve;
     resleeveBtn.disabled = !vm.canResleeve;
-    resleeveBtn.textContent = resleeveGate.isArmed
-      ? 'Confirm re-sleeve: credits, network, levels and purchases reset'
-      : 'Re-sleeve (test: no requirement)';
-    resleeveBtn.classList.toggle('armed', resleeveGate.isArmed);
-    resleeveCancel.hidden = !resleeveGate.isArmed;
-    speedBtn.textContent = `Speed x${speed.factor}`;
+    setText(resleeveBtn, armed ? 'Confirm re-sleeve: credits, network, levels and purchases reset' : 'Re-sleeve (test: no requirement)');
+    resleeveBtn.classList.toggle('armed', armed);
+    resleeveCancel.hidden = !armed;
+    setText(speedBtn, `Speed x${speed.factor}`);
     speedBtn.classList.toggle('on', speed.enabled);
   }
+  render();
   return render;
 }
 
@@ -214,6 +216,7 @@ function upgradeRow(
   const buttons = new Map<string, HTMLButtonElement>();
   for (const b of views) {
     const upgrade = h('button', 'upgrade', b.symbol) as HTMLButtonElement;
+    upgrade.setAttribute('aria-label', b.name);
     upgrade.addEventListener('click', () => buy(b.id));
     element.append(upgrade);
     buttons.set(b.id, upgrade);
@@ -231,7 +234,7 @@ function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, views: 
     upgrade.classList.toggle('owned', b.owned > 0);
     upgrade.classList.toggle('off', b.toggleable && b.owned > 0 && !b.enabled);
     upgrade.classList.toggle('ready', b.ready);
-    upgrade.dataset['tip'] = b.tip;
+    setTip(upgrade, b.tip);
   }
 }
 
@@ -304,12 +307,27 @@ function xpBar(): XpBar {
 
 /** Puts a hover tip on a stat's whole row (label and value), given its value element. */
 function setRowTip(value: HTMLElement, tip: string): void {
-  (value.parentElement ?? value).dataset['tip'] = tip;
+  setTip(value.parentElement ?? value, tip);
 }
 
 function setXpBar(bar: XpBar, name: string, xp: string, next: string, percent: number, extra?: string): void {
-  bar.label.textContent = `${name} - ${xp}/${next} XP${extra ? ` | ${extra}` : ''}`;
-  bar.fill.style.width = `${percent}%`;
+  setText(bar.label, `${name} - ${xp}/${next} XP${extra ? ` | ${extra}` : ''}`);
+  setWidth(bar.fill, `${percent}%`);
+}
+
+/** Sets an element's text only when it changed, so an unchanged frame touches nothing in the DOM. */
+function setText(el: HTMLElement, text: string): void {
+  if (el.textContent !== text) el.textContent = text;
+}
+
+/** Sets an element's width only when it changed. */
+function setWidth(el: HTMLElement, width: string): void {
+  if (el.style.width !== width) el.style.width = width;
+}
+
+/** Sets a hover tip only when it changed (the tooltip watches this attribute). */
+function setTip(el: HTMLElement, tip: string): void {
+  if (el.dataset['tip'] !== tip) el.dataset['tip'] = tip;
 }
 
 function h(tag: string, className?: string, text?: string): HTMLElement {

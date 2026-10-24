@@ -77,7 +77,9 @@ describe('scalar field registry', () => {
   it('covers every scalar of the state exactly once', () => {
     const state = createInitialState(config, numberFactory);
     const nonScalar = ['unlockedActions', 'autoRunOff', 'actions', 'purchased'];
-    const expected = Object.keys(state).filter((k) => !nonScalar.includes(k)).sort();
+    const expected = Object.keys(state)
+      .filter((k) => !nonScalar.includes(k))
+      .sort();
     expect(SCALAR_FIELDS.map((f) => f.key).sort()).toEqual(expected);
   });
 

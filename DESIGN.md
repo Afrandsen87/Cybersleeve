@@ -147,6 +147,7 @@ A **Sleeve** widget sits to the side of the actions (desktop layout; actions are
 - **CONFIRMED:** the game keeps running while the window is unfocused or the tab is in the background. The loop measures real elapsed time (timer-based, not frame-based) and simulates the whole gap, so throttled background timers lose nothing.
 - Gaps longer than 10 minutes (device asleep, app closed) are capped: **offline progress is not implemented** (a later mechanic).
 - **Offline progress is out of scope for now** (CONFIRMED 2026-10-24). The save format will need a timestamp when it is designed.
+- **Tick size does not matter (CONFIRMED 2026-10-24):** a long tick is cut into slices of at most 1 s (at most 64 per tick, `engine.maxSliceMs` / `maxSlicesPerTick`) so one long tick and many short ones give the same result, including feedback such as interface speed rising with every run.
 - **Run completion is exact at any scale:** many runs in one long tick are computed in closed form (see `docs/ARCHITECTURE.md`, Tick loop), so very fast actions or the x10 toggle never lose time to a per-tick cap.
 - **Test aid:** a toggle in the top-right corner multiplies game time by 10 (button label `Speed x10`). Not saved; to be removed or hidden before release.
 

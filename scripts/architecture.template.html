@@ -194,7 +194,8 @@ sleeve XP (per action): +sleeveXpPerGrant per runsPerSleeveXp runs of that actio
     <tr><td><code>progression</code></td><td>runsPerSleeveXp, sleeveXpPerGrant, actionLevels, sleeveLevels, startingCredits</td><td>XP and level thresholds, sleeve XP rate, starting credits</td></tr>
     <tr><td><code>speed</code></td><td>actionLevel, sleeveLevel (linear perLevel | exponential base)</td><td>How much each level is worth as a speed multiplier</td></tr>
     <tr><td><code>global</code></td><td>speedMultiplier, rewardMultiplier, xpMultiplier, costMultiplier</td><td>Broad levers: one number scales all speed, rewards, XP or prices</td></tr>
-    <tr><td><code>engine</code></td><td>maxBatchesPerTick</td><td>Safety cap on run batches per action per tick</td></tr>
+    <tr><td><code>engine</code></td><td>maxBatchesPerTick</td><td>Safety cap on run batches per action per slice</td></tr>
+    <tr><td><code>engine</code></td><td>maxSliceMs, maxSlicesPerTick</td><td>A tick is cut into slices of at most maxSliceMs (at most maxSlicesPerTick of them)</td></tr>
     <tr><td><code>runtime</code></td><td>stepMs, maxDeltaMs, autosaveMs, fastForwardFactor</td><td>Timer step, gap cap (no offline progress), autosave interval, test fast-forward factor</td></tr>
     </tbody></table>
     <p class="tip">Derive a variant for experiments with <code>createConfig(gameConfig, { global: { speedMultiplier: 10 } })</code>. Unit tests use their own fixed config (<code>src/testing/testConfig.ts</code>), so retuning the game never breaks them.</p></div>
@@ -395,7 +396,7 @@ function drawGraph(svg,spec){
   // main
   box(20,95,920,52,"main.ts  (entry / wiring)",["loads save, builds engine, starts loop, mounts UI, autosave"],COLOR["(entry)"]);
   // ui + app
-  box(20,175,440,100,"ui/",["viewModel.ts: state → display data (pure, tested)","dom.ts: builds DOM once, updates text per step","style.css"],COLOR.ui);
+  box(20,175,440,100,"ui/",["viewModel.ts: state → display data (pure, tested)","dom.ts: builds DOM once, writes only what changed; commands via GameCommands","style.css"],COLOR.ui);
   box(500,175,440,100,"app/",["createGame (composition root) · GameLoop","SaveGame (keeps a backup of unreadable saves) · SpeedToggle (x10 test aid) · new-game handler"],COLOR.app);
   port(540,285,120,"Scheduler",COLOR.app); port(680,285,140,"KeyValueStore",COLOR.app); port(840,285,100,"Tickable",COLOR.app);
   // core
@@ -460,11 +461,11 @@ function drawGraph(svg,spec){
   var steps=[
    ["Timer fires (setTimeout, 50 ms)","Keeps firing in background tabs (throttled, not stopped)","var(--c-app)"],
    ["GameLoop.step: measure real elapsed time","delta = min(now − last, 10 min) × timeScale (x1, or x10 with the toggle)","var(--c-app)"],
-   ["GameEngine.tick(delta)","first passive income (nodes × rate × delta, after heat tax) and heat cooldown (closed form), then every unlocked action; finally the OverflowPolicy clamps any non-finite amount","var(--c-core)"],
+   ["GameEngine.tick(delta)","cut into slices of at most maxSliceMs; per slice: passive income (NetworkSystem), network growth, heat cooldown and Infamy decay (closed form), then every unlocked action (ActionRunner); finally the OverflowPolicy repairs non-finite amounts (NaN becomes 0)","var(--c-core)"],
    ["Auto-run owned? mark action running","resolveEffects(buyables, state, action)","var(--c-core)"],
    ["Advance progress","duration = base / (actionLevel × that action's sleeveLevel); not enough time left → progress += remaining, stop","var(--c-core)"],
    ["Batch completes: completeRuns(n)","n runs at once, n = as many as fit in the time left but no more than reach the next level change (Progression.runsBeforeLevelChange); credits via Economy.creditsForRuns (arithmetic series for the heat tax), XP and counted runs ×n","var(--c-core)"],
-   ["Manual: stop and drop leftover. Auto: next batch","cost depends on the number of level changes, not on the number of runs; capped at maxBatchesPerTick per action per tick","var(--c-core)"],
+   ["Manual: stop and drop leftover. Auto: next batch","cost depends on the number of level changes, not on the number of runs; capped at maxBatchesPerTick per action per slice","var(--c-core)"],
    ["onStep: render if page visible","buildViewModel → update DOM text; skipped while document.hidden","var(--c-ui)"],
    ["Schedule next step; autosave every 10 s and on hide","SaveGame.save → localStorage","var(--c-app)"]
   ];
@@ -615,11 +616,11 @@ function drawGraph(svg,spec){
    ["assume","Open: re-sleeve requirement","Currently always allowed (replaceable ResleevePolicy) so the mechanic can be tested."],
    ["risk","Background throttling","Browsers throttle timers in hidden tabs (about 1 call/s, later about 1/min). The loop simulates the full real-time gap, so nothing is lost, but updates are coarse. Gaps over 10 minutes are capped."],
    ["risk","No offline progress (deferred)","Closing the app or sleeping the device stops progress beyond the 10-minute cap. Out of scope for now by decision; the save has no timestamp yet, which the future mechanic will need (save format v4)."],
-   ["risk","Untested glue","dom.ts and main.ts are thin and not unit-tested. The target is desktop browsers for now; the PWA build still works but mobile layout and install flow are out of scope."],
+   ["risk","Untested glue","main.ts is untested glue; dom.ts has only a happy-dom smoke test (mount, click, tick, render, re-sleeve gate, no redundant DOM writes). The target is desktop browsers for now; the PWA build still works but mobile layout and install flow are out of scope."],
    ["risk","Extreme tuning","Exponential level scaling or very large global.speedMultiplier can push speed beyond the double range (duration 0); the per-tick batch cap then limits the damage, but such settings are not meaningful. validateConfig only checks basic ranges, not whether the progression is fun."],
    ["risk","Number precision","Runs counter and level numbers are plain JS numbers (exact up to 2^53). BigNum keeps about 15 significant digits, so tiny additions to huge values are absorbed by design. Overflow (exponent ≥ 9e15) is reported by isFinite() and repaired every tick by the default OverflowPolicy (clamp to the largest finite value); the real reaction, the "infinity" prestige, is not designed yet."],
    ["risk","Test aids in production","The Speed x10 toggle, the Reset save button (wipes everything, no confirmation) and the always-allowed Re-sleeve button (two clicks to confirm) are visible to every player and must be removed or hidden before release."],
-   ["risk","Tick granularity","Passive income and heat cooling use the nodes and heat at the START of a tick, and heat added by runs only starts cooling on the next tick. Results therefore differ slightly with tick size (a 50 ms step versus one long tick) by design; run results themselves are exact either way (tests compare both)."],
+   ["risk","Tick granularity","Within one slice passive income and heat cooling use the nodes and heat at the START of the slice, and heat added by runs only starts cooling in the next slice. Ticks longer than maxSliceMs are sliced so one long tick and many short ones agree closely (tested); beyond maxSlicesPerTick slices get longer and the agreement degrades gracefully. Runs of actions with a start cost still complete one per batch."],
    ["risk","Doc generator limits","This page is built by parsing the sources with the TypeScript compiler API, using an aliased TypeScript 5 (typescript5) because the project itself compiles with TypeScript 7, which has no JavaScript API. Only top-level declarations and class members are read; the doc-comment format is a leading block comment with TSDoc tags plus Called by:/Calls: lines. The coverage figure and the undocumented list show what was found."]
   ];
   document.getElementById("riskGrid").innerHTML=R.map(function(r){return "<div class='card "+(r[0]==="risk"?"risk":"assume")+"'><h3>"+r[1]+"</h3><p>"+r[2]+"</p></div>";}).join("");

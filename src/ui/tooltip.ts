@@ -98,7 +98,10 @@ export function installTooltips(doc: Document): void {
     if (anchor) show(anchor);
   });
   doc.addEventListener('mouseout', (e) => {
-    if (anchorOf(e) === current) hide();
+    const anchor = anchorOf(e);
+    // Moving between children of the same anchor is not leaving it.
+    const staying = e.relatedTarget instanceof Node && anchor?.contains(e.relatedTarget);
+    if (anchor !== null && anchor === current && !staying) hide();
   });
   doc.addEventListener('focusin', (e) => {
     const anchor = anchorOf(e);

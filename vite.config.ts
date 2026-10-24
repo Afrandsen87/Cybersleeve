@@ -3,7 +3,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 /**
  * Build configuration: Vite + installable PWA (manifest + offline service worker).
- * Target: Chrome on Android ("Add to Home screen" / install prompt).
+ * Target: desktop browsers for now (the PWA build still installs; mobile layout and install flow are out of scope).
  */
 export default defineConfig({
   base: './',

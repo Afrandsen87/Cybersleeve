@@ -101,7 +101,11 @@ Current sleeve buyables (placeholder prices): **Interface boost** (100 credits, 
 `speedMultiplier`, `rewardMultiplier`, `xpMultiplier`, `costMultiplier`.
 
 ## `engine`
-`maxBatchesPerTick` – safety cap on run batches per action per tick (integer >= 1, default 1000). Runs are computed in closed form: a batch is all the runs between two level changes, so a tick needs roughly one batch per level gained, however long it is. Time beyond the cap is discarded; normal play never reaches it.
+`maxBatchesPerTick` – safety cap on run batches per action per tick (integer >= 1, default 1000). Runs are computed in closed form: a batch is all the runs between two level changes, so a tick needs roughly one batch per level gained, however long it is. Time beyond the cap is discarded; normal play never reaches it. The cap applies per slice (see below).
+
+`maxSliceMs` – longest stretch of game time simulated in one go, in ms (> 0, default 1000). A longer tick is cut into equal slices of at most this length, run one after another, so feedback between systems follows the same course however the time is delivered. A normal 50 ms step is one slice.
+
+`maxSlicesPerTick` – most slices one tick is cut into (integer >= 1, default 64). Bounds the cost of a very long tick; beyond it slices get longer and the feedback effects become approximate again.
 
 ## `runtime`
 | Field | Meaning |

@@ -27,7 +27,8 @@ const free = (id: string, actionId: string | undefined, effect: BuyableDefinitio
 });
 const game = (actions: (typeof testConfig.actions)[number][], buyables: BuyableDefinition[] = [], overrides = {}) =>
   createGame({ config: createConfig(testConfig, { actions, buyables, ...overrides }) });
-const state = (g: { getState(): unknown }) => g.getState() as { network: ReturnType<typeof num>; nodePayoutBonus: ReturnType<typeof num>; heat: number };
+const state = (g: { getState(): unknown }) =>
+  g.getState() as { network: ReturnType<typeof num>; nodePayoutBonus: ReturnType<typeof num>; heat: number };
 
 describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () => {
   const pkill = (nodes: number, buyables: BuyableDefinition[] = []) => {

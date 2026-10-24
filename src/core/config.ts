@@ -115,37 +115,38 @@ const factorAtLeastOne = (e: { kind: string; factor: number }, { where, errors }
  * One validator per effect kind. The mapped type makes the compiler demand an entry for every kind of
  * {@link BuyableEffect}, so a new kind cannot be added without saying how it is validated.
  */
-const EFFECT_CHECKS: { readonly [K in BuyableEffect['kind']]: (effect: Extract<BuyableEffect, { kind: K }>, ctx: EffectContext) => void } = {
-  autoRun: () => {},
-  unlock: () => {},
-  outputMultiplier: factorAtLeastOne,
-  nodePayoutMultiplier: factorAtLeastOne,
-  circumventionMultiplier: factorAtLeastOne,
-  interfaceSpeed: (e, { where, errors }) => {
-    if (!(Number.isFinite(e.amount) && e.amount >= 0)) errors.push(`${where}: interface speed amount must be >= 0`);
-  },
-  accessLevel: (e, { where, errors }) => {
-    if (!(Number.isInteger(e.level) && e.level >= 1)) errors.push(`${where}: access level must be an integer >= 1`);
-  },
-  networkGrowth: (e, { where, errors }) => {
-    if (!(Number.isFinite(e.ratePerSecond) && e.ratePerSecond >= 0)) errors.push(`${where}: network growth rate must be >= 0`);
-  },
-  interfaceSpeedPerLnNodes: (e, { where, errors }) => {
-    if (!(Number.isFinite(e.perLn) && e.perLn >= 0)) errors.push(`${where}: perLn must be >= 0`);
-  },
-  levelBonusFromSleeveLevel: (e, { where, actionIds, errors }) => {
-    for (const id of [e.sourceActionId, e.targetActionId]) {
-      if (!actionIds.has(id)) errors.push(`${where}: level bonus refers to unknown action "${id}"`);
-    }
-  },
-  sleeveXpReduction: (e, { where, actionIds, errors }) => {
-    if (!actionIds.has(e.sourceActionId)) errors.push(`${where}: XP reduction refers to unknown action "${e.sourceActionId}"`);
-    if (!(Number.isFinite(e.perLevel) && e.perLevel > 0)) errors.push(`${where}: XP reduction perLevel must be > 0`);
-    if (!(Number.isFinite(e.maxReduction) && e.maxReduction >= 0 && e.maxReduction < 1)) {
-      errors.push(`${where}: XP reduction maxReduction must be in [0, 1)`);
-    }
-  },
-};
+const EFFECT_CHECKS: { readonly [K in BuyableEffect['kind']]: (effect: Extract<BuyableEffect, { kind: K }>, ctx: EffectContext) => void } =
+  {
+    autoRun: () => {},
+    unlock: () => {},
+    outputMultiplier: factorAtLeastOne,
+    nodePayoutMultiplier: factorAtLeastOne,
+    circumventionMultiplier: factorAtLeastOne,
+    interfaceSpeed: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.amount) && e.amount >= 0)) errors.push(`${where}: interface speed amount must be >= 0`);
+    },
+    accessLevel: (e, { where, errors }) => {
+      if (!(Number.isInteger(e.level) && e.level >= 1)) errors.push(`${where}: access level must be an integer >= 1`);
+    },
+    networkGrowth: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.ratePerSecond) && e.ratePerSecond >= 0)) errors.push(`${where}: network growth rate must be >= 0`);
+    },
+    interfaceSpeedPerLnNodes: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.perLn) && e.perLn >= 0)) errors.push(`${where}: perLn must be >= 0`);
+    },
+    levelBonusFromSleeveLevel: (e, { where, actionIds, errors }) => {
+      for (const id of [e.sourceActionId, e.targetActionId]) {
+        if (!actionIds.has(id)) errors.push(`${where}: level bonus refers to unknown action "${id}"`);
+      }
+    },
+    sleeveXpReduction: (e, { where, actionIds, errors }) => {
+      if (!actionIds.has(e.sourceActionId)) errors.push(`${where}: XP reduction refers to unknown action "${e.sourceActionId}"`);
+      if (!(Number.isFinite(e.perLevel) && e.perLevel > 0)) errors.push(`${where}: XP reduction perLevel must be > 0`);
+      if (!(Number.isFinite(e.maxReduction) && e.maxReduction >= 0 && e.maxReduction < 1)) {
+        errors.push(`${where}: XP reduction maxReduction must be in [0, 1)`);
+      }
+    },
+  };
 
 /** Validates the numbers and action references of one buyable's effect. */
 function checkEffect(b: GameConfig['buyables'][number], actionIds: ReadonlySet<string>, errors: string[]): void {

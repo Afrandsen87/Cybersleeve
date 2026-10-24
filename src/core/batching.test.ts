@@ -6,7 +6,16 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
-import { killAction, legendAction, malwareAction, networkAction, percentKillAction, practiceAction, setCredits, testConfig } from '../testing/testConfig';
+import {
+  killAction,
+  legendAction,
+  malwareAction,
+  networkAction,
+  percentKillAction,
+  practiceAction,
+  setCredits,
+  testConfig,
+} from '../testing/testConfig';
 import { createConfig } from './index';
 
 const three = () => createConfig(testConfig, { actions: [testConfig.actions[0]!, networkAction, malwareAction] });
