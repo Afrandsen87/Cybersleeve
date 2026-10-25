@@ -12,10 +12,13 @@
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import type { ActionRunner } from './actionRunner';
+import type { ActionToggles, FocusStatus, OverclockStatus } from './actionToggles';
 import type { ActivateResult, GameCommands, GameQueries } from './api';
 import { coolDownHeat, decayInfamy } from './cooldowns';
 import type { BackChannelRule, SleeveStats } from './effects';
 import type { Augments } from './augments';
+import type { BackChannel } from './backChannel';
+import type { BurnLeads } from './burnLeads';
 import type { ItemDrops } from './drops';
 import type { Inventory } from './inventory';
 import type { NetworkSystem } from './network';
@@ -47,6 +50,12 @@ export interface EngineDependencies {
   readonly drops: ItemDrops;
   /** Items held and their sale (built on the same state the engine owns). */
   readonly inventory: Inventory;
+  /** Gives up items for Moles (built on the same state the engine owns). */
+  readonly backChannel: BackChannel;
+  /** Uses Burn leads to take heat away (built on the same state the engine owns). */
+  readonly burnLeads: BurnLeads;
+  /** Switches the Overclock and Focus toggles of actions (built on the same state the engine owns). */
+  readonly toggles: ActionToggles;
   /** Decides when re-sleeving is allowed. */
   readonly resleevePolicy: ResleevePolicy;
   /** Reaction to numbers leaving the representable range. */
@@ -76,6 +85,9 @@ export class GameEngine implements GameQueries, GameCommands {
   private readonly runner: ActionRunner;
   private readonly network: NetworkSystem;
   private readonly inventory: Inventory;
+  private readonly backChannelDeals: BackChannel;
+  private readonly burnLeads: BurnLeads;
+  private readonly toggles: ActionToggles;
   private readonly drops: ItemDrops;
   private readonly augments: Augments;
   private readonly scope: Snapshot;
@@ -99,6 +111,9 @@ export class GameEngine implements GameQueries, GameCommands {
       runner: this.runner,
       network: this.network,
       inventory: this.inventory,
+      backChannel: this.backChannelDeals,
+      burnLeads: this.burnLeads,
+      toggles: this.toggles,
       drops: this.drops,
       augments: this.augments,
       resleevePolicy: this.resleevePolicy,
@@ -146,10 +161,7 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns true when auto-run is now on; false when it is now off or the buyable is not owned (nothing changes then)
    */
   toggleAutoRun(id: BuyableId): boolean {
-    if (this.ownedCount(id) <= 0 || !this.shop.isToggleable(id)) return false;
-    if (this.state.autoRunOff[id]) delete this.state.autoRunOff[id];
-    else this.state.autoRunOff[id] = true;
-    return !this.state.autoRunOff[id];
+    return this.shop.toggle(this.state, id);
   }
 
   /** Buys one copy of a buyable. Auto-run takes effect on the next tick. */
@@ -206,11 +218,33 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns how many were given up
    */
   giveUpForMoles(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number {
-    const channel = this.stats.backChannel();
-    if (!channel || channel.itemId !== itemId || channel.rarityId !== rarityId) return 0;
-    const taken = this.inventory.take(itemId, rarityId, amount);
-    this.state.moles += taken * channel.molesPerItem;
-    return taken;
+    return this.backChannelDeals.giveUp(itemId, rarityId, amount);
+  }
+
+  /**
+   * Uses one Burn lead of a rarity: it is used up and takes its share of the current heat away. See `BurnLeads.use`.
+   *
+   * @param rarityId the rarity of the stack to use a lead from
+   * @returns true when a lead was used (none is held, or there is no heat: nothing happens)
+   */
+  useBurnLead(rarityId: RarityId): boolean {
+    return this.burnLeads.use(rarityId);
+  }
+
+  /**
+   * Switches Overclock on or off for an action. Does nothing without the Overclock buyable or for an action that has no Overclock rule.
+   * @returns true when it is now on
+   */
+  toggleOverclock(id: ActionId): boolean {
+    return this.toggles.toggleOverclock(id);
+  }
+
+  /**
+   * Switches Focus on or off for an action. Switching on needs a free Focus slot; switching off always works.
+   * @returns true when it is now on
+   */
+  toggleFocus(id: ActionId): boolean {
+    return this.toggles.toggleFocus(id);
   }
 
   /**
@@ -234,11 +268,16 @@ export class GameEngine implements GameQueries, GameCommands {
   // ---- queries about actions ------------------------------------------------------------------------------------
 
   /**
-   * True when the action can be performed (access level and `unlock` rule). Locked actions cannot start and do not progress.
+   * True when the action can be performed (access level). Locked actions cannot start and do not progress.
    * @throws Error if the action id is unknown
    */
   isUnlocked(id: ActionId): boolean {
     return this.runner.isUnlocked(id);
+  }
+
+  /** True when starting the action now would work (unlocked, and the start cost can be paid). @throws Error if the action id is unknown */
+  canStart(id: ActionId): boolean {
+    return this.runner.canStart(id);
   }
 
   /**
@@ -264,9 +303,24 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.speedFactors(id);
   }
 
+  /** Overclock for an action (its speed bonus, heat cost and whether it is on), or `null` when there is no toggle to show. */
+  overclockStatus(id: ActionId): OverclockStatus | null {
+    return this.stats.overclockStatus(id);
+  }
+
+  /** Focus for an action (its speed bonus, the slots and whether it is on), or `null` when there is no toggle to show. */
+  focusStatus(id: ActionId): FocusStatus | null {
+    return this.stats.focusStatus(id);
+  }
+
   /** Levels added to an action's level for speed by buyables; its XP progress is not affected. */
   levelBonus(id: ActionId): number {
     return this.stats.levelBonus(id);
+  }
+
+  /** The actions that can drop one stack of items now, with the chance that one completed run of each drops it. See `DerivedStats.dropSources`. */
+  dropSources(itemId: ItemId, rarityId: RarityId): readonly { readonly actionId: ActionId; readonly chance: number }[] {
+    return this.stats.dropSources(itemId, rarityId);
   }
 
   /** Multiplier on the action's own reward per run, from purchases (>= 1). It scales that reward only. */
@@ -346,6 +400,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.progression.sleeveLevelProgress(this.state, id);
   }
 
+  /** Completed runs one batch of sleeve XP takes right now (lowered by `runsPerSleeveXpReduction` buyables). */
+  runsPerSleeveXp(): number {
+    return this.progression.runsPerSleeveXp(this.state);
+  }
+
   /** Fraction by which the action's sleeve levels need less XP (0 without reduction buyables). */
   sleeveXpReduction(id: ActionId): number {
     return this.progression.sleeveXpReduction(this.state, id);
@@ -356,6 +415,11 @@ export class GameEngine implements GameQueries, GameCommands {
   /** The global sleeve stats (access level, interface speed, heat, ...) after sleeve-wide purchases. */
   sleeveStats(): SleeveStats {
     return this.stats.sleeveStats();
+  }
+
+  /** True when using a Burn lead of this rarity would do something (one is held and there is heat). */
+  canUseBurnLead(rarityId: RarityId): boolean {
+    return this.burnLeads.canUse(rarityId);
   }
 
   /** The back channel unlocked by a skill (which item and rarity can be given up, and for how many Moles each), or `null`. */
@@ -435,10 +499,10 @@ export class GameEngine implements GameQueries, GameCommands {
    * slice cap the slices get longer and those effects become approximate; the cost of a tick is bounded either way.
    * See {@link GameEngine.advance} for what one slice does.
    *
-   * @param deltaMs elapsed game time in milliseconds (>= 0)
+   * @param deltaMs elapsed game time in milliseconds (>= 0; zero, negative, NaN and infinite values are ignored)
    */
   tick(deltaMs: number): void {
-    if (!(deltaMs > 0)) return;
+    if (!(deltaMs > 0) || !Number.isFinite(deltaMs)) return;
     const { maxSliceMs, maxSlicesPerTick } = this.config.engine;
     const wanted = Math.ceil(deltaMs / maxSliceMs);
     if (wanted > maxSlicesPerTick) {
@@ -458,14 +522,12 @@ export class GameEngine implements GameQueries, GameCommands {
    * next one. Finally the {@link OverflowPolicy} repairs any amount that left the representable range.
    */
   private advance(deltaMs: number): void {
-    this.runner.latchUnlocks();
     this.network.payPassiveIncome(deltaMs);
     this.network.grow(deltaMs);
     const sleeve = this.stats.sleeveStats();
     coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost);
     decayInfamy(this.state, this.config.sleeve, deltaMs);
     this.runner.tickAll(deltaMs);
-    this.runner.latchUnlocks();
     this.overflowPolicy.apply(this.state);
   }
 }

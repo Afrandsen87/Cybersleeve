@@ -4,12 +4,36 @@
  * Heat: a tax on all credits earned (one point of heat is one percent, lowered by ICE Rating) and its cooldown.
  */
 
+/**
+ * Slack for floating-point sums of fractional heat: heat that comes to 0.9999999999 after many small additions counts as 1, and a
+ * leftover smaller than this counts as nothing.
+ */
+const HEAT_EPSILON = 1e-9;
+
 /** Heat and the progress of its current cooldown cycle. */
 export interface HeatCooldownState {
-  /** Current heat (>= 0). */
+  /** Current heat (>= 0). It may hold fractions of a point; the cooldown only removes whole `amount`s. */
   readonly heat: number;
-  /** Time spent on the current cooldown cycle, in ms. Only advances while heat is above 0. */
+  /** Time spent on the current cooldown cycle, in ms. Only advances while there is at least one whole `amount` of heat to remove. */
   readonly cooldownMs: number;
+}
+
+/**
+ * How many whole cooldown cycles the heat can pay for: the cooldown removes `amount` at a time and never a fraction of it.
+ *
+ * Called by: {@link coolHeat}, {@link coolHeatBoosted}.
+ *
+ * @param heat heat points (>= 0)
+ * @param amount heat removed per cycle (> 0)
+ * @returns `floor(heat / amount)`, tolerant of tiny floating-point shortfalls
+ */
+function wholeCycles(heat: number, amount: number): number {
+  return Math.floor(heat / amount + HEAT_EPSILON);
+}
+
+/** Heat with a leftover that is only floating-point dust taken for nothing. */
+function settle(heat: number): number {
+  return heat < HEAT_EPSILON ? 0 : heat;
 }
 
 /**
@@ -32,7 +56,8 @@ export function heatTaxFactor(heat: number, reduction: number, taxPerPoint: numb
  * Advances the heat cooldown in closed form: every full `cycleMs` removes `amount` heat.
  *
  * @remarks
- * Time only counts while heat is above 0; once heat reaches 0 the cycle restarts from 0 and waits.
+ * Heat is removed in whole `amount`s only, so a fractional leftover (0.4 of a point) stays until more heat is added. Time only
+ * counts while there is at least one whole `amount` to remove; once there is none the cycle restarts from 0 and waits.
  * The cost does not depend on `deltaMs`, so long ticks are cheap.
  *
  * Called by: `engine.ts`.
@@ -44,11 +69,12 @@ export function heatTaxFactor(heat: number, reduction: number, taxPerPoint: numb
  * @returns heat and cycle progress after the step
  */
 export function coolHeat(current: HeatCooldownState, deltaMs: number, cycleMs: number, amount: number): HeatCooldownState {
-  if (!(current.heat > 0)) return current;
+  const whole = wholeCycles(current.heat, amount);
+  if (!(whole >= 1)) return { heat: settle(Math.max(0, current.heat)), cooldownMs: 0 };
   const total = current.cooldownMs + deltaMs;
   const cycles = Math.floor(total / cycleMs);
-  if (cycles >= Math.ceil(current.heat / amount)) return { heat: 0, cooldownMs: 0 };
-  return { heat: current.heat - cycles * amount, cooldownMs: total - cycles * cycleMs };
+  if (cycles >= whole) return { heat: settle(current.heat - whole * amount), cooldownMs: 0 };
+  return { heat: settle(current.heat - cycles * amount), cooldownMs: total - cycles * cycleMs };
 }
 
 /** Heat, the progress of its current cooldown cycle and the Moles that make part of it faster. */
@@ -64,7 +90,7 @@ export interface BoostedCooldownState extends HeatCooldownState {
  * `cooldownMs` counts progress in units of normal-speed time, so a cooldown that runs `speed` times as fast simply advances
  * `speed` times as far per millisecond, and a change of speed never makes the bar jump. While Moles remain, the cooldown runs
  * `boost` faster still (`speed * (1 + boost)`), and every point of heat cooled uses up one Mole; once the Moles are used up
- * (or the heat is gone) the cooldown goes on at `speed`. The boosted stretch is worked out first (it lasts until the
+ * (or no whole point of heat is left) the cooldown goes on at `speed`. As in {@link coolHeat}, only whole `amount`s are removed. The boosted stretch is worked out first (it lasts until the
  * Moles or the heat run out), then the rest of the time at normal pace, so the cost never depends on `deltaMs`.
  * With `speed` 1 and no Moles it equals {@link coolHeat}.
  *
@@ -86,26 +112,26 @@ export function coolHeatBoosted(
   speed: number,
   boost: number,
 ): BoostedCooldownState {
-  if (!(current.heat > 0)) return current;
   let { heat, cooldownMs, moles } = current;
+  if (!(wholeCycles(heat, amount) >= 1)) return { heat: settle(Math.max(0, heat)), cooldownMs: 0, moles };
   let time = deltaMs;
   const fast = speed * (1 + boost);
   if (moles > 0 && boost > 0) {
-    const limit = Math.min(Math.ceil(moles / amount), Math.ceil(heat / amount)); // cycles the boost can last
+    const limit = Math.min(Math.ceil(moles / amount), wholeCycles(heat, amount)); // cycles the boost can last
     const progress = cooldownMs + time * fast;
     const cycles = Math.floor(progress / cycleMs);
     if (cycles < limit) {
       const cooled = cycles * amount;
-      return { heat: heat - cooled, cooldownMs: progress - cycles * cycleMs, moles: Math.max(0, moles - cooled) };
+      return { heat: settle(heat - cooled), cooldownMs: progress - cycles * cycleMs, moles: Math.max(0, moles - cooled) };
     }
     // The Moles or the heat run out within this step: finish those cycles boosted, then carry on at normal pace.
     const timeUsed = Math.max(0, (limit * cycleMs - cooldownMs) / fast);
-    const cooled = Math.min(heat, limit * amount);
-    heat -= cooled;
+    const cooled = limit * amount;
+    heat = settle(heat - cooled);
     moles = Math.max(0, moles - cooled);
     cooldownMs = 0;
     time = Math.max(0, time - timeUsed);
-    if (heat <= 0) return { heat: 0, cooldownMs: 0, moles };
+    if (!(wholeCycles(heat, amount) >= 1)) return { heat, cooldownMs: 0, moles };
   }
   const rest = coolHeat({ heat, cooldownMs }, time * speed, cycleMs, amount);
   return { heat: rest.heat, cooldownMs: rest.cooldownMs, moles };

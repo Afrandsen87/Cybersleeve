@@ -41,24 +41,34 @@ describe('mountUi (smoke test against the real engine)', () => {
     expect(root.querySelector('.credits')?.textContent).toBe('Credits: 0.5');
   });
 
-  it('a purchase button buys; once owned, an auto-run button switches on and off', () => {
+  it('a purchase button buys; once owned, the auto-run cell of the square switches on and off', () => {
+    const { game, render, click } = mount();
+    setCredits(game, num(100));
+    render();
+    click('.square-unlock'); // before Auto-run is bought the whole square buys it
+    expect(game.ownedCount('auto')).toBe(1);
+    expect(game.isAutoRunEnabled('auto')).toBe(true);
+    click('.cell-autoRun');
+    expect(game.isAutoRunEnabled('auto')).toBe(false);
+    expect(game.ownedCount('auto')).toBe(1); // switching never buys another copy
+  });
+
+  it('a purchase in the row of an action buys', () => {
     const { root, game, render, click } = mount();
     setCredits(game, num(100));
     render();
-    const autoIndex = [...root.querySelectorAll('.upgrade')].findIndex((b) => b.getAttribute('aria-label') === 'Auto');
-    expect(autoIndex).toBeGreaterThanOrEqual(0);
-    click('.upgrade', autoIndex);
-    expect(game.ownedCount('auto')).toBe(1);
-    expect(game.isAutoRunEnabled('auto')).toBe(true);
-    click('.upgrade', autoIndex);
-    expect(game.isAutoRunEnabled('auto')).toBe(false);
-    expect(game.ownedCount('auto')).toBe(1); // switching never buys another copy
+    const dualIndex = [...root.querySelectorAll('.upgrade')].findIndex((b) => b.getAttribute('aria-label') === 'Dual');
+    expect(dualIndex).toBeGreaterThanOrEqual(0);
+    click('.upgrade', dualIndex);
+    expect(game.ownedCount('dual')).toBe(1);
   });
 
   it('every purchase button is named for assistive technology and carries a hover tip', () => {
     const { root } = mount();
     for (const button of root.querySelectorAll<HTMLElement>('.upgrade')) {
       expect(button.getAttribute('aria-label')).toBeTruthy();
+      // A button inside something hidden (the grid while Auto-run is locked) and an empty placeholder have no tip to show.
+      if (button.closest('[hidden]') || button.classList.contains('empty')) continue;
       expect(hoverText(button)).toBeTruthy();
     }
   });
@@ -163,5 +173,39 @@ describe('sleeve purchases', () => {
     const titles = [...root.querySelectorAll('.upgrades-widget .section-title')].map((e) => e.textContent);
     expect(titles).not.toContain('Rebuyable');
     expect(root.querySelectorAll('.upgrades-widget .upgrade').length).toBeGreaterThan(0);
+  });
+});
+
+describe('icons', () => {
+  it('are shown before the action title, the credits and the item rows, without changing their text', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const game = createGame({ config: testConfig });
+    const icons = { urlFor: (id: string) => (id === 'a' || id === 'credits' ? `url("icon-${id}")` : null) };
+    mountUi(root, game, speed, () => {}, { icons });
+    const title = root.querySelector('.action-title') as HTMLElement;
+    expect(title.classList.contains('has-icon')).toBe(true);
+    expect(title.style.getPropertyValue('--icon')).toBe('url("icon-a")');
+    expect(title.textContent).toBe('A');
+    const credits = root.querySelector('.credits') as HTMLElement;
+    expect(credits.style.getPropertyValue('--icon')).toBe('url("icon-credits")');
+    expect(credits.textContent).toBe('Credits: 0');
+  });
+
+  it('are left out entirely when none are given', () => {
+    const { root } = mount();
+    expect(root.querySelector('.has-icon')).toBeNull();
+  });
+
+  it('are shown on purchase buttons, keeping the letters as the fallback text', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const game = createGame({ config: testConfig });
+    const icons = { urlFor: (id: string) => `url("icon-${id}")` };
+    mountUi(root, game, speed, () => {}, { icons });
+    const button = root.querySelector('.upgrade') as HTMLElement;
+    expect(button.classList.contains('has-icon')).toBe(true);
+    expect(button.style.getPropertyValue('--icon')).toMatch(/^url\("icon-/);
+    expect(button.textContent).not.toBe('');
   });
 });

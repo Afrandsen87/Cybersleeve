@@ -26,18 +26,18 @@ const buyable = (b: Partial<BuyableDefinition> & Pick<BuyableDefinition, 'id' | 
 /** The test content plus every kind of action and some buyables to own, so random play reaches every code path. */
 const richTestConfig: GameConfig = createConfig(testConfig, {
   actions: [
-    testConfig.actions[0]!,
+    { ...testConfig.actions[0]!, overclock: { speedBonus: 0.5, heatPerMinute: 1 } },
     networkAction,
     killAction,
     percentKillAction,
-    payoutAction,
+    { ...payoutAction, overclock: { alsoPays: 'net', heatPerRunFactor: 3 } },
     legendAction,
-    practiceAction,
+    { ...practiceAction, overclock: { rewardBonus: 2, completionEffects: [{ kind: 'removeNodes', amount: 5 }] } },
     malwareAction,
   ],
   buyables: [
     ...testConfig.buyables,
-    buyable({ id: 'unlock', effect: { kind: 'unlock' } }),
+    buyable({ id: 'unlock', effect: { kind: 'accessLevel', amount: 1 } }),
     buyable({ id: 'net-auto', actionId: 'net', effect: { kind: 'autoRun' } }),
     buyable({ id: 'net-x2', actionId: 'net', costGrowth: 3, maxPurchases: Infinity, effect: { kind: 'rewardMultiplier', factor: 2 } }),
     buyable({ id: 'grow', actionId: 'net', effect: { kind: 'networkGrowth', ratePerSecond: 0.001 } }),
@@ -65,7 +65,25 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     }),
     buyable({ id: 'skill', actionId: 'a', effect: { kind: 'levelBonusFromSleeveLevel', sourceActionId: 'a', targetActionId: 'net' } }),
     buyable({ id: 'study', actionId: 'a', effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel: 0.01, maxReduction: 0.25 } }),
+    buyable({ id: 'oc-a', actionId: 'a', effect: { kind: 'overclockUnlock' } }),
+    buyable({ id: 'oc-practice', actionId: 'practice', effect: { kind: 'overclockUnlock' } }),
+    buyable({ id: 'oc-push', actionId: 'push', effect: { kind: 'overclockUnlock' } }),
+    buyable({ id: 'fo-a', actionId: 'a', effect: { kind: 'focusUnlock' } }),
+    buyable({ id: 'fo-net', actionId: 'net', effect: { kind: 'focusUnlock' } }),
+    buyable({ id: 'fo-push', actionId: 'push', effect: { kind: 'focusUnlock' } }),
+    buyable({ id: 'ocs', costGrowth: 3, maxPurchases: Infinity, effect: { kind: 'overclockStrength', perCopy: 0.1 } }),
+    buyable({ id: 'slots', costGrowth: 3, maxPurchases: 3, effect: { kind: 'focusSlots', perCopy: 1 } }),
+    buyable({
+      id: 'leads',
+      actionId: 'net',
+      effect: { kind: 'itemDrop', drop: { itemId: 'lead', chance: 0.5, rarityWeights: { common: 1 } } },
+    }),
   ],
+  items: {
+    ...testConfig.items,
+    definitions: [...testConfig.items.definitions, { id: 'lead', name: 'Lead', sellable: false }],
+    burnLead: { itemId: 'lead', heatFraction: 0.05 },
+  },
 });
 
 const contents: [string, GameConfig][] = [
@@ -77,16 +95,30 @@ const TICKS = [0, 1, 16, 50, 999, 1_000, 5_000, 60_000, 3_600_000];
 
 type Mutable = { credits: unknown; network: unknown; heat: number; infamy: number };
 
+/** Half the time buys the buyable of an effect kind first, so that its toggle can be reached in a few random steps. */
+function maybeBuy(g: GameEngine, config: GameConfig, random: Random, kind: BuyableDefinition['effect']['kind']): void {
+  const options = config.buyables.filter((x) => x.effect.kind === kind);
+  if (options.length > 0 && random() < 0.5) g.activateBuyable(pick(random, options).id);
+}
+
 /** Does one random thing to the game: a command, a tick, or a gift of credits, nodes, heat or Infamy. */
 function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
   const state = g.getState() as unknown as Mutable;
   const roll = random();
   if (roll < 0.25) g.startAction(pick(random, config.actions).id);
   else if (roll < 0.5) g.activateBuyable(pick(random, config.buyables).id);
-  else if (roll < 0.56) g.resleeve();
-  else if (roll < 0.62) state.credits = num(10 ** randomInt(random, 40));
+  else if (roll < 0.53) {
+    maybeBuy(g, config, random, 'overclockUnlock');
+    g.toggleOverclock(pick(random, config.actions).id);
+  } else if (roll < 0.56) {
+    maybeBuy(g, config, random, 'focusUnlock');
+    g.toggleFocus(pick(random, config.actions).id);
+  } else if (roll < 0.57) g.useBurnLead('common');
+  else if (roll < 0.58) g.resleeve();
+  else if (roll < 0.63) state.credits = num(10 ** randomInt(random, 40));
   else if (roll < 0.68) state.network = num(randomInt(random, 5_000));
-  else if (roll < 0.72) state.heat = randomInt(random, 300);
+  else if (roll < 0.72)
+    state.heat = randomInt(random, 300) / (1 + randomInt(random, 4)); // whole and fractional heat
   else if (roll < 0.74) state.infamy = randomInt(random, 5);
   else g.tick(pick(random, TICKS));
 }
@@ -94,7 +126,7 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
 describe.each(contents)('random play on %s', (_name, config) => {
   it.each(Array.from({ length: 12 }, (_, i) => i + 1))('seed %i: every invariant holds after every step', (seed) => {
     const random = seededRandom(seed);
-    const g = createGame({ config });
+    const g = createGame({ config, random: seededRandom(seed + 5_000) }); // drops are seeded too, so a failure reproduces
     for (let step = 0; step < 150; step++) {
       randomStep(g, config, random);
       expect(findInvariantViolations(g.getState(), config), `seed ${seed}, step ${step}`).toEqual([]);
@@ -103,7 +135,7 @@ describe.each(contents)('random play on %s', (_name, config) => {
 
   it.each(Array.from({ length: 12 }, (_, i) => i + 100))('seed %i: saving and loading gives back the same content', (seed) => {
     const random = seededRandom(seed);
-    const g = createGame({ config });
+    const g = createGame({ config, random: seededRandom(seed + 5_000) });
     for (let step = 0; step < 100; step++) randomStep(g, config, random);
     const saved = serializeState(g.getState());
     const restored = deserializeState(saved, config, numberFactory);
@@ -116,12 +148,14 @@ describe('tick size does not matter', () => {
   it.each(Array.from({ length: 16 }, (_, i) => i + 200))('seed %i: 30 s in one tick equals 30 ticks of 1 s', (seed) => {
     const setup = (): GameEngine => {
       const random = seededRandom(seed);
-      const g = createGame({ config: richTestConfig });
+      const g = createGame({ config: richTestConfig, random: seededRandom(seed + 5_000) });
       const state = g.getState() as unknown as Mutable;
       state.credits = num(10 ** (3 + randomInt(random, 6)));
       state.network = num(randomInt(random, 3_000));
       for (const b of richTestConfig.buyables) if (random() < 0.5) g.activateBuyable(b.id);
       for (const a of richTestConfig.actions) if (random() < 0.7) g.startAction(a.id);
+      for (const a of richTestConfig.actions) if (random() < 0.6) g.toggleOverclock(a.id);
+      for (const a of richTestConfig.actions) if (random() < 0.6) g.toggleFocus(a.id);
       return g;
     };
     const once = setup();

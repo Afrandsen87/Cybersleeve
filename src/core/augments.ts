@@ -14,7 +14,7 @@ import type { ActionId, GameConfig, GameState, RarityId } from './types';
  * Within one rarity the bonus is additive: `n` augments of a rarity give `1 + n x bonus`. The rarities then multiply each other, so
  * 3 common, 3 uncommon and 3 rare augments at 1% each give `1.03 x 1.03 x 1.03`, which is why a rarer augment is worth using.
  *
- * Called by: `stats.ts` (`DerivedStats.xpPerRun`), {@link Augments.xpFactor}.
+ * Called by: `stats.ts` (`DerivedStats.xpPerRun`).
  *
  * @param applied augments applied to the action, per rarity id (a missing rarity counts as 0)
  * @param bonus what one augment adds within its rarity (0.01 = 1 percent)
@@ -55,30 +55,11 @@ export class Augments {
     this.rarityIds = config.items.rarities.map((r) => r.id);
   }
 
-  /** True when the game has a schematic that can be applied (the content configures one). */
-  get available(): boolean {
-    return this.config.items.augment !== undefined;
-  }
-
-  /** How many schematics the player holds in total, over all rarities (0 when the game has none). */
-  held(): number {
-    const augment = this.config.items.augment;
-    if (!augment) return 0;
-    return this.rarityIds.reduce((sum, rarity) => sum + itemCount(this.state, augment.itemId, rarity), 0);
-  }
-
   /** The rarity that the next application would use up (the most common one held), or `null` when none is held. */
-  nextRarity(): RarityId | null {
+  private nextRarity(): RarityId | null {
     const augment = this.config.items.augment;
     if (!augment) return null;
     return this.rarityIds.find((rarity) => itemCount(this.state, augment.itemId, rarity) > 0) ?? null;
-  }
-
-  /** The factor an action's XP per run is multiplied by (1 when nothing is applied). See {@link augmentXpFactor}. */
-  xpFactor(actionId: ActionId): number {
-    const augment = this.config.items.augment;
-    const applied = this.state.actions[actionId]?.augments ?? {};
-    return augment ? augmentXpFactor(applied, augment.xpBonusPerItem) : 1;
   }
 
   /**

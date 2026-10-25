@@ -1,60 +1,27 @@
 /**
  * @module core
  *
- * What each kind of buyable effect IS, as data: whether it needs an action and whether the player can switch it.
- *
- * @remarks
- * One entry per kind of {@link BuyableEffect}. The mapped type makes the compiler demand an entry for every kind, so a new
- * effect cannot be added without saying what it is. Code that needs to know (the config validator, the shop UI, the
- * save format, the engine's click handling) asks here instead of comparing against a kind name.
+ * Facts about buyable effects, read from the effect registry (`effectRegistry.ts`), plus the exhaustiveness helper.
  */
+import { definitionOf, EFFECTS, type EffectTraits } from './effectRegistry';
 import type { BuyableDefinition, BuyableEffect } from './types';
 
-/** Facts about one kind of effect. */
-export interface EffectTraits {
-  /** The effect changes the action the buyable belongs to, so the buyable must name an `actionId`. */
-  readonly needsAction: boolean;
-  /** Once owned, clicking the buyable switches the effect on or off instead of buying another copy. */
-  readonly toggleable: boolean;
-}
+export type { EffectTraits };
 
-const sleeveWide: EffectTraits = { needsAction: false, toggleable: false };
-const perAction: EffectTraits = { needsAction: true, toggleable: false };
-
-/** The traits of every effect kind. */
-export const EFFECT_TRAITS: { readonly [K in BuyableEffect['kind']]: EffectTraits } = {
-  autoRun: { needsAction: true, toggleable: true },
-  rewardMultiplier: perAction,
-  itemDrop: perAction,
-  rarityShiftFromProficiency: perAction,
-  interfaceSpeedMultiplier: sleeveWide,
-  heatCooldownSpeed: sleeveWide,
-  hackingProficiencyMultiplier: sleeveWide,
-  actionXpReduction: sleeveWide,
-  itemDropChanceMultiplier: sleeveWide,
-  nodePayoutFromItems: sleeveWide,
-  backChannel: sleeveWide,
-  interfaceSpeed: sleeveWide,
-  accessLevel: sleeveWide,
-  nodePayoutMultiplier: sleeveWide,
-  iceRatingMultiplier: sleeveWide,
-  unlock: sleeveWide,
-  networkGrowth: sleeveWide,
-  networkGrowthFromActionLevel: sleeveWide,
-  interfaceSpeedPerLnNodes: sleeveWide,
-  levelBonusFromSleeveLevel: sleeveWide,
-  sleeveXpReduction: sleeveWide,
+/** The traits of every effect kind (a view of the registry). */
+export const EFFECT_TRAITS = Object.fromEntries(Object.entries(EFFECTS).map(([kind, def]) => [kind, def.traits])) as {
+  readonly [K in BuyableEffect['kind']]: EffectTraits;
 };
 
 /**
  * Traits of a buyable's effect.
  *
- * Called by: `config.ts`, `engine.ts`, `serialization.ts`, `ui/viewModel.ts`.
+ * Called by: `config.ts`, `shop.ts`, `serialization.ts`, `ui/viewModel.ts`.
  *
  * @param buyable the buyable
  */
 export function traitsOf(buyable: Pick<BuyableDefinition, 'effect'>): EffectTraits {
-  return EFFECT_TRAITS[buyable.effect.kind];
+  return definitionOf(buyable).traits;
 }
 
 /**

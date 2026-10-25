@@ -8,7 +8,7 @@ import { initialScalars } from './fields';
 import type { ActionState, GameConfig, GameState } from './types';
 
 /** The scalar fields of the state (see `fields.ts`). */
-type ScalarKey = Exclude<keyof GameState, 'unlockedActions' | 'autoRunOff' | 'actions' | 'purchased' | 'inventory'>;
+type ScalarKey = Exclude<keyof GameState, 'autoRunOff' | 'overclocked' | 'focused' | 'actions' | 'purchased' | 'inventory'>;
 
 /**
  * THE positive list of what survives a re-sleeve: these per-action fields. Nothing else carries over; everything not
@@ -42,8 +42,9 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
   for (const a of config.actions) actions[a.id] = freshActionState(factory);
   return {
     ...(initialScalars(config, factory) as Pick<GameState, ScalarKey>),
-    unlockedActions: {},
     autoRunOff: {},
+    overclocked: {},
+    focused: {},
     actions,
     purchased: {},
     inventory: {},

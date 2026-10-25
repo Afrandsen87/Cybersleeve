@@ -94,6 +94,12 @@ describe('multinomial', () => {
     expect(multinomial(10, [], seededRandom(1))).toEqual([]);
   });
 
+  it('still adds up when the weights leave floating-point residue in the running sum (shifted ratios)', () => {
+    const weights = [89.1, 9.81, 1.08, 0.01, 0];
+    const r = seededRandom(3);
+    for (let i = 0; i < 200; i++) expect(multinomial(1 + i * 37, weights, r).reduce((a, b) => a + b, 0)).toBe(1 + i * 37);
+  });
+
   it('a single weighted category takes everything', () => {
     expect(multinomial(77, [0, 3, 0], seededRandom(1))).toEqual([0, 77, 0]);
   });

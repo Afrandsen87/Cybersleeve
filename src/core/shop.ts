@@ -55,6 +55,20 @@ export class Shop {
     return b !== undefined && traitsOf(b).toggleable;
   }
 
+  /**
+   * Switches an owned toggleable buyable (an auto-run) on or off.
+   *
+   * @param state state to mutate (`autoRunOff`)
+   * @param id the buyable
+   * @returns true when it is now on; false when it is now off, or when it is not owned or not toggleable (nothing changes then)
+   */
+  toggle(state: GameState, id: BuyableId): boolean {
+    if (this.owned(state, id) <= 0 || !this.isToggleable(id)) return false;
+    if (state.autoRunOff[id]) delete state.autoRunOff[id];
+    else state.autoRunOff[id] = true;
+    return !state.autoRunOff[id];
+  }
+
   /** True when every buyable listed in `requires` is owned (always true without requirements). */
   isAvailable(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);

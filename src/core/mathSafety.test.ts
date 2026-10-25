@@ -1,3 +1,4 @@
+import { INFINITY } from './infinity';
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
@@ -15,7 +16,7 @@ describe('speed at astronomical scale', () => {
       { id: 'x', factor: () => Number.MAX_VALUE },
       { id: 'y', factor: () => 10 },
     ];
-    expect(speedMultiplier(huge, { actionId: 'a', actionLevel: 1, sleeveLevel: 1, interfaceSpeed: 1 })).toBe(Number.MAX_VALUE);
+    expect(speedMultiplier(huge, { actionId: 'a', actionLevel: 1, sleeveLevel: 1, interfaceSpeed: 1 })).toBe(INFINITY);
   });
 
   it('a NaN speed multiplier counts as 1 (no windfall)', () => {
@@ -68,7 +69,13 @@ describe('speed at astronomical scale', () => {
 
 describe('Infamy comes in whole points', () => {
   it('a fractional reward multiplier never pays a fraction of a point per run', () => {
-    const unlock: BuyableDefinition = { id: 'unlock', name: 'u', description: '', cost: num(1), effect: { kind: 'unlock' } };
+    const unlock: BuyableDefinition = {
+      id: 'unlock',
+      name: 'u',
+      description: '',
+      cost: num(1),
+      effect: { kind: 'accessLevel', amount: 1 },
+    };
     const boost: BuyableDefinition = {
       id: 'boost',
       name: 'b',

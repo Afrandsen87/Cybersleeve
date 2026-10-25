@@ -22,6 +22,7 @@ export {
   resolveLevelBonus,
   resolveNetworkGrowth,
   resolveSleeveStats,
+  earnedSpeedBeyond,
 } from './effects';
 export { type BoostedCooldownState, type HeatCooldownState, coolHeat, coolHeatBoosted, heatTaxFactor } from './heat';
 export { applyCompletionEffects } from './completion';
@@ -31,8 +32,14 @@ export { EFFECT_TRAITS, type EffectTraits, assertNever, traitsOf } from './effec
 export { Economy } from './economy';
 export { Inventory, itemCount } from './inventory';
 export { Augments, augmentXpFactor } from './augments';
+export { BackChannel } from './backChannel';
+export { BurnLeads } from './burnLeads';
+export { ActionToggles, type FocusStatus, type ModeStatuses, type OverclockStatus } from './actionToggles';
+export { INFINITY, saturate } from './infinity';
+export { EFFECTS, definitionOf, type EffectDefinition } from './effectRegistry';
 export { earnedSkillPoints } from './skills';
 export { ItemDrops, type DropRules } from './drops';
+export { CriticalSuccesses, criticalRuleFor, type CriticalChanceSource } from './critical';
 export { shiftWeights, wholeOrders } from './rarityShift';
 export { type RandomSource, binomial, multinomial } from './sampling';
 export { type OverflowPolicy, createClampOverflowPolicy } from './overflow';

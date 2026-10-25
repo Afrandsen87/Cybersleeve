@@ -88,9 +88,12 @@ export function multinomial(total: number, weights: readonly number[], random: R
   const counts = clean.map(() => 0);
   let remaining = total;
   let weightLeft = clean.reduce((sum, w) => sum + w, 0);
+  // The last category with weight takes whatever is left: judged by position, not by the running sum, which floating-point
+  // residue can leave a hair above 0.
+  const lastWeighted = clean.findLastIndex((w) => w > 0);
   for (let i = 0; i < clean.length && remaining > 0 && weightLeft > 0; i++) {
     const w = clean[i]!;
-    const last = i === clean.length - 1 || weightLeft - w <= 0;
+    const last = i === lastWeighted;
     const count = last ? remaining : binomial(remaining, w / weightLeft, random);
     counts[i] = count;
     remaining -= count;

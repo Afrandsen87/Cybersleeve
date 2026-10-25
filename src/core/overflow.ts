@@ -3,13 +3,15 @@
  *
  * Reaction to numbers growing beyond the representable range.
  */
-import type { NumberFactory } from '../numbers';
-import { repairBig, repairScalars } from './fields';
+import type { BigNum, NumberFactory } from '../numbers';
+import { repairBig, repairScalars, SCALAR_FIELDS } from './fields';
+import { INFINITY } from './infinity';
 import type { GameState } from './types';
 
 /**
- * Decides what happens when an amount in the state stops being finite. Extension point: the real reaction
- * (the "infinity" prestige) is not designed yet, so the default only clamps.
+ * Decides what happens when an amount in the state stops being finite or reaches the game's infinity (1e308, see `infinity.ts`).
+ * Extension point: the real reaction (the "infinity" prestige) is not designed yet, so the default only clamps and tells an
+ * optional listener.
  */
 export interface OverflowPolicy {
   /**
@@ -20,16 +22,19 @@ export interface OverflowPolicy {
 }
 
 /**
- * Builds the default policy: every non-finite scalar (see `fields.ts`) and every action's XP and sleeve XP is repaired.
- * Positive overflow is clamped to the largest finite value (the largest safe integer for plain numbers), negative
- * overflow becomes zero, and NaN becomes zero: NaN is a bug upstream and must never be turned into a windfall. This keeps
- * the state valid, saveable and displayable instead of corrupted.
+ * Builds the default policy: every scalar (see `fields.ts`) and every action's XP and sleeve XP is repaired. Anything above 1e308
+ * (the game's infinity) and positive overflow is clamped to 1e308 (the largest safe integer for plain numbers), negative overflow
+ * becomes zero, and NaN becomes zero: NaN is a bug upstream and must never be turned into a windfall. This keeps the state valid,
+ * saveable and displayable instead of corrupted. When an amount sits at infinity after the repair, `onInfinity` is called (once per
+ * application): the hook for the future infinity prestige.
  *
  * Called by: `app/createGame.ts`. Calls: `repairScalars`, `repairBig`.
  *
  * @param factory number factory
+ * @param onInfinity called when any amount has reached the game's infinity (default: nothing)
  */
-export function createClampOverflowPolicy(factory: NumberFactory): OverflowPolicy {
+export function createClampOverflowPolicy(factory: NumberFactory, onInfinity: () => void = () => {}): OverflowPolicy {
+  const infinity = factory.fromNumber(INFINITY);
   return {
     apply(state) {
       let changed = repairScalars(state, factory);
@@ -42,7 +47,17 @@ export function createClampOverflowPolicy(factory: NumberFactory): OverflowPolic
           }
         }
       }
+      if (reachedInfinity(state, infinity)) onInfinity();
       return changed;
     },
   };
+}
+
+/** True when any amount of the state (a big scalar, an action's XP or sleeve XP) is at or above the game's infinity. */
+function reachedInfinity(state: GameState, infinity: BigNum): boolean {
+  const bag = state as unknown as Record<string, BigNum | number>;
+  for (const f of SCALAR_FIELDS) {
+    if (f.kind === 'big' && (bag[f.key] as BigNum).gte(infinity)) return true;
+  }
+  return Object.values(state.actions).some((a) => a.xp.gte(infinity) || a.sleeveXp.gte(infinity));
 }

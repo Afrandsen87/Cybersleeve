@@ -12,17 +12,28 @@ import { buildViewModel } from '../ui/viewModel';
 import {
   ACCESS_UPGRADE,
   AUGMENT_SCHEMATIC,
+  BURN_LEAD,
+  BURN_LEADS,
+  FASTER_CONDITIONING,
+  FOCUS_UPGRADE,
+  focusUnlockId,
   GROW_NETWORK,
   INDUSTRIAL_ESPIONAGE,
   gameConfig,
   KOMPROMAT,
   KOMPROMAT_HARVEST,
   MALWARE_AUTO_RUN,
+  ICE_RATING_BOOST,
+  MALWARE_ICE,
   MALWARE_OUTPUT,
+  OVERCLOCK_UPGRADE,
+  overclockUnlockId,
   PRACTICE_HACKING,
   PUSH_MALWARE,
   SKILLS,
   SKILL_BACK_CHANNEL,
+  SKILL_MUSCLE_MEMORY,
+  SKILL_NOSE_FOR_SECRETS,
   RARITY_REFINEMENT,
 } from './gameConfig';
 
@@ -79,9 +90,12 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it("Push malware's auto-run is the first buyable on its card", () => {
+  it("Push malware's auto-run is the button of the square on its card, and not in its row of purchases", () => {
     const card = buildViewModel(createGame()).actions.find((x) => x.id === PUSH_MALWARE)!;
-    expect(card.buyables[0]!.toggleable).toBe(true);
+    expect(card.square.locked).toBe(true);
+    expect(card.square.cells[0]).toMatchObject({ id: 'autoRun', mode: 'buy', buyableId: MALWARE_AUTO_RUN });
+    expect(card.buyables.find((b) => b.id === MALWARE_AUTO_RUN)!.inSquare).toBe(true);
+    expect(card.buyables.filter((b) => !b.inSquare).map((b) => b.id)).toEqual([MALWARE_OUTPUT, MALWARE_ICE]);
   });
 
   it('every buyable can be bought once enough credits are available (no dead gates)', () => {
@@ -192,32 +206,103 @@ describe('real game content (src/content/gameConfig.ts)', () => {
 });
 
 describe('Rarity refinement (real content)', () => {
-  it('is on the Practice Hacking card after the harvest, needs the harvest and costs 150,000', () => {
+  it('is on the Practice Hacking card after the harvest, needs the harvest and costs 10,000', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === PRACTICE_HACKING)!;
     expect(card.buyables.map((b) => b.id).slice(0, 3)).toEqual([expect.any(String), KOMPROMAT_HARVEST, RARITY_REFINEMENT]);
     const def = gameConfig.buyables.find((b) => b.id === RARITY_REFINEMENT)!;
     expect(def.requires).toEqual([KOMPROMAT_HARVEST]);
-    expect(def.cost.eq(num(150_000))).toBe(true);
+    expect(def.cost.eq(num(10_000))).toBe(true);
   });
 
   it('first order of magnitude leaves the last rarity at 0, the second lets it drop', () => {
     const rule = gameConfig.buyables.find((b) => b.id === KOMPROMAT_HARVEST)!.effect;
     if (rule.kind !== 'itemDrop') throw new Error('not a drop');
     const ids = gameConfig.items.rarities.map((r) => r.id);
-    const weights = ids.map((id) => rule.drop.rarityWeights[id] ?? 0);
+    const weights = ids.map((id) => rule.drop.rarityWeights?.[id] ?? 0);
     expect(shiftWeights(weights, 1, 0.01).at(-1)).toBe(0);
     expect(shiftWeights(weights, 2, 0.01).at(-1)).toBeGreaterThan(0);
   });
 
-  it('the tooltip shows the formula, the proficiency and how many shifts apply', () => {
+  it('the tooltip just says that it raises the rarity of Kompromat drops with Hacking Proficiency', () => {
     const g = createGame();
     (g.getState() as { hackingProficiency: unknown }).hackingProficiency = num(250);
     const tip = buildViewModel(g)
       .actions.find((a) => a.id === PRACTICE_HACKING)!
       .buyables.find((b) => b.id === RARITY_REFINEMENT)!.tip;
-    expect(tip).toContain('Shifts = floor(log10(Hacking Proficiency))');
-    expect(tip).toContain('Hacking Proficiency = 250');
-    expect(tip).toContain('Shifts = 2');
+    expect(tip.split('\n').slice(0, 2)).toEqual([
+      'Rarity refinement',
+      'Increases the rarity of Kompromat drops based on Hacking Proficiency.',
+    ]);
+    expect(tip).not.toContain('Shifts');
+    expect(tip).not.toContain('250');
+    expect(tip).not.toMatch(/\b(not|never|no)\b/i);
+  });
+});
+
+describe('Rarity refinement counts Hacking Proficiency the way the drops do (real content)', () => {
+  const uncommonChance = (muscleMemory: boolean): number => {
+    const g = createGame();
+    const state = g.getState() as unknown as { hackingProficiency: unknown; purchased: Record<string, number> };
+    state.hackingProficiency = num(9.6);
+    state.purchased[KOMPROMAT_HARVEST] = 1;
+    state.purchased[RARITY_REFINEMENT] = 1;
+    if (muscleMemory) state.purchased[SKILL_MUSCLE_MEMORY] = 1; // 9.6 x 1.05 = 10.08: one order of magnitude
+    return g.dropSources(KOMPROMAT, 'uncommon')[0]!.chance;
+  };
+
+  it('the proficiency raised by Muscle Memory moves the drop ratios, as the Sleeve row shows it', () => {
+    expect(uncommonChance(false)).toBeCloseTo(0.05 * 0.09, 12); // no shift: 9 of 100
+    expect(uncommonChance(true)).toBeCloseTo(0.05 * 0.0981, 12); // one shift: 9.81 of 100
+  });
+});
+
+describe('item tooltips show the drop chance of the stack (real content)', () => {
+  const tip = (g: ReturnType<typeof createGame>, itemId: string, rarityId: string): string =>
+    buildViewModel(g).inventory.rows.find((r) => r.itemId === itemId && r.rarityId === rarityId)!.tip;
+  const own = (g: ReturnType<typeof createGame>, ...ids: string[]): void => {
+    for (const id of ids) (g.getState() as unknown as { purchased: Record<string, number> }).purchased[id] = 1;
+  };
+
+  it('is 0% for every item before anything that drops it is bought', () => {
+    const g = createGame();
+    for (const row of buildViewModel(g).inventory.rows) expect(row.tip, row.label).toContain('Drop Chance = 0%');
+  });
+
+  it('Kompromat: the chance of the harvest times the share of each rarity, per Practice Hacking run', () => {
+    const g = createGame();
+    own(g, KOMPROMAT_HARVEST);
+    expect(tip(g, KOMPROMAT, 'common')).toContain('Drop Chance = 4.5% per Practice Hacking run');
+    expect(tip(g, KOMPROMAT, 'uncommon')).toContain('Drop Chance = 0.45% per Practice Hacking run');
+    expect(tip(g, KOMPROMAT, 'rare')).toContain('Drop Chance = 0.05% per Practice Hacking run');
+    expect(tip(g, KOMPROMAT, 'legendary')).toContain('Drop Chance = 0%');
+  });
+
+  it('Augment schematics: the same rule on Grow network', () => {
+    const g = createGame();
+    own(g, INDUSTRIAL_ESPIONAGE);
+    expect(tip(g, AUGMENT_SCHEMATIC, 'common')).toContain('Drop Chance = 4.5% per Grow network run');
+    expect(tip(g, KOMPROMAT, 'common')).toContain('Drop Chance = 0%'); // the other item is not affected
+  });
+
+  it('the Burn lead has no rarity: its whole chance, per Grow network run', () => {
+    const g = createGame();
+    own(g, BURN_LEADS);
+    expect(tip(g, BURN_LEAD, 'common')).toContain('Drop Chance = 5% per Grow network run');
+  });
+
+  it('follows the skills that change the chance and the ratios: Nose for Secrets doubles the Kompromat chance', () => {
+    const g = createGame();
+    own(g, KOMPROMAT_HARVEST, SKILL_NOSE_FOR_SECRETS);
+    expect(tip(g, KOMPROMAT, 'common')).toContain('Drop Chance = 9% per Practice Hacking run');
+  });
+});
+
+describe('the buttons of the panels can be told apart (real content)', () => {
+  it('no two purchases share the same symbol, except the repeated auto-run and doubling symbols of different cards', () => {
+    const symbols = gameConfig.buyables
+      .map((b) => b.symbol)
+      .filter((x): x is string => x !== undefined && !['↻', '×2', 'OV', 'FO'].includes(x));
+    expect(symbols.filter((x, i) => symbols.indexOf(x) !== i)).toEqual([]);
   });
 });
 
@@ -241,21 +326,22 @@ describe('levels start at 0 (real content)', () => {
     setXp(10); // the first level-up
     expect(g.actionLevel(id)).toBe(1);
     expect(actionFactor()).toBeCloseTo(1.05, 10);
-    setXp(110);
+    const { firstLevelXp, growthFactor } = gameConfig.progression.actionLevels;
+    setXp(firstLevelXp * (1 + growthFactor)); // the second level-up, whatever the growth
     expect(g.actionLevel(id)).toBe(2);
     expect(actionFactor()).toBeCloseTo(1.1, 10);
   });
 });
 
 describe('Malware payload (real content)', () => {
-  it('is second on the Push malware card, after the auto-run, rebuyable with a 10,000x price per copy', () => {
+  it('is second on the Push malware card, after the auto-run, rebuyable with a 100x price per copy', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === PUSH_MALWARE)!;
-    expect(card.buyables.map((b) => b.id)).toEqual([MALWARE_AUTO_RUN, MALWARE_OUTPUT]);
+    expect(card.buyables.map((b) => b.id).slice(0, 2)).toEqual([MALWARE_AUTO_RUN, MALWARE_OUTPUT]);
     const g = createGame();
     setCredits(g, num('1e100'));
-    expect(g.costOf(MALWARE_OUTPUT).eq(num(50_000))).toBe(true);
+    expect(g.costOf(MALWARE_OUTPUT).eq(num(10_000))).toBe(true);
     g.buy(MALWARE_OUTPUT);
-    expect(g.costOf(MALWARE_OUTPUT).eq(num(500_000_000))).toBe(true);
+    expect(g.costOf(MALWARE_OUTPUT).eq(num(1_000_000))).toBe(true);
     expect(g.isBuyableMaxed(MALWARE_OUTPUT)).toBe(false);
   });
 
@@ -364,5 +450,220 @@ describe('Back Channel Deals (real content)', () => {
     g.tick(gameConfig.sleeve.heatCooldownMs / 3); // a third of a normal cycle: one boosted cycle at 3x
     expect(g.getState().heat).toBe(19);
     expect(g.getState().moles).toBe(4);
+  });
+});
+
+describe('Overclock, Focus and Burn leads (real content)', () => {
+  const rich = (): ReturnType<typeof createGame> => {
+    const g = createGame({ random: () => 0 }); // every roll succeeds
+    setCredits(g, num('1e100'));
+    return g;
+  };
+
+  it('the Overclock upgrade is a sleeve buyable, unlimited, that gets dearer with every copy', () => {
+    const b = gameConfig.buyables.find((x) => x.id === OVERCLOCK_UPGRADE)!;
+    expect(b.actionId).toBeUndefined();
+    expect(b.maxPurchases).toBe(Infinity);
+    expect(b.costGrowth ?? 1).toBeGreaterThan(1);
+  });
+
+  it('every action with an Overclock effect has an unlock of its own, and no action without one does', () => {
+    for (const a of gameConfig.actions) {
+      const unlock = gameConfig.buyables.find((b) => b.id === overclockUnlockId(a.id));
+      expect(unlock !== undefined, a.id).toBe(a.overclock !== undefined);
+      if (unlock) expect(unlock.actionId).toBe(a.id);
+    }
+  });
+
+  it('Grow network, Practice Hacking and Push malware each have an Overclock effect of their own', () => {
+    const rules = [GROW_NETWORK, PRACTICE_HACKING, PUSH_MALWARE].map((id) => gameConfig.actions.find((a) => a.id === id)!.overclock);
+    for (const rule of rules) expect(rule).toBeDefined();
+    expect(new Set(rules.map((r) => JSON.stringify(r))).size).toBe(3);
+  });
+
+  it('the Overclock toggle appears when the action unlocks it, and makes Grow network faster', () => {
+    const g = rich();
+    expect(buildViewModel(g).actions.every((a) => a.overclock === null)).toBe(true);
+    expect(g.buy(OVERCLOCK_UPGRADE)).toBe('purchased');
+    expect(buildViewModel(g).actions.every((a) => a.overclock === null)).toBe(true); // the upgrade alone unlocks nothing
+    expect(g.buy(overclockUnlockId(GROW_NETWORK))).toBe('purchased');
+    expect(
+      buildViewModel(g)
+        .actions.filter((a) => a.overclock !== null)
+        .map((a) => a.id),
+    ).toEqual([GROW_NETWORK]);
+    const before = g.currentDurationMs(GROW_NETWORK);
+    g.toggleOverclock(GROW_NETWORK);
+    expect(g.currentDurationMs(GROW_NETWORK)).toBeLessThan(before);
+  });
+
+  it('an overclocked Grow network adds heat while it runs, in fractions of a point', () => {
+    const g = rich();
+    g.buy(overclockUnlockId(GROW_NETWORK));
+    g.toggleOverclock(GROW_NETWORK);
+    g.startAction(GROW_NETWORK);
+    g.tick(Math.min(10_000, g.currentDurationMs(GROW_NETWORK) - 1));
+    const heat = g.getState().heat;
+    expect(heat).toBeGreaterThan(0);
+    expect(heat).toBeLessThan(1);
+  });
+
+  it('Grow network adds 2 heat per minute while overclocked', () => {
+    expect(gameConfig.actions.find((a) => a.id === GROW_NETWORK)!.overclock!.heatPerMinute).toBe(2);
+  });
+
+  it('Practice Hacking overclocked pays 3x and each completed run costs 5 nodes, end to end', () => {
+    const g = rich();
+    while (!g.isUnlocked(PRACTICE_HACKING)) g.buy(ACCESS_UPGRADE);
+    g.buy(overclockUnlockId(PRACTICE_HACKING));
+    (g.getState() as unknown as { network: unknown }).network = num(100);
+    const run = (): number => {
+      g.startAction(PRACTICE_HACKING);
+      g.tick(g.currentDurationMs(PRACTICE_HACKING) + 1);
+      return g.getState().hackingProficiency.toNumber();
+    };
+    const plain = run();
+    g.toggleOverclock(PRACTICE_HACKING);
+    const before = g.getState().network.toNumber();
+    const gained = run() - plain;
+    expect(gained).toBeCloseTo(plain * 3, 9);
+    expect(g.getState().network.toNumber()).toBe(before - 5);
+  });
+
+  it('Push malware overclocked pays the nodes of a Grow network run and makes 3x the heat, end to end', () => {
+    const g = rich();
+    while (!g.isUnlocked(PUSH_MALWARE)) g.buy(ACCESS_UPGRADE);
+    g.buy(overclockUnlockId(PUSH_MALWARE));
+    const push = gameConfig.actions.find((a) => a.id === PUSH_MALWARE)!;
+    const complete = (): void => {
+      g.startAction(PUSH_MALWARE);
+      g.tick(g.currentDurationMs(PUSH_MALWARE) + 1);
+    };
+    complete();
+    const plainHeat = g.getState().heat;
+    expect(plainHeat).toBeCloseTo(push.heatPerRun!, 9);
+    expect(g.getState().network.toNumber()).toBe(0);
+    (g.getState() as unknown as { heat: number }).heat = 0; // a run takes a minute, so the cooldown would take a point meanwhile
+    g.toggleOverclock(PUSH_MALWARE);
+    complete();
+    expect(g.getState().heat).toBeCloseTo(plainHeat * 3, 9);
+    expect(g.getState().network.toNumber()).toBe(g.payoutPerRun(GROW_NETWORK).toNumber());
+  });
+
+  it('every action has a Focus unlock of its own', () => {
+    for (const a of gameConfig.actions) {
+      const unlock = gameConfig.buyables.find((b) => b.id === focusUnlockId(a.id));
+      expect(unlock?.actionId, a.id).toBe(a.id);
+    }
+  });
+
+  it('the Focus upgrade is a sleeve buyable whose cap gives every action a slot, counting the free one', () => {
+    const b = gameConfig.buyables.find((x) => x.id === FOCUS_UPGRADE)!;
+    expect(b.actionId).toBeUndefined();
+    expect(b.effect.kind).toBe('focusSlots');
+    const perCopy = b.effect.kind === 'focusSlots' ? b.effect.perCopy : 0;
+    expect(gameConfig.focus.baseSlots + (b.maxPurchases as number) * perCopy).toBe(gameConfig.actions.length);
+  });
+
+  it('with the unlocks and every slot, all actions can be focused at once, and not before', () => {
+    const g = rich();
+    for (const a of gameConfig.actions) expect(g.buy(focusUnlockId(a.id))).toBe('purchased');
+    expect(g.toggleFocus(gameConfig.actions[0]!.id)).toBe(true);
+    expect(g.toggleFocus(gameConfig.actions[1]!.id)).toBe(false); // one free slot only
+    const upgrade = gameConfig.buyables.find((x) => x.id === FOCUS_UPGRADE)!;
+    for (let i = 0; i < (upgrade.maxPurchases as number); i++) expect(g.buy(FOCUS_UPGRADE)).toBe('purchased');
+    expect(g.buy(FOCUS_UPGRADE)).toBe('max-reached');
+    for (const a of gameConfig.actions) g.getState().focused[a.id] || g.toggleFocus(a.id);
+    expect(gameConfig.actions.every((a) => g.getState().focused[a.id])).toBe(true);
+  });
+
+  it('Focus makes the focused action faster', () => {
+    const g = rich();
+    g.buy(focusUnlockId(GROW_NETWORK));
+    const before = g.currentDurationMs(GROW_NETWORK);
+    g.toggleFocus(GROW_NETWORK);
+    expect(g.currentDurationMs(GROW_NETWORK)).toBeLessThan(before);
+  });
+
+  it('the unlocks cost what the sleeve buyables did before they became per action, and the upgrades 1000x that', () => {
+    const cost = (id: string): number => gameConfig.buyables.find((b) => b.id === id)!.cost.toNumber();
+    for (const a of gameConfig.actions) {
+      if (a.overclock) expect(cost(overclockUnlockId(a.id)), a.id).toBe(250);
+      expect(cost(focusUnlockId(a.id)), a.id).toBe(1_000);
+    }
+    expect(cost(OVERCLOCK_UPGRADE)).toBe(250 * 1_000);
+    expect(cost(FOCUS_UPGRADE)).toBe(1_000 * 1_000);
+  });
+
+  it('the Burn lead has no rarity: one row in the Inventory named "Burn lead", and its drop names no rarity weights', () => {
+    expect(gameConfig.items.definitions.find((d) => d.id === BURN_LEAD)!.hasRarity).toBe(false);
+    const leads = gameConfig.buyables.find((b) => b.id === BURN_LEADS)!;
+    expect(leads.effect.kind === 'itemDrop' && leads.effect.drop.rarityWeights).toBeUndefined();
+    const g = rich();
+    (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[BURN_LEAD] = { common: 2 };
+    const rows = buildViewModel(g).inventory.rows.filter((r) => r.itemId === BURN_LEAD);
+    expect(rows.map((r) => r.label)).toEqual(['Burn lead']);
+    expect(rows[0]!.tip).not.toMatch(/common|uncommon|rare|legendary|crisis/i);
+  });
+
+  it('the Burn lead is an item that cannot be sold, and using one is configured', () => {
+    const item = gameConfig.items.definitions.find((d) => d.id === BURN_LEAD)!;
+    expect(item.sellable).toBe(false);
+    expect(gameConfig.items.burnLead?.itemId).toBe(BURN_LEAD);
+  });
+
+  it('Burn leads are bought on the Grow network card and make its runs drop leads, end to end', () => {
+    const card = buildViewModel(createGame()).actions.find((a) => a.id === GROW_NETWORK)!;
+    expect(card.buyables.map((b) => b.id)).toContain(BURN_LEADS);
+    const g = rich();
+    expect(g.buy(BURN_LEADS)).toBe('purchased');
+    g.startAction(GROW_NETWORK);
+    g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
+    const held = Object.values(g.getState().inventory[BURN_LEAD] ?? {}).reduce((sum, n) => sum + n, 0);
+    expect(held).toBeGreaterThanOrEqual(1);
+  });
+
+  it('using a Burn lead takes part of the heat away and uses the lead up, end to end', () => {
+    const g = rich();
+    g.buy(BURN_LEADS);
+    g.startAction(GROW_NETWORK);
+    g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
+    const rarity = Object.keys(g.getState().inventory[BURN_LEAD]!)[0]!;
+    const count = g.getState().inventory[BURN_LEAD]![rarity]!;
+    (g.getState() as { heat: number }).heat = 40;
+    expect(g.useBurnLead(rarity)).toBe(true);
+    expect(g.getState().heat).toBeCloseTo(40 * (1 - gameConfig.items.burnLead!.heatFraction), 9);
+    expect(g.getState().inventory[BURN_LEAD]![rarity]).toBe(count - 1);
+  });
+});
+
+describe('Faster conditioning (real content)', () => {
+  const b = gameConfig.buyables.find((x) => x.id === FASTER_CONDITIONING)!;
+
+  it('is a sleeve buyable whose cap takes the runs per batch exactly down to its floor', () => {
+    expect(b.actionId).toBeUndefined();
+    if (b.effect.kind !== 'runsPerSleeveXpReduction') throw new Error('wrong effect kind');
+    const g = createGame();
+    const rich = () => setCredits(g, num(1e300));
+    for (let i = 0; i < (b.maxPurchases as number); i++) {
+      rich();
+      expect(g.buy(FASTER_CONDITIONING)).toBe('purchased');
+    }
+    rich();
+    expect(g.buy(FASTER_CONDITIONING)).toBe('max-reached');
+    expect(g.runsPerSleeveXp()).toBe(b.effect.minRuns);
+  });
+});
+
+describe('Hardened payload and the ICE Rating boost (real content)', () => {
+  it('Hardened payload is a Push malware buyable that adds base ICE Rating per level of that action', () => {
+    const b = gameConfig.buyables.find((x) => x.id === MALWARE_ICE)!;
+    expect(b.actionId).toBe(PUSH_MALWARE);
+    expect(b.effect.kind).toBe('iceRatingFromActionLevel');
+  });
+
+  it('the ICE Rating boost costs more than Hardened payload, since it has nothing to multiply before it', () => {
+    const price = (id: string) => gameConfig.buyables.find((x) => x.id === id)!.cost.toNumber();
+    expect(price(ICE_RATING_BOOST)).toBeGreaterThan(price(MALWARE_ICE));
   });
 });

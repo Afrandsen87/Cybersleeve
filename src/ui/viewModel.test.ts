@@ -17,7 +17,13 @@ import { buildViewModel, formatSeconds, statRow } from './viewModel';
 const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
 
 describe('view model - unlocks, start costs and toggles', () => {
-  const unlock = { id: 'unlock', name: 'Unlock Legend', description: '', cost: num(1), effect: { kind: 'unlock' } } as const;
+  const unlock = {
+    id: 'unlock',
+    name: 'Unlock Legend',
+    description: '',
+    cost: num(1),
+    effect: { kind: 'accessLevel', amount: 1 },
+  } as const;
   const withNew = (buyables = [...testConfig.buyables, unlock]) =>
     game({ actions: [testConfig.actions[0]!, killAction, legendAction], buyables });
 
@@ -26,9 +32,10 @@ describe('view model - unlocks, start costs and toggles', () => {
     const [a, kill, legend] = vm.actions;
     expect(a!.lockedReason).toBeNull();
     expect(a!.startCostText).toBeNull();
-    expect(kill!.lockedReason).toBe('Needs 1K nodes');
+    expect(kill!.lockedReason).toBeNull();
     expect(kill!.startCostText).toBe('50 nodes');
-    expect(legend!.lockedReason).toBe('Needs Unlock Legend');
+    expect(kill!.startable).toBe(false); // no nodes to pay the start cost with
+    expect(legend!.lockedReason).toBe('Needs access level 2');
   });
 
   it('shows no reason once an action is unlocked', () => {

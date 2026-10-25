@@ -197,13 +197,16 @@ describe('the screen', () => {
     expect(row().hidden).toBe(false);
   });
 
-  it('the Back channel button gives up one common file for Moles', () => {
+  it('the Back channel button gives up one common file for Moles, once its stack is selected', () => {
     const { root, game, render } = mount();
     loose(game).inventory = { file: { common: 3 } };
     game.buy('bc');
     render();
-    const button = root.querySelector<HTMLButtonElement>('.inventory-back-channel')!;
+    const button = [...root.querySelectorAll<HTMLButtonElement>('.inventory-action')].find((b) => b.textContent === 'Back channel')!;
     expect(button.hidden).toBe(false);
+    expect(button.disabled).toBe(true); // nothing is selected yet
+    root.querySelector<HTMLButtonElement>('.item-tile')!.click();
+    expect(button.disabled).toBe(false);
     button.click();
     expect(game.getState().inventory['file']!['common']).toBe(2);
     expect(game.getState().moles).toBe(5);
@@ -211,13 +214,19 @@ describe('the screen', () => {
     expect(moles.textContent).toBe('Moles5');
   });
 
-  it('the Back channel button is hidden on stacks that cannot be given up and before the skill', () => {
+  it('the Back channel button is hidden before the skill, and disabled while a stack that cannot be given up is selected', () => {
     const { root, game, render } = mount();
     loose(game).inventory = { file: { common: 3, rare: 1 } };
     render();
-    expect([...root.querySelectorAll<HTMLElement>('.inventory-back-channel')].every((b) => b.hidden)).toBe(true);
+    const button = () => [...root.querySelectorAll<HTMLButtonElement>('.inventory-action')].find((b) => b.textContent === 'Back channel')!;
+    expect(button().hidden).toBe(true);
     game.buy('bc');
     render();
-    expect([...root.querySelectorAll<HTMLElement>('.inventory-back-channel')].map((b) => b.hidden)).toEqual([false, true]);
+    expect(button().hidden).toBe(false);
+    const tiles = root.querySelectorAll<HTMLButtonElement>('.item-tile');
+    tiles[1]!.click(); // the rare stack
+    expect(button().disabled).toBe(true);
+    tiles[0]!.click(); // the common stack
+    expect(button().disabled).toBe(false);
   });
 });

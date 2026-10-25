@@ -17,6 +17,8 @@ export interface KeyValueStore {
 export const SAVE_KEY = 'cybersleeve.save';
 /** Storage key under which an unreadable save is preserved before the game starts over. */
 export const BACKUP_KEY = 'cybersleeve.save.unreadable';
+/** Storage key of the last save that was read successfully at the start of a session (what the game falls back to when the main save is unreadable). */
+export const PREVIOUS_KEY = 'cybersleeve.save.previous';
 
 /**
  * A {@link KeyValueStore} that lives in memory only. Used when the browser refuses access to `localStorage`
@@ -76,7 +78,7 @@ export class SaveGame {
    */
   constructor(
     private readonly store: KeyValueStore,
-    private readonly config: Pick<GameConfig, 'actions' | 'buyables' | 'items' | 'progression' | 'sleeve'>,
+    private readonly config: Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'items' | 'progression' | 'sleeve'>,
     private readonly factory: NumberFactory,
   ) {}
 
@@ -94,27 +96,61 @@ export class SaveGame {
    * Reads and validates the stored save.
    *
    * @remarks
-   * A save that exists but cannot be read (corrupt, or written by a newer version) is copied to {@link BACKUP_KEY}
-   * before `null` is returned, because the game will start over and its next autosave replaces the main save.
+   * A save that is read successfully is also copied to {@link PREVIOUS_KEY}: the last known-good save of a session start. A save
+   * that exists but cannot be read (corrupt, or written by a newer version) is copied to {@link BACKUP_KEY}, and the game falls back
+   * to the previous known-good save if there is one, because otherwise it would start over and the next autosave would replace the
+   * main save.
    *
-   * @returns the saved state, or `null` if there is none or it is invalid
+   * @returns the saved state, or `null` if there is none or nothing usable is stored
    */
   load(): GameState | null {
     try {
       const json = this.store.getItem(SAVE_KEY);
       if (json === null) return null;
       const state = deserializeState(json, this.config, this.factory);
-      if (state === null) this.store.setItem(BACKUP_KEY, json);
-      return state;
+      if (state !== null) {
+        this.store.setItem(PREVIOUS_KEY, json);
+        return state;
+      }
+      this.store.setItem(BACKUP_KEY, json);
+      const previous = this.store.getItem(PREVIOUS_KEY);
+      return previous === null ? null : deserializeState(previous, this.config, this.factory);
     } catch {
       return null;
     }
   }
 
-  /** Deletes the main save (the backup of an unreadable save is kept). Storage errors are swallowed. */
+  /**
+   * The save as text the player can copy.
+   * @param state the state to export
+   */
+  exportText(state: GameStateView): string {
+    return serializeState(state);
+  }
+
+  /**
+   * Replaces the main save with text the player pasted, if it is a valid save of this version (anything else changes nothing).
+   * The running game is not touched: the caller reloads so the imported save is what gets loaded.
+   *
+   * @param text the pasted save
+   * @returns true when the save was valid and has been stored
+   */
+  importText(text: string): boolean {
+    try {
+      const trimmed = text.trim();
+      if (deserializeState(trimmed, this.config, this.factory) === null) return false;
+      this.store.setItem(SAVE_KEY, trimmed);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Deletes the main save and the previous known-good one (the backup of an unreadable save is kept). Storage errors are swallowed. */
   clear(): void {
     try {
       this.store.removeItem(SAVE_KEY);
+      this.store.removeItem(PREVIOUS_KEY);
     } catch {
       /* nothing to clear */
     }

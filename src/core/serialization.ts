@@ -11,8 +11,7 @@
  * Loaded values are sanitised, not trusted: negative amounts become 0, non-finite times are dropped, the run counter is
  * kept below `runsPerSleeveXp`, copy counts are capped, and a buyable whose `requires` are not owned is discarded.
  *
- * The current version is read, and the one before it (version 3, which stored the progress of a run in milliseconds; such a run
- * starts again). A scalar that a save lacks (a field added later) keeps its fresh-game value, so adding a scalar needs no new
+ * Only the current version is read (the game has not been released). A scalar that a save lacks (a field added later) keeps its fresh-game value, so adding a scalar needs no new
  * version; changing the meaning of an existing field does, together with a migration.
  */
 import type { BigNum, NumberFactory } from '../numbers';
@@ -24,9 +23,6 @@ import type { GameConfig, GameState, GameStateView } from './types';
 /** Current save format version. */
 export const SAVE_VERSION = 4;
 
-/** The previous save format, where the progress of a run was stored in milliseconds (`progressMs`). Still read by {@link deserializeState}. */
-const PROGRESS_IN_MS_VERSION = 3;
-
 /**
  * Shape of the stored JSON (current version): `version`, one entry per scalar field of `fields.ts` (amounts as strings, plain
  * numbers as numbers), the per-action progress, the flag maps and the owned copies.
@@ -34,8 +30,9 @@ const PROGRESS_IN_MS_VERSION = 3;
 interface SaveData {
   version: number;
   [scalar: string]: unknown;
-  unlockedActions: Record<string, boolean>;
   autoRunOff: Record<string, boolean>;
+  overclocked: Record<string, boolean>;
+  focused: Record<string, boolean>;
   actions: Record<
     string,
     { xp: string; sleeveXp: string; runsTowardSleeveXp: number; augments: Record<string, number>; running: boolean; progress: number }
@@ -55,8 +52,9 @@ interface SaveData {
 export function serializeState(state: GameStateView): string {
   const data: SaveData = {
     version: SAVE_VERSION,
-    unlockedActions: { ...state.unlockedActions },
     autoRunOff: { ...state.autoRunOff },
+    overclocked: { ...state.overclocked },
+    focused: { ...state.focused },
     actions: Object.fromEntries(
       Object.entries(state.actions).map(([id, a]) => [
         id,
@@ -71,7 +69,7 @@ export function serializeState(state: GameStateView): string {
       ]),
     ),
     purchased: { ...state.purchased },
-    inventory: Object.fromEntries(Object.entries(state.inventory).map(([item, stacks]) => [item, { ...stacks }])),
+    inventory: writeInventory(state.inventory),
   };
   writeScalars(state, data);
   return JSON.stringify(data);
@@ -89,7 +87,7 @@ export function serializeState(state: GameStateView): string {
  */
 export function deserializeState(
   json: string,
-  config: Pick<GameConfig, 'actions' | 'buyables' | 'items' | 'progression' | 'sleeve'>,
+  config: Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'items' | 'progression' | 'sleeve'>,
   factory: NumberFactory,
 ): GameState | null {
   let raw: unknown;
@@ -100,15 +98,13 @@ export function deserializeState(
   }
   if (!isRecord(raw)) return null;
   const version = raw['version'];
-  if (version !== SAVE_VERSION && version !== PROGRESS_IN_MS_VERSION) return null;
+  if (version !== SAVE_VERSION) return null;
 
   try {
     const state = createInitialState(config, factory);
     // Scalars (credits, network, heat, ...): an optional entry that is missing or unusable keeps its fresh-game value.
     const target = state as unknown as Record<string, unknown>;
     for (const field of SCALAR_FIELDS) target[field.key] = readScalar(field, raw[field.key], config, factory);
-    const savedUnlocked = isRecord(raw['unlockedActions']) ? raw['unlockedActions'] : {};
-    for (const a of config.actions) if (a.unlock?.kind === 'nodes' && savedUnlocked[a.id] === true) state.unlockedActions[a.id] = true;
     const savedOff = isRecord(raw['autoRunOff']) ? raw['autoRunOff'] : {};
     for (const b of config.buyables) if (traitsOf(b).toggleable && savedOff[b.id] === true) state.autoRunOff[b.id] = true;
 
@@ -123,9 +119,7 @@ export function deserializeState(
         runsTowardSleeveXp: readCount(saved['runsTowardSleeveXp']) % runsPerSleeveXp,
         augments: readAugments(saved['augments'], config.items),
         running: saved['running'] === true,
-        // A version 3 save counted the progress of a run in ms of the speed it had then; that cannot be turned into a share of the
-        // run, so such a run starts again.
-        progress: version === SAVE_VERSION ? readProgress(saved['progress']) : 0,
+        progress: readProgress(saved['progress']),
       };
     }
 
@@ -135,10 +129,45 @@ export function deserializeState(
       if (count > 0) state.purchased[b.id] = count;
     }
     dropUnmetRequirements(state, config.buyables);
+    readToggles(state, raw, config);
     state.inventory = readInventory(raw['inventory'], config.items);
     return state;
   } catch {
     return null;
+  }
+}
+
+/**
+ * The inventory as it is saved: stacks that are used up (count 0) and items with no stack left are left out, the way
+ * {@link readInventory} reads them back, so that saving, loading and saving again gives the same text.
+ */
+function writeInventory(inventory: GameStateView['inventory']): GameState['inventory'] {
+  const out: GameState['inventory'] = {};
+  for (const [item, stacks] of Object.entries(inventory)) {
+    for (const [rarity, count] of Object.entries(stacks)) if (count > 0) (out[item] ??= {})[rarity] = count;
+  }
+  return out;
+}
+
+/**
+ * Reads the Overclock and Focus toggles: only known actions that are saved as `true`. A toggle is kept only for an action whose
+ * unlock is owned (Overclock also needs the action to have an Overclock rule), and Focus only up to the number of Focus slots
+ * (`focus.baseSlots` plus the bought ones, in configuration order), so a save cannot switch on more than the player has bought.
+ */
+function readToggles(state: GameState, raw: Record<string, unknown>, config: Pick<GameConfig, 'actions' | 'buyables' | 'focus'>): void {
+  const savedOverclock = isRecord(raw['overclocked']) ? raw['overclocked'] : {};
+  const savedFocus = isRecord(raw['focused']) ? raw['focused'] : {};
+  const unlocked = (kind: string, actionId: string): boolean =>
+    config.buyables.some((b) => b.effect.kind === kind && b.actionId === actionId && (state.purchased[b.id] ?? 0) > 0);
+  let slots =
+    config.focus.baseSlots +
+    config.buyables.reduce((n, b) => (b.effect.kind === 'focusSlots' ? n + b.effect.perCopy * (state.purchased[b.id] ?? 0) : n), 0);
+  for (const def of config.actions) {
+    if (def.overclock && unlocked('overclockUnlock', def.id) && savedOverclock[def.id] === true) state.overclocked[def.id] = true;
+    if (slots > 0 && unlocked('focusUnlock', def.id) && savedFocus[def.id] === true) {
+      state.focused[def.id] = true;
+      slots--;
+    }
   }
 }
 

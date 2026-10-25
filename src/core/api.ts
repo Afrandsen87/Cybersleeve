@@ -9,6 +9,7 @@
  * only needs to know these interfaces, so it can be tested against a small fake.
  */
 import type { BigNum } from '../numbers';
+import type { FocusStatus, OverclockStatus } from './actionToggles';
 import type { BackChannelRule, SleeveStats } from './effects';
 import type { PurchaseResult } from './shop';
 import type { SpeedFactor } from './speed';
@@ -27,8 +28,10 @@ export interface StateQueries {
 
 /** Read-only questions about actions: whether they can run, how fast, what they pay and their levels. */
 export interface ActionQueries {
-  /** True when the action's access level and unlock rule are satisfied. */
+  /** True when the action's access level is high enough. */
   isUnlocked(id: ActionId): boolean;
+  /** True when starting the action now would work: it is unlocked and its start cost can be paid. */
+  canStart(id: ActionId): boolean;
   /** What starting the action costs now, or `null` when free. */
   startCostOf(id: ActionId): BigNum | null;
   /** Current duration of one run, in ms. */
@@ -41,6 +44,12 @@ export interface ActionQueries {
   levelBonus(id: ActionId): number;
   /** True when the action restarts itself. */
   isAutoRun(id: ActionId): boolean;
+  /** Overclock for the action (speed bonus, heat cost, on or off), or `null` while there is no toggle to show. */
+  overclockStatus(id: ActionId): OverclockStatus | null;
+  /** Focus for the action (speed bonus, slots, on or off), or `null` while there is no toggle to show. */
+  focusStatus(id: ActionId): FocusStatus | null;
+  /** The actions that can drop one stack of items now, with the chance that one completed run of each drops it (0..1). */
+  dropSources(itemId: ItemId, rarityId: RarityId): readonly { readonly actionId: ActionId; readonly chance: number }[];
   /** Multiplier on the action's own reward per run, from purchases (>= 1). It scales that reward only. */
   rewardMultiplier(id: ActionId): BigNum;
   /** What a completed run adds to the balance now (heat does not tax it). */
@@ -68,6 +77,8 @@ export interface ActionQueries {
   nextSleeveLevelXp(id: ActionId): BigNum;
   /** Fraction (0..1) of the way to the next sleeve level. */
   sleeveLevelProgress(id: ActionId): number;
+  /** Completed runs one batch of sleeve XP takes right now. */
+  runsPerSleeveXp(): number;
 }
 
 /** Read-only questions about the sleeve as a whole and the network it carries. */
@@ -84,6 +95,8 @@ export interface SleeveQueries {
   canResleeve(): boolean;
   /** The back channel unlocked by a skill, or `null`. */
   backChannel(): BackChannelRule | null;
+  /** True when using a Burn lead of this rarity would do something (one is held and there is heat). */
+  canUseBurnLead(rarityId: RarityId): boolean;
 }
 
 /** Read-only questions about buyables: ownership, price and availability. */
@@ -135,6 +148,12 @@ export interface GameCommands {
   dropTestItem(): void;
   /** Applies one Augment schematic to an action (raises its action XP per run). @returns true when one was applied */
   augmentAction(id: ActionId): boolean;
+  /** Switches Overclock on or off for an action. @returns true when it is now on */
+  toggleOverclock(id: ActionId): boolean;
+  /** Switches Focus on or off for an action (switching on needs a free slot). @returns true when it is now on */
+  toggleFocus(id: ActionId): boolean;
+  /** Uses one Burn lead of a rarity: it is used up and takes a share of the current heat away. @returns true when one was used */
+  useBurnLead(rarityId: RarityId): boolean;
   /** Gives up items for Moles through the unlocked back channel. @param amount how many, or `'all'` @returns how many were given up */
   giveUpForMoles(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number;
   /** Sells items from the inventory for credits. @param amount how many, or `'all'` @returns how many were sold */

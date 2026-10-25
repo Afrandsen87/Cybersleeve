@@ -55,7 +55,7 @@ describe('display text comes from the text table', () => {
   it('the default table still reads like the game', () => {
     const vm = buildViewModel(createGame({ config: testConfig }));
     expect(vm.creditsLine).toBe('Credits: 0');
-    expect(vm.sleeve.stats.map((s) => s.label)).toEqual([
+    expect(vm.sleeve.stats.filter((s) => !s.hidden).map((s) => s.label)).toEqual([
       'Access level',
       'Interface speed',
       'Hacking Proficiency',
@@ -102,7 +102,7 @@ describe('stat rows', () => {
   it('the bars say when their cycle is paused', () => {
     const g = createGame({ config: testConfig });
     expect(statRow(buildViewModel(g).sleeve.stats, 'heat').bar).toEqual({
-      label: 'Heat cooldown (paused: no heat)',
+      label: 'Heat cooldown (paused: needs a whole point of heat)',
       percent: 0,
       running: false,
     });

@@ -3,6 +3,7 @@
  *
  * Speed multiplier: a product of independent, pluggable modifiers built from the configuration.
  */
+import { saturate } from './infinity';
 import type { ActionId, GameConfig, LevelScaling } from './types';
 
 /** Inputs a modifier may read. Extend this (not the callers of the modifiers) when new factors appear. */
@@ -15,6 +16,10 @@ export interface SpeedContext {
   readonly sleeveLevel: number;
   /** Interface speed of the sleeve (a plain multiplier, 1 = no change). */
   readonly interfaceSpeed: number;
+  /** The speed bonus Overclock gives this action right now (0.5 = 50 percent faster; 0 while it is off or not owned). Default 0. */
+  readonly overclockBonus?: number;
+  /** The speed bonus Focus gives this action right now (0.25 = 25 percent faster; 0 while it is not focused). Default 0. */
+  readonly focusBonus?: number;
 }
 
 /** Identifiers of the factors built by {@link createSpeedModifiers}. */
@@ -23,6 +28,8 @@ export const SPEED_FACTOR_IDS = {
   sleeveLevel: 'sleeve-level',
   interfaceSpeed: 'interface-speed',
   globalSpeed: 'global-speed',
+  overclock: 'overclock',
+  focus: 'focus',
 } as const;
 
 /** One factor of the speed multiplier. */
@@ -48,7 +55,7 @@ export function levelFactor(scaling: LevelScaling, level: number): number {
 
 /**
  * Builds the speed modifiers described by the configuration:
- * action level, sleeve level, interface speed and the global speed lever.
+ * action level, sleeve level, interface speed, the global speed lever, and the Overclock and Focus bonuses (1 while off).
  *
  * Called by: `app/createGame.ts`.
  *
@@ -66,6 +73,8 @@ export function createSpeedModifiers(config: Pick<GameConfig, 'actions' | 'speed
     { id: SPEED_FACTOR_IDS.sleeveLevel, factor: (c) => levelFactor(config.speed.sleeveLevel, c.sleeveLevel) },
     { id: SPEED_FACTOR_IDS.interfaceSpeed, factor: (c) => c.interfaceSpeed },
     { id: SPEED_FACTOR_IDS.globalSpeed, factor: () => config.global.speedMultiplier },
+    { id: SPEED_FACTOR_IDS.overclock, factor: (c) => 1 + (c.overclockBonus ?? 0) },
+    { id: SPEED_FACTOR_IDS.focus, factor: (c) => 1 + (c.focusBonus ?? 0) },
   ];
 }
 
@@ -76,18 +85,18 @@ export function createSpeedModifiers(config: Pick<GameConfig, 'actions' | 'speed
  *
  * @param modifiers the factors to combine (empty list gives 1)
  * @param context values the factors depend on
- * @returns the total speed multiplier (> 0): overflow saturates at the largest double, NaN counts as 1
+ * @returns the total speed multiplier (> 0): overflow saturates at the game's infinity (1e308), NaN counts as 1
  */
 export function speedMultiplier(modifiers: readonly SpeedModifier[], context: SpeedContext): number {
   const product = modifiers.reduce((p, m) => p * m.factor(context), 1);
-  return Number.isNaN(product) ? 1 : Math.min(product, Number.MAX_VALUE);
+  return saturate(product);
 }
 
 /** The value one modifier contributed to the speed multiplier. */
 export interface SpeedFactor {
   /** The modifier's identifier (see {@link SPEED_FACTOR_IDS}). */
   readonly id: string;
-  /** Its factor, sanitised like in {@link speedMultiplier}: NaN counts as 1, overflow saturates at the largest double. */
+  /** Its factor, sanitised like in {@link speedMultiplier}: NaN counts as 1, overflow saturates at the game's infinity (1e308). */
   readonly factor: number;
 }
 
@@ -103,7 +112,7 @@ export interface SpeedFactor {
 export function speedFactors(modifiers: readonly SpeedModifier[], context: SpeedContext): readonly SpeedFactor[] {
   return modifiers.map((m) => {
     const factor = m.factor(context);
-    return { id: m.id, factor: Number.isNaN(factor) ? 1 : Math.min(factor, Number.MAX_VALUE) };
+    return { id: m.id, factor: saturate(factor) };
   });
 }
 

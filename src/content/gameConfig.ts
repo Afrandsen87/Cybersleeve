@@ -10,13 +10,13 @@
  * instead of editing this file.
  */
 import { num } from '../numbers';
-import type { GameConfig } from '../core';
+import type { BuyableDefinition, GameConfig } from '../core';
 
 /** Id of the first action. */
 export const PRACTICE_HACKING = 'practice-hacking';
 /** Id of the network-building action. */
 export const GROW_NETWORK = 'grow-network';
-/** Id of the malware action (needs access level 2). */
+/** Id of the malware action (needs access level 3). */
 export const PUSH_MALWARE = 'push-malware';
 /** Id of the server-killing action (needs access level 4). */
 export const KILL_SERVERS = 'kill-servers';
@@ -26,6 +26,12 @@ export const LEGEND = 'legend';
 export const INTERFACE_BOOST = 'interface-boost';
 /** Id of the global access-level buyable. */
 export const ACCESS_UPGRADE = 'access-upgrade';
+/** Id of the Push malware buyable that adds base ICE Rating per action level. */
+export const MALWARE_ICE = 'malware-ice';
+/** Id of the Faster conditioning buyable (fewer runs per batch of sleeve XP). */
+export const FASTER_CONDITIONING = 'faster-conditioning';
+/** Id of the Critical success buyable. */
+export const CRITICAL_SUCCESS = 'critical-success';
 /** Id of the auto-run buyable. */
 export const AUTO_RUN = 'auto-run';
 /** Id of the skill-transfer buyable (Practice Hacking's sleeve level also levels Grow Network's speed). */
@@ -92,6 +98,41 @@ export const AUGMENT_SCHEMATIC = 'augment-schematic';
 export const INDUSTRIAL_ESPIONAGE = 'industrial-espionage';
 /** Id of the Practice Hacking buyable that lets Hacking Proficiency shift the drop ratios towards the rarer rarities. */
 export const RARITY_REFINEMENT = 'rarity-refinement';
+/** Id of the sleeve upgrade that makes every Overclock stronger. */
+export const OVERCLOCK_UPGRADE = 'overclock-upgrade';
+/** Id of the sleeve upgrade that gives more Focus slots. */
+export const FOCUS_UPGRADE = 'focus-upgrade';
+/** Id of the buyable that unlocks Overclock for one action. */
+export const overclockUnlockId = (actionId: string): string => `${actionId}-overclock`;
+/** Id of the buyable that unlocks Focus for one action. */
+export const focusUnlockId = (actionId: string): string => `${actionId}-focus`;
+/** Id of the Burn lead item (used from the Inventory to take heat away). */
+export const BURN_LEAD = 'burn-lead';
+/** Id of the Grow network buyable that lets its runs drop Burn leads. */
+export const BURN_LEADS = 'burn-leads';
+
+/** The Overclock unlock of one action: the price is the same for every action for now. */
+const overclockUnlock = (actionId: string, description: string): BuyableDefinition => ({
+  id: overclockUnlockId(actionId),
+  name: 'Overclock',
+  symbol: 'OV',
+  description,
+  actionId,
+  cost: num(250),
+  effect: { kind: 'overclockUnlock' },
+});
+
+/** The Focus unlock of one action: the price is the same for every action for now. */
+const focusUnlock = (actionId: string): BuyableDefinition => ({
+  id: focusUnlockId(actionId),
+  name: 'Focus',
+  symbol: 'FO',
+  description:
+    'Unlocks Focus for this action: while focused it runs 25% faster. Only a few actions can be focused at once (Focus upgrades add slots).',
+  actionId,
+  cost: num(1_000),
+  effect: { kind: 'focusUnlock' },
+});
 
 /** The game's configuration (content and tuning). */
 export const gameConfig: GameConfig = {
@@ -108,12 +149,16 @@ export const gameConfig: GameConfig = {
       { id: KOMPROMAT, name: 'Kompromat file' },
       // Schematics are applied with the Augment button, not paid out.
       { id: AUGMENT_SCHEMATIC, name: 'Augment schematic', sellable: false },
+      // Leads are used from the Inventory to take heat away, not paid out.
+      { id: BURN_LEAD, name: 'Burn lead', sellable: false, hasRarity: false },
     ],
     /**
      * One Augment schematic applied to an action adds 1% to the action XP boost of ITS rarity (additively); the boosts of the
      * different rarities multiply. Sleeve XP is not affected.
      */
     augment: { itemId: AUGMENT_SCHEMATIC, xpBonusPerItem: 0.01 },
+    /** One Burn lead used from the Inventory takes 5% of the CURRENT heat away and is used up. */
+    burnLead: { itemId: BURN_LEAD, heatFraction: 0.05 },
   },
 
   actions: [
@@ -127,19 +172,23 @@ export const gameConfig: GameConfig = {
       rewardKind: 'networkNodes',
       /** Action XP per completed run. */
       xpPerRun: num(1),
+      /** Overclock: 50% faster, at the price of 2 heat per minute of running. */
+      overclock: { speedBonus: 0.5, heatPerMinute: 2 },
     },
     {
       id: PRACTICE_HACKING,
       name: 'Practice Hacking',
-      /** Time per run at speed x1: 5 s, so a run takes 50 s at the starting interface speed of 0.1 (it was 1 s, 10 s in practice, until 2026-10-25). */
+      /** Time per run at speed x1: 5 s, so a run takes 50 s at the starting interface speed of 0.1. */
       baseDurationMs: 5_000,
       /** Added to Hacking Proficiency per completed run (no credits). Proficiency raises the hacking multiplier on interface speed. */
-      reward: num(0.001),
+      reward: num(0.01),
       rewardKind: 'hackingProficiency',
-      /** Action XP per completed run. */
       /** Locked until the sleeve has access level 2 (the first Access upgrade). */
       requiredAccessLevel: 2,
+      /** Action XP per completed run. */
       xpPerRun: num(1),
+      /** Overclock: pays 200% more (x3) per run, but each completed run costs 5 nodes. */
+      overclock: { rewardBonus: 2, completionEffects: [{ kind: 'removeNodes', amount: 5 }] },
       // Optional per-action overrides (fall back to the global rules below):
       //   levels: { firstLevelXp: 10, growthFactor: 10 },
       //   speedScaling: { kind: 'linear', perLevel: 0.05 },
@@ -149,8 +198,8 @@ export const gameConfig: GameConfig = {
       name: 'Push malware',
       /** Seconds per run at speed x1. */
       baseDurationMs: 6_000,
-      /** Added to the BASE credits per second of every node per completed run (no credits of its own): 0.000001, i.e. 0.01% of the starting base of 0.01. */
-      reward: num(0.000001),
+      /** Added to the BASE credits per second of every node per completed run (no credits of its own): 0.0001, i.e. 1% of the starting base of 0.01. */
+      reward: num(1e-4),
       rewardKind: 'nodePayout',
       /** Heat added per completed run. */
       heatPerRun: 1,
@@ -158,6 +207,8 @@ export const gameConfig: GameConfig = {
       requiredAccessLevel: 3,
       /** Action XP per completed run. */
       xpPerRun: num(1),
+      /** Overclock: each run also pays the nodes of a Grow network run, but makes three times as much heat. */
+      overclock: { alsoPays: GROW_NETWORK, heatPerRunFactor: 3 },
     },
     {
       id: KILL_SERVERS,
@@ -200,7 +251,7 @@ export const gameConfig: GameConfig = {
       symbol: '↻',
       description: 'Restarts the action automatically when it finishes.',
       actionId: PRACTICE_HACKING,
-      cost: num(1_000),
+      cost: num(100),
       effect: { kind: 'autoRun' },
     },
     {
@@ -225,10 +276,9 @@ export const gameConfig: GameConfig = {
       id: RARITY_REFINEMENT,
       name: 'Rarity refinement',
       symbol: 'RR',
-      description: 'Every order of magnitude of Hacking Proficiency moves 1% of each drop ratio to the next rarity.',
-      formula: 'Shifts = floor(log10(Hacking Proficiency))',
+      description: 'Increases the rarity of Kompromat drops based on Hacking Proficiency.',
       actionId: PRACTICE_HACKING,
-      cost: num(150_000),
+      cost: num(10_000),
       requires: [KOMPROMAT_HARVEST],
       // fractionPerOrder 0.01: each shift moves 1% of every rarity's weight on to the next rarity, all worked out up front and moved at once
       effect: { kind: 'rarityShiftFromProficiency', fractionPerOrder: 0.01 },
@@ -258,19 +308,36 @@ export const gameConfig: GameConfig = {
       symbol: '↻',
       description: 'Restarts the action automatically when it finishes.',
       actionId: GROW_NETWORK,
-      cost: num(100),
+      cost: num(50),
       effect: { kind: 'autoRun' },
     },
     {
       id: NETWORK_OUTPUT,
       name: 'Parallel nodes',
       symbol: '×2',
-      description: 'Doubles the nodes each run pays. Each copy costs 1000x more.',
+      description: 'Doubles the nodes each run pays. Each copy costs 100x more.',
       actionId: GROW_NETWORK,
-      cost: num(500),
-      costGrowth: 1_000, // every 3rd order of magnitude
+      cost: num(75),
+      costGrowth: 100, // every 2nd order of magnitude
       maxPurchases: Infinity,
       effect: { kind: 'rewardMultiplier', factor: 2 },
+    },
+    {
+      id: BURN_LEADS,
+      name: 'Burn leads',
+      symbol: 'BN',
+      description: 'Each completed run has a chance to drop a Burn lead. Using one from the Inventory takes 5% of your current heat away.',
+      actionId: GROW_NETWORK,
+      // Placeholder price (balance is not tuned yet).
+      cost: num(1_000),
+      effect: {
+        kind: 'itemDrop',
+        drop: {
+          itemId: BURN_LEAD,
+          /** Chance that one completed run drops a lead at all: 5%. */
+          chance: 0.05,
+        },
+      },
     },
     {
       id: INDUSTRIAL_ESPIONAGE,
@@ -316,19 +383,29 @@ export const gameConfig: GameConfig = {
       symbol: '↻',
       description: 'Restarts the action automatically when it finishes.',
       actionId: PUSH_MALWARE,
-      cost: num(10_000_000),
+      cost: num(15_000),
       effect: { kind: 'autoRun' },
     },
     {
       id: MALWARE_OUTPUT,
       name: 'Malware payload',
       symbol: '×2',
-      description: 'Doubles what each run adds to the base payout of every node. Each copy costs 10,000x more.',
+      description: 'Doubles what each run adds to the base payout of every node. Each copy costs 100x more.',
       actionId: PUSH_MALWARE,
-      cost: num(50_000),
-      costGrowth: 10_000, // every 4th order of magnitude
+      cost: num(10_000),
+      costGrowth: 100, // every 2nd order of magnitude
       maxPurchases: Infinity,
       effect: { kind: 'rewardMultiplier', factor: 2 },
+    },
+    {
+      id: MALWARE_ICE,
+      name: 'Hardened payload',
+      symbol: 'HP',
+      description: 'Adds 10 to your base ICE Rating for every level of this action.',
+      actionId: PUSH_MALWARE,
+      cost: num(10_000),
+      // perLevel 10: level 5 adds 10 x 5 = 50 to the base ICE Rating, before the ICE Rating boost multiplies it
+      effect: { kind: 'iceRatingFromActionLevel', sourceActionId: PUSH_MALWARE, perLevel: 10 },
     },
     {
       id: KILL_AUTO_RUN,
@@ -348,6 +425,18 @@ export const gameConfig: GameConfig = {
       cost: num(1e15), // 1 Qa
       effect: { kind: 'autoRun' },
     },
+    // Unlocks of the per-action toggles, shown in the square on each action card (not in its row of purchases).
+    overclockUnlock(GROW_NETWORK, 'Unlocks Overclock for this action: 50% faster, at the price of 2 heat per minute while it runs.'),
+    overclockUnlock(PRACTICE_HACKING, 'Unlocks Overclock for this action: pays 200% more, but each completed run costs 5 nodes.'),
+    overclockUnlock(
+      PUSH_MALWARE,
+      'Unlocks Overclock for this action: each run also pays the nodes of a Grow network run, but makes 3x the heat.',
+    ),
+    focusUnlock(GROW_NETWORK),
+    focusUnlock(PRACTICE_HACKING),
+    focusUnlock(PUSH_MALWARE),
+    focusUnlock(KILL_SERVERS),
+    focusUnlock(LEGEND),
     // Skills: bought with skill points (one point each for now), shown in the Skills tab. No actionId.
     {
       id: SKILL_OVERCLOCK,
@@ -397,7 +486,7 @@ export const gameConfig: GameConfig = {
     {
       id: SKILL_NOSE_FOR_SECRETS,
       name: 'Nose for Secrets',
-      symbol: 'NS',
+      symbol: 'NF',
       description: 'Doubles the chance that a run drops a Kompromat file.',
       currency: 'skillPoints',
       cost: num(1),
@@ -426,9 +515,9 @@ export const gameConfig: GameConfig = {
     {
       id: ICE_RATING_BOOST,
       name: 'ICE Rating boost',
-      symbol: 'CB',
+      symbol: 'IB',
       description: 'Multiplies ICE Rating by 2. Each copy costs 100x more.',
-      cost: num(250_000),
+      cost: num(15_000), // a little above Hardened payload: it multiplies nothing until that adds base ICE Rating
       costGrowth: 100, // every 2nd order of magnitude
       maxPurchases: Infinity,
       effect: { kind: 'iceRatingMultiplier', factor: 2 },
@@ -437,21 +526,21 @@ export const gameConfig: GameConfig = {
       id: NODE_PAYOUT,
       name: 'Node payout',
       symbol: 'NP',
-      description: 'Each node produces 50% more credits. Paid in network nodes. Each copy costs 100x more.',
+      description: 'Each node produces 100% more credits. Paid in network nodes. Each copy costs 10x more.',
       currency: 'networkNodes',
       cost: num(25),
-      costGrowth: 100, // every 2nd order of magnitude
+      costGrowth: 10, // every order of magnitude
       maxPurchases: Infinity,
-      effect: { kind: 'nodePayoutMultiplier', factor: 1.5 },
+      effect: { kind: 'nodePayoutMultiplier', factor: 2 }, // +100% per copy, compounding
     },
     {
       id: NODE_UPLINK,
       name: 'Node uplink',
       symbol: 'NU',
-      description: 'Raises the base interface speed by 0.1. Paid in network nodes. Each copy costs 100,000x more.',
+      description: 'Raises the base interface speed by 0.1. Paid in network nodes. Each copy costs 10x more.',
       currency: 'networkNodes',
-      cost: num(100),
-      costGrowth: 100_000, // every 5th order of magnitude
+      cost: num(10),
+      costGrowth: 10, // every order of magnitude
       maxPurchases: Infinity,
       effect: { kind: 'interfaceSpeed', amount: 0.1 },
     },
@@ -460,7 +549,7 @@ export const gameConfig: GameConfig = {
       name: 'Interface boost',
       symbol: 'IF',
       description: 'Raises the base interface speed by 0.05, which speeds up every action. Each copy costs 1000x more.',
-      cost: num(100),
+      cost: num(10),
       costGrowth: 1_000, // every 3rd order of magnitude
       maxPurchases: Infinity,
       effect: { kind: 'interfaceSpeed', amount: 0.05 },
@@ -475,17 +564,69 @@ export const gameConfig: GameConfig = {
       maxPurchases: Infinity,
       effect: { kind: 'accessLevel', amount: 1 },
     },
+    {
+      id: OVERCLOCK_UPGRADE,
+      name: 'Overclock upgrade',
+      symbol: 'OU',
+      description:
+        'Makes the gains of every Overclock 10% stronger (the speed and reward bonuses; the costs stay). Each copy costs 1000x more.',
+      cost: num(250_000), // 1000x what unlocking Overclock cost before it became per action
+      costGrowth: 1_000, // every 3rd order of magnitude
+      maxPurchases: Infinity,
+      // perCopy 0.1: the first copy makes every Overclock 10% stronger, the second 20%, and so on
+      effect: { kind: 'overclockStrength', perCopy: 0.1 },
+    },
+    {
+      id: FOCUS_UPGRADE,
+      name: 'Focus upgrade',
+      symbol: 'FU',
+      description: 'One more action can be focused at once. Each copy costs 100,000x more.',
+      cost: num(1_000_000), // 1000x what the first Focus slot cost before Focus became per action
+      costGrowth: 100_000, // every 5th order of magnitude
+      // One slot is free (focus.baseSlots), so the cap that gives every action a slot is the number of actions minus one (the content test checks it).
+      maxPurchases: 4,
+      effect: { kind: 'focusSlots', perCopy: 1 },
+    },
+    {
+      id: FASTER_CONDITIONING,
+      name: 'Faster conditioning',
+      symbol: 'FC',
+      description: 'Every action needs 1 run fewer for each batch of sleeve XP, down to 10 runs. Each copy costs 100x more.',
+      cost: num(1_000),
+      costGrowth: 100, // every 2nd order of magnitude
+      // 90 copies take the 100 runs per batch down to the floor of 10 (the content test checks the cap matches)
+      maxPurchases: 90,
+      effect: { kind: 'runsPerSleeveXpReduction', perCopy: 1, minRuns: 10 },
+    },
+    {
+      id: CRITICAL_SUCCESS,
+      name: 'Critical success',
+      symbol: 'CS',
+      description:
+        'Every completed run of any action has a 5% chance to be a critical success: double XP and triple payout. Each copy adds 5% and costs 1000x more.',
+      cost: num(50),
+      costGrowth: 1_000, // every 3rd order of magnitude
+      maxPurchases: Infinity,
+      // chance 0.05 per copy: 20 copies make every run critical (the total is capped at 1)
+      effect: { kind: 'criticalChance', chance: 0.05 },
+    },
   ],
+
+  /** What a critical success does unless an action says otherwise: its XP is doubled and its reward tripled. */
+  criticalSuccess: { xpMultiplier: 2, rewardMultiplier: 3 },
+
+  /** A focused action runs 25% faster; one action can be focused at the start, Focus upgrades add slots. */
+  focus: { speedBonus: 0.25, baseSlots: 1 },
 
   progression: {
     /** Completed runs of one action per batch of that action's sleeve XP. */
     runsPerSleeveXp: 100,
     /** Sleeve XP per batch. */
     sleeveXpPerGrant: 1,
-    /** Default action level rule (levels start at 0): level 1 at 10 XP, then x10 per level. */
-    actionLevels: { firstLevelXp: 10, growthFactor: 10 },
-    /** Default sleeve level rule of every action (levels start at 0): level 1 at 10 sleeve XP, then x10 per level. */
-    sleeveLevels: { firstLevelXp: 10, growthFactor: 10 },
+    /** Default action level rule (levels start at 0): level 1 at 10 XP, then x2 per level. */
+    actionLevels: { firstLevelXp: 10, growthFactor: 2 },
+    /** Default sleeve level rule of every action (levels start at 0): level 1 at 10 sleeve XP, then x2 per level. */
+    sleeveLevels: { firstLevelXp: 10, growthFactor: 2 },
     /** Credits at the start and after a re-sleeve. */
     startingCredits: 0,
     /** Sleeve-XP reduction buyables can never cut a requirement by more than 99% in total. */
@@ -516,6 +657,10 @@ export const gameConfig: GameConfig = {
     earnedSpeedScale: 1,
     /** 0.25: strongly diminishing returns, no ceiling (1 = straight line, 0 = logarithm). */
     earnedSpeedExponent: 0.25,
+    /** From 1 Hacking Proficiency on, the curve changes shape... */
+    earnedSpeedKnee: 1,
+    /** ...to 0.1: past the knee each further point is worth even less (it joins the first piece smoothly, so nothing jumps). */
+    earnedSpeedExponentBeyond: 0.1,
     /** Heat of a new sleeve. */
     baseHeat: 0,
     /** Each point of heat takes 1% of the credits network nodes produce. */

@@ -426,10 +426,16 @@ describe('coolHeatBoosted', () => {
     expect(coolHeatBoosted({ heat: 0, cooldownMs: 0, moles: 7 }, 1e6, 60_000, 1, 1, 0.5)).toEqual({ heat: 0, cooldownMs: 0, moles: 7 });
   });
 
-  it('a fraction of a point of heat uses only that much of a Mole', () => {
+  it('heat below one whole point does not cool at all, so it spends no Moles', () => {
     const r = coolHeatBoosted({ heat: 0.5, cooldownMs: 0, moles: 3 }, 1e6, 60_000, 1, 1, 0.5);
-    expect(r.heat).toBe(0);
-    expect(r.moles).toBeCloseTo(2.5, 12);
+    expect(r).toEqual({ heat: 0.5, cooldownMs: 0, moles: 3 });
+  });
+
+  it('removes whole points only: 2.5 heat cools to 0.5 and stops, using Moles for the 2 points cooled', () => {
+    const r = coolHeatBoosted({ heat: 2.5, cooldownMs: 0, moles: 10 }, 1e7, 60_000, 1, 1, 0.5);
+    expect(r.heat).toBeCloseTo(0.5, 12);
+    expect(r.moles).toBe(8);
+    expect(r.cooldownMs).toBe(0);
   });
 
   it('never produces negative heat or Moles, whatever the step', () => {

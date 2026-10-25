@@ -117,20 +117,9 @@ describe('saving the progress of a run', () => {
     expect(restored.actions['a']!.running).toBe(true);
   });
 
-  it('still loads a version 3 save, whose progress was in milliseconds: the run starts again but keeps running', () => {
-    const { json } = saved();
-    const data = JSON.parse(json) as Record<string, unknown> & { actions: Record<string, Record<string, unknown>> };
-    data['version'] = 3;
-    data.actions['a'] = { ...data.actions['a'], progressMs: 4_000, progress: undefined };
-    const state = deserializeState(JSON.stringify(data), testConfig, numberFactory);
-    expect(state).not.toBeNull();
-    expect(state!.actions['a']!.progress).toBe(0);
-    expect(state!.actions['a']!.running).toBe(true);
-  });
-
   it('refuses an older or unknown version', () => {
     const { json } = saved();
-    for (const version of [2, 5, 'x']) {
+    for (const version of [2, 3, 5, 'x']) {
       const data = { ...(JSON.parse(json) as object), version };
       expect(deserializeState(JSON.stringify(data), testConfig, numberFactory)).toBeNull();
     }

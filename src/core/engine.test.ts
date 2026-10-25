@@ -743,3 +743,21 @@ describe('GameEngine - the credit multiplier scales credits only', () => {
     expect(g.passiveCreditsPerSecond().eq(num(7))).toBe(true);
   });
 });
+
+describe('time that is not a usable amount of time', () => {
+  it('ignores NaN, negative and infinite ticks instead of corrupting the game', () => {
+    const g = game();
+    g.startAction('a');
+    for (const bad of [Number.NaN, -5, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) g.tick(bad);
+    expect(g.getState().actions['a']!.progress).toBe(0);
+    expect(g.getState().credits.isFinite()).toBe(true);
+  });
+});
+
+describe('canStart', () => {
+  it('is true for a free unlocked action and false for a locked one (the start cost case is in iceRating.test.ts)', () => {
+    const g = game({ actions: [testConfig.actions[0]!, { ...testConfig.actions[0]!, id: 'locked', requiredAccessLevel: 9 }] });
+    expect(g.canStart('a')).toBe(true);
+    expect(g.canStart('locked')).toBe(false);
+  });
+});

@@ -501,7 +501,7 @@ describe('serialization', () => {
     expect(restored.purchased).toEqual({ speed: 1, access: 1 });
   });
 
-  it("keeps each action's own sleeve xp in version 3 saves", () => {
+  it("keeps each action's own sleeve xp in saved games", () => {
     const two = createConfig(config, { actions: [config.actions[0]!, { ...config.actions[0]!, id: 'b' }] });
     const s = createInitialState(two, numberFactory);
     s.actions['a']!.sleeveXp = num(1);
@@ -513,7 +513,7 @@ describe('serialization', () => {
 
   it('caps stored copy counts at maxPurchases for one-time buyables', () => {
     const json = JSON.stringify({
-      version: 3,
+      version: 4,
       credits: '0',
       network: '0',
       actions: {},
@@ -525,12 +525,12 @@ describe('serialization', () => {
   it('returns null for corrupt or incompatible input', () => {
     expect(deserializeState('not json', config, numberFactory)).toBeNull();
     expect(deserializeState('{"version":999}', config, numberFactory)).toBeNull();
-    expect(deserializeState('{"version":3,"credits":5}', config, numberFactory)).toBeNull();
+    expect(deserializeState('{"version":4,"credits":5}', config, numberFactory)).toBeNull();
   });
 
   it('ignores unknown ids and fills in missing ones', () => {
     const json = JSON.stringify({
-      version: 3,
+      version: 4,
       credits: '5',
       network: '0',
       actions: { ghost: { xp: '9', sleeveXp: '0', runsTowardSleeveXp: 0, running: true, progress: 0.5 } },
@@ -649,8 +649,18 @@ describe('speedFactors', () => {
       SPEED_FACTOR_IDS.sleeveLevel,
       SPEED_FACTOR_IDS.interfaceSpeed,
       SPEED_FACTOR_IDS.globalSpeed,
+      SPEED_FACTOR_IDS.overclock,
+      SPEED_FACTOR_IDS.focus,
     ]);
     expect(f.find((x) => x.id === SPEED_FACTOR_IDS.interfaceSpeed)!.factor).toBe(0.5);
+  });
+
+  it('the Overclock and Focus factors are 1 unless a bonus is given, and 1 + bonus when it is', () => {
+    const factorOf = (c: object, id: string) => speedFactors(mods, { ...context, ...c }).find((x) => x.id === id)!.factor;
+    expect(factorOf({}, SPEED_FACTOR_IDS.overclock)).toBe(1);
+    expect(factorOf({}, SPEED_FACTOR_IDS.focus)).toBe(1);
+    expect(factorOf({ overclockBonus: 0.5 }, SPEED_FACTOR_IDS.overclock)).toBe(1.5);
+    expect(factorOf({ focusBonus: 0.25 }, SPEED_FACTOR_IDS.focus)).toBe(1.25);
   });
 
   it('multiplies to exactly the speed multiplier', () => {
@@ -665,7 +675,7 @@ describe('speedFactors', () => {
     ];
     expect(speedFactors(odd, context)).toEqual([
       { id: 'nan', factor: 1 },
-      { id: 'big', factor: Number.MAX_VALUE },
+      { id: 'big', factor: 1e308 },
     ]);
   });
 });

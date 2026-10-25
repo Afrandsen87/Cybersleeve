@@ -49,17 +49,11 @@ export type LevelScaling = { readonly kind: 'linear'; readonly perLevel: number 
  */
 export type RewardKind = 'credits' | 'networkNodes' | 'hackingProficiency' | 'iceRating' | 'infamy' | 'nodePayout';
 
-/** When an action becomes available besides the access level. */
-export type UnlockRule =
-  /** Once the network has reached `amount` nodes; stays unlocked afterwards (until re-sleeving). */
-  | { readonly kind: 'nodes'; readonly amount: number }
-  /** While the buyable is owned. */
-  | { readonly kind: 'buyable'; readonly buyableId: BuyableId };
-
 /** Something that happens each time an action completes a run, besides its reward. */
 export type CompletionEffect =
-  /** Removes this fraction of the current network nodes (0.25 = a quarter), rounded down to whole nodes for each run. */
-  { readonly kind: 'removeNodesFraction'; readonly fraction: number };
+  | { readonly kind: 'removeNodesFraction'; readonly fraction: number }
+  /** Removes this many network nodes (a whole number >= 1) for each run; the network never goes below 0. */
+  | { readonly kind: 'removeNodes'; readonly amount: number };
 
 /**
  * A price paid every time a run starts (manually or by auto-run). It is `amount` plus `fractionOfBalance` of the balance held
@@ -96,6 +90,11 @@ export interface ItemDefinition {
   readonly name: string;
   /** Items of this kind can be paid out for credits from the Inventory. Default: true. */
   readonly sellable?: boolean;
+  /**
+   * False for an item without rarity: it is one stack, shown under its own name, and a drop rule for it names no rarity weights.
+   * Internally the stack is kept under the first (most common) rarity. Default: true (the item exists in every rarity).
+   */
+  readonly hasRarity?: boolean;
 }
 
 /** What the Augment schematic item does when it is applied to an action. */
@@ -109,10 +108,20 @@ export interface AugmentConfig {
   readonly xpBonusPerItem: number;
 }
 
+/** What the Burn lead item does when it is used from the Inventory. */
+export interface BurnLeadConfig {
+  /** The item that is the lead. */
+  readonly itemId: ItemId;
+  /** The share of the CURRENT heat one lead removes (0.05 = 5 percent; in (0, 1]). Using it uses the lead up. */
+  readonly heatFraction: number;
+}
+
 /** The item entity: which kinds exist and which rarity tiers they come in. */
 export interface ItemsConfig {
   /** Which item can be applied to an action to raise its XP gain. Default: none (no Augment button). */
   readonly augment?: AugmentConfig;
+  /** Which item can be used from the Inventory to take heat away. Default: none (no Use button). */
+  readonly burnLead?: BurnLeadConfig;
   /** Rarity tiers, most common first. */
   readonly rarities: readonly RarityDefinition[];
   /** The kinds of item. */
@@ -123,14 +132,56 @@ export interface ItemsConfig {
  * Items an action drops when a run completes (the result of an `itemDrop` buyable).
  *
  * @remarks
- * Each completed run has `chance` to drop one item; the item's rarity is then drawn by `rarityWeights`.
+ * Each completed run has `chance` to drop one item; the item's rarity is then drawn by `rarityWeights`. An item without rarity
+ * (`ItemDefinition.hasRarity: false`) has no weights: every drop is its single stack.
  */
 export interface ItemDropRule {
   readonly itemId: ItemId;
   /** Chance (0..1) that one completed run drops an item at all. */
   readonly chance: number;
   /** Relative weight per rarity id (>= 0, at least one > 0). Weights are normalised, so `{ common: 90, uncommon: 10 }` means 90% / 10%. A missing rarity weighs 0. */
-  readonly rarityWeights: Readonly<Record<RarityId, number>>;
+  readonly rarityWeights?: Readonly<Record<RarityId, number>>;
+}
+
+/**
+ * What a critical success does to one completed run.
+ *
+ * @remarks
+ * A critical run is an ordinary run that was drawn as critical (chance from the sleeve's `criticalChance` buyables). The default
+ * rule is `GameConfig.criticalSuccess`; an action can replace single fields of it with `ActionDefinition.criticalSuccess`, which is
+ * where an action's own critical behaviour goes. The multipliers scale only what their name says, for the critical runs only.
+ */
+export interface CriticalSuccessRule {
+  /** Multiplies the action XP of a critical run (>= 1). Sleeve XP and the run counter are not touched. */
+  readonly xpMultiplier: number;
+  /** Multiplies the reward the action pays for a critical run, whatever its kind (>= 1). Heat and completion effects are not scaled. */
+  readonly rewardMultiplier: number;
+  /** Extra effects applied once for each critical run, after the ordinary completion effects. Default: none. */
+  readonly completionEffects?: readonly CompletionEffect[];
+}
+
+/**
+ * What Overclock does to ONE action while it is switched on (the toggle exists on every action that has a rule, once the Overclock
+ * buyable is owned). Each action's rule is its own, so Overclock can do something different for each. A rule lists any mix of the
+ * fields below and needs at least one.
+ *
+ * @remarks
+ * The two bonuses (`speedBonus`, `rewardBonus`) are the gain and grow with the strength of Overclock (more copies of the buyable). The
+ * rest (heat, node costs, the extra payment) are fixed by the rule: more copies make the gain stronger, never the price.
+ */
+export interface OverclockRule {
+  /** The action runs this much faster at Overclock strength 1 (0.5 = 50 percent faster; > 0). Default: no speed change. */
+  readonly speedBonus?: number;
+  /** The reward the action pays per run is this much bigger at strength 1 (2 = 200 percent more, i.e. x3; > 0). Scales that reward only. Default: none. */
+  readonly rewardBonus?: number;
+  /** Heat the action adds per minute of game time while it is running overclocked (>= 0). Fractions of a point of heat are kept. Default: 0. */
+  readonly heatPerMinute?: number;
+  /** The heat each completed run adds (`heatPerRun`) is multiplied by this (>= 1; 3 = three times as much). Default: 1. */
+  readonly heatPerRunFactor?: number;
+  /** Applied once for each completed run while Overclock is on, after the ordinary completion effects. Default: none. */
+  readonly completionEffects?: readonly CompletionEffect[];
+  /** Each completed run also pays the reward of this other action, as if that action had completed one run (its own reward multipliers apply). Default: none. */
+  readonly alsoPays?: ActionId;
 }
 
 /** Static description of an action the character can perform. */
@@ -150,8 +201,6 @@ export interface ActionDefinition {
   readonly heatPerRun?: number;
   /** Access level the sleeve needs before this action can be performed (integer >= 1). Default: 1. */
   readonly requiredAccessLevel?: number;
-  /** Extra condition that must hold before this action can be performed. Default: none. */
-  readonly unlock?: UnlockRule;
   /** Paid each time a run starts; without enough of the currency the run cannot start. Such actions complete one run per batch. */
   readonly startCost?: StartCost;
   /** Applied after each completed run (in order). */
@@ -164,6 +213,10 @@ export interface ActionDefinition {
   readonly sleeveLevels?: LevelRuleConfig;
   /** Overrides `speed.actionLevel` for this action. */
   readonly speedScaling?: LevelScaling;
+  /** Replaces single fields of `GameConfig.criticalSuccess` for this action's critical runs. Default: the global rule applies unchanged. */
+  readonly criticalSuccess?: Partial<CriticalSuccessRule>;
+  /** What Overclock does to this action. Default: none, so the action has no Overclock toggle. */
+  readonly overclock?: OverclockRule;
 }
 
 /**
@@ -178,6 +231,19 @@ export interface ActionDefinition {
  */
 export type BuyableEffect =
   | { readonly kind: 'autoRun' }
+  /** Unlocks the Overclock toggle of the buyable's action (the action must have an `overclock` rule). Applies once, whatever the number of copies. */
+  | { readonly kind: 'overclockUnlock' }
+  /** Unlocks the Focus toggle of the buyable's action. Applies once, whatever the number of copies. */
+  | { readonly kind: 'focusUnlock' }
+  /**
+   * Makes every Overclock stronger: strength is `1 + perCopy` per copy owned (0.1 = the gains of every action's Overclock, the speed
+   * and reward bonuses, are 10 percent of their base bigger per copy). The costs of an Overclock do not scale.
+   */
+  | { readonly kind: 'overclockStrength'; readonly perCopy: number }
+  /** Each copy owned adds `perCopy` Focus slots (a whole number >= 1) on top of `focus.baseSlots`: that many actions can be focused at once. */
+  | { readonly kind: 'focusSlots'; readonly perCopy: number }
+  /** Every completed run of any action has `chance` (0..1) per copy owned to be a critical success (see {@link CriticalSuccessRule}); the total is capped at 1. */
+  | { readonly kind: 'criticalChance'; readonly chance: number }
   | { readonly kind: 'rewardMultiplier'; readonly factor: number }
   | { readonly kind: 'interfaceSpeed'; readonly amount: number }
   /** Raises the access level by `amount` per copy (an integer >= 1), on top of `sleeve.baseAccessLevel`. */
@@ -186,8 +252,11 @@ export type BuyableEffect =
   | { readonly kind: 'nodePayoutMultiplier'; readonly factor: number }
   /** Multiplies the ICE Rating stat by this factor per copy. */
   | { readonly kind: 'iceRatingMultiplier'; readonly factor: number }
-  /** No effect of its own: owning it satisfies an action's `unlock: { kind: 'buyable' }` rule. */
-  | { readonly kind: 'unlock' }
+  /**
+   * Adds `perLevel` per copy owned and per plain action level of `sourceActionId` to the BASE ICE Rating, that is, before the
+   * `iceRatingMultiplier` buyables multiply it (so it does not matter in which order they are bought).
+   */
+  | { readonly kind: 'iceRatingFromActionLevel'; readonly sourceActionId: ActionId; readonly perLevel: number }
   /** Network nodes grow by this fraction of themselves per second (0.000001 = 0.0001 percent), compounding; only whole nodes are added, the rest is carried. */
   | { readonly kind: 'networkGrowth'; readonly ratePerSecond: number }
   /**
@@ -221,6 +290,11 @@ export type BuyableEffect =
   | { readonly kind: 'hackingProficiencyMultiplier'; readonly factor: number }
   /** Every ACTION level needs `amount` (a fraction, 0.01 = 1 percent) less XP per copy. Sleeve levels are not affected. */
   | { readonly kind: 'actionXpReduction'; readonly amount: number }
+  /**
+   * Every copy owned lowers the number of completed runs an action needs per batch of sleeve XP (`progression.runsPerSleeveXp`) by
+   * `perCopy` runs (an integer >= 1), but never below `minRuns` (an integer >= 1). Applies to every action.
+   */
+  | { readonly kind: 'runsPerSleeveXpReduction'; readonly perCopy: number; readonly minRuns: number }
   /** Multiplies the drop chance (the chance of a drop at all) of every drop rule of `itemId` by `factor` per copy; the result never exceeds 1. */
   | { readonly kind: 'itemDropChanceMultiplier'; readonly itemId: ItemId; readonly factor: number }
   /** Node payout is multiplied by `1 + perItem x` the number of `itemId` items of `rarityId` held, per copy. */
@@ -237,7 +311,6 @@ export type BuyableEffect =
       readonly cooldownBoost: number;
     };
 
-/** What a buyable is paid with. */
 /**
  * What a buyable is paid with. `skillPoints` are not held: the points available are what the action levels have earned minus what the
  * owned skills cost (see `skills.ts`), so paying them spends nothing from the state.
@@ -315,6 +388,14 @@ export interface SleeveConfig {
   readonly earnedSpeedScale: number;
   /** Shape of that curve (<= 1): 1 = straight line, 0 = logarithm, in between = diminishing returns without a ceiling. */
   readonly earnedSpeedExponent: number;
+  /** Hacking Proficiency at which the curve changes shape (>= 0). Default: 1. Only matters with `earnedSpeedExponentBeyond`. */
+  readonly earnedSpeedKnee?: number;
+  /**
+   * The shape of the curve past `earnedSpeedKnee` (<= 1, same meaning as `earnedSpeedExponent`). It continues from the value and the
+   * slope the curve has at the knee; below `earnedSpeedExponent` it flattens the curve there. Default: the same as `earnedSpeedExponent`
+   * (one curve all the way).
+   */
+  readonly earnedSpeedExponentBeyond?: number;
   /** Heat of a new sleeve (>= 0). */
   readonly baseHeat: number;
   /** Share of the credits network nodes produce that one point of heat takes (0.01 = 1%; >= 0). ICE Rating lowers the effect. */
@@ -380,12 +461,24 @@ export interface RuntimeConfig {
   readonly fastForwardFactor: number;
 }
 
+/** What Focus does, for every action that has unlocked it. */
+export interface FocusConfig {
+  /** A focused action runs this much faster (0.25 = 25 percent; > 0). */
+  readonly speedBonus: number;
+  /** Actions that can be focused at once before any Focus slot is bought (a whole number >= 1). */
+  readonly baseSlots: number;
+}
+
 /** Everything the game needs that is not state: content plus every tuning constant. */
 export interface GameConfig {
   readonly actions: readonly ActionDefinition[];
   readonly buyables: readonly BuyableDefinition[];
   /** The item entity: kinds and rarity tiers (with their sell values). */
   readonly items: ItemsConfig;
+  /** What a critical success does unless the action says otherwise. */
+  readonly criticalSuccess: CriticalSuccessRule;
+  /** What Focus does and how many actions can be focused at once at the start. */
+  readonly focus: FocusConfig;
   readonly progression: ProgressionConfig;
   readonly speed: SpeedConfig;
   readonly global: GlobalTuning;
@@ -416,7 +509,11 @@ export interface GameState {
   credits: BigNum;
   /** Network nodes built so far; each produces passive credits. Reset by re-sleeving. */
   network: BigNum;
-  /** Current heat: starts at `sleeve.baseHeat`, raised by actions, lowered by the cooldown. Reset by re-sleeving. */
+  /**
+   * Current heat: starts at `sleeve.baseHeat`, raised by actions, lowered by the cooldown and by Burn leads. Reset by re-sleeving.
+   * It may hold fractions of a point (Overclock adds heat continuously), but the cooldown only ever removes whole points: it waits
+   * until there is at least one.
+   */
   heat: number;
   /** Time spent on the current heat cooldown cycle, in ms. Only advances while heat > 0. Reset by re-sleeving. */
   heatCooldownMs: number;
@@ -432,10 +529,12 @@ export interface GameState {
   networkRemainder: number;
   /** Gained from actions paying `nodePayout`: credits per second added to the BASE value of what each node produces (`network.creditsPerNodePerSecond + this`; buyables multiply the sum). Reset by re-sleeving. */
   nodePayoutBonus: BigNum;
-  /** Actions that were unlocked by a `nodes` rule and stay unlocked. Reset by re-sleeving. */
-  unlockedActions: Record<ActionId, boolean>;
   /** Auto-run buyables the player has switched off (absent or false: running). Reset by re-sleeving. */
   autoRunOff: Record<BuyableId, boolean>;
+  /** Actions whose Overclock toggle is switched on (absent or false: off). Reset by re-sleeving. */
+  overclocked: Record<ActionId, boolean>;
+  /** Actions that are focused (absent or false: not); at most as many as there are Focus slots. Reset by re-sleeving. */
+  focused: Record<ActionId, boolean>;
   /** Hacking Proficiency: gained from actions paying `hackingProficiency`; the hacking multiplier on interface speed is a concave function of it. Reset by re-sleeving. */
   hackingProficiency: BigNum;
   actions: Record<ActionId, ActionState>;

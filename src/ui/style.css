@@ -7,6 +7,7 @@
   --magenta: #ff2bd6;
   --line: #26304d;
   --teal: #14a89a;
+  --gold: #b8860b;
 }
 * {
   box-sizing: border-box;
@@ -88,39 +89,151 @@ body {
   margin: 0;
 }
 .inventory-widget[hidden],
-.inventory-row[hidden],
-.inventory-empty[hidden] {
+.inventory-section[hidden] {
   display: none;
 }
-.inventory {
-  display: grid;
-  gap: 6px;
+/*
+ * The Inventory is two inset panels side by side: items that are kept or used on the left, items that can be sold on the right. Each
+ * panel has a header bar with an accent mark, a well of tiles with room between them, and (for sale) a divider before the buttons.
+ */
+.inventory-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: stretch;
+  padding-left: 6px; /* the panels sit slightly in from the widget's heading */
 }
-.inventory-row {
+.inventory-section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(4, auto);
+  grid-template-rows: auto 1fr; /* the header bar, then the body, which centres its content in the height that is left */
+  gap: 10px;
+  padding: 0 14px 14px;
+  background: #0d1220;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.35);
+}
+.inventory-section .section-title {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  gap: 8px;
+  margin: 0 -14px;
+  padding: 7px 14px;
+  background: #121a2e;
+  border-bottom: 1px solid var(--line);
+  border-radius: 9px 9px 0 0;
 }
-.inventory-label {
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.inventory-section .section-title::before {
+  content: "";
+  width: 3px;
+  height: 12px;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+  border-radius: 2px;
 }
-.inventory-count {
+.inventory-for-sale .section-title::before {
+  background: var(--magenta);
+  box-shadow: 0 0 6px var(--magenta);
+}
+.inventory-sell-body {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  align-self: center;
+}
+/* The tiles of each item in a row of their own, the items side by side with a divider between them, centred in the panel. */
+.item-grid {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 12px;
+  padding: 2px;
+}
+.item-group {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 8px;
+}
+.item-group + .item-group {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+/* A tile: the icon with the count underneath. The border colour tells the rarities apart. */
+.item-tile {
+  --rarity: var(--line);
+  display: grid;
+  justify-items: center;
+  width: 38px;
+  gap: 1px;
+  padding: 3px 1px 2px;
+  background: #0a0e18;
+  border-color: var(--rarity);
+  border-radius: 6px;
+}
+.item-tile.rarity-1 {
+  --rarity: #3dff7a;
+}
+.item-tile.rarity-2 {
+  --rarity: #4d8bff;
+}
+.item-tile.rarity-3 {
+  --rarity: #ff2bd6;
+}
+.item-tile.rarity-4 {
+  --rarity: #ff8a1f;
+}
+.item-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  line-height: 20px;
+  text-align: center;
+}
+.item-icon.has-icon {
+  font-size: 0;
+}
+.item-icon.has-icon::before {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  vertical-align: top;
+}
+.item-count {
+  font-size: 10px;
+  line-height: 1.2;
   font-weight: 700;
   color: var(--cyan);
 }
-.inventory-sell {
-  padding: 2px 8px;
+/* A stack that is not held is dimmed (by colour, so its tooltip stays readable). */
+.item-tile.empty .item-icon::before,
+.item-tile.empty .item-icon {
+  opacity: 0.35;
+}
+.item-tile.empty .item-count {
+  color: #5b6b86;
+}
+.item-tile:disabled {
+  opacity: 1;
+}
+.item-tile.selected {
+  background: #14304a;
+  box-shadow: 0 0 8px var(--cyan);
+}
+.inventory-actions {
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+.inventory-action {
+  padding: 4px 10px;
   font-size: 12px;
   border-radius: 6px;
 }
-.inventory-empty {
-  font-size: 14px;
-  color: var(--muted);
+.inventory-action[hidden] {
+  display: none;
 }
 .section-title {
   margin: 4px 0 0;
@@ -202,9 +315,10 @@ button:not(:disabled):hover {
   border-color: var(--cyan);
 }
 .action {
-  position: relative; /* the Augment button sits in the top right corner */
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  /* The bars fill the left column; the square (see .square) sits beside them in the right one. */
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -316,6 +430,11 @@ button:not(:disabled):hover {
   border-color: var(--teal);
   color: var(--teal);
 }
+/* A one-off purchase that has been bought (it cannot be bought again): dark golden border instead of the repeatable teal. */
+.upgrade.owned.single {
+  border-color: var(--gold);
+  color: var(--gold);
+}
 .upgrade.owned.off {
   border-color: var(--line);
   color: var(--muted);
@@ -368,6 +487,15 @@ button:not(:disabled):hover {
 }
 .resleeve-cancel[hidden] {
   display: none;
+}
+.save-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.save-row button {
+  padding: 6px 10px;
+  font-size: 13px;
 }
 .corner-controls {
   position: fixed;
@@ -446,18 +574,125 @@ button:not(:disabled):hover {
   color: var(--cyan);
 }
 
-/* The Augment button in the top right corner of an action card. */
-.augment {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 8px;
-  font-size: 12px;
-  border-radius: 6px;
+/* Pixel-art icon before the text of an action title, an inventory label or the credits (see applyIcon in dom.ts). */
+.has-icon::before {
+  content: "";
+  display: inline-block;
+  width: 1.4em;
+  height: 1.4em;
+  margin-right: 0.4em;
+  vertical-align: -0.3em;
+  background: var(--icon) center / contain no-repeat;
+  image-rendering: pixelated;
 }
-.augment[hidden] {
+.credits.has-icon::before {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.15em;
+}
+
+/* A purchase button with an icon shows the icon instead of its letters (the letters stay as the fallback and are hidden). */
+.upgrade.has-icon {
+  font-size: 0;
+}
+.upgrade.has-icon::before {
+  position: absolute;
+  inset: 6px;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+/* An icon dims with its button: unaffordable or switched off. Owned and ready buttons show it at full colour. */
+.upgrade.has-icon:disabled:not(.single.owned)::before,
+.upgrade.has-icon.off::before {
+  filter: grayscale(0.8) brightness(0.55);
+}
+.upgrade.has-icon.owned.off::before {
+  filter: grayscale(1) brightness(0.45);
+}
+
+/*
+ * The square beside the lower part of an action card. The run bar spans the full width of the card; below it the reward line and the
+ * two level bars (action level, sleeve level) take the left column, and the square the right one over those same three rows. The
+ * card's row of purchases runs underneath across both.
+ */
+.action > .action-main {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+.action > .action-reward {
+  grid-column: 1;
+  grid-row: 2;
+}
+.action > .xp-level {
+  grid-column: 1;
+  grid-row: 3;
+}
+.action > .xp-sleeve {
+  grid-column: 1;
+  grid-row: 4;
+}
+.action > .square {
+  grid-column: 2;
+  grid-row: 2 / 5;
+  align-self: stretch;
+}
+.action > .upgrades {
+  grid-column: 1 / -1;
+  grid-row: 5;
+}
+/* The square is two cells by two with a gap; its size follows the cell size so that it can match the three rows beside it. */
+.square {
+  --cell: 36px;
+  --square-gap: 6px;
+  --square-size: calc(var(--cell) * 2 + var(--square-gap));
+  width: var(--square-size);
+  height: var(--square-size);
+  align-self: center;
+}
+.square-grid {
+  display: grid;
+  grid-template-columns: repeat(2, var(--cell));
+  grid-template-rows: repeat(2, var(--cell));
+  gap: var(--square-gap);
+}
+.square-grid .upgrade {
+  width: var(--cell);
+  height: var(--cell);
+  line-height: calc(var(--cell) - 2px);
+  font-size: 12px;
+}
+.square-grid .upgrade.has-icon {
+  font-size: 0;
+}
+.square-grid .upgrade.has-icon::before {
+  inset: 4px;
+}
+.square-grid[hidden],
+.square-unlock[hidden] {
   display: none;
 }
-.augment.applied:not(:disabled) {
+/* Before Auto-run is bought the whole square is the button that buys it. */
+.square-unlock {
+  width: var(--square-size);
+  height: var(--square-size);
+  font-size: 32px;
+  line-height: calc(var(--square-size) - 2px);
+}
+.square-unlock.has-icon::before {
+  inset: 14px;
+}
+.square-unlock.ready:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+/* A feature this action does not have yet: an empty placeholder. */
+.cell.empty {
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.4;
+}
+.cell.applied:not(:disabled) {
   border-color: var(--teal);
 }

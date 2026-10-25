@@ -34,6 +34,8 @@ export const testConfig: GameConfig = {
     ],
     definitions: [{ id: 'file', name: 'File' }],
   },
+  criticalSuccess: { xpMultiplier: 2, rewardMultiplier: 3 },
+  focus: { speedBonus: 0.25, baseSlots: 1 },
   progression: {
     runsPerSleeveXp: 100,
     sleeveXpPerGrant: 1,
@@ -76,7 +78,7 @@ export const networkAction: GameConfig['actions'][number] = {
   xpPerRun: num(1),
 };
 
-/** A test action that costs 50 nodes per run, pays +1 ICE Rating, needs 1000 nodes to unlock and stays unlocked (1 s runs). */
+/** A test action that costs 50 nodes per run, pays +1 ICE Rating, (1 s runs). */
 export const killAction: GameConfig['actions'][number] = {
   id: 'kill',
   name: 'Kill',
@@ -84,7 +86,6 @@ export const killAction: GameConfig['actions'][number] = {
   reward: num(1),
   rewardKind: 'iceRating',
   startCost: { currency: 'networkNodes', amount: num(50) },
-  unlock: { kind: 'nodes', amount: 1000 },
   xpPerRun: num(1),
 };
 
@@ -110,14 +111,14 @@ export const payoutAction: GameConfig['actions'][number] = {
   xpPerRun: num(1),
 };
 
-/** A test action unlocked by owning the `unlock` buyable: +1 Infamy, removes 25% of the nodes and adds 50 heat (1 s runs). */
+/** A test action that needs access level 2 (the `unlock` test buyable raises it): +1 Infamy, removes 25% of the nodes and adds 50 heat (1 s runs). */
 export const legendAction: GameConfig['actions'][number] = {
   id: 'legend',
   name: 'Legend',
   baseDurationMs: 1_000,
   reward: num(1),
   rewardKind: 'infamy',
-  unlock: { kind: 'buyable', buyableId: 'unlock' },
+  requiredAccessLevel: 2,
   heatPerRun: 50,
   completionEffects: [{ kind: 'removeNodesFraction', fraction: 0.25 }],
   xpPerRun: num(1),

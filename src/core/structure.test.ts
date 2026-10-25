@@ -18,7 +18,7 @@ describe('effect traits', () => {
       .filter(([, t]) => t.needsAction)
       .map(([kind]) => kind)
       .sort();
-    expect(needing).toEqual(['autoRun', 'itemDrop', 'rarityShiftFromProficiency', 'rewardMultiplier']);
+    expect(needing).toEqual(['autoRun', 'focusUnlock', 'itemDrop', 'overclockUnlock', 'rarityShiftFromProficiency', 'rewardMultiplier']);
   });
 
   it('every kind used by the shipped content has traits', () => {

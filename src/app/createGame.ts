@@ -7,7 +7,11 @@ import { gameConfig } from '../content/gameConfig';
 import {
   ActionRunner,
   DerivedStats,
+  ActionToggles,
   Augments,
+  BackChannel,
+  BurnLeads,
+  CriticalSuccesses,
   Economy,
   GameEngine,
   Inventory,
@@ -74,13 +78,18 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const stats = new DerivedStats(config, state, progression, economy, createSpeedModifiers(config), factory, definition, snapshot);
   const diagnostics = options.diagnostics ?? silentDiagnostics;
   const inventory = new Inventory(config, state, factory);
-  const drops = new ItemDrops(config, stats, inventory, options.random ?? Math.random);
+  const random = options.random ?? Math.random;
+  const drops = new ItemDrops(config, stats, inventory, random);
+  const criticals = new CriticalSuccesses(stats, random);
   return new GameEngine(config, state, {
     progression,
     shop,
     stats,
-    runner: new ActionRunner(config, state, stats, progression, economy, shop, factory, definition, drops, diagnostics),
+    runner: new ActionRunner(config, state, stats, progression, economy, factory, definition, drops, criticals, diagnostics),
     inventory,
+    backChannel: new BackChannel(state, stats, inventory),
+    burnLeads: new BurnLeads(config, state, inventory),
+    toggles: new ActionToggles(state, stats),
     drops,
     augments: new Augments(config, state, inventory),
     network: new NetworkSystem(state, stats, factory),

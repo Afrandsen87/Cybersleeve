@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { num, numberFactory } from '../numbers';
 import { malwareAction, networkAction, testConfig } from '../testing/testConfig';
 import { createGame } from '../app/createGame';
@@ -14,7 +14,7 @@ import {
 
 const config = testConfig;
 const load = (data: object) =>
-  deserializeState(JSON.stringify({ version: 3, credits: '0', network: '0', actions: {}, purchased: {}, ...data }), config, numberFactory);
+  deserializeState(JSON.stringify({ version: 4, credits: '0', network: '0', actions: {}, purchased: {}, ...data }), config, numberFactory);
 
 describe('loading a save sanitises it', () => {
   it('turns negative amounts into 0', () => {
@@ -107,16 +107,16 @@ describe('coolHeat', () => {
 
 describe('overflow policy', () => {
   const policy = createClampOverflowPolicy(numberFactory);
-  const max = numberFactory.maxValue();
+  const max = num(1e308);
 
   it('leaves a healthy state alone', () => {
     const s = createInitialState(config, numberFactory);
-    s.credits = num('1e5000');
+    s.credits = num('1e300');
     expect(policy.apply(s)).toBe(false);
-    expect(s.credits.eq(num('1e5000'))).toBe(true);
+    expect(s.credits.eq(num('1e300'))).toBe(true);
   });
 
-  it('clamps overflowing amounts to the largest finite value and negative non-finite ones to zero', () => {
+  it('clamps overflowing amounts to the game infinity (1e308) and negative non-finite ones to zero', () => {
     const s = createInitialState(config, numberFactory);
     s.credits = num(Infinity);
     s.network = num('-1e9000000000000000');
@@ -126,6 +126,21 @@ describe('overflow policy', () => {
     expect(s.network.isZero()).toBe(true);
     expect(s.actions['a']!.xp.eq(max)).toBe(true);
     expect(s.credits.isFinite()).toBe(true);
+  });
+
+  it('clamps an amount above 1e308 to 1e308 and tells the listener, once per application, only when infinity is reached', () => {
+    const reached = vi.fn();
+    const listening = createClampOverflowPolicy(numberFactory, reached);
+    const s = createInitialState(config, numberFactory);
+    s.credits = num('1e307');
+    expect(listening.apply(s)).toBe(false);
+    expect(reached).not.toHaveBeenCalled();
+    s.credits = num('1e500');
+    s.actions['a']!.sleeveXp = num('1e400');
+    expect(listening.apply(s)).toBe(true);
+    expect(s.credits.eq(max)).toBe(true);
+    expect(s.actions['a']!.sleeveXp.eq(max)).toBe(true);
+    expect(reached).toHaveBeenCalledTimes(1);
   });
 
   it('clamps non-finite heat (NaN becomes 0)', () => {

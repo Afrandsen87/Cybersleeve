@@ -4,7 +4,7 @@ import { numberFactory, num } from '../numbers';
 import { setCredits, setSleeveXp, testConfig } from '../testing/testConfig';
 import { createGame } from './createGame';
 import { createNewGameHandler } from './newGame';
-import { BACKUP_KEY, MemoryStore, SAVE_KEY, SaveGame, createBrowserStore, type KeyValueStore } from './persistence';
+import { BACKUP_KEY, MemoryStore, PREVIOUS_KEY, SAVE_KEY, SaveGame, createBrowserStore, type KeyValueStore } from './persistence';
 
 const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
 
@@ -45,6 +45,46 @@ describe('SaveGame', () => {
     save.save(game().getState());
     expect(save.load()).not.toBeNull();
     expect(store.getItem(BACKUP_KEY)).toBeNull();
+  });
+
+  it('falls back to the last known-good save when the main save has become unreadable', () => {
+    const store = new MemoryStore();
+    const save = new SaveGame(store, testConfig, numberFactory);
+    const g = game();
+    setCredits(g, num(7));
+    save.save(g.getState());
+    expect(save.load()!.credits.eq(num(7))).toBe(true); // a good load remembers the save
+    store.setItem(SAVE_KEY, '{broken');
+    const restored = save.load();
+    expect(restored!.credits.eq(num(7))).toBe(true);
+    expect(store.getItem(BACKUP_KEY)).toBe('{broken'); // the broken one is still kept for inspection
+  });
+
+  it('exports a save as text and imports it again; an invalid text changes nothing', () => {
+    const store = new MemoryStore();
+    const save = new SaveGame(store, testConfig, numberFactory);
+    const g = game();
+    setCredits(g, num(12));
+    const text = save.exportText(g.getState());
+    expect(save.importText('not a save')).toBe(false);
+    expect(store.getItem(SAVE_KEY)).toBeNull();
+    expect(
+      save.importText(`  ${text}
+`),
+    ).toBe(true);
+    expect(save.load()!.credits.eq(num(12))).toBe(true);
+  });
+
+  it('clearing the save also forgets the previous known-good one, so a reset game does not come back', () => {
+    const store = new MemoryStore();
+    const save = new SaveGame(store, testConfig, numberFactory);
+    save.save(game().getState());
+    save.load();
+    expect(store.getItem(PREVIOUS_KEY)).not.toBeNull();
+    save.clear();
+    expect(store.getItem(SAVE_KEY)).toBeNull();
+    expect(store.getItem(PREVIOUS_KEY)).toBeNull();
+    expect(save.load()).toBeNull();
   });
 
   it('reports failure when storage throws', () => {

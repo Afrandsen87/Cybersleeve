@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
-import { testConfig } from '../testing/testConfig';
+import { setCredits, testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel } from './viewModel';
 
@@ -59,17 +59,21 @@ describe('the Augment button on the screen', () => {
     document.body.append(root);
     const game = createGame({ config });
     const render = mountUi(root, game, speed, () => {});
+    // The Augment button is a cell of the square, which shows its four cells once Auto-run is owned.
+    setCredits(game, num(100));
+    game.buy('auto');
+    render();
     const buttons = () => [...root.querySelectorAll<HTMLButtonElement>('.action .augment')];
     return { root, game, render, buttons };
   };
 
-  it('sits in every action card, outside the button that starts the action', () => {
+  it('is a cell of the square in every action card, outside the button that starts the action', () => {
     const { root, buttons } = mount();
     expect(buttons()).toHaveLength(1);
     const card = root.querySelector('.action')!;
-    expect(buttons()[0]!.parentElement).toBe(card);
+    expect(buttons()[0]!.parentElement!.classList.contains('square-grid')).toBe(true);
     expect(card.querySelector('.action-main .augment')).toBeNull();
-    expect(buttons()[0]!.textContent).toBe('Augment');
+    expect(buttons()[0]!.getAttribute('aria-label')).toBe('Augment');
   });
 
   it('is disabled until a schematic is held, and then applies one and updates the card', () => {
@@ -95,11 +99,17 @@ describe('the Augment button on the screen', () => {
     expect(game.getState().actions['a']!.running).toBe(false);
   });
 
-  it('is hidden in a game without a schematic', () => {
+  it('is an empty placeholder in a game without a schematic', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config: testConfig }), speed, () => {});
-    expect(root.querySelector<HTMLButtonElement>('.augment')!.hidden).toBe(true);
+    const game = createGame({ config: testConfig });
+    const render = mountUi(root, game, speed, () => {});
+    setCredits(game, num(100));
+    game.buy('auto');
+    render();
+    const cell = root.querySelector<HTMLButtonElement>('.augment')!;
+    expect(cell.classList.contains('empty')).toBe(true);
+    expect(cell.disabled).toBe(true);
   });
 
   it('the XP of the next run is the raised amount', () => {
@@ -121,14 +131,16 @@ describe('items that cannot be paid out, in the Inventory', () => {
     stock(g, { common: 2 });
     const row = buildViewModel(g).inventory.rows[0]!;
     expect(row.sellable).toBe(false);
-    expect(row.tip).toBe('Common File\nApplied to an action with its Augment button\nThe most common one is used first\n\nOwned = 2');
+    expect(row.tip).toBe(
+      'Common File\nApplied to an action with its Augment button\nThe most common one is used first\n\nDrop Chance = 0%\nOwned = 2',
+    );
     expect(row.tip).not.toMatch(/\b(not|never|no)\b/i);
   });
 
-  it('the sell buttons are hidden on the screen, and other items keep them', () => {
-    for (const [cfg, hidden] of [
-      [kept, true],
-      [config, false],
+  it('the item has no sell section and its tiles cannot be selected, while other items get a sell section', () => {
+    for (const [cfg, sellable] of [
+      [kept, false],
+      [config, true],
     ] as const) {
       document.body.innerHTML = '';
       const root = document.createElement('div');
@@ -136,9 +148,12 @@ describe('items that cannot be paid out, in the Inventory', () => {
       const game = createGame({ config: cfg });
       stock(game, { common: 2 });
       mountUi(root, game, speed, () => {});
-      const sells = [...root.querySelectorAll<HTMLElement>('.inventory-row .inventory-sell:not(.inventory-back-channel)')];
-      expect(sells).toHaveLength(4); // two per rarity row
-      expect(sells.every((b) => b.hidden === hidden)).toBe(true);
+      const sections = [...root.querySelectorAll<HTMLElement>('.inventory-section')];
+      expect(sections[1]!.hidden).toBe(!sellable); // the section for sale
+      expect(sections[0]!.hidden).toBe(sellable); // the section of kept items
+      const tile = root.querySelector<HTMLButtonElement>('.item-tile')!;
+      tile.click();
+      expect(tile.classList.contains('selected')).toBe(sellable);
     }
   });
 });

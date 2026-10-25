@@ -36,7 +36,6 @@ const mutable = (g: { getState(): unknown }) =>
     heat: number;
     infamy: number;
     iceRating: ReturnType<typeof num>;
-    unlockedActions: Record<string, boolean>;
     autoRunOff: Record<string, boolean>;
   };
 
@@ -118,29 +117,19 @@ describe('ICE Rating stat', () => {
   });
 });
 
-describe('action with a node-count unlock and a start cost (Kill servers)', () => {
+describe('action with a start cost (Kill servers)', () => {
   const kill = (buyables: BuyableDefinition[] = []) => game([testConfig.actions[0]!, killAction], buyables);
 
-  it('is locked until the network reaches the node count', () => {
+  it('cannot be started without enough nodes to pay the start cost, and can be with them', () => {
     const g = kill();
-    mutable(g).network = num(999);
-    expect(g.isUnlocked('kill')).toBe(false);
-    expect(g.startAction('kill')).toBe(false);
-    mutable(g).network = num(1000);
-    expect(g.isUnlocked('kill')).toBe(true);
-  });
-
-  it('stays unlocked once reached, even when the network shrinks afterwards', () => {
-    const g = kill();
-    mutable(g).network = num(1000);
-    g.tick(1);
-    mutable(g).network = num(60);
-    expect(g.isUnlocked('kill')).toBe(true);
+    mutable(g).network = num(49);
+    expect(g.canStart('kill')).toBe(false);
+    mutable(g).network = num(50);
+    expect(g.canStart('kill')).toBe(true);
   });
 
   it('pays 50 nodes when a run starts, once, and adds 1 ICE Rating on completion', () => {
     const g = kill();
-    mutable(g).unlockedActions['kill'] = true;
     mutable(g).network = num(60);
     expect(g.startAction('kill')).toBe(true);
     expect(g.getState().network.eq(num(10))).toBe(true);
@@ -152,7 +141,6 @@ describe('action with a node-count unlock and a start cost (Kill servers)', () =
 
   it('does not start without enough nodes and then charges nothing', () => {
     const g = kill();
-    mutable(g).unlockedActions['kill'] = true;
     mutable(g).network = num(49);
     expect(g.startAction('kill')).toBe(false);
     expect(g.getState().network.eq(num(49))).toBe(true);
@@ -161,7 +149,6 @@ describe('action with a node-count unlock and a start cost (Kill servers)', () =
 
   it('with auto-run pays for every run and stops when the nodes run out', () => {
     const g = kill([autoOn('kill')]);
-    mutable(g).unlockedActions['kill'] = true;
     mutable(g).network = num(120);
     setCredits(g, num(1));
     g.buy('auto-kill');
@@ -176,7 +163,6 @@ describe('action with a node-count unlock and a start cost (Kill servers)', () =
 
   it('completes one run per batch with auto-run: 3 s of auto-running costs 3 runs of nodes', () => {
     const g = kill([autoOn('kill')]);
-    mutable(g).unlockedActions['kill'] = true;
     mutable(g).network = num(500);
     setCredits(g, num(1));
     g.buy('auto-kill');
@@ -185,22 +171,19 @@ describe('action with a node-count unlock and a start cost (Kill servers)', () =
     expect(g.getState().network.eq(num(500 - 4 * 50))).toBe(true); // 3 completed + 1 paid for the next
   });
 
-  it('re-sleeving resets ICE Rating and the remembered unlock', () => {
+  it('re-sleeving resets ICE Rating', () => {
     const g = kill();
-    mutable(g).network = num(1000);
-    g.tick(1);
     mutable(g).iceRating = num(50);
     g.resleeve();
     expect(g.getState().iceRating.eq(num(1))).toBe(true);
-    expect(g.isUnlocked('kill')).toBe(false);
   });
 });
 
-describe('action unlocked by a buyable with completion effects (Legend)', () => {
-  const unlock = free('unlock', undefined, { kind: 'unlock' });
+describe('action gated by access level with completion effects (Legend)', () => {
+  const unlock = free('unlock', undefined, { kind: 'accessLevel', amount: 1 });
   const legend = (buyables: BuyableDefinition[] = []) => game([testConfig.actions[0]!, legendAction], [unlock, ...buyables]);
 
-  it('is locked until the buyable is owned', () => {
+  it('is locked until the access level is raised', () => {
     const g = legend();
     expect(g.isUnlocked('legend')).toBe(false);
     expect(g.startAction('legend')).toBe(false);
@@ -401,27 +384,24 @@ describe('saving the newer stats', () => {
     const state = createInitialState(config, numberFactory);
     state.iceRating = num(7);
     state.infamy = 3;
-    state.unlockedActions['kill'] = true;
     state.purchased['auto-a'] = 1;
     state.autoRunOff['auto-a'] = true;
     return state;
   };
 
-  it('round-trips ICE Rating, Infamy, unlocked actions and auto-run switches', () => {
+  it('round-trips ICE Rating, Infamy and auto-run switches', () => {
     const restored = deserializeState(serializeState(withState()), config, numberFactory)!;
     expect(restored.iceRating.eq(num(7))).toBe(true);
     expect(restored.infamy).toBe(3);
-    expect(restored.unlockedActions).toEqual({ kill: true });
     expect(restored.autoRunOff).toEqual({ 'auto-a': true });
   });
 
   it('an older save without them loads with fresh-game values', () => {
     const json = JSON.parse(serializeState(withState()));
-    for (const key of ['iceRating', 'infamy', 'unlockedActions', 'autoRunOff']) delete json[key];
+    for (const key of ['iceRating', 'infamy', 'autoRunOff']) delete json[key];
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
     expect(restored.iceRating.eq(num(1))).toBe(true);
     expect(restored.infamy).toBe(0);
-    expect(restored.unlockedActions).toEqual({});
     expect(restored.autoRunOff).toEqual({});
   });
 
@@ -429,12 +409,10 @@ describe('saving the newer stats', () => {
     const json = JSON.parse(serializeState(withState()));
     json.infamy = -3;
     json.iceRating = '0.5';
-    json.unlockedActions = { kill: true, a: true, ghost: true }; // only actions with a node-count rule can be remembered
     json.autoRunOff = { 'auto-a': true, ghost: true };
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
     expect(restored.infamy).toBe(0);
     expect(restored.iceRating.eq(num(1))).toBe(true);
-    expect(restored.unlockedActions).toEqual({ kill: true });
     expect(restored.autoRunOff).toEqual({ 'auto-a': true });
   });
 });
@@ -442,10 +420,8 @@ describe('saving the newer stats', () => {
 describe('validation of the newer settings', () => {
   const invalid = (overrides: object) => validateConfig(createConfig(testConfig, overrides)).join('|');
 
-  it('rejects bad unlock rules, start costs and completion effects', () => {
+  it('rejects bad start costs and completion effects', () => {
     const action = (extra: object) => ({ ...testConfig.actions[0]!, ...extra });
-    expect(invalid({ actions: [action({ unlock: { kind: 'nodes', amount: 0 } })] })).toContain('unlock node count');
-    expect(invalid({ actions: [action({ unlock: { kind: 'buyable', buyableId: 'ghost' } })] })).toContain('unknown buyable "ghost"');
     expect(invalid({ actions: [action({ startCost: { currency: 'gold', amount: num(1) } })] })).toContain('unknown currency');
     expect(invalid({ actions: [action({ startCost: { currency: 'credits', amount: num(-1) } })] })).toContain('startCost amount');
     expect(invalid({ actions: [action({ completionEffects: [{ kind: 'removeNodesFraction', fraction: 2 }] })] })).toContain(
@@ -476,7 +452,7 @@ describe('validation of the newer settings', () => {
     expect(
       invalid({
         actions: [testConfig.actions[0]!, killAction, legendAction, networkAction],
-        buyables: [free('unlock', undefined, { kind: 'unlock' })],
+        buyables: [free('unlock', undefined, { kind: 'accessLevel', amount: 1 })],
       }),
     ).toBe('');
   });

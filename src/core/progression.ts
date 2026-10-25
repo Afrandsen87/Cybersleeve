@@ -19,6 +19,13 @@ interface ActionReductionSource {
   readonly amount: number;
 }
 
+/** A `runsPerSleeveXpReduction` buyable. */
+interface RunsReductionSource {
+  readonly id: BuyableId;
+  readonly perCopy: number;
+  readonly minRuns: number;
+}
+
 /** Above this many runs the exact remainder toward the next sleeve-XP batch is meaningless and dropped. */
 const EXACT_RUN_LIMIT = 1e15;
 
@@ -38,12 +45,14 @@ function wholeCount(x: BigNum): number {
  * measured against the normal thresholds.
  * `actionXpReduction` buyables do the same for every ACTION level (never the sleeve levels): each action level then needs `(1 - r)`
  * times the XP.
+ * `runsPerSleeveXpReduction` buyables lower how many runs one batch of sleeve XP takes (see {@link Progression.runsPerSleeveXp}).
  * Called by: `engine.ts`.
  */
 export class Progression {
   private readonly actionRules = new Map<ActionId, LevelRule>();
   private readonly sleeveRules = new Map<ActionId, LevelRule>();
-  private readonly runsPerSleeveXp: BigNum;
+  private readonly baseRunsPerSleeveXp: number;
+  private readonly runsReductionSources: readonly RunsReductionSource[];
   private readonly sleeveXpPerGrant: BigNum;
   private readonly reductionSources: readonly ReductionSource[];
   private readonly actionReductionSources: readonly ActionReductionSource[];
@@ -65,20 +74,45 @@ export class Progression {
     this.actionReductionSources = (config.buyables ?? []).flatMap((b) =>
       b.effect.kind === 'actionXpReduction' ? [{ id: b.id, amount: b.effect.amount }] : [],
     );
+    this.runsReductionSources = (config.buyables ?? []).flatMap((b) =>
+      b.effect.kind === 'runsPerSleeveXpReduction' ? [{ id: b.id, perCopy: b.effect.perCopy, minRuns: b.effect.minRuns }] : [],
+    );
     for (const a of config.actions) {
       this.actionRules.set(a.id, new LevelRule(a.levels ?? config.progression.actionLevels, factory));
       this.sleeveRules.set(a.id, new LevelRule(a.sleeveLevels ?? config.progression.sleeveLevels, factory));
     }
-    this.runsPerSleeveXp = factory.fromNumber(config.progression.runsPerSleeveXp);
+    this.baseRunsPerSleeveXp = config.progression.runsPerSleeveXp;
     this.sleeveXpPerGrant = factory.fromNumber(config.progression.sleeveXpPerGrant);
     this.maxTotalReduction = config.progression.maxSleeveXpReduction;
+  }
+
+  /**
+   * Completed runs one batch of sleeve XP takes right now.
+   *
+   * @remarks
+   * `progression.runsPerSleeveXp` less `perCopy` per owned copy of each `runsPerSleeveXpReduction` buyable, but never below the
+   * largest `minRuns` among the owned ones, and never above the base. Called by: `recordRuns`, `runsBeforeLevelChange`, `engine.ts`.
+   *
+   * @param state current state (reads `purchased`)
+   * @returns a whole number between 1 and `progression.runsPerSleeveXp`
+   */
+  runsPerSleeveXp(state: GameState): number {
+    let runs = this.baseRunsPerSleeveXp;
+    let floor = 1;
+    for (const { id, perCopy, minRuns } of this.runsReductionSources) {
+      const copies = state.purchased[id] ?? 0;
+      if (copies <= 0) continue;
+      runs -= perCopy * copies;
+      floor = Math.max(floor, minRuns);
+    }
+    return Math.min(this.baseRunsPerSleeveXp, Math.max(floor, runs));
   }
 
   /**
    * Records completed runs of an action.
    *
    * - Adds `xp` to the action's experience.
-   * - Adds `runs` to the action's run counter; every `runsPerSleeveXp` runs grants it `sleeveXpPerGrant` sleeve XP.
+   * - Adds `runs` to the action's run counter; every {@link Progression.runsPerSleeveXp} runs grants it `sleeveXpPerGrant` sleeve XP.
    *
    * @param state state to mutate
    * @param actionId the action that completed
@@ -90,11 +124,19 @@ export class Progression {
     const action = this.requireAction(state, actionId);
     action.xp = action.xp.add(xp);
 
+    const runsPerXp = this.runsPerSleeveXp(state);
     const total = this.factory.fromNumber(action.runsTowardSleeveXp).add(runs);
-    const grants = total.div(this.runsPerSleeveXp).floor();
-    action.runsTowardSleeveXp = total.lt(this.factory.fromNumber(EXACT_RUN_LIMIT))
-      ? total.sub(grants.mul(this.runsPerSleeveXp)).toNumber()
-      : 0;
+    let grants: BigNum;
+    if (total.lt(this.factory.fromNumber(EXACT_RUN_LIMIT))) {
+      // Whole runs below the limit are exact as plain numbers; the number type's division is not (90 / 90 can come out just under 1).
+      const runCount = Math.round(total.toNumber());
+      const batches = Math.floor(runCount / runsPerXp);
+      action.runsTowardSleeveXp = runCount - batches * runsPerXp;
+      grants = this.factory.fromNumber(batches);
+    } else {
+      action.runsTowardSleeveXp = 0;
+      grants = total.div(this.factory.fromNumber(runsPerXp)).floor();
+    }
     if (!grants.isZero()) action.sleeveXp = action.sleeveXp.add(grants.mul(this.sleeveXpPerGrant));
   }
 
@@ -123,7 +165,10 @@ export class Progression {
     }
     const missingXp = this.nextSleeveLevelXp(state, actionId).sub(action.sleeveXp);
     const grants = Math.max(1, wholeCount(missingXp.div(this.sleeveXpPerGrant)));
-    const neededRuns = this.factory.fromNumber(grants).mul(this.runsPerSleeveXp).sub(this.factory.fromNumber(action.runsTowardSleeveXp));
+    const neededRuns = this.factory
+      .fromNumber(grants)
+      .mul(this.factory.fromNumber(this.runsPerSleeveXp(state)))
+      .sub(this.factory.fromNumber(action.runsTowardSleeveXp));
     runs = Math.min(runs, wholeCount(neededRuns));
     return Math.max(1, runs);
   }

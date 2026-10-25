@@ -151,3 +151,36 @@ describe('Hacking Proficiency as a Sleeve attribute', () => {
     expect(card.rewardLine).toContain('hacking proficiency/run');
   });
 });
+
+describe('the tips say where the curve changes shape', () => {
+  const bent = { sleeve: { earnedSpeedExponent: 0.25, earnedSpeedKnee: 1, earnedSpeedExponentBeyond: 0.1 }, proficiency: 15 };
+  const line = 'Past 1 Hacking Proficiency the exponent is 0.1: each further point adds even less';
+
+  it('both tips have a line for it right under the formula', () => {
+    for (const id of ['interfaceSpeed', 'hackingProficiency'] as const) {
+      const lines = sleeveTip(id, bent).split('\n');
+      const at = lines.findIndex((l) => l.startsWith('Hacking Multiplier = 1 + '));
+      expect(lines[at + 1], id).toBe(line);
+    }
+  });
+
+  it('a curve with one shape has no such line', () => {
+    expect(sleeveTip('interfaceSpeed', { sleeve: { earnedSpeedExponent: 0.25 }, proficiency: 15 })).not.toContain('Past ');
+    expect(
+      sleeveTip('interfaceSpeed', { sleeve: { earnedSpeedExponent: 0.25, earnedSpeedExponentBeyond: 0.25 }, proficiency: 15 }),
+    ).not.toContain('Past ');
+  });
+
+  it('a steeper second shape says so, and the tips say what things do and never what they do not', () => {
+    const steeper = { sleeve: { earnedSpeedExponent: 0.25, earnedSpeedKnee: 2, earnedSpeedExponentBeyond: 0.5 }, proficiency: 15 };
+    expect(sleeveTip('hackingProficiency', steeper)).toContain(
+      'Past 2 Hacking Proficiency the exponent is 0.5: each further point adds more',
+    );
+    for (const id of ['interfaceSpeed', 'hackingProficiency'] as const) expect(sleeveTip(id, bent)).not.toMatch(/\b(not|never|no)\b/i);
+  });
+
+  it('the real game shows it', () => {
+    const tip = statRow(buildViewModel(createGame()).sleeve.stats, 'interfaceSpeed').tip ?? '';
+    expect(tip).toContain('Past 1 Hacking Proficiency the exponent is 0.1');
+  });
+});

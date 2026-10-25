@@ -73,9 +73,15 @@ export class ItemDrops {
 
   /** Splits `drops` items over the rarities by the rule's weights and puts them in the inventory. */
   private place(rule: ItemDropRule, drops: number): void {
+    const weights = rule.rarityWeights;
+    if (weights === undefined) {
+      // An item without rarity: every drop is its single stack, kept under the most common rarity.
+      this.inventory.add(rule.itemId, this.rarityIds[0]!, drops);
+      return;
+    }
     const counts = multinomial(
       drops,
-      this.rarityIds.map((id) => rule.rarityWeights[id] ?? 0),
+      this.rarityIds.map((id) => weights[id] ?? 0),
       this.random,
     );
     for (const [i, count] of counts.entries()) this.inventory.add(rule.itemId, this.rarityIds[i]!, count);

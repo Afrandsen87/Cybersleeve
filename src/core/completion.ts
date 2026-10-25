@@ -31,7 +31,8 @@ function removeNodes(nodes: BigNum, fraction: number, runs: number, factory: Num
  * Applies an action's completion effects for `runs` completed runs, in the order they are listed.
  *
  * @remarks
- * Nodes are whole: each run removes `floor(fraction * nodes)` (see {@link removeNodes}). Heat is not an effect: actions add
+ * Nodes are whole: each run of `removeNodesFraction` removes `floor(fraction * nodes)` (see {@link removeNodes}); `removeNodes` removes
+ * a fixed number per run, in closed form, and stops at 0. Heat is not an effect: actions add
  * heat through `ActionDefinition.heatPerRun`.
  * Called by: `actionRunner.ts` (`ActionRunner.completeRuns`).
  *
@@ -51,8 +52,13 @@ export function applyCompletionEffects(
       case 'removeNodesFraction':
         state.network = removeNodes(state.network, effect.fraction, runs, factory);
         break;
+      case 'removeNodes': {
+        const left = state.network.sub(factory.fromNumber(effect.amount).mul(factory.fromNumber(runs)));
+        state.network = left.isNegative() ? factory.fromNumber(0) : left;
+        break;
+      }
       default:
-        assertNever(effect.kind);
+        assertNever(effect);
     }
   }
 }

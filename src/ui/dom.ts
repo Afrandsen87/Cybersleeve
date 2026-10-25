@@ -6,9 +6,20 @@
  */
 import type { GameCommands, GameQueries } from '../core';
 import { ConfirmGate } from './confirmGate';
+import { CREDITS_ICON_ID, type IconSource, noIcons } from './pixelIcon';
 import { installTooltips, TipRegistry } from './tooltip';
-import { type UiText, uiText as defaultText, type StatId } from './uiText';
-import { buildViewModel, type BuyableView, type InventoryView, type SleeveSection, type StatRowView, type TabView } from './viewModel';
+import { type SquareCellId, type UiText, uiText as defaultText, type StatId } from './uiText';
+import {
+  buildViewModel,
+  type BuyableView,
+  type ActionSquareView,
+  type InventoryRowView,
+  type InventoryView,
+  type SleeveSection,
+  type SquareCellView,
+  type StatRowView,
+  type TabView,
+} from './viewModel';
 
 /** Number of cells in the action grid (3 columns x 2 rows). Cells without an action are shown empty. */
 const ACTION_GRID_SLOTS = 6;
@@ -26,6 +37,10 @@ export interface MountOptions {
   readonly text?: UiText;
   /** Show the test aids in the corner (Test drop, Reset save and the fast-forward toggle). Default: true. */
   readonly debugControls?: boolean;
+  /** The icons shown beside actions, items and the credits (default: none). */
+  readonly icons?: IconSource;
+  /** Export and import of the save as text; the buttons are shown only when given. */
+  readonly saveTransfer?: { exportSave(): void; importSave(): void };
 }
 
 /**
@@ -58,8 +73,20 @@ interface ActionCard {
   readonly sleeveXp: XpBar;
   /** Square purchase buttons of this action, by buyable id. */
   readonly buyables: ReadonlyMap<string, HTMLButtonElement>;
-  /** The Augment button in the top right corner of the card. */
-  readonly augment: HTMLButtonElement;
+  /** The square beside the bars: the Auto-run unlock, or the four cells once Auto-run is owned. */
+  readonly square: SquareHandle;
+}
+
+/** Handles to update the square of an action card. */
+interface SquareHandle {
+  /** The whole-square button that buys Auto-run (shown while it is not owned). */
+  readonly unlock: HTMLButtonElement;
+  /** The grid of four cells (shown once Auto-run is owned). */
+  readonly grid: HTMLElement;
+  /** The four cell buttons, by cell id. */
+  readonly cells: ReadonlyMap<SquareCellId, HTMLButtonElement>;
+  /** The square as the last refresh drew it (a press acts on what the player saw). */
+  latest: ActionSquareView;
 }
 
 /** Handles to update one small experience bar with its label. */
@@ -79,13 +106,21 @@ interface StatHandle {
 /** Handles to update the Inventory widget. */
 interface InventoryWidget {
   readonly root: HTMLElement;
-  readonly empty: HTMLElement;
-  /** One entry per item and rarity, by `itemId/rarityId`. */
-  readonly rows: ReadonlyMap<
-    string,
-    { readonly row: HTMLElement; readonly count: HTMLElement; readonly backChannel: HTMLElement; readonly sell: readonly HTMLElement[] }
-  >;
+  /** The section of items that are kept or used, and the section of items that can be sold (each hidden when it has no items). */
+  readonly keptSection: HTMLElement;
+  readonly sellSection: HTMLElement;
+  /** One tile per item and rarity, by `itemId/rarityId`, with the element that shows its count. */
+  readonly tiles: ReadonlyMap<string, { readonly tile: HTMLButtonElement; readonly count: HTMLElement }>;
+  /** The buttons beside the sellable tiles; they act on the selected stack. */
+  readonly sellOne: HTMLButtonElement;
+  readonly sellAll: HTMLButtonElement;
+  readonly backChannel: HTMLButtonElement;
+  /** The sellable stack the player has selected (`itemId/rarityId`), or `null`. A choice of the screen only: not saved. */
+  selected: string | null;
 }
+
+/** The key of a stack in the Inventory widget. */
+const stackKey = (itemId: string, rarityId: string): string => `${itemId}/${rarityId}`;
 
 /** A widget made of stat rows (the Sleeve and the Network). */
 interface StatWidget {
@@ -113,6 +148,7 @@ export function mountUi(
   options: MountOptions = {},
 ): () => void {
   const text = options.text ?? defaultText;
+  const icons = options.icons ?? noIcons;
   const initial = buildViewModel(engine, undefined, text);
   root.innerHTML = '';
   const tips = new TipRegistry();
@@ -120,6 +156,7 @@ export function mountUi(
 
   const header = h('header');
   const credits = h('div', 'credits');
+  applyIcon(credits, icons.urlFor(CREDITS_ICON_ID));
   header.append(credits);
 
   /** A click on a purchase: the engine decides whether it buys or switches an auto-run. */
@@ -131,30 +168,39 @@ export function mountUi(
     const root = h('div', 'action');
     const button = h('button', 'action-main') as HTMLButtonElement;
     const title = h('div', 'action-title');
+    applyIcon(title, icons.urlFor(a.id));
     const info = h('div', 'action-info');
     const bar = h('div', 'bar-fill');
     const track = h('div', 'bar');
     track.append(bar);
     const reward = h('div', 'action-reward');
-    button.append(title, info, track, reward);
+    button.append(title, info, track);
     button.addEventListener('click', () => engine.startAction(a.id));
 
     const levelXp = xpBar();
     const sleeveXp = xpBar();
+    levelXp.root.classList.add('xp-level');
+    sleeveXp.root.classList.add('xp-sleeve');
 
-    const { element: upgrades, buttons: buyables } = upgradeRow(a.buyables, activate);
+    const { element: upgrades, buttons: buyables } = upgradeRow(
+      a.buyables.filter((b) => !b.inSquare),
+      activate,
+      icons,
+    );
 
-    // The Augment button sits in the top right corner of the card, next to (not inside) the button that starts the action.
-    const augment = h('button', 'augment', a.augment?.label ?? '') as HTMLButtonElement;
-    augment.hidden = a.augment === null;
-    augment.addEventListener('click', () => {
-      engine.augmentAction(a.id);
+    // The square beside the bars: one button that buys Auto-run, then a grid of Auto-run, Overclock, Focus and Augment.
+    const { root: squareEl, handle: square } = buildSquare(a.square, icons, (cell) => {
+      if (cell.mode === 'buy' || (cell.mode === 'toggle' && cell.id === 'autoRun')) {
+        if (cell.buyableId !== null) engine.activateBuyable(cell.buyableId);
+      } else if (cell.mode === 'toggle' && cell.id === 'overclock') engine.toggleOverclock(a.id);
+      else if (cell.mode === 'toggle' && cell.id === 'focus') engine.toggleFocus(a.id);
+      else if (cell.mode === 'press') engine.augmentAction(a.id);
       render();
     });
 
-    root.append(button, augment, levelXp.root, sleeveXp.root, upgrades);
+    root.append(button, reward, levelXp.root, sleeveXp.root, squareEl, upgrades);
     actionsEl.append(root);
-    cards.set(a.id, { root, button, title, info, bar, reward, levelXp, sleeveXp, buyables, augment });
+    cards.set(a.id, { root, button, title, info, bar, reward, levelXp, sleeveXp, buyables, square });
   }
 
   for (let i = initial.actions.length; i < ACTION_GRID_SLOTS; i++) actionsEl.append(h('div', 'action empty'));
@@ -168,28 +214,22 @@ export function mountUi(
   const exploitationWidget = h('aside', 'exploitation-widget');
   exploitationWidget.append(h('h2', undefined, text.titles.exploitation));
   for (const section of initial.sleeve.sections) {
-    if (section.id === 'nodes') addSection(exploitationWidget, section, activate, sleeveButtons, false);
-    else addSection(upgradesWidget, section, activate, sleeveButtons, section.id !== 'rebuyable'); // the rebuyables are the widget's main content
+    if (section.id === 'nodes') addSection(exploitationWidget, section, activate, sleeveButtons, false, icons);
+    else addSection(upgradesWidget, section, activate, sleeveButtons, section.id !== 'rebuyable', icons); // the rebuyables are the widget's main content
   }
   const networkWidget = buildStatWidget('network-widget', initial.network.title, initial.network.stats);
-  const inventoryWidget = buildInventoryWidget(
-    initial.inventory,
-    text,
-    (itemId, rarityId, amount) => {
-      engine.sellItems(itemId, rarityId, amount);
-      render();
-    },
-    (itemId, rarityId) => {
-      engine.giveUpForMoles(itemId, rarityId, 1);
-      render();
-    },
-  );
+  const inventoryWidget = buildInventoryWidget(initial.inventory, icons, text, {
+    sell: (itemId, rarityId, amount) => void engine.sellItems(itemId, rarityId, amount),
+    giveUp: (itemId, rarityId) => void engine.giveUpForMoles(itemId, rarityId, 1),
+    use: (rarityId) => void engine.useBurnLead(rarityId),
+    refresh: () => render(),
+  });
 
   // The Skills tab: a box holding the skills (bought with skill points).
   const skillsWidget = h('aside', 'skills-widget');
   const skillsPoints = h('div', 'skills-points');
   const skillButtons = new Map<string, HTMLButtonElement>();
-  const skillsRow = upgradeRow(initial.skills.buyables, activate);
+  const skillsRow = upgradeRow(initial.skills.buyables, activate, icons);
   for (const [id, button] of skillsRow.buttons) skillButtons.set(id, button);
   skillsWidget.append(h('h2', undefined, initial.skills.title), skillsPoints, skillsRow.element);
 
@@ -227,6 +267,18 @@ export function mountUi(
     render();
   });
 
+  const saveRow = h('div', 'save-row');
+  if (options.saveTransfer) {
+    const { exportSave, importSave } = options.saveTransfer;
+    const exportBtn = h('button', 'save-export', text.saveTools.export) as HTMLButtonElement;
+    exportBtn.title = text.saveTools.exportTip;
+    exportBtn.addEventListener('click', () => exportSave());
+    const importBtn = h('button', 'save-import', text.saveTools.import) as HTMLButtonElement;
+    importBtn.title = text.saveTools.importTip;
+    importBtn.addEventListener('click', () => importSave());
+    saveRow.append(exportBtn, importBtn);
+  }
+
   // Top band: Sleeve on the left; to its right Network beside the sleeve-wide purchases, with Inventory under both. A line splits it from the actions.
   const right = h('div', 'dashboard-right');
   right.append(networkWidget.root, upgradesWidget, exploitationWidget, inventoryWidget.root);
@@ -254,7 +306,7 @@ export function mountUi(
   }
   let activeTab: TabView['id'] = 'character';
   const characterPanel = h('div', 'tab-panel character-panel');
-  characterPanel.append(layout, resleeveRow);
+  characterPanel.append(layout, resleeveRow, saveRow);
   const skillsPanel = h('div', 'tab-panel skills-panel');
   skillsPanel.append(skillsWidget);
   root.append(tabBar, header, characterPanel, skillsPanel);
@@ -283,19 +335,12 @@ export function mountUi(
       setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
       setXpBar(card.sleeveXp, a.sleeveBarText, a.sleeve.progressPercent);
       setText(card.reward, a.rewardLine);
-      card.button.disabled = !a.unlocked;
+      card.button.disabled = !a.startable;
       card.root.classList.toggle('locked', !a.unlocked);
       setFill(card.bar, a.progressPercent);
       card.root.classList.toggle('running', a.running);
       renderUpgrades(card.buyables, a.buyables, tips);
-      card.augment.hidden = a.augment === null;
-      if (a.augment) {
-        setText(card.augment, a.augment.label);
-        card.augment.disabled = !a.augment.enabled;
-        card.augment.classList.toggle('applied', a.augment.applied > 0);
-        const { augment } = a;
-        tips.set(card.augment, () => augment.tip);
-      }
+      renderSquare(card.square, a.square, tips);
     }
     renderStats(sleeveWidget, vm.sleeve.stats, tips);
     renderUpgrades(sleeveButtons, vm.sleeve.buyables, tips);
@@ -316,11 +361,13 @@ export function mountUi(
 function upgradeRow(
   views: readonly BuyableView[],
   buy: (id: string) => unknown,
+  icons: IconSource,
 ): { element: HTMLElement; buttons: Map<string, HTMLButtonElement> } {
   const element = h('div', 'upgrades');
   const buttons = new Map<string, HTMLButtonElement>();
   for (const b of views) {
     const upgrade = h('button', 'upgrade', b.symbol) as HTMLButtonElement;
+    applyIcon(upgrade, icons.urlFor(b.id));
     upgrade.setAttribute('aria-label', b.name);
     upgrade.addEventListener('click', () => buy(b.id));
     element.append(upgrade);
@@ -335,12 +382,84 @@ function addSection(
   section: SleeveSection,
   buy: (id: string) => unknown,
   into: Map<string, HTMLButtonElement>,
-  withTitle = true,
+  withTitle: boolean,
+  icons: IconSource,
 ): void {
-  const row = upgradeRow(section.buyables, buy);
+  const row = upgradeRow(section.buyables, buy, icons);
   if (withTitle) widget.append(h('h3', 'section-title', section.title));
   widget.append(row.element);
   for (const [id, button] of row.buttons) into.set(id, button);
+}
+
+/**
+ * Builds the square of an action card: one button that buys Auto-run, and a grid of four cells shown once Auto-run is owned.
+ *
+ * Called by: {@link mountUi}.
+ *
+ * @param view the square as the first refresh sees it (decides which cells exist)
+ * @param icons the icons (the Overclock and Focus cells show the pictures of those names)
+ * @param press called with the cell that was pressed, as the last refresh drew it
+ * @returns the element to place in the card and the handles to update it
+ */
+function buildSquare(
+  view: ActionSquareView,
+  icons: IconSource,
+  press: (cell: SquareCellView) => void,
+): { root: HTMLElement; handle: SquareHandle } {
+  const root = h('div', 'square');
+  const unlock = h('button', 'upgrade square-unlock', view.cells[0]?.symbol ?? '') as HTMLButtonElement;
+  applyIcon(unlock, icons.urlFor(view.cells[0]?.id ?? ''));
+  unlock.setAttribute('aria-label', view.cells[0]?.name ?? '');
+  const grid = h('div', 'square-grid');
+  const cells = new Map<SquareCellId, HTMLButtonElement>();
+  const handle: SquareHandle = { unlock, grid, cells, latest: view };
+  unlock.addEventListener('click', () => {
+    const cell = handle.latest.cells[0];
+    if (cell) press(cell);
+  });
+  for (const cell of view.cells) {
+    const button = h('button', `upgrade cell cell-${cell.id}`, cell.symbol) as HTMLButtonElement;
+    applyIcon(button, icons.urlFor(cell.id));
+    button.setAttribute('aria-label', cell.name);
+    if (cell.id === 'augment') button.classList.add('augment');
+    button.addEventListener('click', () => {
+      const latest = handle.latest.cells.find((c) => c.id === cell.id);
+      if (latest) press(latest);
+    });
+    grid.append(button);
+    cells.set(cell.id, button);
+  }
+  root.append(unlock, grid);
+  return { root, handle };
+}
+
+/**
+ * Updates the square of an action card from its view. While Auto-run is locked the whole square is the button that buys it. Once it
+ * is owned each cell shows what it is: a purchase (not bought yet, lit when affordable), a toggle (lit when on, struck through when
+ * off), the Augment button, or an empty placeholder for a feature the action does not have.
+ */
+function renderSquare(square: SquareHandle, view: ActionSquareView, tips: TipRegistry): void {
+  square.latest = view;
+  const auto = view.cells[0];
+  square.unlock.hidden = !view.locked;
+  square.grid.hidden = view.locked;
+  if (view.locked && auto) {
+    square.unlock.disabled = !auto.clickable;
+    square.unlock.classList.toggle('ready', auto.ready);
+    tips.set(square.unlock, () => auto.tip);
+    return;
+  }
+  for (const cell of view.cells) {
+    const button = square.cells.get(cell.id);
+    if (!button) continue;
+    button.disabled = !cell.clickable;
+    button.classList.toggle('empty', cell.mode === 'empty');
+    button.classList.toggle('owned', cell.mode === 'toggle');
+    button.classList.toggle('off', cell.mode === 'toggle' && !cell.on);
+    button.classList.toggle('ready', cell.mode === 'buy' && cell.ready);
+    button.classList.toggle('applied', cell.id === 'augment' && cell.on);
+    tips.set(button, cell.mode === 'empty' ? null : () => cell.tip);
+  }
 }
 
 /** Updates square purchase buttons (visibility, enabled state, hover tooltip text) from their view data. */
@@ -351,6 +470,7 @@ function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, views: 
     upgrade.hidden = !b.available;
     upgrade.disabled = !b.clickable;
     upgrade.classList.toggle('owned', b.owned > 0);
+    upgrade.classList.toggle('single', !b.repeatable);
     upgrade.classList.toggle('off', b.toggleable && b.owned > 0 && !b.enabled);
     upgrade.classList.toggle('ready', b.ready);
     tips.set(upgrade, () => b.tip);
@@ -392,59 +512,127 @@ function renderStats(widget: StatWidget, stats: readonly StatRowView[], tips: Ti
 }
 
 /**
- * Builds the Inventory widget: a row per item and rarity with its count and two sell buttons. Rows start hidden.
+ * Builds the Inventory widget: a grid tile for every item and rarity (its icon, with the count underneath), in two sections. The
+ * items that are kept or used are on the left; the items that can be sold are on the right, where a tile is selected by clicking it
+ * and the buttons beside the grid sell what is selected. Clicking a tile of an item that is used (a Burn lead) uses one.
  *
  * Called by: {@link mountUi}.
  *
- * @param view the initial view data (decides which rows exist)
- * @param text the display text (button labels)
- * @param sell called with the item, the rarity and how many to sell when a sell button is pressed
+ * @param view the initial view data (decides which tiles exist)
+ * @param icons the icons of the items
+ * @param text the display text (headings and button labels)
+ * @param actions what the tiles and buttons do; each is followed by a refresh of the screen
  */
 function buildInventoryWidget(
   view: InventoryView,
+  icons: IconSource,
   text: UiText,
-  sell: (itemId: string, rarityId: string, amount: number | 'all') => void,
-  giveUp: (itemId: string, rarityId: string) => void,
+  actions: {
+    sell(itemId: string, rarityId: string, amount: number | 'all'): void;
+    giveUp(itemId: string, rarityId: string): void;
+    use(rarityId: string): void;
+    refresh(): void;
+  },
 ): InventoryWidget {
   const root = h('aside', 'inventory-widget');
-  const list = h('div', 'inventory');
-  const empty = h('div', 'inventory-empty', view.emptyText);
-  const rows = new Map<string, { row: HTMLElement; count: HTMLElement; backChannel: HTMLElement; sell: HTMLElement[] }>();
+  const keptGrid = h('div', 'item-grid');
+  const sellGrid = h('div', 'item-grid');
+  const groups = new Map<string, HTMLElement>();
+  const tiles = new Map<string, { tile: HTMLButtonElement; count: HTMLElement }>();
+  const widget: InventoryWidget = {
+    root,
+    keptSection: h('section', 'inventory-section'),
+    sellSection: h('section', 'inventory-section inventory-for-sale'),
+    tiles,
+    sellOne: h('button', 'inventory-action', text.inventory.sellOne) as HTMLButtonElement,
+    sellAll: h('button', 'inventory-action', text.inventory.sellAll) as HTMLButtonElement,
+    backChannel: h('button', 'inventory-action', text.inventory.backChannel) as HTMLButtonElement,
+    selected: null,
+  };
   for (const r of view.rows) {
-    const row = h('div', 'inventory-row');
-    const label = h('span', 'inventory-label', r.label);
-    const count = h('span', 'inventory-count');
-    const sellOne = h('button', 'inventory-sell', text.inventory.sellOne);
-    const sellAll = h('button', 'inventory-sell', text.inventory.sellAll);
-    sellOne.addEventListener('click', () => sell(r.itemId, r.rarityId, 1));
-    sellAll.addEventListener('click', () => sell(r.itemId, r.rarityId, 'all'));
-    const backChannel = h('button', 'inventory-sell inventory-back-channel', text.inventory.backChannel);
-    backChannel.addEventListener('click', () => giveUp(r.itemId, r.rarityId));
-    backChannel.hidden = true;
-    row.append(label, count, sellOne, sellAll, backChannel);
-    row.hidden = true;
-    list.append(row);
-    rows.set(`${r.itemId}/${r.rarityId}`, { row, count, backChannel, sell: [sellOne, sellAll] });
+    const key = stackKey(r.itemId, r.rarityId);
+    const tile = h('button', `item-tile${r.rarityIndex === null ? '' : ` rarity-${r.rarityIndex}`}`) as HTMLButtonElement;
+    const icon = h('span', 'item-icon', r.symbol);
+    applyIcon(icon, icons.urlFor(r.itemId));
+    const count = h('span', 'item-count');
+    tile.append(icon, count);
+    tile.setAttribute('aria-label', r.label);
+    tile.addEventListener('click', () => {
+      if (r.sellable) widget.selected = widget.selected === key ? null : key;
+      else if (r.usable) actions.use(r.rarityId);
+      actions.refresh();
+    });
+    // The tiles of one item sit together in a row of their own; a divider separates the items.
+    const grid = r.sellable ? sellGrid : keptGrid;
+    let group = groups.get(r.itemId);
+    if (!group) {
+      group = h('div', 'item-group');
+      groups.set(r.itemId, group);
+      grid.append(group);
+    }
+    group.append(tile);
+    tiles.set(key, { tile, count });
   }
-  root.append(h('h2', undefined, view.title), list, empty);
+  const selectedRow = (): InventoryRowView | undefined => {
+    const [itemId, rarityId] = (widget.selected ?? '').split('/');
+    return view.rows.find((r) => r.itemId === itemId && r.rarityId === rarityId);
+  };
+  widget.sellOne.addEventListener('click', () => {
+    const r = selectedRow();
+    if (r) actions.sell(r.itemId, r.rarityId, 1);
+    actions.refresh();
+  });
+  widget.sellAll.addEventListener('click', () => {
+    const r = selectedRow();
+    if (r) actions.sell(r.itemId, r.rarityId, 'all');
+    actions.refresh();
+  });
+  widget.backChannel.addEventListener('click', () => {
+    const r = selectedRow();
+    if (r) actions.giveUp(r.itemId, r.rarityId);
+    actions.refresh();
+  });
+  const buttons = h('div', 'inventory-actions');
+  buttons.append(widget.sellOne, widget.sellAll, widget.backChannel);
+  const sellBody = h('div', 'inventory-sell-body');
+  sellBody.append(sellGrid, buttons);
+  widget.keptSection.append(h('h3', 'section-title', text.inventory.sections.kept), keptGrid);
+  widget.sellSection.append(h('h3', 'section-title', text.inventory.sections.sellable), sellBody);
+  widget.keptSection.hidden = !view.rows.some((r) => !r.sellable);
+  widget.sellSection.hidden = !view.rows.some((r) => r.sellable);
+  const body = h('div', 'inventory-body');
+  body.append(widget.keptSection, widget.sellSection);
+  root.append(h('h2', undefined, view.title), body);
   root.hidden = !view.visible;
-  return { root, empty, rows };
+  return widget;
 }
 
-/** Writes the inventory view into its widget: hides the widget and the empty stacks. */
+/**
+ * Writes the inventory view into its widget: every tile shows its count (dimmed while it is 0), the selected sellable stack is
+ * marked, and the buttons beside the sellable tiles act on it. A selection that has run out (everything sold) is dropped.
+ */
 function renderInventory(widget: InventoryWidget, view: InventoryView, tips: TipRegistry): void {
   widget.root.hidden = !view.visible;
-  widget.empty.hidden = view.rows.some((r) => r.count > 0);
+  const selectedKey = widget.selected;
+  const selected = view.rows.find((r) => r.sellable && stackKey(r.itemId, r.rarityId) === selectedKey);
+  if (selectedKey !== null && !(selected && selected.count > 0)) widget.selected = null;
   for (const r of view.rows) {
-    const handle = widget.rows.get(`${r.itemId}/${r.rarityId}`);
+    const key = stackKey(r.itemId, r.rarityId);
+    const handle = widget.tiles.get(key);
     if (!handle) continue;
-    handle.row.hidden = r.count <= 0;
     setText(handle.count, r.countText);
-    handle.backChannel.hidden = !r.backChannel;
-    for (const button of handle.sell) button.hidden = !r.sellable;
-    tips.set(handle.backChannel, r.backChannel ? () => r.backChannelTip : null);
-    tips.set(handle.row, () => r.tip);
+    handle.tile.classList.toggle('empty', r.count <= 0);
+    handle.tile.classList.toggle('selected', key === widget.selected);
+    handle.tile.disabled = r.sellable ? r.count <= 0 : !(r.usable && r.canUse);
+    tips.set(handle.tile, () => r.tip);
   }
+  const chosen = widget.selected === null ? undefined : selected;
+  widget.sellOne.disabled = !chosen;
+  widget.sellAll.disabled = !chosen;
+  const channel = view.rows.find((r) => r.backChannel);
+  widget.backChannel.hidden = channel === undefined;
+  widget.backChannel.disabled = !(chosen?.backChannel && chosen.count > 0);
+  tips.set(widget.backChannel, channel ? () => channel.backChannelTip : null);
 }
 
 /** Builds an empty small experience bar (label above a thin grey/teal bar). */
@@ -461,6 +649,19 @@ function xpBar(): XpBar {
 function setXpBar(bar: XpBar, label: string, percent: number): void {
   setText(bar.label, label);
   setFill(bar.fill, percent);
+}
+
+/**
+ * Gives an element an icon drawn before its text (a `::before` box that paints the `--icon` image). Adds no child, so the
+ * element's text can still be replaced freely.
+ *
+ * @param el the element
+ * @param url the CSS image value from an {@link IconSource}; `null` leaves the element as it is
+ */
+function applyIcon(el: HTMLElement, url: string | null): void {
+  if (url === null) return;
+  el.classList.add('has-icon');
+  el.style.setProperty('--icon', url);
 }
 
 /** Sets an element's text only when it changed, so an unchanged frame touches nothing in the DOM. */

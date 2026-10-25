@@ -11,6 +11,7 @@
  * handled by their own code.
  */
 import type { BigNum, NumberFactory } from '../numbers';
+import { INFINITY } from './infinity';
 import type { GameConfig, GameState } from './types';
 
 /** Keys of {@link GameState} whose value has type `T`. */
@@ -166,14 +167,14 @@ export function addToScalar(state: GameState, key: string, amount: BigNum): void
 }
 
 /**
- * Repairs scalars that are not finite numbers: NaN becomes 0 (it is a bug upstream and must not turn into a windfall),
- * positive overflow is clamped to the largest finite value (`Number.MAX_SAFE_INTEGER` for plain numbers) and negative
- * overflow becomes 0.
+ * Repairs scalars that are not finite numbers or have grown past the game's infinity (see `infinity.ts`): NaN becomes 0 (it is a
+ * bug upstream and must not turn into a windfall), amounts above 1e308 and positive overflow are clamped to 1e308 (the largest
+ * safe integer for plain numbers) and negative overflow becomes 0.
  *
  * Called by: `overflow.ts`.
  *
  * @param state state to mutate
- * @param factory supplies the largest finite {@link BigNum}
+ * @param factory number factory
  * @returns true when something was changed
  */
 export function repairScalars(state: GameState, factory: NumberFactory): boolean {
@@ -196,13 +197,13 @@ export function repairScalars(state: GameState, factory: NumberFactory): boolean
 }
 
 /**
- * Repairs one amount.
+ * Repairs one amount: NaN and negative overflow become 0, positive overflow and anything above the game's infinity become 1e308.
  *
  * @param value the amount
- * @param factory supplies zero and the largest finite value
+ * @param factory number factory
  * @returns the replacement, or `null` when `value` is fine
  */
 export function repairBig(value: BigNum, factory: NumberFactory): BigNum | null {
-  if (value.isFinite()) return null;
-  return value.isNaN() || value.isNegative() ? factory.fromNumber(0) : factory.maxValue();
+  if (!value.isFinite()) return value.isNaN() || value.isNegative() ? factory.fromNumber(0) : factory.fromNumber(INFINITY);
+  return value.gt(factory.fromNumber(INFINITY)) ? factory.fromNumber(INFINITY) : null;
 }

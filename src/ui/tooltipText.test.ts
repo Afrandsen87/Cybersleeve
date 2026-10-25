@@ -56,7 +56,7 @@ describe('Heat, ICE Rating and Infamy tooltips', () => {
       '',
       'Heat Tax = 7% of all credits earned from nodes',
       'Node credits stop at 100 heat',
-      'Heat falls by 1 every 60s while above 0',
+      'Heat falls by 1 every 60s, in whole points only: it waits until there is at least 1',
     ]);
   });
 
@@ -188,7 +188,15 @@ describe('the tooltips of the real game follow one standard', () => {
 
   it('every Sleeve attribute has a tooltip', () => {
     const vm = real();
-    expect(vm.sleeve.stats.map((s) => s.id)).toEqual(['access', 'interfaceSpeed', 'hackingProficiency', 'iceRating', 'heat', 'infamy']);
+    expect(vm.sleeve.stats.map((s) => s.id)).toEqual([
+      'access',
+      'interfaceSpeed',
+      'hackingProficiency',
+      'iceRating',
+      'heat',
+      'infamy',
+      'criticalChance',
+    ]);
     for (const s of vm.sleeve.stats) expect(s.tip, `${s.id} has no tooltip`).toBeTruthy();
   });
 
@@ -257,7 +265,7 @@ describe('the tooltips of the real game follow one standard', () => {
     const tip = buildViewModel(createGame())
       .actions.flatMap((a) => a.buyables)
       .find((b) => b.id === 'network-auto-run')!.tip;
-    expect(tip.split('\n')).toEqual(['Auto-run', 'Restarts the action automatically when it finishes.', '', 'Cost = 100 credits']);
+    expect(tip.split('\n')).toEqual(['Auto-run', 'Restarts the action automatically when it finishes.', '', 'Cost = 50 credits']);
   });
 
   it('uses the names of the things the player sees, not internal ones', () => {
@@ -281,5 +289,31 @@ describe('the Action Speed tooltip adds up on its own numbers', () => {
     expect(value('Action Speed')).toBeCloseTo(speed, 4);
     const run = /^Run Time = ([0-9.]+)s \(([0-9.]+)s \/ ([0-9.]+)\)/m.exec(tip)!;
     expect(Number(run[2]) / Number(run[3])).toBeCloseTo(Number(run[1]), 1);
+  });
+});
+
+describe('Critical success tooltip', () => {
+  const withCritical = createConfig(testConfig, {
+    buyables: [
+      ...testConfig.buyables,
+      { id: 'crit', name: 'Crit', description: '', cost: num(1), maxPurchases: Infinity, effect: { kind: 'criticalChance', chance: 0.05 } },
+    ],
+  });
+
+  it('is hidden until a Critical success is owned, then shows the chance and what a critical run gives', () => {
+    const g = createGame({ config: withCritical });
+    expect(statRow(buildViewModel(g).sleeve.stats, 'criticalChance').hidden).toBe(true);
+    set(g, { credits: num(100) });
+    g.buy('crit');
+    g.buy('crit');
+    const row = statRow(buildViewModel(g).sleeve.stats, 'criticalChance');
+    expect(row.hidden).toBe(false);
+    expect(row.text).toBe('10%');
+    expect(row.tip?.split('\n')).toEqual([
+      'Chance per completed run = 10%',
+      '',
+      'A critical success gives 2x action XP and pays 3x the reward',
+      'Some actions may do something different',
+    ]);
   });
 });

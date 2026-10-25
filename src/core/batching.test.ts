@@ -120,7 +120,7 @@ describe('closed-form runs match completing runs one at a time', () => {
 });
 
 describe('start costs and completion effects match run-by-run play', () => {
-  const unlock = { id: 'unlock', name: 'Unlock', description: '', cost: num(1), effect: { kind: 'unlock' } } as const;
+  const unlock = { id: 'unlock', name: 'Unlock', description: '', cost: num(1), effect: { kind: 'accessLevel', amount: 1 } } as const;
   const autoFor = (actionId: string) =>
     ({ id: `auto-${actionId}`, name: 'Auto', description: '', actionId, cost: num(1), effect: { kind: 'autoRun' } }) as const;
   /** Infamy decay is linear per tick but the tick order differs, so it is switched off when comparing tick sizes. */
@@ -132,13 +132,12 @@ describe('start costs and completion effects match run-by-run play', () => {
         sleeve: { infamyDecayPeriodMs: 1e15 },
       }),
     );
-  const mutable = (g: ReturnType<typeof createGame>) => g.getState() as { network: unknown; unlockedActions: Record<string, boolean> };
+  const mutable = (g: ReturnType<typeof createGame>) => g.getState() as { network: unknown };
 
   it('auto-running Kill servers pays 50 nodes per run and adds 1 ICE Rating per run', () => {
     const setup: Setup = (g) => {
       setCredits(g, num(5));
       g.buy('auto-kill');
-      mutable(g).unlockedActions['kill'] = true;
       mutable(g).network = num(500);
     };
     const { once, stepped } = twins(5_000, 5, setup, config());

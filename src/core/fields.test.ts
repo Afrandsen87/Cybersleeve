@@ -77,7 +77,7 @@ describe('unbounded bonuses are BigNums', () => {
 describe('scalar field registry', () => {
   it('covers every scalar of the state exactly once', () => {
     const state = createInitialState(config, numberFactory);
-    const nonScalar = ['unlockedActions', 'autoRunOff', 'actions', 'purchased', 'inventory'];
+    const nonScalar = ['autoRunOff', 'overclocked', 'focused', 'actions', 'purchased', 'inventory'];
     const expected = Object.keys(state)
       .filter((k) => !nonScalar.includes(k))
       .sort();
@@ -94,7 +94,7 @@ describe('scalar field registry', () => {
     const s = g.getState() as unknown as Record<string, unknown>;
     for (const f of SCALAR_FIELDS) s[f.key] = f.kind === 'big' ? num(7) : 7;
     Object.assign(g.getState().actions[id]!, { xp: num(9), sleeveXp: num(5), runsTowardSleeveXp: 3, running: true, progress: 0.5 });
-    Object.assign(s, { purchased: { x: 1 }, autoRunOff: { x: true }, unlockedActions: { x: true }, inventory: { i: { r: 4 } } });
+    Object.assign(s, { purchased: { x: 1 }, autoRunOff: { x: true }, inventory: { i: { r: 4 } } });
     resetForResleeve(g.getState() as never, config, numberFactory);
     const fresh = createInitialState(config, numberFactory);
     const action = g.getState().actions[id]!;
@@ -105,7 +105,6 @@ describe('scalar field registry', () => {
     expect(action.progress).toBe(0);
     expect(g.getState().purchased).toEqual(fresh.purchased);
     expect(g.getState().autoRunOff).toEqual(fresh.autoRunOff);
-    expect(g.getState().unlockedActions).toEqual(fresh.unlockedActions);
     expect(g.getState().inventory).toEqual(fresh.inventory);
   });
 
