@@ -13,7 +13,7 @@
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import { itemCount } from './inventory';
-import type { ActionId, BuyableDefinition, BuyableEffect, GameState, ItemDropRule } from './types';
+import type { ActionId, BuyableDefinition, ChainRule, BuyableEffect, GameState, ItemDropRule } from './types';
 
 /** Facts about one kind of effect. */
 export interface EffectTraits {
@@ -30,7 +30,17 @@ export interface ActionAccumulator {
   overclockUnlocked: boolean;
   /** The Focus toggle of the action is unlocked. */
   focusUnlocked: boolean;
+  /** The chain an owned `overclockChain` buyable adds to the action's Overclock, or `null`. */
+  chain: ChainRule | null;
   rewardMultiplier: BigNum;
+  /** What the critical success multipliers of the action are multiplied by (starts at 1). */
+  criticalFactor: number;
+  /** The actions that every critical run of this action banks a guaranteed critical success for. */
+  criticalLinks: ActionId[];
+  /** The `perLevel` of every owned `startCostReduction` buyable of the action. */
+  startCostReductions: number[];
+  /** Seconds of node income paid per node destroyed by the start cost (0 without a `creditSiphon`). */
+  siphonSeconds: number;
   drops: ItemDropRule[];
   rarityShifts: number[];
 }
@@ -54,6 +64,8 @@ export interface SleeveAccumulator {
   overclockStrength: number;
   /** Focus slots bought on top of the base slots. */
   extraFocusSlots: number;
+  /** The lowest heat factor of Overclock set by `overclockHeatFactor` buyables, by action. */
+  overclockHeatFactors: Record<ActionId, number>;
 }
 
 /** What an action hook may look at besides the effect. */
@@ -129,6 +141,17 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
       acc.overclockUnlocked = true;
     },
   },
+  overclockChain: {
+    traits: perAction,
+    validate: ({ chain }, { where, errors }) => {
+      if (!(Number.isInteger(chain.maxLinks) && chain.maxLinks >= 1)) errors.push(`${where}: chain maxLinks must be an integer >= 1`);
+      if (!(Number.isFinite(chain.rewardPerLink) && chain.rewardPerLink > 0)) errors.push(`${where}: chain rewardPerLink must be > 0`);
+      if (!(Number.isFinite(chain.nodesPerLink) && chain.nodesPerLink >= 0)) errors.push(`${where}: chain nodesPerLink must be >= 0`);
+    },
+    action: (acc, e) => {
+      acc.chain = e.chain;
+    },
+  },
   focusUnlock: {
     traits: perAction,
     validate: none,
@@ -168,6 +191,52 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
     validate: factorAtLeastOne,
     action: (acc, e, { owned, factory }) => {
       acc.rewardMultiplier = acc.rewardMultiplier.mul(factory.fromNumber(e.factor).pow(owned));
+    },
+  },
+  startCostReduction: {
+    traits: perAction,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.perLevel) && e.perLevel > 0 && e.perLevel < 1))
+        errors.push(`${where}: startCostReduction perLevel must be in (0, 1)`);
+    },
+    action: (acc, e) => {
+      acc.startCostReductions.push(e.perLevel);
+    },
+  },
+  creditSiphon: {
+    traits: perAction,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.seconds) && e.seconds > 0)) errors.push(`${where}: creditSiphon seconds must be > 0`);
+    },
+    action: (acc, e) => {
+      acc.siphonSeconds += e.seconds;
+    },
+  },
+  criticalBoost: {
+    traits: perAction,
+    validate: factorAtLeastOne,
+    action: (acc, e) => {
+      acc.criticalFactor *= e.factor;
+    },
+  },
+  criticalLink: {
+    traits: perAction,
+    validate: (e, { where, actionIds, errors }) => {
+      if (!actionIds.has(e.targetActionId)) errors.push(`${where}: criticalLink refers to unknown action "${e.targetActionId}"`);
+    },
+    action: (acc, e) => {
+      acc.criticalLinks.push(e.targetActionId);
+    },
+  },
+  overclockHeatFactor: {
+    traits: sleeveWide,
+    validate: (e, ctx) => {
+      factorAtLeastOne(e, ctx);
+      if (!ctx.actionIds.has(e.targetActionId))
+        ctx.errors.push(`${ctx.where}: overclockHeatFactor refers to unknown action "${e.targetActionId}"`);
+    },
+    sleeve: (acc, e) => {
+      acc.overclockHeatFactors[e.targetActionId] = Math.min(acc.overclockHeatFactors[e.targetActionId] ?? Infinity, e.factor);
     },
   },
   itemDrop: {

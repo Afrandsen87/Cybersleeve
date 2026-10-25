@@ -11,9 +11,22 @@ import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
   ACCESS_UPGRADE,
+  ADMIN_KEY,
+  BLACK_BOX_RECORDER,
+  CASCADE_FAILURE,
+  CREDIT_SIPHON,
+  DECOMMISSION_PROTOCOL,
+  KILL_CHAIN,
+  KILL_SERVERS,
+  SKILL_SHARD,
   AUGMENT_SCHEMATIC,
   BURN_LEAD,
   BURN_LEADS,
+  PERSISTENCE,
+  RANSOMWARE,
+  SKILL_OBFUSCATION,
+  ZERO_DAY,
+  ZERO_DAY_EXPLOITS,
   FASTER_CONDITIONING,
   FOCUS_UPGRADE,
   focusUnlockId,
@@ -95,7 +108,14 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(card.square.locked).toBe(true);
     expect(card.square.cells[0]).toMatchObject({ id: 'autoRun', mode: 'buy', buyableId: MALWARE_AUTO_RUN });
     expect(card.buyables.find((b) => b.id === MALWARE_AUTO_RUN)!.inSquare).toBe(true);
-    expect(card.buyables.filter((b) => !b.inSquare).map((b) => b.id)).toEqual([MALWARE_OUTPUT, MALWARE_ICE]);
+    const row = card.buyables.filter((b) => !b.inSquare).map((b) => b.id);
+    expect(row).toEqual([ZERO_DAY_EXPLOITS, MALWARE_OUTPUT, MALWARE_ICE, RANSOMWARE, PERSISTENCE]);
+  });
+
+  it("Push malware's row of purchases is sorted by price, cheapest first", () => {
+    const card = buildViewModel(createGame()).actions.find((x) => x.id === PUSH_MALWARE)!;
+    const prices = card.buyables.filter((b) => !b.inSquare).map((b) => gameConfig.buyables.find((d) => d.id === b.id)!.cost.toNumber());
+    expect(prices).toEqual([...prices].sort((a, b) => a - b));
   });
 
   it('every buyable can be bought once enough credits are available (no dead gates)', () => {
@@ -125,10 +145,10 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it('there is one skill for each of the eight in the design, all costing 1 point and none belonging to an action', () => {
+  it('there is one skill for each of the nine in the design, all costing 1 point and none belonging to an action', () => {
     const skills = gameConfig.buyables.filter((b) => b.currency === 'skillPoints');
     expect(skills.map((b) => b.id)).toEqual([...SKILLS]);
-    expect(skills).toHaveLength(8);
+    expect(skills).toHaveLength(9);
     for (const b of skills) {
       expect(b.cost.eq(num(1)), b.id).toBe(true);
       expect(b.actionId, b.id).toBeUndefined();
@@ -334,9 +354,9 @@ describe('levels start at 0 (real content)', () => {
 });
 
 describe('Malware payload (real content)', () => {
-  it('is second on the Push malware card, after the auto-run, rebuyable with a 100x price per copy', () => {
+  it('sits on the Push malware card after the auto-run and the cheaper Zero-day exploits, rebuyable with a 100x price per copy', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === PUSH_MALWARE)!;
-    expect(card.buyables.map((b) => b.id).slice(0, 2)).toEqual([MALWARE_AUTO_RUN, MALWARE_OUTPUT]);
+    expect(card.buyables.map((b) => b.id).slice(0, 3)).toEqual([MALWARE_AUTO_RUN, ZERO_DAY_EXPLOITS, MALWARE_OUTPUT]);
     const g = createGame();
     setCredits(g, num('1e100'));
     expect(g.costOf(MALWARE_OUTPUT).eq(num(10_000))).toBe(true);
@@ -637,6 +657,99 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
   });
 });
 
+describe('Zero-days (real content)', () => {
+  /** A game with plenty of credits and access level 3 (Push malware). */
+  const rich = (): ReturnType<typeof createGame> => {
+    const g = createGame({ random: () => 0.5 });
+    setCredits(g, num('1e100'));
+    for (let i = 0; i < 2; i++) g.buy(ACCESS_UPGRADE);
+    return g;
+  };
+
+  it('the Zero-day has no rarity, cannot be sold, and is tied to Push malware', () => {
+    const item = gameConfig.items.definitions.find((d) => d.id === ZERO_DAY)!;
+    expect(item.hasRarity).toBe(false);
+    expect(item.sellable).toBe(false);
+    expect(gameConfig.items.zeroDay).toEqual({ itemId: ZERO_DAY, actionId: PUSH_MALWARE });
+    const exploits = gameConfig.buyables.find((b) => b.id === ZERO_DAY_EXPLOITS)!;
+    expect(exploits.actionId).toBe(PUSH_MALWARE);
+    expect(exploits.effect.kind === 'itemDrop' && exploits.effect.drop.rarityWeights).toBeUndefined();
+  });
+
+  it('the Inventory shows one toggleable row named "Zero-day", lit while the toggle is on, end to end', () => {
+    const g = rich();
+    (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[ZERO_DAY] = { common: 2 };
+    const row = () => buildViewModel(g).inventory.rows.find((r) => r.itemId === ZERO_DAY)!;
+    expect(row()).toMatchObject({ label: 'Zero-day', toggleable: true, on: false, canUse: true, sellable: false });
+    expect(g.toggleZeroDays()).toBe(true);
+    expect(row().on).toBe(true);
+    expect(row().tip).toContain('Switched on');
+  });
+
+  it('Zero-day exploits cost 5,000 credits; Persistence is a one-time 500,000-credit buyable on Push malware that triples critical successes', () => {
+    const find = (id: string) => gameConfig.buyables.find((b) => b.id === id)!;
+    expect(find(ZERO_DAY_EXPLOITS).cost.eq(num(5_000))).toBe(true);
+    const persistence = find(PERSISTENCE);
+    expect(persistence.cost.eq(num(500_000))).toBe(true);
+    expect(persistence.actionId).toBe(PUSH_MALWARE);
+    expect(persistence.maxPurchases ?? 1).toBe(1);
+    expect(persistence.effect).toEqual({ kind: 'criticalBoost', factor: 3 });
+  });
+
+  it('Ransomware sits on the Push malware card and links its critical runs to Grow network', () => {
+    const ransomware = gameConfig.buyables.find((b) => b.id === RANSOMWARE)!;
+    expect(ransomware.actionId).toBe(PUSH_MALWARE);
+    expect(ransomware.effect).toEqual({ kind: 'criticalLink', targetActionId: GROW_NETWORK });
+  });
+
+  it('Ransomware, end to end: a Zero-day critical Push malware run banks a guaranteed critical for Grow network, which then spends it', () => {
+    const g = rich();
+    g.buy(RANSOMWARE);
+    (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[ZERO_DAY] = { common: 1 };
+    g.toggleZeroDays();
+    g.startAction(PUSH_MALWARE);
+    g.tick(g.currentDurationMs(PUSH_MALWARE) + 1);
+    expect(g.getState().bankedCriticals).toEqual({ [GROW_NETWORK]: 1 });
+    const nodes = g.getState().network.toNumber();
+    const reward = g.payoutPerRun(GROW_NETWORK).toNumber();
+    g.startAction(GROW_NETWORK);
+    g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
+    expect(g.getState().bankedCriticals).toEqual({});
+    expect(g.getState().network.toNumber() - nodes).toBeGreaterThanOrEqual(reward * gameConfig.criticalSuccess.rewardMultiplier);
+  });
+
+  it('Obfuscation is a one-point skill that lowers the heat of Push malware Overclock from 3x to 2x', () => {
+    const skill = gameConfig.buyables.find((b) => b.id === SKILL_OBFUSCATION)!;
+    expect(skill.currency).toBe('skillPoints');
+    expect(skill.effect).toEqual({ kind: 'overclockHeatFactor', targetActionId: PUSH_MALWARE, factor: 2 });
+    expect(gameConfig.actions.find((a) => a.id === PUSH_MALWARE)!.overclock?.heatPerRunFactor).toBe(3);
+    const g = rich();
+    g.buy(overclockUnlockId(PUSH_MALWARE));
+    expect(g.overclockStatus(PUSH_MALWARE)!.heatPerRunFactor).toBe(3);
+    (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(10);
+    expect(g.buy(SKILL_OBFUSCATION)).toBe('purchased');
+    expect(g.overclockStatus(PUSH_MALWARE)!.heatPerRunFactor).toBe(2);
+  });
+
+  it('an empty stack cannot be switched on: the tile is not usable', () => {
+    const row = buildViewModel(rich()).inventory.rows.find((r) => r.itemId === ZERO_DAY)!;
+    expect(row).toMatchObject({ toggleable: true, on: false, canUse: false, count: 0 });
+  });
+
+  it('a switched-on Zero-day makes the next Push malware run critical and is used up', () => {
+    const g = rich();
+    (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[ZERO_DAY] = { common: 1 };
+    g.toggleZeroDays();
+    const xpBefore = g.getState().actions[PUSH_MALWARE]!.xp.toNumber();
+    const xpPerRun = g.xpPerRun(PUSH_MALWARE).toNumber();
+    g.startAction(PUSH_MALWARE);
+    g.tick(g.currentDurationMs(PUSH_MALWARE) + 1);
+    expect(g.getState().inventory[ZERO_DAY]?.['common'] ?? 0).toBe(0);
+    expect(g.getState().zeroDaysOn).toBe(false);
+    expect(g.getState().actions[PUSH_MALWARE]!.xp.toNumber() - xpBefore).toBeCloseTo(xpPerRun * gameConfig.criticalSuccess.xpMultiplier, 9);
+  });
+});
+
 describe('Faster conditioning (real content)', () => {
   const b = gameConfig.buyables.find((x) => x.id === FASTER_CONDITIONING)!;
 
@@ -665,5 +778,93 @@ describe('Hardened payload and the ICE Rating boost (real content)', () => {
   it('the ICE Rating boost costs more than Hardened payload, since it has nothing to multiply before it', () => {
     const price = (id: string) => gameConfig.buyables.find((x) => x.id === id)!.cost.toNumber();
     expect(price(ICE_RATING_BOOST)).toBeGreaterThan(price(MALWARE_ICE));
+  });
+});
+
+describe('Kill servers, Admin keys and Skill shards (real content)', () => {
+  const kill = gameConfig.actions.find((a) => a.id === KILL_SERVERS)!;
+  const buyable = (id: string) => gameConfig.buyables.find((x) => x.id === id)!;
+
+  it('Kill servers has an Overclock that holds heat in place, a unlock for it, and a Kill chain buyable that adds a chain to it', () => {
+    expect(kill.overclock?.stopsHeatCooling).toBe(true);
+    expect(buyable(KILL_CHAIN)).toMatchObject({
+      actionId: KILL_SERVERS,
+      requires: [overclockUnlockId(KILL_SERVERS)],
+      effect: { kind: 'overclockChain' },
+    });
+    expect(kill.startCost).toBeDefined(); // a chain needs runs that come one per batch
+    const unlock = buyable(overclockUnlockId(KILL_SERVERS));
+    expect(unlock.actionId).toBe(KILL_SERVERS);
+    expect(unlock.effect.kind).toBe('overclockUnlock');
+  });
+
+  it('its Overclock doubles the ICE Rating it pays: a reward bonus of +100% at strength 1', () => {
+    expect(kill.overclock?.rewardBonus).toBe(1);
+  });
+
+  it('the Kill servers prices climb in this order: Cascade failure, Credit Siphon, Decommission protocol, Kill chain, Black box recorder', () => {
+    const order = [CASCADE_FAILURE, CREDIT_SIPHON, DECOMMISSION_PROTOCOL, KILL_CHAIN, BLACK_BOX_RECORDER].map((id) =>
+      buyable(id).cost.toNumber(),
+    );
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(new Set(order).size).toBe(order.length);
+    // they come after the auto-run, like the later buyables of the other actions
+    expect(order[0]).toBeGreaterThanOrEqual(buyable('kill-auto-run').cost.toNumber());
+  });
+
+  it('the four new buyables belong to Kill servers and use the effects meant for them', () => {
+    expect(buyable(DECOMMISSION_PROTOCOL)).toMatchObject({
+      actionId: KILL_SERVERS,
+      effect: { kind: 'startCostReduction', perLevel: 0.01 },
+    });
+    expect(buyable(CREDIT_SIPHON)).toMatchObject({ actionId: KILL_SERVERS, effect: { kind: 'creditSiphon', seconds: 10 } });
+    expect(buyable(CASCADE_FAILURE)).toMatchObject({ actionId: KILL_SERVERS, effect: { kind: 'rewardMultiplier' } });
+    expect(buyable(BLACK_BOX_RECORDER)).toMatchObject({
+      actionId: KILL_SERVERS,
+      effect: { kind: 'itemDrop', drop: { itemId: ADMIN_KEY } },
+    });
+  });
+
+  it('Admin keys make Practice Hacking critical, and their critical runs may drop the Skill shard, which is an item without rarity', () => {
+    const rule = gameConfig.items.adminKey!;
+    expect(rule.actionId).toBe(PRACTICE_HACKING);
+    expect(rule.shard?.itemId).toBe(SKILL_SHARD);
+    for (const id of [ADMIN_KEY, SKILL_SHARD]) {
+      const def = gameConfig.items.definitions.find((d) => d.id === id)!;
+      expect(def.sellable).toBe(false);
+      expect(def.hasRarity).toBe(false);
+    }
+    expect(gameConfig.items.skillShard).toEqual({ itemId: SKILL_SHARD, levelsDelayed: 1 });
+  });
+
+  it('with the Black box recorder, Kill servers runs drop Admin keys, which can be switched on', () => {
+    const g = createGame({ random: () => 0 }); // a draw of 0 is below every chance
+    const state = g.getState() as unknown as { network: unknown; inventory: Record<string, Record<string, number>> };
+    setCredits(g, num(1e300));
+    g.buy(ACCESS_UPGRADE);
+    g.buy(ACCESS_UPGRADE);
+    g.buy(ACCESS_UPGRADE);
+    expect(g.buy(BLACK_BOX_RECORDER)).toBe('purchased');
+    state.network = num(100_000);
+    expect(g.isUnlocked(KILL_SERVERS)).toBe(true);
+    g.startAction(KILL_SERVERS);
+    g.tick(g.currentDurationMs(KILL_SERVERS) + 1);
+    expect(state.inventory[ADMIN_KEY]?.['common']).toBeGreaterThanOrEqual(1);
+    expect(g.canToggleAdminKeys()).toBe(true);
+  });
+});
+
+describe('the Kill servers Overclock tip (real content)', () => {
+  it('shows the chain, what each link adds, and that heat is held in place', () => {
+    const g = createGame();
+    setCredits(g, num(1e300));
+    expect(g.buy(overclockUnlockId(KILL_SERVERS))).toBe('purchased');
+    expect(g.buy(KILL_CHAIN)).toBe('purchased');
+    const tip = buildViewModel(g).actions.find((a) => a.id === KILL_SERVERS)!.overclock!.tip;
+    expect(tip).toContain('Kill chain = 0 / 20 links');
+    expect(tip).toContain('Each link adds 10% to the Reward Bonus and 10% to the share of the balance a run takes');
+    expect(tip).toContain('Heat is held in place while this action runs');
+    expect(tip).toContain('Reward Bonus = 100% (100% x Strength)');
+    expect(tip).not.toMatch(/\b(not|never|no)\b/i);
   });
 });

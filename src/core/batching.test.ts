@@ -123,13 +123,13 @@ describe('start costs and completion effects match run-by-run play', () => {
   const unlock = { id: 'unlock', name: 'Unlock', description: '', cost: num(1), effect: { kind: 'accessLevel', amount: 1 } } as const;
   const autoFor = (actionId: string) =>
     ({ id: `auto-${actionId}`, name: 'Auto', description: '', actionId, cost: num(1), effect: { kind: 'autoRun' } }) as const;
-  /** Infamy decay is linear per tick but the tick order differs, so it is switched off when comparing tick sizes. */
+  /** Legend decay is linear per tick but the tick order differs, so it is switched off when comparing tick sizes. */
   const config = () =>
     runsOnly(
       createConfig(testConfig, {
         actions: [testConfig.actions[0]!, killAction, legendAction],
         buyables: [unlock, autoFor('kill'), autoFor('legend')],
-        sleeve: { infamyDecayPeriodMs: 1e15 },
+        sleeve: { legendDecayPeriodMs: 1e15 },
       }),
     );
   const mutable = (g: ReturnType<typeof createGame>) => g.getState() as { network: unknown };
@@ -151,7 +151,7 @@ describe('start costs and completion effects match run-by-run play', () => {
       createConfig(testConfig, {
         actions: [testConfig.actions[0]!, percentKillAction],
         buyables: [autoFor('pkill')],
-        sleeve: { infamyDecayPeriodMs: 1e15 },
+        sleeve: { legendDecayPeriodMs: 1e15 },
       }),
     );
     const setup: Setup = (g) => {
@@ -174,10 +174,10 @@ describe('start costs and completion effects match run-by-run play', () => {
     };
     const { once, stepped } = twins(5_000, 5, setup, config());
     closeTo(once.getState().network, stepped.getState().network);
-    closeTo(num(once.getState().infamy), num(stepped.getState().infamy));
-    expect(once.getState().infamy).toBeCloseTo(5, 6);
-    expect(once.getState().heat).toBe(250); // 5 runs x 50 heat
-    expect(stepped.getState().heat).toBe(250);
+    closeTo(num(once.getState().legend), num(stepped.getState().legend));
+    expect(once.getState().legend).toBeCloseTo(5, 6);
+    expect(once.getState().heat).toBe(25); // 5 s running x 5 heat/s
+    expect(stepped.getState().heat).toBe(25);
   });
 });
 

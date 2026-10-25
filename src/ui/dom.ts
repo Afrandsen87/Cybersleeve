@@ -6,7 +6,7 @@
  */
 import type { GameCommands, GameQueries } from '../core';
 import { ConfirmGate } from './confirmGate';
-import { CREDITS_ICON_ID, type IconSource, noIcons } from './pixelIcon';
+import { CREDITS_ICON_ID, type IconSource, noIcons, START_RUN_ICON_ID } from './pixelIcon';
 import { installTooltips, TipRegistry } from './tooltip';
 import { type SquareCellId, type UiText, uiText as defaultText, type StatId } from './uiText';
 import {
@@ -41,6 +41,60 @@ export interface MountOptions {
   readonly icons?: IconSource;
   /** Export and import of the save as text; the buttons are shown only when given. */
   readonly saveTransfer?: { exportSave(): void; importSave(): void };
+  /** The entries of the changelog modal, newest first (default: none, which the modal says). */
+  readonly changelog?: readonly ChangelogEntry[];
+}
+
+/** One entry of the changelog as the modal needs it (structurally satisfied by `content/changelog.ts`). */
+export interface ChangelogEntry {
+  readonly version: string;
+  readonly changes: readonly string[];
+}
+
+/**
+ * Builds the changelog modal (hidden until opened). Closes with the Close button, a click on the backdrop or Escape.
+ *
+ * Called by: {@link mountUi}.
+ *
+ * @param entries the changelog entries, newest first
+ * @param text the display text
+ * @returns the modal's root element (to append to the page) and a function that opens it
+ */
+function buildChangelogModal(entries: readonly ChangelogEntry[], text: UiText): { root: HTMLElement; open(): void } {
+  const backdrop = h('div', 'modal-backdrop');
+  backdrop.hidden = true;
+  const dialog = h('div', 'modal');
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-label', text.changelog.title);
+  const body = h('div', 'modal-body');
+  if (entries.length === 0) {
+    body.append(h('p', 'modal-empty', text.changelog.empty));
+  }
+  for (const entry of entries) {
+    const list = h('ul');
+    for (const change of entry.changes) list.append(h('li', undefined, change));
+    body.append(h('h3', undefined, entry.version), list);
+  }
+  const closeBtn = h('button', 'modal-close', text.changelog.close) as HTMLButtonElement;
+  const close = (): void => {
+    backdrop.hidden = true;
+  };
+  closeBtn.addEventListener('click', close);
+  backdrop.addEventListener('click', (event) => {
+    if (event.target === backdrop) close();
+  });
+  backdrop.ownerDocument.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') close();
+  });
+  dialog.append(h('h2', undefined, text.changelog.title), body, closeBtn);
+  backdrop.append(dialog);
+  return {
+    root: backdrop,
+    open: () => {
+      backdrop.hidden = false;
+    },
+  };
 }
 
 /**
@@ -65,6 +119,10 @@ interface ActionCard {
   readonly root: HTMLElement;
   /** The clickable area that starts the action. */
   readonly button: HTMLButtonElement;
+  /** The icon button in the top right corner that also starts the action. */
+  readonly start: HTMLButtonElement;
+  /** The poster that replaces the card's content while the action is locked. */
+  readonly poster: HTMLElement;
   readonly title: HTMLElement;
   readonly info: HTMLElement;
   readonly bar: HTMLElement;
@@ -198,9 +256,17 @@ export function mountUi(
       render();
     });
 
-    root.append(button, reward, levelXp.root, sleeveXp.root, squareEl, upgrades);
+    // The start button floats in the top right corner (absolutely positioned, so it takes no room in the card's grid).
+    const startBtn = h('button', 'start-run') as HTMLButtonElement;
+    startBtn.setAttribute('aria-label', text.controls.startRun);
+    applyIcon(startBtn, icons.urlFor(START_RUN_ICON_ID));
+    if (!startBtn.classList.contains('has-icon')) startBtn.textContent = '▶';
+    startBtn.addEventListener('click', () => engine.startAction(a.id));
+
+    const poster = h('div', 'action-poster');
+    root.append(button, reward, levelXp.root, sleeveXp.root, squareEl, upgrades, startBtn, poster);
     actionsEl.append(root);
-    cards.set(a.id, { root, button, title, info, bar, reward, levelXp, sleeveXp, buyables, square });
+    cards.set(a.id, { root, poster, button, start: startBtn, title, info, bar, reward, levelXp, sleeveXp, buyables, square });
   }
 
   for (let i = initial.actions.length; i < ACTION_GRID_SLOTS; i++) actionsEl.append(h('div', 'action empty'));
@@ -221,7 +287,9 @@ export function mountUi(
   const inventoryWidget = buildInventoryWidget(initial.inventory, icons, text, {
     sell: (itemId, rarityId, amount) => void engine.sellItems(itemId, rarityId, amount),
     giveUp: (itemId, rarityId) => void engine.giveUpForMoles(itemId, rarityId, 1),
-    use: (rarityId) => void engine.useBurnLead(rarityId),
+    use: (itemId, rarityId) =>
+      void (itemId === engine.getConfig().items.skillShard?.itemId ? engine.useSkillShard() : engine.useBurnLead(rarityId)),
+    toggle: (itemId) => void (itemId === engine.getConfig().items.adminKey?.itemId ? engine.toggleAdminKeys() : engine.toggleZeroDays()),
     refresh: () => render(),
   });
 
@@ -253,10 +321,24 @@ export function mountUi(
   speedBtn.title = text.controls.speedToggleTip;
   speedBtn.addEventListener('click', () => speed.toggle());
 
+  // Test aid: shows locked actions in full instead of the access level poster (a class on the root; no game state changes).
+  const revealBtn = h('button', 'reveal-locked-toggle', text.controls.revealLocked) as HTMLButtonElement;
+  revealBtn.title = text.controls.revealLockedTip;
+  revealBtn.addEventListener('click', () => {
+    revealBtn.classList.toggle('on', root.classList.toggle('reveal-locked'));
+  });
+
   const dropBtn = h('button', 'test-drop', text.controls.testDrop) as HTMLButtonElement;
   dropBtn.title = text.controls.testDropTip;
   dropBtn.addEventListener('click', () => {
     engine.dropTestItem();
+    render();
+  });
+
+  const doubleBtn = h('button', 'double-credits', text.controls.doubleCredits) as HTMLButtonElement;
+  doubleBtn.title = text.controls.doubleCreditsTip;
+  doubleBtn.addEventListener('click', () => {
+    engine.doubleCredits();
     render();
   });
 
@@ -278,6 +360,12 @@ export function mountUi(
     importBtn.addEventListener('click', () => importSave());
     saveRow.append(exportBtn, importBtn);
   }
+  const changelogModal = buildChangelogModal(options.changelog ?? [], text);
+  const changelogBtn = h('button', 'changelog-open', text.changelog.button) as HTMLButtonElement;
+  changelogBtn.title = text.changelog.tip;
+  changelogBtn.addEventListener('click', () => changelogModal.open());
+  saveRow.append(changelogBtn);
+  root.append(changelogModal.root);
 
   // Top band: Sleeve on the left; to its right Network beside the sleeve-wide purchases, with Inventory under both. A line splits it from the actions.
   const right = h('div', 'dashboard-right');
@@ -289,7 +377,7 @@ export function mountUi(
   layout.append(dashboard, divider, actionsEl);
   if (options.debugControls ?? true) {
     const corner = h('div', 'corner-controls');
-    corner.append(dropBtn, resetBtn, speedBtn);
+    corner.append(revealBtn, dropBtn, doubleBtn, resetBtn, speedBtn);
     root.append(corner);
   }
   // The tabs at the top, centered: everything so far is on the Character tab, the skills are on the Skills tab.
@@ -336,7 +424,9 @@ export function mountUi(
       setXpBar(card.sleeveXp, a.sleeveBarText, a.sleeve.progressPercent);
       setText(card.reward, a.rewardLine);
       card.button.disabled = !a.startable;
+      card.start.disabled = !a.startable || a.running; // greyed out until the run is over
       card.root.classList.toggle('locked', !a.unlocked);
+      setText(card.poster, a.posterText);
       setFill(card.bar, a.progressPercent);
       card.root.classList.toggle('running', a.running);
       renderUpgrades(card.buyables, a.buyables, tips);
@@ -446,6 +536,7 @@ function renderSquare(square: SquareHandle, view: ActionSquareView, tips: TipReg
   if (view.locked && auto) {
     square.unlock.disabled = !auto.clickable;
     square.unlock.classList.toggle('ready', auto.ready);
+    square.unlock.classList.toggle('purchasable', auto.clickable);
     tips.set(square.unlock, () => auto.tip);
     return;
   }
@@ -457,6 +548,7 @@ function renderSquare(square: SquareHandle, view: ActionSquareView, tips: TipReg
     button.classList.toggle('owned', cell.mode === 'toggle');
     button.classList.toggle('off', cell.mode === 'toggle' && !cell.on);
     button.classList.toggle('ready', cell.mode === 'buy' && cell.ready);
+    button.classList.toggle('purchasable', cell.mode === 'buy' && cell.clickable);
     button.classList.toggle('applied', cell.id === 'augment' && cell.on);
     tips.set(button, cell.mode === 'empty' ? null : () => cell.tip);
   }
@@ -473,6 +565,7 @@ function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, views: 
     upgrade.classList.toggle('single', !b.repeatable);
     upgrade.classList.toggle('off', b.toggleable && b.owned > 0 && !b.enabled);
     upgrade.classList.toggle('ready', b.ready);
+    upgrade.classList.toggle('purchasable', b.available && !b.maxed && b.affordable);
     tips.set(upgrade, () => b.tip);
   }
 }
@@ -514,7 +607,7 @@ function renderStats(widget: StatWidget, stats: readonly StatRowView[], tips: Ti
 /**
  * Builds the Inventory widget: a grid tile for every item and rarity (its icon, with the count underneath), in two sections. The
  * items that are kept or used are on the left; the items that can be sold are on the right, where a tile is selected by clicking it
- * and the buttons beside the grid sell what is selected. Clicking a tile of an item that is used (a Burn lead) uses one.
+ * and the buttons beside the grid sell what is selected. Clicking a tile of an item that is used (a Burn lead) uses one; clicking a Zero-day switches its toggle.
  *
  * Called by: {@link mountUi}.
  *
@@ -530,7 +623,8 @@ function buildInventoryWidget(
   actions: {
     sell(itemId: string, rarityId: string, amount: number | 'all'): void;
     giveUp(itemId: string, rarityId: string): void;
-    use(rarityId: string): void;
+    use(itemId: string, rarityId: string): void;
+    toggle(itemId: string): void;
     refresh(): void;
   },
 ): InventoryWidget {
@@ -559,7 +653,8 @@ function buildInventoryWidget(
     tile.setAttribute('aria-label', r.label);
     tile.addEventListener('click', () => {
       if (r.sellable) widget.selected = widget.selected === key ? null : key;
-      else if (r.usable) actions.use(r.rarityId);
+      else if (r.toggleable) actions.toggle(r.itemId);
+      else if (r.usable) actions.use(r.itemId, r.rarityId);
       actions.refresh();
     });
     // The tiles of one item sit together in a row of their own; a divider separates the items.
@@ -623,7 +718,8 @@ function renderInventory(widget: InventoryWidget, view: InventoryView, tips: Tip
     setText(handle.count, r.countText);
     handle.tile.classList.toggle('empty', r.count <= 0);
     handle.tile.classList.toggle('selected', key === widget.selected);
-    handle.tile.disabled = r.sellable ? r.count <= 0 : !(r.usable && r.canUse);
+    handle.tile.classList.toggle('on', r.on);
+    handle.tile.disabled = r.sellable ? r.count <= 0 : !((r.usable || r.toggleable) && r.canUse);
     tips.set(handle.tile, () => r.tip);
   }
   const chosen = widget.selected === null ? undefined : selected;

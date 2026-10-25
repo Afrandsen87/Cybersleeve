@@ -57,6 +57,8 @@ export class Progression {
   private readonly reductionSources: readonly ReductionSource[];
   private readonly actionReductionSources: readonly ActionReductionSource[];
   private readonly maxTotalReduction: number;
+  /** Levels one Skill shard delays the action XP scaling by (0 when the game has none). */
+  private readonly levelsPerShard: number;
 
   /**
    * Creates the progression service from the configuration.
@@ -65,7 +67,7 @@ export class Progression {
    * @param factory number factory
    */
   constructor(
-    config: Pick<GameConfig, 'actions' | 'progression'> & Partial<Pick<GameConfig, 'buyables'>>,
+    config: Pick<GameConfig, 'actions' | 'progression'> & Partial<Pick<GameConfig, 'buyables' | 'items'>>,
     private readonly factory: NumberFactory,
   ) {
     this.reductionSources = (config.buyables ?? []).flatMap((b) =>
@@ -84,6 +86,7 @@ export class Progression {
     this.baseRunsPerSleeveXp = config.progression.runsPerSleeveXp;
     this.sleeveXpPerGrant = factory.fromNumber(config.progression.sleeveXpPerGrant);
     this.maxTotalReduction = config.progression.maxSleeveXpReduction;
+    this.levelsPerShard = config.items?.skillShard?.levelsDelayed ?? 0;
   }
 
   /**
@@ -178,7 +181,7 @@ export class Progression {
    * @throws Error if the action id is unknown
    */
   actionLevel(state: GameState, actionId: ActionId): number {
-    return this.rule(this.actionRules, actionId).levelForXp(this.scaledActionXp(state, actionId));
+    return this.rule(this.actionRules, actionId).levelForXp(this.scaledActionXp(state, actionId), this.xpDelay(state, actionId));
   }
 
   /**
@@ -199,7 +202,7 @@ export class Progression {
    */
   nextActionLevelXp(state: GameState, actionId: ActionId): BigNum {
     return this.rule(this.actionRules, actionId)
-      .xpForNextLevel(this.actionLevel(state, actionId))
+      .xpForNextLevel(this.actionLevel(state, actionId), this.xpDelay(state, actionId))
       .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
   }
 
@@ -209,7 +212,7 @@ export class Progression {
    */
   actionXpIntoLevel(state: GameState, actionId: ActionId): BigNum {
     return this.rule(this.actionRules, actionId)
-      .xpIntoLevel(this.scaledActionXp(state, actionId))
+      .xpIntoLevel(this.scaledActionXp(state, actionId), this.xpDelay(state, actionId))
       .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
   }
 
@@ -219,7 +222,7 @@ export class Progression {
    */
   actionXpForLevel(state: GameState, actionId: ActionId): BigNum {
     return this.rule(this.actionRules, actionId)
-      .xpCostOfLevel(this.actionLevel(state, actionId))
+      .xpCostOfLevel(this.actionLevel(state, actionId), this.xpDelay(state, actionId))
       .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
   }
 
@@ -228,7 +231,7 @@ export class Progression {
    * @throws Error if the action id is unknown
    */
   actionLevelProgress(state: GameState, actionId: ActionId): number {
-    return this.rule(this.actionRules, actionId).progressFraction(this.scaledActionXp(state, actionId));
+    return this.rule(this.actionRules, actionId).progressFraction(this.scaledActionXp(state, actionId), this.xpDelay(state, actionId));
   }
 
   /**
@@ -303,6 +306,18 @@ export class Progression {
     return this.rule(this.sleeveRules, actionId).progressFraction(
       this.scaledSleeveXp(state, actionId, this.sleeveXpReduction(state, actionId)),
     );
+  }
+
+  /**
+   * Levels the XP scaling of an action's levels is delayed by: the Skill shards used on it times the levels one shard delays
+   * (see `LevelRule.xpCostOfLevel`). Action levels only.
+   *
+   * @param state current state (reads the action's `skillShards`)
+   * @param actionId the action
+   * @returns a whole number >= 0
+   */
+  xpDelay(state: GameState, actionId: ActionId): number {
+    return (state.actions[actionId]?.skillShards ?? 0) * this.levelsPerShard;
   }
 
   /** Action XP measured against the unreduced thresholds: `xp / (1 - reduction)`. */

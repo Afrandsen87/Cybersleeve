@@ -10,7 +10,7 @@ import { uiText, type UiText } from './uiText';
 import { buildViewModel, statRow } from './viewModel';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
-const state = (g: { getState(): unknown }) => g.getState() as { heat: number; infamy: number; network: unknown };
+const state = (g: { getState(): unknown }) => g.getState() as { heat: number; legend: number; network: unknown };
 
 /** A complete text table whose every entry is recognisable, to prove that nothing is spelled out in logic. */
 const shouting: UiText = {
@@ -61,17 +61,17 @@ describe('display text comes from the text table', () => {
       'Hacking Proficiency',
       'ICE Rating',
       'Heat',
-      'Infamy',
+      'Legend',
     ]);
     expect(vm.network.stats.filter((s) => !s.hidden).map((s) => s.label)).toEqual(['Nodes', 'Payout per node', 'Credits per second']);
   });
 });
 
 describe('stat rows', () => {
-  it('only heat and Infamy have a cycle bar, and every Sleeve row has a tip', () => {
+  it('only heat and Legend have a cycle bar, and every Sleeve row has a tip', () => {
     const vm = buildViewModel(createGame({ config: testConfig }));
     const withBar = [...vm.sleeve.stats, ...vm.network.stats].filter((s) => s.bar).map((s) => s.id);
-    expect(withBar).toEqual(['heat', 'infamy']);
+    expect(withBar).toEqual(['heat', 'legend']);
     for (const row of vm.sleeve.stats) expect(row.tip, `${row.id} has no tip`).toBeTruthy();
     expect(statRow(vm.network.stats, 'income').tip).toBeNull();
   });

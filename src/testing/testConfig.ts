@@ -61,8 +61,8 @@ export const testConfig: GameConfig = {
     heatCooldownAmount: 1,
     baseIceRating: 1,
     iceRatingReductionPerOrder: 0.005,
-    infamyHeatSlowdown: 0.1,
-    infamyDecayPeriodMs: 600_000,
+    legendHeatSpeedup: 0.1,
+    legendDecayPeriodMs: 600_000,
   },
   engine: { maxBatchesPerTick: 1_000, maxSliceMs: 1_000, maxSlicesPerTick: 64, minRunDurationMs: 0.001 },
   runtime: { stepMs: 50, renderMs: 100, maxDeltaMs: 600_000, autosaveMs: 10_000, fastForwardFactor: 10 },
@@ -111,15 +111,15 @@ export const payoutAction: GameConfig['actions'][number] = {
   xpPerRun: num(1),
 };
 
-/** A test action that needs access level 2 (the `unlock` test buyable raises it): +1 Infamy, removes 25% of the nodes and adds 50 heat (1 s runs). */
+/** A test action that needs access level 2 (the `unlock` test buyable raises it): +1 Legend, removes 25% of the nodes and adds 5 heat per second while running (1 s runs). */
 export const legendAction: GameConfig['actions'][number] = {
   id: 'legend',
   name: 'Legend',
   baseDurationMs: 1_000,
   reward: num(1),
-  rewardKind: 'infamy',
+  rewardKind: 'legend',
   requiredAccessLevel: 2,
-  heatPerRun: 50,
+  heatPerSecond: 5,
   completionEffects: [{ kind: 'removeNodesFraction', fraction: 0.25 }],
   xpPerRun: num(1),
 };

@@ -24,7 +24,7 @@ export type StatId =
   | 'hackingProficiency'
   | 'iceRating'
   | 'heat'
-  | 'infamy'
+  | 'legend'
   | 'nodes'
   | 'income'
   | 'payout'
@@ -166,6 +166,15 @@ export interface OverclockTipParts {
   readonly nodesLost: string | null;
   /** Name of the other action whose reward each run also pays, or `null`. */
   readonly alsoPays: string | null;
+  /** Heat is held in place while the action runs overclocked. */
+  readonly holdsHeat: boolean;
+  /** The chain of consecutive runs, or `null` when the action's Overclock has none. Percentages are per link. */
+  readonly chain: {
+    readonly links: string;
+    readonly maxLinks: string;
+    readonly rewardPercent: string;
+    readonly nodesPercent: string;
+  } | null;
 }
 
 /** Pre-formatted pieces of the hover text of an action's Focus toggle. */
@@ -180,6 +189,44 @@ export interface FocusTipParts {
   readonly slots: string;
   /** Another action cannot be focused: every slot is taken (and this one is not focused). */
   readonly full: boolean;
+}
+
+/** Pre-formatted pieces of the hover text of the Zero-day tile. */
+export interface ZeroDayTipParts {
+  /** E.g. `"Zero-day"`. */
+  readonly label: string;
+  /** Where the item can drop from (empty while no action can drop it). */
+  readonly drops: readonly DropChanceParts[];
+  /** The action whose runs a Zero-day makes critical. */
+  readonly actionName: string;
+  /** Zero-days held. */
+  readonly count: string;
+  /** The toggle is on. */
+  readonly on: boolean;
+  /** Clicking would do something (the toggle is on, or one is held to switch it on). */
+  readonly canToggle: boolean;
+}
+
+/** Pre-formatted pieces of the hover text of the Admin key tile. */
+export interface AdminKeyTipParts extends ZeroDayTipParts {
+  /** Name of the bonus item a key-assisted critical run may drop, or `null` when there is none. */
+  readonly bonusName: string | null;
+  /** Chance in percent that one key-assisted critical run drops it. */
+  readonly bonusPercent: string;
+}
+
+/** Pre-formatted pieces of the hover text of the Skill shard tile. */
+export interface SkillShardTipParts {
+  /** E.g. `"Skill shard"`. */
+  readonly label: string;
+  /** Levels one shard delays the XP scaling of its action by. */
+  readonly levels: string;
+  /** Shards held. */
+  readonly count: string;
+  /** Using one now would do something (one is held and some action is unlocked). */
+  readonly canUse: boolean;
+  /** Where the shard can drop from (empty while the Admin keys that make it possible cannot be had). */
+  readonly drops: readonly DropChanceParts[];
 }
 
 /** Pre-formatted pieces of the hover text of a stack of Burn leads. */
@@ -251,7 +298,7 @@ export interface HeatTipParts {
   readonly stopsAt: string | null;
   /** Heat removed per cooldown cycle. */
   readonly amount: string;
-  /** Length of one cooldown cycle in seconds (Infamy and skills included). */
+  /** Length of one cooldown cycle in seconds (Legend and skills included). */
   readonly cycleSeconds: string;
   /** Moles held and the extra speed they give in percent, or `null` while there are none. */
   readonly moles: { readonly moles: string; readonly boostPercent: string } | null;
@@ -276,17 +323,17 @@ export interface CriticalTipParts {
   readonly rewardMultiplier: string;
 }
 
-/** Pre-formatted pieces of the Infamy explanation. */
-export interface InfamyTipParts {
-  /** Infamy points held. */
-  readonly infamy: string;
-  /** Length of a heat cooldown cycle without Infamy, in seconds. */
+/** Pre-formatted pieces of the Legend explanation. */
+export interface LegendTipParts {
+  /** Legend points held. */
+  readonly legend: string;
+  /** Length of a heat cooldown cycle without Legend, in seconds. */
   readonly baseSeconds: string;
-  /** How much longer one point of Infamy makes a cycle, in percent. */
-  readonly slowdownPercent: string;
+  /** How much faster one point of Legend makes a cycle, in percent. */
+  readonly speedupPercent: string;
   /** Length of a heat cooldown cycle now, in seconds. */
   readonly cycleSeconds: string;
-  /** Minutes until Infamy falls by 1. */
+  /** Minutes until Legend falls by 1. */
   readonly decayMinutes: string;
 }
 
@@ -305,6 +352,8 @@ export interface RewardLineParts {
   /** The reward multiplier, or `null` when it is 1. */
   readonly multiplier: string | null;
   readonly heatPerRun: number;
+  /** Heat added per second while the action runs. */
+  readonly heatPerSecond: number;
 }
 
 /** Pre-formatted pieces of a buyable's hover text. */
@@ -399,13 +448,13 @@ export interface UiText {
   readonly sections: Readonly<Record<SleeveSectionId, string>>;
   readonly statLabels: Readonly<Record<StatId, string>>;
   /** Label of the bar under a decaying stat; says so when the cycle is paused. */
-  readonly bars: { heat(running: boolean): string; infamy(running: boolean): string };
+  readonly bars: { heat(running: boolean): string; legend(running: boolean): string };
   /** Display unit of each reward kind (UI text only; logic never reads it). */
   readonly rewardUnits: Readonly<Record<RewardKind, string>>;
   /** Display unit of each currency a buyable can be paid in. */
   readonly costUnits: Readonly<Record<Currency, string>>;
   /** Why an action is locked, in a few words. */
-  readonly lock: { access(level: number): string };
+  readonly lock: { access(level: number): string; poster(level: number): string };
   /** What starting an action costs. */
   readonly startCost: {
     amount(amount: string, unit: string): string;
@@ -432,7 +481,7 @@ export interface UiText {
     payout(parts: PayoutTipParts): string;
     heat(parts: HeatTipParts): string;
     iceRating(parts: IceRatingTipParts): string;
-    infamy(parts: InfamyTipParts): string;
+    legend(parts: LegendTipParts): string;
     critical(parts: CriticalTipParts): string;
     buyable(parts: BuyableTipParts): string;
     stack(parts: StackTipParts): string;
@@ -440,6 +489,9 @@ export interface UiText {
     overclock(parts: OverclockTipParts): string;
     focus(parts: FocusTipParts): string;
     burnLead(parts: BurnLeadTipParts): string;
+    zeroDay(parts: ZeroDayTipParts): string;
+    adminKey(parts: AdminKeyTipParts): string;
+    skillShard(parts: SkillShardTipParts): string;
     /** The tip of a stack of items that cannot be paid out (applied instead). */
     stackKept(parts: StackKeptTipParts): string;
     backChannel(parts: BackChannelTipParts): string;
@@ -461,11 +513,25 @@ export interface UiText {
     readonly imported: string;
     readonly importInvalid: string;
   };
+  /** The changelog button and its modal. */
+  readonly changelog: {
+    readonly button: string;
+    readonly tip: string;
+    readonly title: string;
+    readonly empty: string;
+    readonly close: string;
+  };
   readonly controls: {
     readonly resetSave: string;
     readonly resetSaveTip: string;
+    readonly revealLocked: string;
+    readonly revealLockedTip: string;
     readonly testDrop: string;
     readonly testDropTip: string;
+    readonly doubleCredits: string;
+    readonly doubleCreditsTip: string;
+    /** Label of the icon button in the corner of an action card that starts a run. */
+    readonly startRun: string;
     speedToggle(factor: number): string;
     readonly speedToggleTip: string;
   };
@@ -528,7 +594,7 @@ export const uiText: UiText = {
     hackingProficiency: 'Hacking Proficiency',
     iceRating: 'ICE Rating',
     heat: 'Heat',
-    infamy: 'Infamy',
+    legend: 'Legend',
     nodes: 'Nodes',
     income: 'Credits per second',
     payout: 'Payout per node',
@@ -537,7 +603,7 @@ export const uiText: UiText = {
   },
   bars: {
     heat: (running) => (running ? 'Heat cooldown' : 'Heat cooldown (paused: needs a whole point of heat)'),
-    infamy: (running) => (running ? 'Infamy cooldown' : 'Infamy cooldown (paused: no infamy)'),
+    legend: (running) => (running ? 'Legend cooldown' : 'Legend cooldown (paused: no legend)'),
   },
   rewardUnits: {
     credits: 'credits',
@@ -545,11 +611,12 @@ export const uiText: UiText = {
     hackingProficiency: 'hacking proficiency',
     nodePayout: 'node payout',
     iceRating: 'iceRating',
-    infamy: 'infamy',
+    legend: 'legend',
   },
   costUnits: { credits: 'credits', networkNodes: 'nodes', skillPoints: 'skill points' },
   lock: {
     access: (level) => `Needs access level ${level}`,
+    poster: (level) => `Increase Access level to ${level} to unlock`,
   },
   startCost: {
     amount: (amount, unit) => `${amount} ${unit}`,
@@ -563,8 +630,8 @@ export const uiText: UiText = {
       `Action speed ${speed} | ${duration}${startCost ? ` | costs ${startCost}` : ''}${auto ? ' | auto' : ''}`,
     levelBar: (level, xp, next) => `Lv ${level} - ${xp}/${next} XP`,
     sleeveBar: (level, xp, next, runsToNext) => `Sleeve Lv ${level} - ${xp}/${next} XP | ${runsToNext} runs`,
-    reward: ({ amount, unit, multiplier, heatPerRun }) =>
-      `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}${heatPerRun > 0 ? ` | +${heatPerRun} heat` : ''}`,
+    reward: ({ amount, unit, multiplier, heatPerRun, heatPerSecond }) =>
+      `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}${heatPerRun > 0 ? ` | +${heatPerRun} heat` : ''}${heatPerSecond > 0 ? ` | +${heatPerSecond} heat/s` : ''}`,
     augment: 'Augment',
     modes: {
       autoRun: { symbol: '↻', name: 'Auto-run' },
@@ -687,16 +754,16 @@ export const uiText: UiText = {
         `A critical success gives ${xpMultiplier}x action XP and pays ${rewardMultiplier}x the reward`,
         'Some actions may do something different',
       ].join('\n'),
-    infamy: ({ infamy, baseSeconds, slowdownPercent, cycleSeconds, decayMinutes }) =>
+    legend: ({ legend, baseSeconds, speedupPercent, cycleSeconds, decayMinutes }) =>
       [
-        'Heat Cooldown Time = Base Time x (1 + Slowdown per Infamy x Infamy)',
+        'Heat Cooldown Time = Base Time / (1 + Speedup per Legend x Legend)',
         '',
         `Base Time = ${baseSeconds}s`,
-        `Slowdown per Infamy = ${slowdownPercent}%`,
-        `Infamy = ${infamy}`,
+        `Speedup per Legend = ${speedupPercent}%`,
+        `Legend = ${legend}`,
         '',
         `Heat Cooldown Time = ${cycleSeconds}s`,
-        `Infamy falls by 1 every ${decayMinutes} min`,
+        `Legend falls by 1 every ${decayMinutes} min`,
       ].join('\n'),
     buyable: ({ name, description, formula, values, cost, costUnit, owned, repeatable, maxed, toggleable, enabled }) => {
       // The name, what the purchase does and its formula; then the current numbers; then what the player can do with it.
@@ -734,7 +801,7 @@ export const uiText: UiText = {
         ...(next === null ? [] : [`Next to apply = ${next}`]),
         'Click to apply one to this action: its action levels come sooner (sleeve levels are unaffected)',
       ].join('\n'),
-    overclock: ({ on, strength, speed, reward, heatPerMinute, heatPerRunFactor, nodesLost, alsoPays }) =>
+    overclock: ({ on, strength, speed, reward, heatPerMinute, heatPerRunFactor, nodesLost, alsoPays, holdsHeat, chain }) =>
       [
         `Overclock (${on ? 'on' : 'off'})`,
         ...(speed === null ? [] : ['Action Speed = Action Speed x (1 + Speed Bonus)']),
@@ -748,6 +815,15 @@ export const uiText: UiText = {
         ...(heatPerMinute === null ? [] : [`Costs ${heatPerMinute} heat per minute while this action runs`]),
         ...(heatPerRunFactor === null ? [] : [`Each run makes ${heatPerRunFactor}x as much heat`]),
         ...(nodesLost === null ? [] : [`Each completed run costs ${nodesLost} nodes`]),
+        ...(holdsHeat ? ['Heat is held in place while this action runs: it cannot cool and Burn leads cannot be used'] : []),
+        ...(chain === null
+          ? []
+          : [
+              '',
+              `Kill chain = ${chain.links} / ${chain.maxLinks} links`,
+              `Each link adds ${chain.rewardPercent}% to the Reward Bonus and ${chain.nodesPercent}% to the share of the balance a run takes`,
+              'Stopping the action or switching Overclock off breaks the chain',
+            ]),
         '',
         `Click to switch ${on ? 'off' : 'on'}`,
       ].join('\n'),
@@ -772,6 +848,39 @@ export const uiText: UiText = {
         ...dropChanceLines(drops),
         '',
         canUse ? `Heat after Use = ${heatAfter}` : 'Needs some heat to act on',
+        `Owned = ${count}`,
+      ].join('\n'),
+    zeroDay: ({ label, drops, actionName, count, on, canToggle }) =>
+      [
+        label,
+        `While switched on, every completed ${actionName} run uses one up and is a critical success`,
+        'It switches itself off when the last one is used',
+        '',
+        ...dropChanceLines(drops),
+        on ? 'Switched on' : 'Switched off',
+        canToggle ? `Click to switch ${on ? 'off' : 'on'}` : 'Needs a Zero-day to switch on',
+        `Owned = ${count}`,
+      ].join('\n'),
+    adminKey: ({ label, drops, actionName, count, on, canToggle, bonusName, bonusPercent }) =>
+      [
+        label,
+        `While switched on, every completed ${actionName} run uses one up and is a critical success`,
+        ...(bonusName === null ? [] : [`Each of those critical runs has a ${bonusPercent}% chance to drop a ${bonusName}`]),
+        'It switches itself off when the last one is used',
+        '',
+        ...dropChanceLines(drops),
+        on ? 'Switched on' : 'Switched off',
+        canToggle ? `Click to switch ${on ? 'off' : 'on'}` : 'Needs an Admin key to switch on',
+        `Owned = ${count}`,
+      ].join('\n'),
+    skillShard: ({ label, levels, count, canUse, drops }) =>
+      [
+        label,
+        `Delays the XP scaling of a random unlocked action by ${levels} level${levels === '1' ? '' : 's'}: its next level costs stay at the first level's cost for longer`,
+        'Action levels only; sleeve levels are unaffected',
+        '',
+        ...dropChanceLines(drops),
+        canUse ? 'Click to use one; it leaves the Inventory' : 'Needs a shard and an unlocked action',
         `Owned = ${count}`,
       ].join('\n'),
     stackKept: ({ label, count, drops }) =>
@@ -819,11 +928,23 @@ export const uiText: UiText = {
     imported: 'Save imported. The page reloads now.',
     importInvalid: 'That text is not a valid save of this version. Nothing was changed.',
   },
+  changelog: {
+    button: 'Changelog',
+    tip: 'Shows what changed in each version of the game',
+    title: 'Changelog',
+    empty: 'Nothing here yet.',
+    close: 'Close',
+  },
   controls: {
     resetSave: 'Reset save',
     resetSaveTip: 'Wipes the game and the save, and starts over',
+    revealLocked: 'Show locked',
+    revealLockedTip: 'Shows the full card of actions that are still locked instead of the access level poster (test aid)',
     testDrop: 'Test drop',
     testDropTip: 'Drops one item now by the current rarity ratios (test aid)',
+    doubleCredits: 'Double credits',
+    doubleCreditsTip: 'Doubles the credits held now (test aid)',
+    startRun: 'Start run',
     speedToggle: (factor) => `Speed x${formatPlain(factor)}`,
     speedToggleTip: 'Runs game time faster (test aid)',
   },

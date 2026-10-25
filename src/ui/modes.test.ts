@@ -346,7 +346,25 @@ describe('the square on the screen', () => {
   it('sits in the card after the reward line and the two level bars, and is the last thing before the row of purchases', () => {
     const { card } = mount();
     const children = [...card(0).children].map((c) => c.className.split(' ')[0]);
-    expect(children).toEqual(['action-main', 'action-reward', 'xp', 'xp', 'square', 'upgrades']);
+    // The start-run button floats in the corner (absolutely positioned), so it is last and takes no grid cell.
+    expect(children).toEqual(['action-main', 'action-reward', 'xp', 'xp', 'square', 'upgrades', 'start-run', 'action-poster']);
+  });
+
+  it('shows a poster naming the access level instead of a locked card, and the poster is empty of the lock once revealed', () => {
+    const { card } = mount();
+    const poster = card(0).querySelector<HTMLElement>('.action-poster')!;
+    expect(poster.textContent).toMatch(/^Increase Access level to \d+ to unlock$/);
+  });
+
+  it('the start-run corner button starts the action and is disabled with it', () => {
+    const { card, game, render } = mount();
+    const btn = card(0).querySelector<HTMLButtonElement>('.start-run')!;
+    expect(btn.getAttribute('aria-label')).toBe('Start run');
+    expect(btn.disabled).toBe(false);
+    btn.click();
+    render();
+    expect(game.getState().actions[Object.keys(game.getState().actions)[0]!]!.running).toBe(true);
+    expect(btn.disabled).toBe(true); // greyed out until the run is over
   });
 
   it('the run bar is in the start button, which holds neither the reward line nor the square', () => {
@@ -518,5 +536,72 @@ describe('the Burn lead tile on the screen', () => {
     tile('Common File').click();
     expect(tile('Common File').classList.contains('selected')).toBe(true);
     expect(state(game).heat).toBe(4);
+  });
+});
+
+describe('the Admin key and Skill shard tiles', () => {
+  const keyConfig: GameConfig = createConfig(config, {
+    items: {
+      ...config.items,
+      definitions: [
+        ...config.items.definitions,
+        { id: 'ak', name: 'Admin key', sellable: false, hasRarity: false },
+        { id: 'sh', name: 'Skill shard', sellable: false, hasRarity: false },
+      ],
+      adminKey: { itemId: 'ak', actionId: 'a', shard: { itemId: 'sh', chance: 0.02 } },
+      skillShard: { itemId: 'sh', levelsDelayed: 1 },
+    },
+  });
+
+  const mount = () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const game = createGame({ config: keyConfig, random: () => 0 });
+    const render = mountUi(root, game, speed, () => {});
+    const tile = (label: string) =>
+      [...root.querySelectorAll<HTMLButtonElement>('.item-tile')].find((t) => t.getAttribute('aria-label') === label)!;
+    return { game, render, tile };
+  };
+  const view = (g: ReturnType<typeof createGame>, label: string) => buildViewModel(g).inventory.rows.find((r) => r.label === label)!;
+
+  it('the Admin key tile is a toggle: disabled with none held, then switched on and off by clicking', () => {
+    const { game, render, tile } = mount();
+    render();
+    expect(tile('Admin key').disabled).toBe(true);
+    state(game).inventory['ak'] = { common: 2 };
+    render();
+    expect(tile('Admin key').disabled).toBe(false);
+    tile('Admin key').click();
+    expect(game.getState().adminKeysOn).toBe(true);
+    expect(game.getState().zeroDaysOn).toBe(false);
+    expect(view(game, 'Admin key')).toMatchObject({ toggleable: true, on: true });
+    tile('Admin key').click();
+    expect(game.getState().adminKeysOn).toBe(false);
+  });
+
+  it('the Skill shard tile is used by clicking it: one shard lands on an unlocked action', () => {
+    const { game, render, tile } = mount();
+    state(game).inventory['sh'] = { common: 2 };
+    render();
+    expect(tile('Skill shard').disabled).toBe(false);
+    tile('Skill shard').click();
+    expect(state(game).inventory['sh']!['common']).toBe(1);
+    expect(game.getState().actions['a']!.skillShards).toBe(1);
+    expect(view(game, 'Skill shard')).toMatchObject({ usable: true, toggleable: false });
+  });
+
+  it('the tips say what they do, in the standard wording', () => {
+    const { game } = mount();
+    state(game).inventory['ak'] = { common: 1 };
+    state(game).inventory['sh'] = { common: 1 };
+    const key = view(game, 'Admin key').tip;
+    expect(key).toContain('every completed A run uses one up and is a critical success');
+    expect(key).toContain('2% chance to drop a Skill shard');
+    expect(key).toContain('Click to switch on');
+    const shard = view(game, 'Skill shard').tip;
+    expect(shard).toContain('Delays the XP scaling of a random unlocked action by 1 level');
+    expect(shard).toContain('Click to use one');
+    expect(shard).toContain('Drop Chance = 0%'); // no Admin key can be had yet
+    for (const text of [key, shard]) expect(text).not.toMatch(NOT);
   });
 });

@@ -112,7 +112,7 @@ function checkCompletionEffects(where: string, effects: GameConfig['actions'][nu
 
 /** Checks the numbers of an action's Overclock rule: every field that is given must make sense, and at least one must be given. */
 function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions'][number]['overclock']>, errors: string[]): void {
-  const { speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, alsoPays, completionEffects } = rule;
+  const { speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, alsoPays, completionEffects, stopsHeatCooling } = rule;
   if (speedBonus !== undefined && !(Number.isFinite(speedBonus) && speedBonus > 0))
     errors.push(`${where}: overclock speedBonus must be > 0`);
   if (rewardBonus !== undefined && !(Number.isFinite(rewardBonus) && rewardBonus > 0))
@@ -126,6 +126,7 @@ function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions
   checkCompletionEffects(`${where} overclock`, completionEffects, errors);
   const anything =
     [speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, alsoPays].some((v) => v !== undefined) ||
+    stopsHeatCooling === true ||
     (completionEffects?.length ?? 0) > 0;
   if (!anything) errors.push(`${where}: overclock needs at least one effect`);
 }
@@ -144,9 +145,10 @@ function checkEffect(b: GameConfig['buyables'][number], ctx: Omit<EffectContext,
   definitionOf(b).validate(b.effect, { ...ctx, where: `buyable "${b.id}"` });
 }
 
-/** Checks the item entity (unique ids, sell values) and returns the ids of the items and rarities. */
+/** Checks the item entity (unique ids, sell values, what the items refer to) and returns the ids of the items and rarities. */
 function checkItems(
   items: GameConfig['items'],
+  actionIds: ReadonlySet<string>,
   errors: string[],
 ): { itemIds: Set<string>; rarityIds: Set<string>; raritylessItemIds: Set<string> } {
   const itemIds = new Set<string>();
@@ -157,6 +159,7 @@ function checkItems(
     itemIds.add(item.id);
     if (item.hasRarity === false) raritylessItemIds.add(item.id);
   }
+
   for (const rarity of items.rarities) {
     if (rarityIds.has(rarity.id)) errors.push(`duplicate rarity id "${rarity.id}"`);
     rarityIds.add(rarity.id);
@@ -174,6 +177,25 @@ function checkItems(
     if (!(Number.isFinite(items.burnLead.heatFraction) && items.burnLead.heatFraction > 0 && items.burnLead.heatFraction <= 1)) {
       errors.push('items.burnLead.heatFraction must be in (0, 1]');
     }
+  }
+  if (items.zeroDay) {
+    if (!itemIds.has(items.zeroDay.itemId)) errors.push(`items.zeroDay refers to unknown item "${items.zeroDay.itemId}"`);
+    if (!actionIds.has(items.zeroDay.actionId)) errors.push(`items.zeroDay refers to unknown action "${items.zeroDay.actionId}"`);
+  }
+  if (items.adminKey) {
+    const { itemId, actionId, shard } = items.adminKey;
+    if (!itemIds.has(itemId)) errors.push(`items.adminKey refers to unknown item "${itemId}"`);
+    if (!actionIds.has(actionId)) errors.push(`items.adminKey refers to unknown action "${actionId}"`);
+    if (shard) {
+      if (!itemIds.has(shard.itemId)) errors.push(`items.adminKey.shard refers to unknown item "${shard.itemId}"`);
+      if (!raritylessItemIds.has(shard.itemId)) errors.push('items.adminKey.shard must be an item without rarity');
+      if (!(Number.isFinite(shard.chance) && shard.chance >= 0 && shard.chance <= 1))
+        errors.push('items.adminKey.shard.chance must be between 0 and 1');
+    }
+  }
+  if (items.skillShard) {
+    if (!itemIds.has(items.skillShard.itemId)) errors.push(`items.skillShard refers to unknown item "${items.skillShard.itemId}"`);
+    if (!positiveInt(items.skillShard.levelsDelayed)) errors.push('items.skillShard.levelsDelayed must be an integer >= 1');
   }
   return { itemIds, rarityIds, raritylessItemIds };
 }
@@ -233,6 +255,9 @@ export function validateConfig(config: GameConfig): string[] {
     if (a.heatPerRun !== undefined && !(Number.isFinite(a.heatPerRun) && a.heatPerRun >= 0)) {
       errors.push(`action "${a.id}": heatPerRun must be >= 0`);
     }
+    if (a.heatPerSecond !== undefined && !(Number.isFinite(a.heatPerSecond) && a.heatPerSecond >= 0)) {
+      errors.push(`action "${a.id}": heatPerSecond must be >= 0`);
+    }
     if (a.sleeveLevels) checkLevelRule(`action "${a.id}".sleeveLevels`, a.sleeveLevels, errors);
     if (a.rewardKind !== undefined && !REWARD_KINDS.includes(a.rewardKind)) {
       errors.push(`action "${a.id}": unknown rewardKind`);
@@ -252,7 +277,7 @@ export function validateConfig(config: GameConfig): string[] {
     buyableIds.add(b.id);
   }
   for (const a of config.actions) checkActionRules(a, errors);
-  const { itemIds, rarityIds, raritylessItemIds } = checkItems(config.items, errors);
+  const { itemIds, rarityIds, raritylessItemIds } = checkItems(config.items, actionIds, errors);
   for (const b of config.buyables) {
     if (!b.cost.isFinite() || b.cost.isNegative()) errors.push(`buyable "${b.id}": cost must be >= 0`);
     if (traitsOf(b).needsAction && b.actionId === undefined) errors.push(`buyable "${b.id}": ${b.effect.kind} needs an actionId`);
@@ -261,6 +286,12 @@ export function validateConfig(config: GameConfig): string[] {
       errors.push(`buyable "${b.id}": unknown currency`);
     }
     checkEffect(b, { actionIds, itemIds, rarityIds, raritylessItemIds, errors });
+    if (b.effect.kind === 'overclockChain') {
+      const action = config.actions.find((a) => a.id === b.actionId);
+      if (!action?.overclock) errors.push(`buyable "${b.id}": overclockChain needs an action that has an overclock rule`);
+      if (!action?.startCost)
+        errors.push(`buyable "${b.id}": an overclock chain needs an action with a startCost (its runs come one per batch)`);
+    }
     if (b.effect.kind === 'overclockUnlock' && !config.actions.find((a) => a.id === b.actionId)?.overclock) {
       errors.push(`buyable "${b.id}": overclockUnlock needs an action that has an overclock rule`);
     }
@@ -317,8 +348,8 @@ export function validateConfig(config: GameConfig): string[] {
   if (!(Number.isFinite(sl.iceRatingReductionPerOrder) && sl.iceRatingReductionPerOrder >= 0)) {
     errors.push('sleeve.iceRatingReductionPerOrder must be >= 0');
   }
-  if (!(Number.isFinite(sl.infamyHeatSlowdown) && sl.infamyHeatSlowdown >= 0)) errors.push('sleeve.infamyHeatSlowdown must be >= 0');
-  if (!positive(sl.infamyDecayPeriodMs)) errors.push('sleeve.infamyDecayPeriodMs must be > 0');
+  if (!(Number.isFinite(sl.legendHeatSpeedup) && sl.legendHeatSpeedup >= 0)) errors.push('sleeve.legendHeatSpeedup must be >= 0');
+  if (!positive(sl.legendDecayPeriodMs)) errors.push('sleeve.legendDecayPeriodMs must be > 0');
 
   checkScaling('speed.actionLevel', config.speed.actionLevel, errors);
   checkScaling('speed.sleeveLevel', config.speed.sleeveLevel, errors);

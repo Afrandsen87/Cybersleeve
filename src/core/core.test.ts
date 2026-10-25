@@ -209,7 +209,7 @@ describe('resolveSleeveStats', () => {
         hackingProficiency: num(0),
         network: num(0),
         iceRating: num(1),
-        infamy: 0,
+        legend: 0,
         nodePayoutBonus: num(0),
         inventory: {},
       },
@@ -228,7 +228,7 @@ describe('resolveSleeveStats', () => {
         hackingProficiency: num(0.25),
         network: num(0),
         iceRating: num(1),
-        infamy: 0,
+        legend: 0,
         nodePayoutBonus: num(0),
         inventory: {},
       },
@@ -453,7 +453,15 @@ describe('serialization', () => {
     const s = createInitialState(config, numberFactory);
     s.credits = num('1.5e400');
     s.network = num(33);
-    s.actions['a'] = { xp: num(77), sleeveXp: num(12), runsTowardSleeveXp: 42, augments: { common: 3 }, running: true, progress: 0.25 };
+    s.actions['a'] = {
+      xp: num(77),
+      sleeveXp: num(12),
+      runsTowardSleeveXp: 42,
+      augments: { common: 3 },
+      skillShards: 2,
+      running: true,
+      progress: 0.25,
+    };
     s.purchased['auto'] = 1;
     s.purchased['dual'] = 1;
     s.purchased['dup'] = 7;

@@ -77,7 +77,8 @@ export class DerivedStats implements ModeStatuses {
    */
   rewardMultiplier(id: ActionId): BigNum {
     const bought = resolveEffects(this.config.buyables, this.state, id, this.factory).rewardMultiplier;
-    const bonus = this.activeOverclock(id)?.rewardBonus ?? 0;
+    const overclock = this.activeOverclock(id);
+    const bonus = (overclock?.rewardBonus ?? 0) + (overclock?.chain ? this.chainLinks(id) * overclock.chain.rewardPerLink : 0);
     return bonus > 0 ? bought.mul(this.factory.fromNumber(1 + bonus)) : bought;
   }
 
@@ -157,7 +158,64 @@ export class DerivedStats implements ModeStatuses {
 
   /** What a critical success does for this action: the global rule with the action's own fields laid over it. @throws Error if the id is unknown */
   criticalRule(id: ActionId): CriticalSuccessRule {
-    return criticalRuleFor(this.config.criticalSuccess, this.definition(id));
+    const rule = criticalRuleFor(this.config.criticalSuccess, this.definition(id));
+    const factor = resolveEffects(this.config.buyables, this.state, id, this.factory).criticalFactor;
+    return factor === 1 ? rule : { ...rule, xpMultiplier: rule.xpMultiplier * factor, rewardMultiplier: rule.rewardMultiplier * factor };
+  }
+
+  /** The actions that every critical run of this action banks a guaranteed critical success for (owned `criticalLink` buyables). */
+  criticalLinks(id: ActionId): readonly ActionId[] {
+    return resolveEffects(this.config.buyables, this.state, id, this.factory).criticalLinks;
+  }
+
+  /** True when a completed run of this action can be critical now: by chance, by a Zero-day that is switched on, or by a banked success. */
+  criticalPossible(id: ActionId): boolean {
+    const { zeroDay, adminKey } = this.config.items;
+    return (
+      this.criticalChance() > 0 ||
+      (this.state.zeroDaysOn && zeroDay?.actionId === id) ||
+      (this.state.adminKeysOn && adminKey?.actionId === id) ||
+      (this.state.bankedCriticals[id] ?? 0) > 0
+    );
+  }
+
+  /**
+   * The chain links an action holds now: what its runs have built up while Overclock is on (0 when Overclock is off, the rule has no chain,
+   * or the chain is broken).
+   */
+  chainLinks(id: ActionId): number {
+    const chain = this.activeOverclock(id)?.chain;
+    return chain ? Math.min(chain.maxLinks, this.state.chains[id] ?? 0) : 0;
+  }
+
+  /**
+   * How the start cost share of an action is scaled now: `factor` is `(1 - perLevel)^level` for every owned `startCostReduction` buyable of
+   * the action, times `1 + links x nodesPerLink` while an Overclock chain is held; `atLeastOne` says a node cost that rounds down to 0 is
+   * raised to 1 (a reduction is owned, so the cost must never vanish).
+   */
+  startCostScale(id: ActionId): { readonly factor: number; readonly atLeastOne: boolean } {
+    const { startCostReductions } = resolveEffects(this.config.buyables, this.state, id, this.factory);
+    const level = this.progression.actionLevel(this.state, id);
+    let factor = 1;
+    for (const perLevel of startCostReductions) factor *= (1 - perLevel) ** level;
+    const chain = this.activeOverclock(id)?.chain;
+    if (chain) factor *= 1 + this.chainLinks(id) * chain.nodesPerLink;
+    return { factor, atLeastOne: startCostReductions.length > 0 };
+  }
+
+  /** Seconds of node income paid per node the start cost of this action destroys (0 without a Credit Siphon). */
+  siphonSeconds(id: ActionId): number {
+    return resolveEffects(this.config.buyables, this.state, id, this.factory).siphonSeconds;
+  }
+
+  /**
+   * True while an action is running overclocked with an Overclock that stops heat from cooling. Then the cooldown stands still and Burn
+   * leads cannot be used.
+   */
+  heatCoolingBlocked(): boolean {
+    return this.config.actions.some(
+      (a) => this.state.actions[a.id]?.running === true && this.activeOverclock(a.id)?.blocksHeatCooling === true,
+    );
   }
 
   /** Levels added to an action's level for speed by buyables; its XP progress is not affected. */
@@ -172,14 +230,26 @@ export class DerivedStats implements ModeStatuses {
    */
   overclockStatus(id: ActionId): OverclockStatus | null {
     const rule = this.definition(id).overclock;
-    if (!rule || !resolveEffects(this.config.buyables, this.state, id, this.factory).overclockUnlocked) return null;
+    const owned = resolveEffects(this.config.buyables, this.state, id, this.factory);
+    if (!rule || !owned.overclockUnlocked) return null;
+    const chain = owned.chain;
     const strength = this.sleeveStats().overclockStrength;
+    const on = this.state.overclocked[id] === true;
     return {
-      on: this.state.overclocked[id] === true,
+      on,
+      blocksHeatCooling: rule.stopsHeatCooling === true,
+      chain: chain
+        ? {
+            links: on ? Math.min(chain.maxLinks, this.state.chains[id] ?? 0) : 0,
+            maxLinks: chain.maxLinks,
+            rewardPerLink: chain.rewardPerLink * strength,
+            nodesPerLink: chain.nodesPerLink,
+          }
+        : null,
       speedBonus: (rule.speedBonus ?? 0) * strength,
       rewardBonus: (rule.rewardBonus ?? 0) * strength,
       heatPerMinute: rule.heatPerMinute ?? 0,
-      heatPerRunFactor: rule.heatPerRunFactor ?? 1,
+      heatPerRunFactor: Math.min(rule.heatPerRunFactor ?? 1, this.sleeveStats().overclockHeatFactors[id] ?? Infinity),
       completionEffects: rule.completionEffects ?? [],
       alsoPays: rule.alsoPays ?? null,
       strength,
@@ -261,7 +331,7 @@ export class DerivedStats implements ModeStatuses {
    */
   maxXpPerRun(id: ActionId): BigNum {
     const base = this.xpPerRun(id);
-    const factor = this.criticalChance() > 0 ? this.criticalRule(id).xpMultiplier : 1;
+    const factor = this.criticalPossible(id) ? this.criticalRule(id).xpMultiplier : 1;
     return factor > 1 ? base.mul(this.factory.fromNumber(factor)) : base;
   }
 

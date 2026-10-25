@@ -9,7 +9,7 @@ import type { GameConfig, GameStateView } from '../core';
 import { SCALAR_FIELDS } from '../core';
 
 /** Config sections the checks read. */
-type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'progression'>;
+type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'items' | 'progression'>;
 
 const validAmount = (n: BigNum): boolean => n.isFinite() && !n.isNegative() && !n.isNaN();
 const validCount = (n: number): boolean => Number.isInteger(n) && n >= 0;
@@ -36,7 +36,10 @@ const isWhole = (n: BigNum): boolean => {
  * - the run counter towards sleeve XP is whole and below `runsPerSleeveXp`;
  * - every inventory stack is a whole number >= 0;
  * - Overclock and Focus are switched on only for actions whose unlock is owned (Overclock also needs an Overclock rule), and no
- *   more actions are focused than there are Focus slots (the base slots plus the bought ones); the toggles name known actions only.
+ *   more actions are focused than there are Focus slots (the base slots plus the bought ones); the toggles name known actions only;
+ * - banked critical successes are whole counts of known actions;
+ * - the Zero-day and Admin key toggles are on only while the game has the rule and at least one of the item is held;
+ * - Skill shard counts are whole numbers, and an Overclock chain is a whole count within the most links of the chain buyable, for an action that owns one.
  *
  * @param state the state to check
  * @param config content (decides the ids and limits)
@@ -67,6 +70,7 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
     if (!validAmount(action.sleeveXp)) problems.push(`${def.id}.sleeveXp is not a valid amount: ${action.sleeveXp.toString()}`);
     if (!Number.isFinite(action.progress) || action.progress < 0 || action.progress >= 1)
       problems.push(`${def.id}.progress is invalid: ${action.progress}`);
+    if (!validCount(action.skillShards)) problems.push(`${def.id}.skillShards is invalid: ${action.skillShards}`);
     for (const [rarity, count] of Object.entries(action.augments)) {
       if (!validCount(count)) problems.push(`${def.id}.augments.${rarity} is invalid: ${count}`);
     }
@@ -94,6 +98,26 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   }
   if (Object.keys(state.focused).length > slots)
     problems.push(`${Object.keys(state.focused).length} actions are focused with ${slots} Focus slots`);
+  for (const [id, count] of Object.entries(state.bankedCriticals)) {
+    if (!known.has(id) || !validCount(count)) problems.push(`bankedCriticals.${id} is invalid: ${count}`);
+  }
+  if (state.zeroDaysOn) {
+    const rule = config.items.zeroDay;
+    const stack = config.items.rarities[0];
+    if (!rule || !stack || (state.inventory[rule.itemId]?.[stack.id] ?? 0) <= 0)
+      problems.push('zeroDaysOn is switched on without a Zero-day held');
+  }
+  if (state.adminKeysOn) {
+    const rule = config.items.adminKey;
+    const stack = config.items.rarities[0];
+    if (!rule || !stack || (state.inventory[rule.itemId]?.[stack.id] ?? 0) <= 0)
+      problems.push('adminKeysOn is switched on without an Admin key held');
+  }
+  for (const [id, links] of Object.entries(state.chains)) {
+    const owned = config.buyables.find((b) => b.effect.kind === 'overclockChain' && b.actionId === id && (state.purchased[b.id] ?? 0) > 0);
+    const max = owned?.effect.kind === 'overclockChain' ? owned.effect.chain.maxLinks : undefined;
+    if (max === undefined || !validCount(links) || links > max) problems.push(`chains.${id} is invalid: ${links}`);
+  }
   for (const [itemId, stacks] of Object.entries(state.inventory)) {
     for (const [rarityId, count] of Object.entries(stacks)) {
       if (!validCount(count) || count > Number.MAX_SAFE_INTEGER)

@@ -77,7 +77,18 @@ describe('unbounded bonuses are BigNums', () => {
 describe('scalar field registry', () => {
   it('covers every scalar of the state exactly once', () => {
     const state = createInitialState(config, numberFactory);
-    const nonScalar = ['autoRunOff', 'overclocked', 'focused', 'actions', 'purchased', 'inventory'];
+    const nonScalar = [
+      'autoRunOff',
+      'overclocked',
+      'focused',
+      'zeroDaysOn',
+      'adminKeysOn',
+      'chains',
+      'bankedCriticals',
+      'actions',
+      'purchased',
+      'inventory',
+    ];
     const expected = Object.keys(state)
       .filter((k) => !nonScalar.includes(k))
       .sort();
@@ -131,7 +142,7 @@ describe('scalar field registry', () => {
       payReward(s, kind, num(2), num(3));
     }
     expect(s.network.toNumber()).toBe(6);
-    expect(s.infamy).toBe(6);
+    expect(s.legend).toBe(6);
     expect(s.hackingProficiency.toNumber()).toBe(6);
     expect(s.nodePayoutBonus.toNumber()).toBe(6);
     expect(s.iceRating.toNumber()).toBe(7); // starts at 1

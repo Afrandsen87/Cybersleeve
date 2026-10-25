@@ -721,7 +721,7 @@ describe('GameEngine - the credit multiplier scales credits only', () => {
     { kind: 'hackingProficiency', field: 'hackingProficiency' },
     { kind: 'nodePayout', field: 'nodePayoutBonus' },
     { kind: 'iceRating', field: 'iceRating' },
-    { kind: 'infamy', field: 'infamy' },
+    { kind: 'legend', field: 'legend' },
   ] as const;
 
   it.each(everyKind)('does not change what a $kind reward pays', ({ kind, field }) => {

@@ -133,6 +133,8 @@ export interface ActionView {
   readonly requiredAccessLevel: number;
   /** Short reason the action is locked, e.g. `"Needs access level 3"`; `null` while it is unlocked. */
   readonly lockedReason: string | null;
+  /** The poster shown instead of the card while the action is locked, e.g. `"Increase Access level to 3"`. */
+  readonly posterText: string;
   /** What each run costs to start, e.g. `"50 nodes"` or `"1% of nodes (3)"` (share of the balance, with today's amount); `null` when free. */
   readonly startCostText: string | null;
   /** Heat added by each completed run (0 for none). */
@@ -232,7 +234,7 @@ export interface StatRowView {
 /** Display data of the Sleeve widget: global stats and global purchases. */
 export interface SleeveView {
   readonly title: string;
-  /** Access level, interface speed, ICE Rating, heat and Infamy, in display order. */
+  /** Access level, interface speed, ICE Rating, heat and Legend, in display order. */
   readonly stats: readonly StatRowView[];
   /** The sleeve-wide purchases, in configuration order. */
   readonly buyables: readonly BuyableView[];
@@ -264,8 +266,12 @@ export interface InventoryRowView {
   readonly countText: string;
   /** Items of this kind are used up by clicking their tile (Burn leads). */
   readonly usable: boolean;
-  /** Using one now would do something (one is held and the effect has something to act on). */
+  /** Clicking the tile now would do something (a lead is held and there is heat to act on; the Zero-day toggle is on or one is held). */
   readonly canUse: boolean;
+  /** Clicking the tile switches the item on or off instead of using it up (Zero-days). */
+  readonly toggleable: boolean;
+  /** For a toggleable item: it is switched on. */
+  readonly on: boolean;
   /** The Back Channel Deals skill is owned and this stack can be given up for Moles. */
   readonly backChannel: boolean;
   /** Hover text of the back channel button (empty when `backChannel` is false). */
@@ -365,7 +371,7 @@ function sleeveRows(stats: SleeveStats, state: ReturnType<GameQueries['getState'
   const { sleeve } = config;
   const keep = 1 - stats.heatReduction;
   const stopsAt = keep > 0 && sleeve.heatTaxPerPoint > 0 ? text.format.heatPoints(formatPlain(1 / sleeve.heatTaxPerPoint / keep)) : null;
-  const cycleMs = sleeve.heatCooldownMs * (1 + sleeve.infamyHeatSlowdown * stats.infamy);
+  const cycleMs = sleeve.heatCooldownMs / (1 + sleeve.legendHeatSpeedup * stats.legend);
   const orders = Math.max(0, stats.iceRating.log10());
   const beyond = earnedSpeedBeyond(sleeve);
   const curve = {
@@ -430,21 +436,21 @@ function sleeveRows(stats: SleeveStats, state: ReturnType<GameQueries['getState'
       running: coolsNow,
     }),
     row(
-      'infamy',
+      'legend',
       text,
-      formatPlain(stats.infamy),
+      formatPlain(stats.legend),
       () =>
-        text.tips.infamy({
-          infamy: formatPlain(stats.infamy),
+        text.tips.legend({
+          legend: formatPlain(stats.legend),
           baseSeconds: formatPlain(sleeve.heatCooldownMs / 1000),
-          slowdownPercent: formatPlain(sleeve.infamyHeatSlowdown * 100),
+          speedupPercent: formatPlain(sleeve.legendHeatSpeedup * 100),
           cycleSeconds: formatPlain(cycleMs / 1000),
-          decayMinutes: formatPlain(sleeve.infamyDecayPeriodMs / 60_000),
+          decayMinutes: formatPlain(sleeve.legendDecayPeriodMs / 60_000),
         }),
       {
-        label: text.bars.infamy(stats.infamy > 0),
-        percent: Math.min(100, (state.infamyCooldownMs / sleeve.infamyDecayPeriodMs) * 100),
-        running: stats.infamy > 0,
+        label: text.bars.legend(stats.legend > 0),
+        percent: Math.min(100, (state.legendCooldownMs / sleeve.legendDecayPeriodMs) * 100),
+        running: stats.legend > 0,
       },
     ),
     row(
@@ -798,6 +804,15 @@ function overclockView(engine: GameQueries, actionId: string, text: UiText): Mod
         heatPerMinute: status.heatPerMinute > 0 ? formatPlain(status.heatPerMinute, MODE_DECIMALS) : null,
         heatPerRunFactor: status.heatPerRunFactor > 1 ? formatPlain(status.heatPerRunFactor, MODE_DECIMALS) : null,
         nodesLost: nodesLost > 0 ? formatPlain(nodesLost) : null,
+        holdsHeat: status.blocksHeatCooling,
+        chain: status.chain
+          ? {
+              links: formatPlain(status.chain.links),
+              maxLinks: formatPlain(status.chain.maxLinks),
+              rewardPercent: formatPlain(status.chain.rewardPerLink * 100, MODE_DECIMALS),
+              nodesPercent: formatPlain(status.chain.nodesPerLink * 100, MODE_DECIMALS),
+            }
+          : null,
         alsoPays:
           status.alsoPays === null ? null : (engine.getConfig().actions.find((a) => a.id === status.alsoPays)?.name ?? status.alsoPays),
       });
@@ -851,13 +866,25 @@ function inventoryView(engine: GameQueries, factory: NumberFactory, text: UiText
   const { items, buyables } = engine.getConfig();
   const channel = engine.backChannel();
   const burnLead = items.burnLead;
+  const zeroDay = items.zeroDay;
+  const adminKey = items.adminKey;
+  const skillShard = items.skillShard;
+  const nameOf = (id: string): string => items.definitions.find((d) => d.id === id)?.name ?? id;
+  const actionNameOf = (id: string | undefined): string | undefined =>
+    id === undefined ? undefined : engine.getConfig().actions.find((a) => a.id === id)?.name;
+  const zeroDayAction = actionNameOf(zeroDay?.actionId);
+  const adminKeyAction = actionNameOf(adminKey?.actionId);
   const rows = items.definitions.flatMap((item) =>
     // An item without rarity is one stack (kept under the most common rarity) and is named by the item alone.
     (item.hasRarity === false ? items.rarities.slice(0, 1) : items.rarities).map((rarity): InventoryRowView => {
       const count = itemCount(state, item.id, rarity.id);
       const label = item.hasRarity === false ? item.name : text.inventory.label(rarity.name, item.name);
       const backChannel = channel !== null && channel.itemId === item.id && channel.rarityId === rarity.id;
-      const usable = burnLead?.itemId === item.id;
+      const isZeroDay = zeroDay?.itemId === item.id;
+      const isAdminKey = adminKey?.itemId === item.id;
+      const isShard = skillShard?.itemId === item.id;
+      const usable = burnLead?.itemId === item.id || isShard;
+      const toggleable = isZeroDay || isAdminKey;
       return {
         itemId: item.id,
         rarityId: rarity.id,
@@ -868,7 +895,13 @@ function inventoryView(engine: GameQueries, factory: NumberFactory, text: UiText
         countText: formatBigNum(factory.fromNumber(count)),
         sellable: item.sellable !== false,
         usable,
-        canUse: usable && engine.canUseBurnLead(rarity.id),
+        canUse:
+          (usable && !isShard && engine.canUseBurnLead(rarity.id)) ||
+          (isShard && engine.canUseSkillShard()) ||
+          (isZeroDay && engine.canToggleZeroDays()) ||
+          (isAdminKey && engine.canToggleAdminKeys()),
+        toggleable,
+        on: (isZeroDay && state.zeroDaysOn) || (isAdminKey && state.adminKeysOn),
         backChannel,
         get backChannelTip() {
           return backChannel && channel
@@ -881,6 +914,23 @@ function inventoryView(engine: GameQueries, factory: NumberFactory, text: UiText
         },
         get tip() {
           const drops = dropChances(engine, item.id, rarity.id);
+          if (isShard && skillShard && adminKey) {
+            return text.tips.skillShard({
+              label,
+              levels: formatPlain(skillShard.levelsDelayed),
+              count: formatBigNum(factory.fromNumber(count)),
+              canUse: engine.canUseSkillShard(),
+              drops:
+                adminKey.shard && adminKeyAction && engine.dropSources(adminKey.itemId, rarity.id).length > 0
+                  ? [
+                      {
+                        action: `${nameOf(adminKey.itemId)}-assisted ${adminKeyAction}`,
+                        percent: formatPlain(adminKey.shard.chance * 100, DROP_CHANCE_DECIMALS),
+                      },
+                    ]
+                  : [],
+            });
+          }
           if (usable && burnLead) {
             return text.tips.burnLead({
               label,
@@ -890,6 +940,28 @@ function inventoryView(engine: GameQueries, factory: NumberFactory, text: UiText
               heatAfter: formatPlain(state.heat * (1 - burnLead.heatFraction), HEAT_DECIMALS),
               count: formatBigNum(factory.fromNumber(count)),
               canUse: state.heat > 0,
+            });
+          }
+          if (isAdminKey && adminKey && adminKeyAction) {
+            return text.tips.adminKey({
+              label,
+              drops,
+              actionName: adminKeyAction,
+              count: formatBigNum(factory.fromNumber(count)),
+              on: state.adminKeysOn,
+              canToggle: engine.canToggleAdminKeys(),
+              bonusName: adminKey.shard ? nameOf(adminKey.shard.itemId) : null,
+              bonusPercent: formatPlain((adminKey.shard?.chance ?? 0) * 100),
+            });
+          }
+          if (isZeroDay && zeroDayAction) {
+            return text.tips.zeroDay({
+              label,
+              drops,
+              actionName: zeroDayAction,
+              count: formatBigNum(factory.fromNumber(count)),
+              on: state.zeroDaysOn,
+              canToggle: engine.canToggleZeroDays(),
             });
           }
           return item.sellable === false
@@ -994,6 +1066,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
     const rewardUnit = text.rewardUnits[def.rewardKind ?? 'credits'];
     const rewardMultiplierText = formatBigNum(engine.rewardMultiplier(def.id));
     const heatPerRun = def.heatPerRun ?? 0;
+    const heatPerSecond = def.heatPerSecond ?? 0;
     const xpText = formatBigNum(engine.actionXpIntoLevel(def.id));
     const nextLevelXpText = formatBigNum(engine.actionXpForLevel(def.id));
     const sleeveLevel = engine.sleeveLevel(def.id);
@@ -1030,6 +1103,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
       startable: engine.canStart(def.id),
       requiredAccessLevel: def.requiredAccessLevel ?? 1,
       lockedReason: reason,
+      posterText: text.lock.poster(def.requiredAccessLevel ?? 1),
       startCostText: cost,
       heatPerRun,
       get speedTip() {
@@ -1043,6 +1117,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
         unit: rewardUnit,
         multiplier: rewardMultiplierText === '1' ? null : rewardMultiplierText,
         heatPerRun,
+        heatPerSecond,
       }),
       buyables: buyableViews.filter((b) => b.actionId === def.id),
       square: squareView(config, def.id, viewById, overclock, focus, augment, text),

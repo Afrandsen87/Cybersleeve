@@ -12,6 +12,7 @@ import { createNewGameHandler } from './app/newGame';
 import { createBrowserFrameScheduler, RenderLoop } from './app/renderLoop';
 import { SAVE_KEY, SaveGame, createBrowserStore } from './app/persistence';
 import { createSaveTransfer } from './app/saveTransfer';
+import { CHANGELOG } from './content/changelog';
 import { SpeedToggle } from './app/speedToggle';
 import { claimGame, watchForOtherTab } from './app/tabGuard';
 import { createThrottle } from './app/throttle';
@@ -63,6 +64,7 @@ async function start(root: HTMLElement): Promise<void> {
     debugControls: debug,
     icons: createIconSource({ size: ICON_SIZE, palette: ICON_PALETTE, grids: ICON_GRIDS, assignment: ENTITY_ICONS }),
     saveTransfer: { exportSave: () => void transfer.exportSave(), importSave: () => transfer.importSave() },
+    changelog: CHANGELOG,
   });
 
   // The game steps on a timer every `stepMs` (timers keep running in background tabs). The screen is drawn on the display's frame

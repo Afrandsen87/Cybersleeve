@@ -73,6 +73,11 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     buyable({ id: 'fo-push', actionId: 'push', effect: { kind: 'focusUnlock' } }),
     buyable({ id: 'ocs', costGrowth: 3, maxPurchases: Infinity, effect: { kind: 'overclockStrength', perCopy: 0.1 } }),
     buyable({ id: 'slots', costGrowth: 3, maxPurchases: 3, effect: { kind: 'focusSlots', perCopy: 1 } }),
+    buyable({ id: 'boost', actionId: 'push', effect: { kind: 'criticalBoost', factor: 3 } }),
+    buyable({ id: 'link', actionId: 'push', effect: { kind: 'criticalLink', targetActionId: 'net' } }),
+    buyable({ id: 'obf', effect: { kind: 'overclockHeatFactor', targetActionId: 'push', factor: 2 } }),
+    buyable({ id: 'crit', maxPurchases: 3, effect: { kind: 'criticalChance', chance: 0.3 } }),
+    buyable({ id: 'zds', actionId: 'push', effect: { kind: 'itemDrop', drop: { itemId: 'zd', chance: 0.5 } } }),
     buyable({
       id: 'leads',
       actionId: 'net',
@@ -81,8 +86,13 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
   ],
   items: {
     ...testConfig.items,
-    definitions: [...testConfig.items.definitions, { id: 'lead', name: 'Lead', sellable: false }],
+    definitions: [
+      ...testConfig.items.definitions,
+      { id: 'lead', name: 'Lead', sellable: false },
+      { id: 'zd', name: 'Zero-day', sellable: false, hasRarity: false },
+    ],
     burnLead: { itemId: 'lead', heatFraction: 0.05 },
+    zeroDay: { itemId: 'zd', actionId: 'push' },
   },
 });
 
@@ -93,7 +103,7 @@ const contents: [string, GameConfig][] = [
 
 const TICKS = [0, 1, 16, 50, 999, 1_000, 5_000, 60_000, 3_600_000];
 
-type Mutable = { credits: unknown; network: unknown; heat: number; infamy: number };
+type Mutable = { credits: unknown; network: unknown; heat: number; legend: number };
 
 /** Half the time buys the buyable of an effect kind first, so that its toggle can be reached in a few random steps. */
 function maybeBuy(g: GameEngine, config: GameConfig, random: Random, kind: BuyableDefinition['effect']['kind']): void {
@@ -101,7 +111,7 @@ function maybeBuy(g: GameEngine, config: GameConfig, random: Random, kind: Buyab
   if (options.length > 0 && random() < 0.5) g.activateBuyable(pick(random, options).id);
 }
 
-/** Does one random thing to the game: a command, a tick, or a gift of credits, nodes, heat or Infamy. */
+/** Does one random thing to the game: a command, a tick, or a gift of credits, nodes, heat or Legend. */
 function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
   const state = g.getState() as unknown as Mutable;
   const roll = random();
@@ -119,7 +129,7 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
   else if (roll < 0.68) state.network = num(randomInt(random, 5_000));
   else if (roll < 0.72)
     state.heat = randomInt(random, 300) / (1 + randomInt(random, 4)); // whole and fractional heat
-  else if (roll < 0.74) state.infamy = randomInt(random, 5);
+  else if (roll < 0.74) state.legend = randomInt(random, 5);
   else g.tick(pick(random, TICKS));
 }
 
@@ -177,7 +187,7 @@ describe('tick size does not matter', () => {
     close(a.hackingProficiency, b.hackingProficiency, 'hacking proficiency');
     close(a.nodePayoutBonus, b.nodePayoutBonus, 'node payout bonus');
     expect(a.heat).toBeCloseTo(b.heat, 6);
-    expect(a.infamy).toBe(b.infamy);
+    expect(a.legend).toBe(b.legend);
     for (const action of richTestConfig.actions) close(a.actions[action.id]!.xp, b.actions[action.id]!.xp, `${action.id} xp`);
   });
 });

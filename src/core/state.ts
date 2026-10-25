@@ -8,7 +8,19 @@ import { initialScalars } from './fields';
 import type { ActionState, GameConfig, GameState } from './types';
 
 /** The scalar fields of the state (see `fields.ts`). */
-type ScalarKey = Exclude<keyof GameState, 'autoRunOff' | 'overclocked' | 'focused' | 'actions' | 'purchased' | 'inventory'>;
+type ScalarKey = Exclude<
+  keyof GameState,
+  | 'autoRunOff'
+  | 'overclocked'
+  | 'focused'
+  | 'zeroDaysOn'
+  | 'adminKeysOn'
+  | 'chains'
+  | 'bankedCriticals'
+  | 'actions'
+  | 'purchased'
+  | 'inventory'
+>;
 
 /**
  * THE positive list of what survives a re-sleeve: these per-action fields. Nothing else carries over; everything not
@@ -26,7 +38,15 @@ function pickCarried(action: ActionState): Partial<ActionState> {
 
 /** A fresh action state: no XP, no sleeve XP, idle. */
 function freshActionState(factory: NumberFactory): ActionState {
-  return { xp: factory.fromNumber(0), sleeveXp: factory.fromNumber(0), runsTowardSleeveXp: 0, augments: {}, running: false, progress: 0 };
+  return {
+    xp: factory.fromNumber(0),
+    sleeveXp: factory.fromNumber(0),
+    runsTowardSleeveXp: 0,
+    augments: {},
+    skillShards: 0,
+    running: false,
+    progress: 0,
+  };
 }
 
 /**
@@ -45,6 +65,10 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
     autoRunOff: {},
     overclocked: {},
     focused: {},
+    zeroDaysOn: false,
+    adminKeysOn: false,
+    chains: {},
+    bankedCriticals: {},
     actions,
     purchased: {},
     inventory: {},

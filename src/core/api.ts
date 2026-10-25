@@ -97,6 +97,14 @@ export interface SleeveQueries {
   backChannel(): BackChannelRule | null;
   /** True when using a Burn lead of this rarity would do something (one is held and there is heat). */
   canUseBurnLead(rarityId: RarityId): boolean;
+  /** True when pressing the Zero-day toggle would do something (it is on, or a Zero-day is held). */
+  canToggleZeroDays(): boolean;
+  /** True when pressing the Admin key toggle would do something (it is on, or an Admin key is held). */
+  canToggleAdminKeys(): boolean;
+  /** True when using a Skill shard would do something (one is held and some action is unlocked). */
+  canUseSkillShard(): boolean;
+  /** True while heat cannot cool or be reduced at all (an action is running with an Overclock that stops heat cooling). */
+  heatCoolingBlocked(): boolean;
 }
 
 /** Read-only questions about buyables: ownership, price and availability. */
@@ -146,6 +154,8 @@ export interface GameCommands {
   activateBuyable(id: BuyableId): ActivateResult;
   /** Test aid: drops one item now by the current drop weights, whatever the chance. */
   dropTestItem(): void;
+  /** Test aid: doubles the credits held now. */
+  doubleCredits(): void;
   /** Applies one Augment schematic to an action (raises its action XP per run). @returns true when one was applied */
   augmentAction(id: ActionId): boolean;
   /** Switches Overclock on or off for an action. @returns true when it is now on */
@@ -154,6 +164,12 @@ export interface GameCommands {
   toggleFocus(id: ActionId): boolean;
   /** Uses one Burn lead of a rarity: it is used up and takes a share of the current heat away. @returns true when one was used */
   useBurnLead(rarityId: RarityId): boolean;
+  /** Switches the Zero-day toggle (needs a Zero-day to switch on; switches itself off at 0). @returns true when it is now on */
+  toggleZeroDays(): boolean;
+  /** Switches the Admin key toggle (needs an Admin key to switch on; switches itself off at 0). @returns true when it is now on */
+  toggleAdminKeys(): boolean;
+  /** Uses one Skill shard: it lands on a random unlocked action and delays its action XP scaling. @returns the action it landed on, or `null` when nothing happened */
+  useSkillShard(): ActionId | null;
   /** Gives up items for Moles through the unlocked back channel. @param amount how many, or `'all'` @returns how many were given up */
   giveUpForMoles(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number;
   /** Sells items from the inventory for credits. @param amount how many, or `'all'` @returns how many were sold */

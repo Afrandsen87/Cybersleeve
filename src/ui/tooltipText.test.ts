@@ -43,7 +43,7 @@ describe('Access Level tooltip', () => {
   });
 });
 
-describe('Heat, ICE Rating and Infamy tooltips', () => {
+describe('Heat, ICE Rating and Legend tooltips', () => {
   it('Heat: formula, a blank line, the variables, a blank line, the result', () => {
     const g = game();
     set(g, { heat: 7 });
@@ -79,18 +79,18 @@ describe('Heat, ICE Rating and Infamy tooltips', () => {
     expect(sleeveTip(g, 'iceRating')).not.toContain('Reaches 100%');
   });
 
-  it('Infamy: the heat cooldown time it causes, and how fast it falls', () => {
+  it('Legend: the heat cooldown time it causes, and how fast it falls', () => {
     const g = game();
-    set(g, { infamy: 2 });
-    expect(sleeveTip(g, 'infamy').split('\n')).toEqual([
-      'Heat Cooldown Time = Base Time x (1 + Slowdown per Infamy x Infamy)',
+    set(g, { legend: 2 });
+    expect(sleeveTip(g, 'legend').split('\n')).toEqual([
+      'Heat Cooldown Time = Base Time / (1 + Speedup per Legend x Legend)',
       '',
       'Base Time = 60s',
-      'Slowdown per Infamy = 10%',
-      'Infamy = 2',
+      'Speedup per Legend = 10%',
+      'Legend = 2',
       '',
-      'Heat Cooldown Time = 72s',
-      'Infamy falls by 1 every 10 min',
+      'Heat Cooldown Time = 50s',
+      'Legend falls by 1 every 10 min',
     ]);
   });
 });
@@ -194,7 +194,7 @@ describe('the tooltips of the real game follow one standard', () => {
       'hackingProficiency',
       'iceRating',
       'heat',
-      'infamy',
+      'legend',
       'criticalChance',
     ]);
     for (const s of vm.sleeve.stats) expect(s.tip, `${s.id} has no tooltip`).toBeTruthy();

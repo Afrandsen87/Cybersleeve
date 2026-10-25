@@ -72,6 +72,8 @@ export const SKILL_NOSE_FOR_SECRETS = 'skill-nose-for-secrets';
 export const SKILL_EXPLOIT_KOMPROMAT = 'skill-exploit-kompromat';
 /** Id of the skill that lets common Kompromat be given up for Moles (faster heat cooldown). */
 export const SKILL_BACK_CHANNEL = 'skill-back-channel';
+/** Id of the skill that lowers the heat Push malware's Overclock makes per run. */
+export const SKILL_OBFUSCATION = 'skill-obfuscation';
 /** Every skill id, in the order the Skills tab lists them. */
 export const SKILLS = [
   SKILL_OVERCLOCK,
@@ -82,6 +84,7 @@ export const SKILLS = [
   SKILL_NOSE_FOR_SECRETS,
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_BACK_CHANNEL,
+  SKILL_OBFUSCATION,
 ] as const;
 /** Id of the Kill servers auto-run buyable. */
 export const KILL_AUTO_RUN = 'kill-auto-run';
@@ -110,6 +113,28 @@ export const focusUnlockId = (actionId: string): string => `${actionId}-focus`;
 export const BURN_LEAD = 'burn-lead';
 /** Id of the Grow network buyable that lets its runs drop Burn leads. */
 export const BURN_LEADS = 'burn-leads';
+/** Id of the Zero-day item (switched on in the Inventory to make Push malware runs critical). */
+export const ZERO_DAY = 'zero-day';
+/** Id of the Admin key item (switched on in the Inventory to make Practice Hacking runs critical). */
+export const ADMIN_KEY = 'admin-key';
+/** Id of the Skill shard item (used from the Inventory to delay the XP scaling of a random unlocked action). */
+export const SKILL_SHARD = 'skill-shard';
+/** Id of the Kill servers buyable that adds the Kill chain to its Overclock. */
+export const KILL_CHAIN = 'kill-chain';
+/** Id of the Kill servers buyable that lets its runs drop Admin keys. */
+export const BLACK_BOX_RECORDER = 'black-box-recorder';
+/** Id of the Kill servers buyable that lowers its node cost with every action level. */
+export const DECOMMISSION_PROTOCOL = 'decommission-protocol';
+/** Id of the Kill servers buyable that pays credits for the nodes its runs destroy. */
+export const CREDIT_SIPHON = 'credit-siphon';
+/** Id of the Kill servers buyable that multiplies the ICE Rating each run pays. */
+export const CASCADE_FAILURE = 'cascade-failure';
+/** Id of the Push malware buyable that lets its runs drop Zero-days. */
+export const ZERO_DAY_EXPLOITS = 'zero-day-exploits';
+/** Id of the Push malware buyable that triples what its critical successes do. */
+export const PERSISTENCE = 'persistence';
+/** Id of the Push malware buyable whose critical runs bank guaranteed critical successes for Grow network. */
+export const RANSOMWARE = 'ransomware';
 
 /** The Overclock unlock of one action: the price is the same for every action for now. */
 const overclockUnlock = (actionId: string, description: string): BuyableDefinition => ({
@@ -151,6 +176,12 @@ export const gameConfig: GameConfig = {
       { id: AUGMENT_SCHEMATIC, name: 'Augment schematic', sellable: false },
       // Leads are used from the Inventory to take heat away, not paid out.
       { id: BURN_LEAD, name: 'Burn lead', sellable: false, hasRarity: false },
+      // Zero-days are switched on in the Inventory and used up by critical Push malware runs, not paid out.
+      { id: ZERO_DAY, name: 'Zero-day', sellable: false, hasRarity: false },
+      // Admin keys are switched on in the Inventory and used up by critical Practice Hacking runs, not paid out.
+      { id: ADMIN_KEY, name: 'Admin key', sellable: false, hasRarity: false },
+      // Shards are used from the Inventory on a random unlocked action, not paid out.
+      { id: SKILL_SHARD, name: 'Skill shard', sellable: false, hasRarity: false },
     ],
     /**
      * One Augment schematic applied to an action adds 1% to the action XP boost of ITS rarity (additively); the boosts of the
@@ -159,6 +190,15 @@ export const gameConfig: GameConfig = {
     augment: { itemId: AUGMENT_SCHEMATIC, xpBonusPerItem: 0.01 },
     /** One Burn lead used from the Inventory takes 5% of the CURRENT heat away and is used up. */
     burnLead: { itemId: BURN_LEAD, heatFraction: 0.05 },
+    /** While the Zero-day toggle is on, every completed Push malware run uses one Zero-day up and is a critical success. */
+    zeroDay: { itemId: ZERO_DAY, actionId: PUSH_MALWARE },
+    /**
+     * While the Admin key toggle is on, every completed Practice Hacking run uses one Admin key up and is a critical success. Each such
+     * key-assisted critical run has a 2% chance to drop a Skill shard (placeholder).
+     */
+    adminKey: { itemId: ADMIN_KEY, actionId: PRACTICE_HACKING, shard: { itemId: SKILL_SHARD, chance: 0.02 } },
+    /** One Skill shard delays the XP scaling of the action it lands on by 1 level. */
+    skillShard: { itemId: SKILL_SHARD, levelsDelayed: 1 },
   },
 
   actions: [
@@ -224,19 +264,24 @@ export const gameConfig: GameConfig = {
       requiredAccessLevel: 4,
       /** Action XP per completed run. */
       xpPerRun: num(1),
+      /**
+       * Overclock: pays double the ICE Rating per run, but heat is held in place while it runs. The Kill chain buyable adds a chain
+       * to it (see KILL_CHAIN).
+       */
+      overclock: { rewardBonus: 1, stopsHeatCooling: true },
     },
     {
       id: LEGEND,
       name: 'Build Legend',
       /** Seconds per run at speed x1: 5 minutes. */
       baseDurationMs: 300_000,
-      /** Infamy gained per completed run (no credits). */
+      /** Legend gained per completed run (no credits). */
       reward: num(1),
-      rewardKind: 'infamy',
+      rewardKind: 'legend',
       /** Access level the sleeve needs to perform this action. */
       requiredAccessLevel: 5,
-      /** Heat added per completed run. */
-      heatPerRun: 50,
+      /** Heat added for every second the action runs. */
+      heatPerSecond: 5,
       /** Each completed run removes a quarter of the network. */
       completionEffects: [{ kind: 'removeNodesFraction', fraction: 0.25 }],
       /** Action XP per completed run. */
@@ -387,6 +432,23 @@ export const gameConfig: GameConfig = {
       effect: { kind: 'autoRun' },
     },
     {
+      id: ZERO_DAY_EXPLOITS,
+      name: 'Zero-day exploits',
+      symbol: '0D',
+      description:
+        'Each completed run has a chance to drop a Zero-day. Switch Zero-days on in the Inventory: each completed run then uses one up and is a critical success.',
+      actionId: PUSH_MALWARE,
+      cost: num(5_000),
+      effect: {
+        kind: 'itemDrop',
+        drop: {
+          itemId: ZERO_DAY,
+          /** Chance that one completed run drops a Zero-day at all: 5%. */
+          chance: 0.05,
+        },
+      },
+    },
+    {
       id: MALWARE_OUTPUT,
       name: 'Malware payload',
       symbol: '×2',
@@ -408,6 +470,27 @@ export const gameConfig: GameConfig = {
       effect: { kind: 'iceRatingFromActionLevel', sourceActionId: PUSH_MALWARE, perLevel: 10 },
     },
     {
+      id: RANSOMWARE,
+      name: 'Ransomware',
+      symbol: 'RW',
+      description:
+        'Every critical Push malware run gives Grow network a guaranteed critical success: its next completed run is critical for sure.',
+      actionId: PUSH_MALWARE,
+      // Placeholder price (balance is not tuned yet).
+      cost: num(100_000),
+      effect: { kind: 'criticalLink', targetActionId: GROW_NETWORK },
+    },
+    {
+      id: PERSISTENCE,
+      name: 'Persistence',
+      symbol: 'PS',
+      description:
+        'Triples what a critical success does for this action: the multipliers on its reward and its action XP are three times as big.',
+      actionId: PUSH_MALWARE,
+      cost: num(500_000),
+      effect: { kind: 'criticalBoost', factor: 3 },
+    },
+    {
       id: KILL_AUTO_RUN,
       name: 'Auto-run',
       symbol: '↻',
@@ -415,6 +498,72 @@ export const gameConfig: GameConfig = {
       actionId: KILL_SERVERS,
       cost: num(1e9), // 1 billion
       effect: { kind: 'autoRun' },
+    },
+    {
+      id: DECOMMISSION_PROTOCOL,
+      name: 'Decommission protocol',
+      symbol: 'DP',
+      description:
+        'Every action level lowers the share of your nodes a run takes by 1% of its current value. The first level is worth the most, and the cost keeps shrinking without ever reaching zero.',
+      formula: 'Share of nodes = base share x 0.99 ^ action level',
+      actionId: KILL_SERVERS,
+      // Placeholder price (balance is not tuned yet). The Kill servers prices climb in this order: Cascade failure, Credit Siphon,
+      // Decommission protocol, Kill chain, Black box recorder.
+      cost: num(1e14),
+      effect: { kind: 'startCostReduction', perLevel: 0.01 },
+    },
+    {
+      id: CREDIT_SIPHON,
+      name: 'Credit Siphon',
+      symbol: 'CD',
+      description: 'When a run starts, you are paid 10 seconds of what a node produces for every node it destroys.',
+      actionId: KILL_SERVERS,
+      // Placeholder price (balance is not tuned yet).
+      cost: num(1e12),
+      effect: { kind: 'creditSiphon', seconds: 10 },
+    },
+    {
+      id: CASCADE_FAILURE,
+      name: 'Cascade failure',
+      symbol: '×2',
+      description: 'Doubles the ICE Rating each run pays. Each copy costs 100x more.',
+      actionId: KILL_SERVERS,
+      // Placeholder price (balance is not tuned yet).
+      cost: num(1e10),
+      costGrowth: 100, // every 2nd order of magnitude
+      maxPurchases: Infinity,
+      effect: { kind: 'rewardMultiplier', factor: 2 },
+    },
+    {
+      id: KILL_CHAIN,
+      name: 'Kill chain',
+      symbol: 'KC',
+      description:
+        'Adds a chain to the Overclock of this action: every consecutive overclocked run adds a link (up to 20) that makes the next run pay 10% more ICE Rating and take 10% more of the share of nodes. Stopping the action or switching Overclock off breaks the chain.',
+      actionId: KILL_SERVERS,
+      requires: [overclockUnlockId(KILL_SERVERS)],
+      // Placeholder price (balance is not tuned yet).
+      cost: num(1e17),
+      // 20 links; each adds 10% of the base reward (a gain: grows with Overclock strength) and 10% to the node share (a price: fixed)
+      effect: { kind: 'overclockChain', chain: { maxLinks: 20, rewardPerLink: 0.1, nodesPerLink: 0.1 } },
+    },
+    {
+      id: BLACK_BOX_RECORDER,
+      name: 'Black box recorder',
+      symbol: 'BB',
+      description:
+        'Each completed run has a chance to drop an Admin key. Switch Admin keys on in the Inventory: each completed Practice Hacking run then uses one up and is a critical success, and may drop a Skill shard.',
+      actionId: KILL_SERVERS,
+      // Placeholder price (balance is not tuned yet).
+      cost: num(1e20),
+      effect: {
+        kind: 'itemDrop',
+        drop: {
+          itemId: ADMIN_KEY,
+          /** Chance that one completed run drops an Admin key at all: 10% (placeholder; Kill servers runs are slow). */
+          chance: 0.1,
+        },
+      },
     },
     {
       id: LEGEND_AUTO_RUN,
@@ -431,6 +580,10 @@ export const gameConfig: GameConfig = {
     overclockUnlock(
       PUSH_MALWARE,
       'Unlocks Overclock for this action: each run also pays the nodes of a Grow network run, but makes 3x the heat.',
+    ),
+    overclockUnlock(
+      KILL_SERVERS,
+      'Unlocks Overclock for this action: pays double ICE Rating and holds heat in place while it runs. The Kill chain adds more.',
     ),
     focusUnlock(GROW_NETWORK),
     focusUnlock(PRACTICE_HACKING),
@@ -510,6 +663,15 @@ export const gameConfig: GameConfig = {
       cost: num(1),
       // 5 Moles per file given up; while Moles remain the heat cools 200% faster
       effect: { kind: 'backChannel', itemId: KOMPROMAT, rarityId: 'common', molesPerItem: 5, cooldownBoost: 2 },
+    },
+    {
+      id: SKILL_OBFUSCATION,
+      name: 'Obfuscation',
+      symbol: 'OB',
+      description: 'Push malware makes only 2x as much heat per run while overclocked, instead of 3x.',
+      currency: 'skillPoints',
+      cost: num(1),
+      effect: { kind: 'overclockHeatFactor', targetActionId: PUSH_MALWARE, factor: 2 },
     },
     // Global (sleeve) buyables: no actionId; they change the sleeve's stats. Prices are placeholders.
     {
@@ -673,10 +835,10 @@ export const gameConfig: GameConfig = {
     baseIceRating: 1,
     /** Share of the heat effect removed per order of magnitude of ICE Rating: 0.5%, so 100% at 1e200. */
     iceRatingReductionPerOrder: 0.005,
-    /** Each point of Infamy makes heat cool 10% slower. */
-    infamyHeatSlowdown: 0.1,
-    /** Infamy falls by 1 every 10 minutes. */
-    infamyDecayPeriodMs: 600_000,
+    /** Each point of Legend makes heat cool 10% faster. */
+    legendHeatSpeedup: 0.1,
+    /** Legend falls by 1 every 10 minutes. */
+    legendDecayPeriodMs: 600_000,
   },
 
   network: {

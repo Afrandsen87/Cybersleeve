@@ -209,3 +209,31 @@ describe('icons', () => {
     expect(button.textContent).not.toBe('');
   });
 });
+
+describe('mountUi - the changelog modal', () => {
+  function mountWith(changelog?: { version: string; changes: string[] }[]) {
+    document.body.innerHTML = '<div id="app"></div>';
+    const root = document.getElementById('app') as HTMLElement;
+    mountUi(root, createGame({ config: testConfig }), { enabled: false, factor: 1, toggle: () => false }, () => {}, {
+      changelog,
+    });
+    return root;
+  }
+
+  it('is hidden until the button is clicked, says so when empty, and closes again', () => {
+    const root = mountWith();
+    const modal = root.querySelector('.modal-backdrop') as HTMLElement;
+    expect(modal.hidden).toBe(true);
+    (root.querySelector('.changelog-open') as HTMLButtonElement).click();
+    expect(modal.hidden).toBe(false);
+    expect(modal.querySelector('.modal-empty')).not.toBeNull();
+    (modal.querySelector('.modal-close') as HTMLButtonElement).click();
+    expect(modal.hidden).toBe(true);
+  });
+
+  it('lists the entries it is given', () => {
+    const root = mountWith([{ version: '0.1', changes: ['First change'] }]);
+    expect(root.querySelector('.modal h3')?.textContent).toBe('0.1');
+    expect(root.querySelector('.modal li')?.textContent).toBe('First change');
+  });
+});

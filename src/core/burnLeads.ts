@@ -24,21 +24,24 @@ export class BurnLeads {
    * @param config reads `items.burnLead` (which item is the lead and what one removes)
    * @param state the live game state (mutated: `heat`)
    * @param inventory where the leads are taken from
+   * @param blocked true while heat cannot be reduced at all (an Overclock that stops heat cooling is running); no lead can be used then
    */
   constructor(
     private readonly config: Pick<GameConfig, 'items'>,
     private readonly state: GameState,
     private readonly inventory: Inventory,
+    private readonly blocked: () => boolean = () => false,
   ) {}
 
   /**
-   * True when pressing the button for this stack would do something: the game has leads, one of this rarity is held and there is heat.
+   * True when pressing the button for this stack would do something: the game has leads, one of this rarity is held, there is heat
+   * and heat is not being held in place.
    *
    * @param rarityId the rarity of the stack
    */
   canUse(rarityId: RarityId): boolean {
     const lead = this.config.items.burnLead;
-    return lead !== undefined && this.state.heat > 0 && itemCount(this.state, lead.itemId, rarityId) > 0;
+    return lead !== undefined && !this.blocked() && this.state.heat > 0 && itemCount(this.state, lead.itemId, rarityId) > 0;
   }
 
   /**

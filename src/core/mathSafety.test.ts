@@ -67,7 +67,7 @@ describe('speed at astronomical scale', () => {
   });
 });
 
-describe('Infamy comes in whole points', () => {
+describe('Legend comes in whole points', () => {
   it('a fractional reward multiplier never pays a fraction of a point per run', () => {
     const unlock: BuyableDefinition = {
       id: 'unlock',
@@ -92,7 +92,7 @@ describe('Infamy comes in whole points', () => {
       g.startAction('legend');
       g.tick(1_000);
     }
-    expect(g.getState().infamy).toBe(3); // 1.5 per run rounded down to 1, three runs
+    expect(g.getState().legend).toBe(3); // 1.5 per run rounded down to 1, three runs
   });
 });
 

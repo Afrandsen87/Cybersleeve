@@ -206,24 +206,24 @@ describe('saving whole nodes and the newer fields', () => {
   const config = createConfig(testConfig, { actions: [testConfig.actions[0]!] });
   const base = () => JSON.parse(serializeState(createInitialState(config, numberFactory)));
 
-  it('round-trips the Infamy cycle, the growth carry and the node payout bonus', () => {
+  it('round-trips the Legend cycle, the growth carry and the node payout bonus', () => {
     const s = createInitialState(config, numberFactory);
-    s.infamy = 2;
-    s.infamyCooldownMs = 123_000;
+    s.legend = 2;
+    s.legendCooldownMs = 123_000;
     s.networkRemainder = 0.25;
     s.nodePayoutBonus = num(0.042);
     const restored = deserializeState(serializeState(s), config, numberFactory)!;
-    expect(restored.infamy).toBe(2);
-    expect(restored.infamyCooldownMs).toBe(123_000);
+    expect(restored.legend).toBe(2);
+    expect(restored.legendCooldownMs).toBe(123_000);
     expect(restored.networkRemainder).toBe(0.25);
     expect(restored.nodePayoutBonus.toNumber()).toBeCloseTo(0.042, 12);
   });
 
   it('older saves without them load with fresh-game values', () => {
     const json = base();
-    for (const key of ['infamyCooldownMs', 'networkRemainder', 'nodePayoutBonus']) delete json[key];
+    for (const key of ['legendCooldownMs', 'networkRemainder', 'nodePayoutBonus']) delete json[key];
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect([restored.infamyCooldownMs, restored.networkRemainder, restored.nodePayoutBonus.toNumber()]).toEqual([0, 0, 0]);
+    expect([restored.legendCooldownMs, restored.networkRemainder, restored.nodePayoutBonus.toNumber()]).toEqual([0, 0, 0]);
   });
 
   it('floors a saved fractional node count and rejects nonsense values', () => {
@@ -231,12 +231,12 @@ describe('saving whole nodes and the newer fields', () => {
     json.network = '12.75';
     json.networkRemainder = 1.5;
     json.nodePayoutBonus = -1;
-    json.infamyCooldownMs = -5;
+    json.legendCooldownMs = -5;
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
     expect(restored.network.toNumber()).toBe(12);
     expect(restored.networkRemainder).toBe(0);
     expect(restored.nodePayoutBonus.isZero()).toBe(true);
-    expect(restored.infamyCooldownMs).toBe(0);
+    expect(restored.legendCooldownMs).toBe(0);
   });
 });
 

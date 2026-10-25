@@ -29,7 +29,7 @@ export const REWARDS: Readonly<Record<RewardKind, RewardDescriptor>> = {
   hackingProficiency: { field: 'hackingProficiency', mayBePerNetworkNode: false },
   nodePayout: { field: 'nodePayoutBonus', mayBePerNetworkNode: false },
   iceRating: { field: 'iceRating', mayBePerNetworkNode: true },
-  infamy: { field: 'infamy', wholePerRun: true, mayBePerNetworkNode: true },
+  legend: { field: 'legend', wholePerRun: true, mayBePerNetworkNode: true },
 };
 
 /** The kind a reward has when an action does not say (`credits`). */

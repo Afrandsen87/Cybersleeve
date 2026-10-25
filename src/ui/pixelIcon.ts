@@ -31,6 +31,9 @@ export interface IconSource {
 /** The id the interface asks for to show the credits currency (it has no entity in the game configuration). */
 export const CREDITS_ICON_ID = 'credits';
 
+/** The id the interface asks for to show the start-run button in the corner of an action card. */
+export const START_RUN_ICON_ID = 'startRun';
+
 /** An {@link IconSource} that has no icons (the default of the UI, so tests and tools need none). */
 export const noIcons: IconSource = { urlFor: () => null };
 

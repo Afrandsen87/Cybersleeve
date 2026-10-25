@@ -7,18 +7,20 @@
  * No timers, no DOM, no storage: time enters only through {@link GameEngine.tick}'s
  * `deltaMs` argument, which makes the engine fully deterministic and unit-testable.
  * The rules themselves live in small units: `DerivedStats` (calculations), `ActionRunner` (actions and runs),
- * `NetworkSystem` (passive income and growth), `cooldowns.ts` (heat and Infamy decay), `Shop` and `Progression`. The engine
+ * `NetworkSystem` (passive income and growth), `cooldowns.ts` (heat and Legend decay), `Shop` and `Progression`. The engine
  * builds none of them: they arrive through {@link EngineDependencies} (see `app/createGame.ts`).
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import type { ActionRunner } from './actionRunner';
 import type { ActionToggles, FocusStatus, OverclockStatus } from './actionToggles';
 import type { ActivateResult, GameCommands, GameQueries } from './api';
-import { coolDownHeat, decayInfamy } from './cooldowns';
+import { coolDownHeat, decayLegend } from './cooldowns';
 import type { BackChannelRule, SleeveStats } from './effects';
 import type { Augments } from './augments';
 import type { BackChannel } from './backChannel';
 import type { BurnLeads } from './burnLeads';
+import type { SkillShards } from './skillShards';
+import type { ZeroDays } from './zeroDays';
 import type { ItemDrops } from './drops';
 import type { Inventory } from './inventory';
 import type { NetworkSystem } from './network';
@@ -54,6 +56,12 @@ export interface EngineDependencies {
   readonly backChannel: BackChannel;
   /** Uses Burn leads to take heat away (built on the same state the engine owns). */
   readonly burnLeads: BurnLeads;
+  /** The Zero-day toggle and the Zero-days critical runs use up (built on the same state the engine owns). */
+  readonly zeroDays: ZeroDays;
+  /** The Admin key toggle and the Admin keys critical runs use up (built on the same state the engine owns). */
+  readonly adminKeys: ZeroDays;
+  /** Uses Skill shards on random unlocked actions (built on the same state the engine owns). */
+  readonly skillShards: SkillShards;
   /** Switches the Overclock and Focus toggles of actions (built on the same state the engine owns). */
   readonly toggles: ActionToggles;
   /** Decides when re-sleeving is allowed. */
@@ -73,7 +81,7 @@ export interface EngineDependencies {
  * Called by: `app/loop.ts` (tick), `ui` event handlers ({@link GameCommands}), `ui/viewModel.ts` ({@link GameQueries}),
  * `app/createGame.ts` (construction).
  * Calls: the injected {@link DerivedStats}, {@link ActionRunner}, {@link NetworkSystem}, {@link Progression}, {@link Shop},
- * `coolDownHeat`, `decayInfamy`, {@link OverflowPolicy}.
+ * `coolDownHeat`, `decayLegend`, {@link OverflowPolicy}.
  */
 export class GameEngine implements GameQueries, GameCommands {
   private readonly progression: Progression;
@@ -87,6 +95,9 @@ export class GameEngine implements GameQueries, GameCommands {
   private readonly inventory: Inventory;
   private readonly backChannelDeals: BackChannel;
   private readonly burnLeads: BurnLeads;
+  private readonly zeroDays: ZeroDays;
+  private readonly adminKeys: ZeroDays;
+  private readonly skillShards: SkillShards;
   private readonly toggles: ActionToggles;
   private readonly drops: ItemDrops;
   private readonly augments: Augments;
@@ -113,6 +124,9 @@ export class GameEngine implements GameQueries, GameCommands {
       inventory: this.inventory,
       backChannel: this.backChannelDeals,
       burnLeads: this.burnLeads,
+      zeroDays: this.zeroDays,
+      adminKeys: this.adminKeys,
+      skillShards: this.skillShards,
       toggles: this.toggles,
       drops: this.drops,
       augments: this.augments,
@@ -187,6 +201,15 @@ export class GameEngine implements GameQueries, GameCommands {
   }
 
   /**
+   * Test aid: doubles the credits held now (the overflow policy then clamps them at infinity).
+   * Called by: `ui/dom.ts` (the "Double credits" debug button). Calls: {@link OverflowPolicy}.
+   */
+  doubleCredits(): void {
+    this.state.credits = this.state.credits.add(this.state.credits);
+    this.overflowPolicy.apply(this.state);
+  }
+
+  /**
    * Sells items from the inventory for credits (the rarity's sell value each).
    * @param itemId the item
    * @param rarityId the rarity
@@ -229,6 +252,35 @@ export class GameEngine implements GameQueries, GameCommands {
    */
   useBurnLead(rarityId: RarityId): boolean {
     return this.burnLeads.use(rarityId);
+  }
+
+  /**
+   * Switches the Zero-day toggle. While it is on, every completed run of the Zero-day's action uses one Zero-day up and is a
+   * critical success; the toggle switches itself off when none is left. Switching on needs a Zero-day in the Inventory. See `ZeroDays`.
+   *
+   * @returns true when the toggle is now on
+   */
+  toggleZeroDays(): boolean {
+    return this.zeroDays.toggle();
+  }
+
+  /**
+   * Switches the Admin key toggle. While it is on, every completed run of the Admin key's action uses one key up and is a critical
+   * success (and may drop a Skill shard); the toggle switches itself off when none is left. See `ZeroDays`.
+   *
+   * @returns true when the toggle is now on
+   */
+  toggleAdminKeys(): boolean {
+    return this.adminKeys.toggle();
+  }
+
+  /**
+   * Uses one Skill shard: it is used up and lands on a random unlocked action, delaying that action's XP scaling. See `SkillShards`.
+   *
+   * @returns the action it landed on, or `null` when nothing happened
+   */
+  useSkillShard(): ActionId | null {
+    return this.skillShards.use();
   }
 
   /**
@@ -422,6 +474,26 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.burnLeads.canUse(rarityId);
   }
 
+  /** True when pressing the Zero-day toggle would do something (it is on, or a Zero-day is held). */
+  canToggleZeroDays(): boolean {
+    return this.zeroDays.canToggle();
+  }
+
+  /** True when pressing the Admin key toggle would do something (it is on, or an Admin key is held). */
+  canToggleAdminKeys(): boolean {
+    return this.adminKeys.canToggle();
+  }
+
+  /** True when using a Skill shard would do something (one is held and some action is unlocked). */
+  canUseSkillShard(): boolean {
+    return this.skillShards.canUse();
+  }
+
+  /** True while heat cannot cool or be reduced at all (an action is running with an Overclock that stops heat cooling). */
+  heatCoolingBlocked(): boolean {
+    return this.stats.heatCoolingBlocked();
+  }
+
   /** The back channel unlocked by a skill (which item and rarity can be given up, and for how many Moles each), or `null`. */
   backChannel(): BackChannelRule | null {
     return this.stats.backChannel();
@@ -518,15 +590,17 @@ export class GameEngine implements GameQueries, GameCommands {
   /**
    * One slice of a tick. First the network pays passive income for the whole slice using the nodes owned at the start of
    * it (nodes finished during the slice start producing in the next one), then it grows by its own growth rate, and heat
-   * and Infamy decay; then every action advances. Heat that actions add during the slice only starts cooling in the
+   * and Legend decay; then every action advances. Heat that actions add during the slice only starts cooling in the
    * next one. Finally the {@link OverflowPolicy} repairs any amount that left the representable range.
    */
   private advance(deltaMs: number): void {
     this.network.payPassiveIncome(deltaMs);
     this.network.grow(deltaMs);
     const sleeve = this.stats.sleeveStats();
-    coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost);
-    decayInfamy(this.state, this.config.sleeve, deltaMs);
+    // An Overclock that stops heat cooling holds the cooldown in place while its action runs.
+    if (!this.stats.heatCoolingBlocked())
+      coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost);
+    decayLegend(this.state, this.config.sleeve, deltaMs);
     this.runner.tickAll(deltaMs);
     this.overflowPolicy.apply(this.state);
   }

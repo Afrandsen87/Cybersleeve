@@ -49,7 +49,10 @@ export class LevelRule {
    * @param config what the first level costs (`firstLevelXp > 0`) and how much more each further level costs (`growthFactor > 1`)
    * @param factory number factory
    */
-  constructor(config: LevelRuleConfig, factory: NumberFactory) {
+  constructor(
+    config: LevelRuleConfig,
+    private readonly factory: NumberFactory,
+  ) {
     this.first = factory.fromNumber(config.firstLevelXp);
     this.growth = factory.fromNumber(config.growthFactor);
     this.one = factory.fromNumber(1);
@@ -70,9 +73,11 @@ export class LevelRule {
    * far beyond the double range.
    *
    * @param xp total experience (>= 0)
+   * @param delay levels the XP scaling is delayed by (a whole number >= 0, see {@link LevelRule.xpCostOfLevel}; default 0)
    * @returns level, an integer >= 0 (`Number.MAX_SAFE_INTEGER` for non-finite XP)
    */
-  levelForXp(xp: BigNum): number {
+  levelForXp(xp: BigNum, delay = 0): number {
+    if (delay > 0) return this.delayedLevelForXp(xp, delay);
     if (!xp.isFinite()) return Number.MAX_SAFE_INTEGER;
     if (this.lastXp?.eq(xp)) return this.lastLevel;
     // levels gained n satisfy first * (g^n - 1) / (g - 1) <= xp, so n = floor(log_g(xp * (g - 1) / first + 1)).
@@ -89,20 +94,26 @@ export class LevelRule {
    * Total experience at which `level + 1` is reached.
    *
    * @param level current level (integer >= 0)
+   * @param delay levels the XP scaling is delayed by (a whole number >= 0, see {@link LevelRule.xpCostOfLevel}; default 0)
    * @returns the sum of the costs of levels 0 to `level`: `firstLevelXp * (growthFactor^(level + 1) - 1) / (growthFactor - 1)`
    */
-  xpForNextLevel(level: number): BigNum {
-    return this.totalFor(level + 1);
+  xpForNextLevel(level: number, delay = 0): BigNum {
+    return this.totalWithDelay(level + 1, delay);
   }
 
   /**
    * Experience that going from `level` to `level + 1` costs on its own.
    *
+   * @remarks
+   * A delay of `d` keeps the cost at `firstLevelXp` for `d` more levels before the growth starts: the cost of leaving level `n` is
+   * `firstLevelXp * growthFactor^max(0, n - d)`. With `d = 1` the costs are 10, 10, 20, 40, ... instead of 10, 20, 40, 80, ....
+   *
    * @param level the level being left (integer >= 0)
-   * @returns `firstLevelXp * growthFactor^level`
+   * @param delay levels the XP scaling is delayed by (a whole number >= 0; default 0)
+   * @returns `firstLevelXp * growthFactor^max(0, level - delay)`
    */
-  xpCostOfLevel(level: number): BigNum {
-    return this.first.mul(this.growth.pow(level));
+  xpCostOfLevel(level: number, delay = 0): BigNum {
+    return this.first.mul(this.growth.pow(Math.max(0, level - delay)));
   }
 
   /**
@@ -113,10 +124,10 @@ export class LevelRule {
    * @param xp total experience (>= 0)
    * @returns a value from 0 up to (not including) {@link LevelRule.xpCostOfLevel} of the current level
    */
-  xpIntoLevel(xp: BigNum): BigNum {
-    if (!xp.isFinite()) return this.xpCostOfLevel(this.levelForXp(xp));
-    const start = this.totalFor(this.levelForXp(xp));
-    const into = xp.sub(start);
+  xpIntoLevel(xp: BigNum, delay = 0): BigNum {
+    const level = this.levelForXp(xp, delay);
+    if (!xp.isFinite()) return this.xpCostOfLevel(level, delay);
+    const into = xp.sub(this.totalWithDelay(level, delay));
     return into.isNegative() ? this.zero : into;
   }
 
@@ -128,11 +139,31 @@ export class LevelRule {
    * @param xp total experience (>= 0)
    * @returns a fraction in [0, 1]: `xpIntoLevel / xpCostOfLevel`. Non-finite XP gives 1.
    */
-  progressFraction(xp: BigNum): number {
+  progressFraction(xp: BigNum, delay = 0): number {
     if (!xp.isFinite()) return 1;
-    const level = this.levelForXp(xp);
-    const fraction = this.xpIntoLevel(xp).div(this.xpCostOfLevel(level)).toNumber();
+    const level = this.levelForXp(xp, delay);
+    const fraction = this.xpIntoLevel(xp, delay).div(this.xpCostOfLevel(level, delay)).toNumber();
     return Number.isFinite(fraction) ? Math.min(1, Math.max(0, fraction)) : 0;
+  }
+
+  /**
+   * The total experience of `gained` complete levels when the XP scaling is delayed by `delay` levels: the first `delay` levels
+   * each cost `firstLevelXp`, and the levels after them cost what the levels from 0 cost without a delay. So it is
+   * `firstLevelXp * gained` up to `delay` levels, and `firstLevelXp * delay` plus the plain total of `gained - delay` levels beyond that.
+   */
+  private totalWithDelay(gained: number, delay: number): BigNum {
+    if (delay <= 0) return this.totalFor(gained);
+    if (gained <= delay) return this.first.mul(this.factory.fromNumber(Math.max(0, gained)));
+    return this.first.mul(this.factory.fromNumber(delay)).add(this.totalFor(gained - delay));
+  }
+
+  /** {@link LevelRule.levelForXp} for a positive delay: a flat stretch of `delay` levels at the first cost, then the plain rule. */
+  private delayedLevelForXp(xp: BigNum, delay: number): number {
+    if (!xp.isFinite()) return Number.MAX_SAFE_INTEGER;
+    const flat = this.first.mul(this.factory.fromNumber(delay));
+    if (!this.reached(xp, flat)) return Math.min(delay - 1, Math.max(0, Math.floor(xp.div(this.first).toNumber() + LOG_EPSILON)));
+    const beyond = xp.sub(flat);
+    return delay + this.levelForXp(beyond.isNegative() ? this.zero : beyond);
   }
 
   /**

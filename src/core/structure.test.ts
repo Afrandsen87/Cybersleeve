@@ -18,7 +18,19 @@ describe('effect traits', () => {
       .filter(([, t]) => t.needsAction)
       .map(([kind]) => kind)
       .sort();
-    expect(needing).toEqual(['autoRun', 'focusUnlock', 'itemDrop', 'overclockUnlock', 'rarityShiftFromProficiency', 'rewardMultiplier']);
+    expect(needing).toEqual([
+      'autoRun',
+      'creditSiphon',
+      'criticalBoost',
+      'criticalLink',
+      'focusUnlock',
+      'itemDrop',
+      'overclockChain',
+      'overclockUnlock',
+      'rarityShiftFromProficiency',
+      'rewardMultiplier',
+      'startCostReduction',
+    ]);
   });
 
   it('every kind used by the shipped content has traits', () => {

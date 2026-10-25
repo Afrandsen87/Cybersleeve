@@ -150,6 +150,18 @@ describe('item drops', () => {
   });
 });
 
+describe('double credits (test aid)', () => {
+  it('doubles the credits held, and does nothing to zero', () => {
+    const g = createGame({ config: withHarvest(rule({ chance: 0 })), random: seededRandom(4) });
+    setCredits(g, num(100));
+    g.doubleCredits();
+    expect((g.getState() as { credits: { toNumber(): number } }).credits.toNumber()).toBe(200);
+    setCredits(g, num(0));
+    g.doubleCredits();
+    expect((g.getState() as { credits: { toNumber(): number } }).credits.toNumber()).toBe(0);
+  });
+});
+
 describe('test drop (test aid)', () => {
   const total = (g: { getState(): unknown }): number => held(g, 'common') + held(g, 'rare');
 

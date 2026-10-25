@@ -1,5 +1,5 @@
 /**
- * ICE Rating, Infamy, action unlock rules and start costs, completion effects, toggleable auto-run and the node payout
+ * ICE Rating, Legend, action unlock rules and start costs, completion effects, toggleable auto-run and the node payout
  * multiplier. Expected outcomes are stated explicitly so the maths can change later without regressions.
  */
 import { describe, expect, it } from 'vitest';
@@ -34,7 +34,7 @@ const mutable = (g: { getState(): unknown }) =>
   g.getState() as {
     network: ReturnType<typeof num>;
     heat: number;
-    infamy: number;
+    legend: number;
     iceRating: ReturnType<typeof num>;
     autoRunOff: Record<string, boolean>;
   };
@@ -192,7 +192,7 @@ describe('action gated by access level with completion effects (Legend)', () => 
     expect(g.isUnlocked('legend')).toBe(true);
   });
 
-  it('a run removes 25% of the nodes, adds 50 heat and adds 1 Infamy', () => {
+  it('a run removes 25% of the nodes, adds 5 heat per second while running and adds 1 Legend', () => {
     const g = legend();
     setCredits(g, num(1));
     g.buy('unlock');
@@ -201,8 +201,8 @@ describe('action gated by access level with completion effects (Legend)', () => 
     g.startAction('legend');
     g.tick(1_000);
     expect(g.getState().network.toNumber()).toBeCloseTo(750, 8);
-    expect(g.getState().heat).toBe(60); // 10 + 50
-    expect(g.getState().infamy).toBeCloseTo(1, 4); // minus the tiny decay of the tick
+    expect(g.getState().heat).toBe(15); // 10 + 5 s/s x 1 s
+    expect(g.getState().legend).toBeCloseTo(1, 4); // minus the tiny decay of the tick
   });
 
   it('several runs in one batch apply the effects that many times (2 runs: 1000 -> 750 -> 563 whole nodes)', () => {
@@ -213,8 +213,8 @@ describe('action gated by access level with completion effects (Legend)', () => 
     mutable(g).network = num(1000);
     g.tick(2_000);
     expect(g.getState().network.toNumber()).toBe(563);
-    expect(g.getState().infamy).toBe(2);
-    expect(g.getState().heat).toBe(100); // 2 runs x 50
+    expect(g.getState().legend).toBe(2);
+    expect(g.getState().heat).toBe(10); // 2 s running x 5 heat/s
   });
 
   it('adds heat on top of whatever there already is, however high', () => {
@@ -224,7 +224,7 @@ describe('action gated by access level with completion effects (Legend)', () => 
     mutable(g).heat = 900;
     g.startAction('legend');
     g.tick(1_000);
-    expect(g.getState().heat).toBe(950);
+    expect(g.getState().heat).toBe(905);
   });
 });
 
@@ -241,26 +241,26 @@ describe('applyCompletionEffects', () => {
     expect(state.network.eq(num(10))).toBe(true);
   });
 
-  it('heat is added by heatPerRun, not by a completion effect', () => {
-    expect(legendAction.heatPerRun).toBe(50);
+  it('heat is added by heatPerSecond, not by a completion effect', () => {
+    expect(legendAction.heatPerSecond).toBe(5);
     expect((legendAction.completionEffects ?? []).map((e) => e.kind)).toEqual(['removeNodesFraction']);
   });
 });
 
-describe('Infamy', () => {
+describe('Legend', () => {
   const idle = () => game([testConfig.actions[0]!]);
 
-  it('slows heat cooldown by 10% per point: 5 Infamy turns a 60 s cycle into 90 s', () => {
+  it('speeds up heat cooldown by 10% per point: 5 Legend turns a 60 s cycle into 40 s', () => {
     const g = idle();
     mutable(g).heat = 5;
-    mutable(g).infamy = 5;
-    g.tick(60_000);
+    mutable(g).legend = 5;
+    g.tick(39_000);
     expect(g.getState().heat).toBe(5);
-    g.tick(30_000);
+    g.tick(1_000);
     expect(g.getState().heat).toBe(4);
   });
 
-  it('without Infamy a cycle is the normal 60 s', () => {
+  it('without Legend a cycle is the normal 60 s', () => {
     const g = idle();
     mutable(g).heat = 5;
     g.tick(60_000);
@@ -269,35 +269,35 @@ describe('Infamy', () => {
 
   it('falls by exactly 1 each time a 10 minute cycle completes, never gradually', () => {
     const g = idle();
-    mutable(g).infamy = 3;
+    mutable(g).legend = 3;
     g.tick(599_999);
-    expect(g.getState().infamy).toBe(3);
-    expect(g.getState().infamyCooldownMs).toBe(599_999);
+    expect(g.getState().legend).toBe(3);
+    expect(g.getState().legendCooldownMs).toBe(599_999);
     g.tick(1);
-    expect(g.getState().infamy).toBe(2);
-    expect(g.getState().infamyCooldownMs).toBe(0);
+    expect(g.getState().legend).toBe(2);
+    expect(g.getState().legendCooldownMs).toBe(0);
   });
 
-  it('does not run the cycle while Infamy is 0', () => {
+  it('does not run the cycle while Legend is 0', () => {
     const g = idle();
     g.tick(900_000);
-    expect(g.getState().infamyCooldownMs).toBe(0);
+    expect(g.getState().legendCooldownMs).toBe(0);
   });
 
   it('falls by 1 every 10 minutes and never below 0', () => {
     const g = idle();
-    mutable(g).infamy = 3;
+    mutable(g).legend = 3;
     g.tick(600_000);
-    expect(g.getState().infamy).toBe(2);
+    expect(g.getState().legend).toBe(2);
     g.tick(600_000 * 10);
-    expect(g.getState().infamy).toBe(0);
+    expect(g.getState().legend).toBe(0);
   });
 
   it('is reset by re-sleeving', () => {
     const g = idle();
-    mutable(g).infamy = 4;
+    mutable(g).legend = 4;
     g.resleeve();
-    expect(g.getState().infamy).toBe(0);
+    expect(g.getState().legend).toBe(0);
   });
 });
 
@@ -383,35 +383,35 @@ describe('saving the newer stats', () => {
   const withState = () => {
     const state = createInitialState(config, numberFactory);
     state.iceRating = num(7);
-    state.infamy = 3;
+    state.legend = 3;
     state.purchased['auto-a'] = 1;
     state.autoRunOff['auto-a'] = true;
     return state;
   };
 
-  it('round-trips ICE Rating, Infamy and auto-run switches', () => {
+  it('round-trips ICE Rating, Legend and auto-run switches', () => {
     const restored = deserializeState(serializeState(withState()), config, numberFactory)!;
     expect(restored.iceRating.eq(num(7))).toBe(true);
-    expect(restored.infamy).toBe(3);
+    expect(restored.legend).toBe(3);
     expect(restored.autoRunOff).toEqual({ 'auto-a': true });
   });
 
   it('an older save without them loads with fresh-game values', () => {
     const json = JSON.parse(serializeState(withState()));
-    for (const key of ['iceRating', 'infamy', 'autoRunOff']) delete json[key];
+    for (const key of ['iceRating', 'legend', 'autoRunOff']) delete json[key];
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
     expect(restored.iceRating.eq(num(1))).toBe(true);
-    expect(restored.infamy).toBe(0);
+    expect(restored.legend).toBe(0);
     expect(restored.autoRunOff).toEqual({});
   });
 
   it('sanitises tampered values', () => {
     const json = JSON.parse(serializeState(withState()));
-    json.infamy = -3;
+    json.legend = -3;
     json.iceRating = '0.5';
     json.autoRunOff = { 'auto-a': true, ghost: true };
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect(restored.infamy).toBe(0);
+    expect(restored.legend).toBe(0);
     expect(restored.iceRating.eq(num(1))).toBe(true);
     expect(restored.autoRunOff).toEqual({ 'auto-a': true });
   });
@@ -438,12 +438,12 @@ describe('validation of the newer settings', () => {
     const sleeve = {
       ...testConfig.sleeve,
       baseIceRating: 0,
-      infamyHeatSlowdown: -1,
-      infamyDecayPeriodMs: 0,
+      legendHeatSpeedup: -1,
+      legendDecayPeriodMs: 0,
       iceRatingReductionPerOrder: -1,
     };
     const text = invalid({ sleeve });
-    for (const part of ['baseIceRating', 'infamyHeatSlowdown', 'infamyDecayPeriodMs', 'iceRatingReductionPerOrder']) {
+    for (const part of ['baseIceRating', 'legendHeatSpeedup', 'legendDecayPeriodMs', 'iceRatingReductionPerOrder']) {
       expect(text).toContain(part);
     }
   });

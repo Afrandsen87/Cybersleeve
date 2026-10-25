@@ -4,6 +4,7 @@
   --ink: #e6f1ff;
   --muted: #8da2c0;
   --cyan: #19e3ff;
+  --bright-blue: #2f6bff;
   --magenta: #ff2bd6;
   --line: #26304d;
   --teal: #14a89a;
@@ -220,6 +221,12 @@ body {
   background: #14304a;
   box-shadow: 0 0 8px var(--cyan);
 }
+/* A switched-on item (the Zero-day toggle) is lit like a selected tile, in magenta. */
+.item-tile.on {
+  background: #3a1440;
+  border-color: var(--magenta, #ff2bd6);
+  box-shadow: 0 0 8px var(--magenta, #ff2bd6);
+}
 .inventory-actions {
   display: grid;
   gap: 6px;
@@ -339,6 +346,32 @@ button:not(:disabled):hover {
 }
 .action-title {
   font-weight: 700;
+  /* Keeps the title clear of the start button in the corner. */
+  padding-right: 28px;
+}
+/* The start button floats over the top right corner of the card: out of the grid flow, so it never changes the card's size. */
+.action > .start-run {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 0;
+  line-height: 0;
+}
+.action > .start-run:not(.has-icon) {
+  font-size: 12px;
+}
+.action > .start-run.has-icon::before {
+  position: absolute;
+  inset: 3px;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+.action > .start-run:disabled.has-icon::before {
+  filter: grayscale(0.8) brightness(0.55);
 }
 .action-info,
 .action-reward {
@@ -405,8 +438,33 @@ button:not(:disabled):hover {
   border-color: var(--magenta);
 }
 .action.locked {
-  opacity: 0.55;
   border-style: dashed;
+}
+/* A locked action shows only a poster naming the access level that reveals it; the card keeps its size. */
+.action-poster {
+  display: none;
+}
+.action.locked > * {
+  visibility: hidden;
+}
+/* Debug: show locked cards in full. */
+.reveal-locked .action.locked > * {
+  visibility: visible;
+}
+.reveal-locked .action.locked > .action-poster {
+  display: none;
+}
+.action.locked > .action-poster {
+  display: flex;
+  visibility: visible;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
 }
 .upgrades {
   display: flex;
@@ -497,6 +555,40 @@ button:not(:disabled):hover {
   padding: 6px 10px;
   font-size: 13px;
 }
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 70%);
+  display: grid;
+  place-items: center;
+  z-index: 20;
+}
+.modal-backdrop[hidden] {
+  display: none;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--cyan);
+  padding: 16px;
+  width: min(560px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.modal h2,
+.modal h3 {
+  margin: 0;
+}
+.modal-body {
+  overflow-y: auto;
+}
+.modal-empty {
+  color: var(--muted);
+}
+.modal-close {
+  align-self: flex-end;
+}
 .corner-controls {
   position: fixed;
   top: 8px;
@@ -509,6 +601,7 @@ button:not(:disabled):hover {
   padding: 6px 10px;
   font-size: 13px;
 }
+.reveal-locked-toggle.on,
 .speed-toggle.on {
   border-color: var(--magenta);
   color: var(--magenta);
@@ -695,4 +788,10 @@ button:not(:disabled):hover {
 }
 .cell.applied:not(:disabled) {
   border-color: var(--teal);
+}
+/* A buyable that can be bought right now: bright blue border. Last in the file so it wins over the cyan ready rules. */
+.upgrade.purchasable:not(:disabled),
+.square-unlock.purchasable:not(:disabled),
+.cell.purchasable:not(:disabled) {
+  border-color: var(--bright-blue);
 }

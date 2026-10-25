@@ -73,11 +73,11 @@ describe('view model - unlocks, start costs and toggles', () => {
     expect(buildViewModel(g).actions[0]!.buyables.find((b) => b.id === 'dual')!.clickable).toBe(true);
   });
 
-  it('shows ICE Rating, Infamy and the heat tax after ICE Rating, each with an explaining tip', () => {
+  it('shows ICE Rating, Legend and the heat tax after ICE Rating, each with an explaining tip', () => {
     const g = withNew();
-    const state = g.getState() as { heat: number; infamy: number; iceRating: unknown };
+    const state = g.getState() as { heat: number; legend: number; iceRating: unknown };
     state.heat = 150;
-    state.infamy = 2;
+    state.legend = 2;
     state.iceRating = num('1e100');
     const sleeve = buildViewModel(g).sleeve;
     expect(statRow(sleeve.stats, 'iceRating').text).toBe('1e100');
@@ -86,8 +86,8 @@ describe('view model - unlocks, start costs and toggles', () => {
     expect(statRow(sleeve.stats, 'heat').tip).toContain('Heat Reduction = 50% (from ICE Rating)');
     expect(statRow(sleeve.stats, 'heat').tip).toContain('Heat Tax = 75% of all credits earned from nodes');
     expect(statRow(sleeve.stats, 'heat').tip).toContain('Node credits stop at 200 heat');
-    expect(statRow(sleeve.stats, 'infamy').text).toBe('2');
-    expect(statRow(sleeve.stats, 'infamy').tip).toContain('Heat Cooldown Time = 72s'); // 60 s x (1 + 10% x 2 Infamy)
+    expect(statRow(sleeve.stats, 'legend').text).toBe('2');
+    expect(statRow(sleeve.stats, 'legend').tip).toContain('Heat Cooldown Time = 50s'); // 60 s / (1 + 10% x 2 Legend)
   });
 });
 
@@ -143,15 +143,15 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
     expect(text()).toBe('1% of nodes (2)');
   });
 
-  it('shows the Infamy cycle as a bar that is paused at 0 Infamy', () => {
+  it('shows the Legend cycle as a bar that is paused at 0 Legend', () => {
     const g = game();
-    const s = g.getState() as { infamy: number; infamyCooldownMs: number };
-    expect(statRow(buildViewModel(g).sleeve.stats, 'infamy').bar!.running).toBe(false);
-    s.infamy = 2;
-    s.infamyCooldownMs = 300_000;
+    const s = g.getState() as { legend: number; legendCooldownMs: number };
+    expect(statRow(buildViewModel(g).sleeve.stats, 'legend').bar!.running).toBe(false);
+    s.legend = 2;
+    s.legendCooldownMs = 300_000;
     const sleeve = buildViewModel(g).sleeve;
-    expect(statRow(sleeve.stats, 'infamy').bar!.running).toBe(true);
-    expect(statRow(sleeve.stats, 'infamy').bar!.percent).toBeCloseTo(50, 8);
+    expect(statRow(sleeve.stats, 'legend').bar!.running).toBe(true);
+    expect(statRow(sleeve.stats, 'legend').bar!.percent).toBeCloseTo(50, 8);
   });
 
   it('shows what one node really pays per second, with a tip that shows the calculation, and names the Push malware reward unit', () => {
@@ -219,12 +219,20 @@ describe('view model - heat cooldown bar', () => {
 describe('view model - locked actions and heat', () => {
   const three = () => game({ actions: [testConfig.actions[0]!, networkAction, malwareAction] });
 
+  it('shows heat that accrues per second on the card, in place of a per-run heat', () => {
+    const g = game({ actions: [testConfig.actions[0]!, legendAction], buyables: [] });
+    const card = buildViewModel(g).actions.find((a) => a.id === 'legend')!;
+    expect(card.rewardLine).toContain('+5 heat/s');
+    expect(card.rewardLine).not.toContain('+50 heat');
+  });
+
   it('an action needing access level 2 is locked until the access upgrade is bought', () => {
     const g = three();
     let mal = buildViewModel(g).actions.find((a) => a.id === 'mal')!;
     expect(mal.unlocked).toBe(false);
     expect(mal.requiredAccessLevel).toBe(2);
     expect(mal.heatPerRun).toBe(1);
+    expect(mal.rewardLine).toContain('+1 heat');
     setCredits(g, num(1000));
     g.buy('access');
     mal = buildViewModel(g).actions.find((a) => a.id === 'mal')!;

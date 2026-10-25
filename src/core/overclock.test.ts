@@ -87,6 +87,8 @@ describe('Overclock', () => {
     buyTimes(g, 'oc-a');
     expect(g.overclockStatus('a')).toEqual({
       on: false,
+      blocksHeatCooling: false,
+      chain: null,
       speedBonus: 0.5,
       rewardBonus: 0,
       heatPerMinute: 1,

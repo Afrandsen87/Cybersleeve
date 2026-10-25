@@ -33,9 +33,21 @@ interface SaveData {
   autoRunOff: Record<string, boolean>;
   overclocked: Record<string, boolean>;
   focused: Record<string, boolean>;
+  zeroDaysOn: boolean;
+  adminKeysOn: boolean;
+  chains: Record<string, number>;
+  bankedCriticals: Record<string, number>;
   actions: Record<
     string,
-    { xp: string; sleeveXp: string; runsTowardSleeveXp: number; augments: Record<string, number>; running: boolean; progress: number }
+    {
+      xp: string;
+      sleeveXp: string;
+      runsTowardSleeveXp: number;
+      augments: Record<string, number>;
+      skillShards: number;
+      running: boolean;
+      progress: number;
+    }
   >;
   purchased: Record<string, number>;
   inventory: Record<string, Record<string, number>>;
@@ -55,6 +67,10 @@ export function serializeState(state: GameStateView): string {
     autoRunOff: { ...state.autoRunOff },
     overclocked: { ...state.overclocked },
     focused: { ...state.focused },
+    zeroDaysOn: state.zeroDaysOn,
+    adminKeysOn: state.adminKeysOn,
+    chains: { ...state.chains },
+    bankedCriticals: { ...state.bankedCriticals },
     actions: Object.fromEntries(
       Object.entries(state.actions).map(([id, a]) => [
         id,
@@ -63,6 +79,7 @@ export function serializeState(state: GameStateView): string {
           sleeveXp: a.sleeveXp.toString(),
           runsTowardSleeveXp: a.runsTowardSleeveXp,
           augments: { ...a.augments },
+          skillShards: a.skillShards,
           running: a.running,
           progress: a.progress,
         },
@@ -118,6 +135,7 @@ export function deserializeState(
         sleeveXp: readAmount(saved['sleeveXp'], factory),
         runsTowardSleeveXp: readCount(saved['runsTowardSleeveXp']) % runsPerSleeveXp,
         augments: readAugments(saved['augments'], config.items),
+        skillShards: Math.min(readCount(saved['skillShards']), Number.MAX_SAFE_INTEGER),
         running: saved['running'] === true,
         progress: readProgress(saved['progress']),
       };
@@ -131,6 +149,26 @@ export function deserializeState(
     dropUnmetRequirements(state, config.buyables);
     readToggles(state, raw, config);
     state.inventory = readInventory(raw['inventory'], config.items);
+    const savedBank = isRecord(raw['bankedCriticals']) ? raw['bankedCriticals'] : {};
+    for (const def of config.actions) {
+      const count = Math.min(readCount(savedBank[def.id]), Number.MAX_SAFE_INTEGER);
+      if (count > 0) state.bankedCriticals[def.id] = count;
+    }
+    // The Zero-day and Admin key toggles stay on only while one is held (they switch themselves off at 0).
+    const stack = config.items.rarities[0];
+    const heldKey = (rule: { itemId: string } | undefined): boolean =>
+      rule !== undefined && stack !== undefined && (state.inventory[rule.itemId]?.[stack.id] ?? 0) > 0;
+    state.zeroDaysOn = raw['zeroDaysOn'] === true && heldKey(config.items.zeroDay);
+    state.adminKeysOn = raw['adminKeysOn'] === true && heldKey(config.items.adminKey);
+    // A chain is kept only for an action that owns a chain buyable, and never longer than its rule allows.
+    const savedChains = isRecord(raw['chains']) ? raw['chains'] : {};
+    for (const def of config.actions) {
+      const rule = config.buyables.find(
+        (b) => b.effect.kind === 'overclockChain' && b.actionId === def.id && (state.purchased[b.id] ?? 0) > 0,
+      );
+      const links = Math.min(readCount(savedChains[def.id]), rule?.effect.kind === 'overclockChain' ? rule.effect.chain.maxLinks : 0);
+      if (links > 0) state.chains[def.id] = links;
+    }
     return state;
   } catch {
     return null;

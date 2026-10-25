@@ -11,6 +11,7 @@ import {
   Augments,
   BackChannel,
   BurnLeads,
+  CriticalLinks,
   CriticalSuccesses,
   Economy,
   GameEngine,
@@ -27,6 +28,8 @@ import {
   earnedSkillPoints,
   silentDiagnostics,
   Snapshot,
+  SkillShards,
+  ZeroDays,
   validateConfig,
   type Diagnostics,
   type GameConfig,
@@ -81,14 +84,35 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const random = options.random ?? Math.random;
   const drops = new ItemDrops(config, stats, inventory, random);
   const criticals = new CriticalSuccesses(stats, random);
+  const zeroDays = new ZeroDays(config, state, inventory);
+  const adminKeys = new ZeroDays(config, state, inventory, 'adminKey', random);
+  const links = new CriticalLinks(stats, state);
+  const runner = new ActionRunner(
+    config,
+    state,
+    stats,
+    progression,
+    economy,
+    factory,
+    definition,
+    drops,
+    criticals,
+    zeroDays,
+    adminKeys,
+    links,
+    diagnostics,
+  );
   return new GameEngine(config, state, {
     progression,
     shop,
     stats,
-    runner: new ActionRunner(config, state, stats, progression, economy, factory, definition, drops, criticals, diagnostics),
+    runner,
     inventory,
     backChannel: new BackChannel(state, stats, inventory),
-    burnLeads: new BurnLeads(config, state, inventory),
+    burnLeads: new BurnLeads(config, state, inventory, () => stats.heatCoolingBlocked()),
+    zeroDays,
+    adminKeys,
+    skillShards: new SkillShards(config, state, inventory, (id) => runner.isUnlocked(id), random),
     toggles: new ActionToggles(state, stats),
     drops,
     augments: new Augments(config, state, inventory),

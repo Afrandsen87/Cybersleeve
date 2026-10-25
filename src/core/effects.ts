@@ -7,7 +7,7 @@ import type { BigNum, NumberFactory } from '../numbers';
 import { type CurveBeyond, concaveBonus } from './concaveBonus';
 import { type ActionAccumulator, definitionOf, type SleeveAccumulator } from './effectRegistry';
 import { INFINITY, saturate } from './infinity';
-import type { ActionId, BuyableDefinition, GameState, ItemDropRule, SleeveConfig } from './types';
+import type { ActionId, BuyableDefinition, ChainRule, GameState, ItemDropRule, SleeveConfig } from './types';
 
 /** The global sleeve stats after all owned sleeve-wide buyables are applied. */
 export interface SleeveStats {
@@ -29,8 +29,8 @@ export interface SleeveStats {
   readonly iceRating: BigNum;
   /** Share (0..1) of the heat's effect removed by ICE Rating: `reductionPerOrder * log10(iceRating)`, at most 1. */
   readonly heatReduction: number;
-  /** Infamy: each point makes heat cool down more slowly. */
-  readonly infamy: number;
+  /** Legend: each point makes heat cool down faster. */
+  readonly legend: number;
   /** Multiplier on what each network node produces, from `nodePayoutMultiplier` buyables (compounding per copy; >= 1). */
   readonly nodePayoutMultiplier: number;
   /** Credits per second added to the BASE value of every node, earned by actions paying `nodePayout` (>= 0). Buyables multiply the sum. */
@@ -49,6 +49,8 @@ export interface SleeveStats {
   readonly overclockStrength: number;
   /** Focus slots bought on top of `focus.baseSlots` (>= 0). */
   readonly extraFocusSlots: number;
+  /** The heat factor `overclockHeatFactor` buyables set for an action's Overclock (lowest wins); an action without an entry keeps its rule's own factor. */
+  readonly overclockHeatFactors: Readonly<Record<ActionId, number>>;
 }
 
 /** Aggregated purchase effects for one action. */
@@ -59,8 +61,18 @@ export interface ActionEffects {
   readonly overclockUnlocked: boolean;
   /** The Focus toggle of the action is unlocked. */
   readonly focusUnlocked: boolean;
+  /** The chain an owned `overclockChain` buyable adds to the action's Overclock, or `null`. */
+  readonly chain: ChainRule | null;
   /** Multiplies the action's own reward per run and nothing else (>= 1). A BigNum: it can grow without bound. */
   readonly rewardMultiplier: BigNum;
+  /** What the critical success multipliers of the action are multiplied by (>= 1; `criticalBoost` buyables). */
+  readonly criticalFactor: number;
+  /** The actions every critical run of this action banks a guaranteed critical success for (`criticalLink` buyables). */
+  readonly criticalLinks: readonly ActionId[];
+  /** The `perLevel` of every owned `startCostReduction` buyable of the action (the share is multiplied by `(1 - perLevel)^level` for each). */
+  readonly startCostReductions: readonly number[];
+  /** Seconds of node income paid per node the start cost destroys (`creditSiphon` buyables; 0 without one). */
+  readonly siphonSeconds: number;
   /** Items the action may drop per completed run (one rule per owned `itemDrop` buyable). */
   readonly drops: readonly ItemDropRule[];
   /** The share of each rarity's weight that moves on per order of magnitude of Hacking Proficiency, one entry per owned `rarityShiftFromProficiency` buyable. */
@@ -91,7 +103,12 @@ export function resolveEffects(
     autoRun: false,
     overclockUnlocked: false,
     focusUnlocked: false,
+    chain: null,
     rewardMultiplier: factory.fromNumber(1),
+    criticalFactor: 1,
+    criticalLinks: [],
+    startCostReductions: [],
+    siphonSeconds: 0,
     drops: [],
     rarityShifts: [],
   };
@@ -126,14 +143,14 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
  * amount to the stored total, but `earned` is that total passed through {@link concaveBonus}
  * (`sleeve.earnedSpeedScale`, `sleeve.earnedSpeedExponent`, and past `sleeve.earnedSpeedKnee` the flatter
  * `sleeve.earnedSpeedExponentBeyond`), so every further run is worth less than the one before.
- * Access level is `sleeve.baseAccessLevel` plus `amount` per owned `accessLevel` copy (copies stack). Heat and Infamy are the current values in the state. ICE Rating is the earned value plus the
+ * Access level is `sleeve.baseAccessLevel` plus `amount` per owned `accessLevel` copy (copies stack). Heat and Legend are the current values in the state. ICE Rating is the earned value plus the
  * `iceRatingFromActionLevel` bonuses (`perLevel * action level * copies`), times `factor^copies` of every `iceRatingMultiplier` buyable; the heat reduction is `iceRatingReductionPerOrder` per
  * order of magnitude of it (capped at 100%). The node payout multiplier is `factor^copies` of the `nodePayoutMultiplier` buyables; the node payout bonus
  * earned by actions is a separate amount added to the base value of a node (see `Economy.passiveCreditsPerNode`).
  * Called by: `engine.ts`.
  *
  * @param buyables all buyable definitions
- * @param state current state (reads `purchased`, `heat`, `network`, `hackingProficiency`, `iceRating`, `infamy`)
+ * @param state current state (reads `purchased`, `heat`, `network`, `hackingProficiency`, `iceRating`, `legend`)
  * @param sleeve base values of the stats
  * @param factory number factory
  * @param actionLevelOf plain action level of an action (read by effects that scale with one; defaults to level 0 for all)
@@ -143,7 +160,7 @@ export function resolveSleeveStats(
   buyables: readonly BuyableDefinition[],
   state: Pick<
     GameState,
-    'purchased' | 'heat' | 'hackingProficiency' | 'network' | 'iceRating' | 'infamy' | 'nodePayoutBonus' | 'inventory'
+    'purchased' | 'heat' | 'hackingProficiency' | 'network' | 'iceRating' | 'legend' | 'nodePayoutBonus' | 'inventory'
   >,
   sleeve: SleeveConfig,
   factory: NumberFactory,
@@ -163,6 +180,7 @@ export function resolveSleeveStats(
     criticalChance: 0,
     overclockStrength: 1,
     extraFocusSlots: 0,
+    overclockHeatFactors: {},
   };
   for (const b of buyables) {
     const owned = state.purchased[b.id] ?? 0;
@@ -200,7 +218,7 @@ export function resolveSleeveStats(
     heat: state.heat,
     iceRating,
     heatReduction,
-    infamy: state.infamy,
+    legend: state.legend,
     nodePayoutMultiplier: saturate(nodePayoutBuyableFactor),
     nodePayoutBonus,
     interfaceSkillFactor: saturate(interfaceSkillFactor),
@@ -210,6 +228,7 @@ export function resolveSleeveStats(
     criticalChance: Math.min(1, acc.criticalChance),
     overclockStrength: acc.overclockStrength,
     extraFocusSlots: acc.extraFocusSlots,
+    overclockHeatFactors: acc.overclockHeatFactors,
   };
 }
 

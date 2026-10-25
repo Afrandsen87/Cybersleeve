@@ -5,8 +5,24 @@
  */
 import type { ActionId, CompletionEffect, GameState } from './types';
 
+/** The chain of an action's Overclock (see `ChainRule`) as it stands now. */
+export interface ChainStatus {
+  /** Links held now (0 while the chain is broken or Overclock is off). */
+  readonly links: number;
+  /** The most links the chain can hold. */
+  readonly maxLinks: number;
+  /** What each link adds to the reward bonus of a run: the rule's value times the strength of Overclock. */
+  readonly rewardPerLink: number;
+  /** What each link adds to the share of the balance the start cost takes (fixed: the strength does not scale it). */
+  readonly nodesPerLink: number;
+}
+
 /** What Overclock is for one action. */
 export interface OverclockStatus {
+  /** While the action runs overclocked, heat does not cool down at all. */
+  readonly blocksHeatCooling: boolean;
+  /** The chain of consecutive runs, or `null` when the rule has none. */
+  readonly chain: ChainStatus | null;
   /** The toggle is switched on. */
   readonly on: boolean;
   /** The speed bonus the action gets while it is on: the rule's bonus times the strength (0.5 = 50 percent faster; 0 when the rule has none). */
