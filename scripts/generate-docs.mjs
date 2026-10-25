@@ -19,7 +19,8 @@ const CHECK = process.argv.includes('--check');
 /* ---------- collect files ---------- */
 function walk(dir) {
   const out = [];
-  for (const name of readdirSync(dir)) {
+  // Sorted by code unit: the OS listing order differs between Windows and Linux, and the output must not.
+  for (const name of readdirSync(dir).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
     const full = join(dir, name);
     if (statSync(full).isDirectory()) out.push(...walk(full));
     else out.push(full);
