@@ -20,33 +20,34 @@ export type BuyableId = string;
  * How experience maps to levels.
  *
  * @remarks
- * Level 1 is held below `firstLevelXp`. Reaching `firstLevelXp` gives level 2, and every further level
- * needs `growthFactor` times the previous threshold: `threshold(level n+1) = firstLevelXp * growthFactor^(n-1)`.
- * With the defaults (10 and 10): level 2 at 10 XP, 3 at 100, 4 at 1000, and so on.
+ * Levels start at 0. Every level costs its own full amount of XP: leaving level 0 costs `firstLevelXp`, and each further level costs
+ * `growthFactor` times the one before: `cost(leaving level n) = firstLevelXp * growthFactor^n`. The XP gathered inside a level
+ * starts from 0 again after each level-up. With the defaults (10 and 10): 10 XP for level 1, then 100 more for level 2,
+ * then 1000 more for level 3, and so on (110 and 1110 XP in total).
  */
 export interface LevelRuleConfig {
-  /** XP at which level 2 is reached (> 0). */
+  /** XP the first level costs, i.e. what it takes to reach level 1 (> 0). */
   readonly firstLevelXp: number;
-  /** Ratio between consecutive level thresholds (> 1). */
+  /** Ratio between the costs of consecutive levels (> 1). */
   readonly growthFactor: number;
 }
 
 /**
  * How much a level is worth as a multiplier.
  *
- * - `linear`: `1 + (level - 1) * perLevel` (perLevel 1 gives "multiplier = level").
- * - `exponential`: `base ^ (level - 1)`.
+ * - `linear`: `1 + level * perLevel` (levels start at 0, so level 0 is worth exactly 1).
+ * - `exponential`: `base ^ level`.
  */
 export type LevelScaling = { readonly kind: 'linear'; readonly perLevel: number } | { readonly kind: 'exponential'; readonly base: number };
 
 /**
  * What a completed run pays out: `credits` go to the credit balance, `networkNodes` grow the network,
- * `interfaceSpeed` adds to a multiplier on the sleeve's interface speed (until the next re-sleeve), `circumvention` adds to
- * the Circumvention stat (which lowers the heat tax), `infamy` adds to Infamy (which slows heat cooldown) and `nodePayout`
- * adds to a multiplier on what every network node produces. Network nodes are always whole numbers: a `networkNodes`
+ * `hackingProficiency` adds to Hacking Proficiency, which raises the hacking multiplier on the sleeve's interface speed (until the next re-sleeve), `iceRating` adds to
+ * the ICE Rating stat (which lowers the heat tax), `infamy` adds to Infamy (which slows heat cooldown) and `nodePayout`
+ * adds to the base value of what every network node produces (credits per second, before the Node payout multiplier). Network nodes are always whole numbers: a `networkNodes`
  * reward is rounded down per run.
  */
-export type RewardKind = 'credits' | 'networkNodes' | 'interfaceSpeed' | 'circumvention' | 'infamy' | 'nodePayout';
+export type RewardKind = 'credits' | 'networkNodes' | 'hackingProficiency' | 'iceRating' | 'infamy' | 'nodePayout';
 
 /** When an action becomes available besides the access level. */
 export type UnlockRule =
@@ -58,9 +59,7 @@ export type UnlockRule =
 /** Something that happens each time an action completes a run, besides its reward. */
 export type CompletionEffect =
   /** Removes this fraction of the current network nodes (0.25 = a quarter), rounded down to whole nodes for each run. */
-  | { readonly kind: 'removeNodesFraction'; readonly fraction: number }
-  /** Adds this much heat on top of the current heat. */
-  | { readonly kind: 'addHeat'; readonly heat: number };
+  { readonly kind: 'removeNodesFraction'; readonly fraction: number };
 
 /**
  * A price paid every time a run starts (manually or by auto-run). It is `amount` plus `fractionOfBalance` of the balance held
@@ -76,6 +75,64 @@ export interface StartCost {
   readonly fractionOfBalance?: number;
 }
 
+/** Identifier of an item kind (e.g. `"kompromat"`). Never shown to the player. */
+export type ItemId = string;
+/** Identifier of a rarity (e.g. `"rare"`). Never shown to the player. */
+export type RarityId = string;
+
+/** One rarity tier of items. The order of {@link ItemsConfig.rarities} is the order from most to least common. */
+export interface RarityDefinition {
+  readonly id: RarityId;
+  /** Display name (placeholder, may be renamed freely). */
+  readonly name: string;
+  /** Credits one item of this rarity sells for (>= 0). */
+  readonly sellValue: BigNum;
+}
+
+/** Static description of a kind of item that actions can drop. It exists in every rarity. */
+export interface ItemDefinition {
+  readonly id: ItemId;
+  /** Display name (placeholder, may be renamed freely). */
+  readonly name: string;
+  /** Items of this kind can be paid out for credits from the Inventory. Default: true. */
+  readonly sellable?: boolean;
+}
+
+/** What the Augment schematic item does when it is applied to an action. */
+export interface AugmentConfig {
+  /** The item that is the schematic. */
+  readonly itemId: ItemId;
+  /**
+   * What one schematic adds to the action XP boost of ITS rarity, additively (0.01 = 1 percent; > 0). The boosts of the different
+   * rarities multiply each other (3 common, 3 uncommon and 3 rare give 1.03 x 1.03 x 1.03).
+   */
+  readonly xpBonusPerItem: number;
+}
+
+/** The item entity: which kinds exist and which rarity tiers they come in. */
+export interface ItemsConfig {
+  /** Which item can be applied to an action to raise its XP gain. Default: none (no Augment button). */
+  readonly augment?: AugmentConfig;
+  /** Rarity tiers, most common first. */
+  readonly rarities: readonly RarityDefinition[];
+  /** The kinds of item. */
+  readonly definitions: readonly ItemDefinition[];
+}
+
+/**
+ * Items an action drops when a run completes (the result of an `itemDrop` buyable).
+ *
+ * @remarks
+ * Each completed run has `chance` to drop one item; the item's rarity is then drawn by `rarityWeights`.
+ */
+export interface ItemDropRule {
+  readonly itemId: ItemId;
+  /** Chance (0..1) that one completed run drops an item at all. */
+  readonly chance: number;
+  /** Relative weight per rarity id (>= 0, at least one > 0). Weights are normalised, so `{ common: 90, uncommon: 10 }` means 90% / 10%. A missing rarity weighs 0. */
+  readonly rarityWeights: Readonly<Record<RarityId, number>>;
+}
+
 /** Static description of an action the character can perform. */
 export interface ActionDefinition {
   readonly id: ActionId;
@@ -83,7 +140,7 @@ export interface ActionDefinition {
   readonly name: string;
   /** Duration of one run at speed multiplier 1, in milliseconds. */
   readonly baseDurationMs: number;
-  /** Amount paid per completed run, in units of `rewardKind` (before output multipliers). */
+  /** Amount paid per completed run, in units of `rewardKind` (before reward multipliers). */
   readonly reward: BigNum;
   /** What `reward` is paid as. Default: `'credits'`. */
   readonly rewardKind?: RewardKind;
@@ -99,7 +156,7 @@ export interface ActionDefinition {
   readonly startCost?: StartCost;
   /** Applied after each completed run (in order). */
   readonly completionEffects?: readonly CompletionEffect[];
-  /** Action experience gained per completed run (before output multipliers). */
+  /** Action experience gained per completed run (reward multipliers do not change it). */
   readonly xpPerRun: BigNum;
   /** Overrides `progression.actionLevels` for this action. */
   readonly levels?: LevelRuleConfig;
@@ -113,25 +170,33 @@ export interface ActionDefinition {
  * What a purchase does. Add a new `kind` here and in `effects.ts` to add a new effect type.
  * An effect applies once per copy owned (see `BuyableDefinition.maxPurchases`).
  *
- * - Action effects (`autoRun`, `outputMultiplier`) change the action the buyable belongs to.
- * - Sleeve effects (`interfaceSpeed`, `accessLevel`, `networkGrowth`, `interfaceSpeedPerLnNodes`, `sleeveXpReduction`) change the
+ * - Action effects (`autoRun`, `rewardMultiplier`, `itemDrop`, `rarityShiftFromProficiency`) change the action the buyable belongs to. `rewardMultiplier` scales that action's own
+ *   reward per run and nothing else: not its XP, not the runs counted towards sleeve XP, not its heat or completion effects.
+ * - Sleeve effects (`interfaceSpeed`, `accessLevel`, `networkGrowth`, `networkGrowthFromActionLevel`, `interfaceSpeedPerLnNodes`, `sleeveXpReduction`) change the
  *   game as a whole; the buyable may still belong to an action, which only decides on which card it is shown.
  * - `levelBonusFromSleeveLevel` links two actions: it adds one action's sleeve level to another action's level for speed.
  */
 export type BuyableEffect =
   | { readonly kind: 'autoRun' }
-  | { readonly kind: 'outputMultiplier'; readonly factor: number }
+  | { readonly kind: 'rewardMultiplier'; readonly factor: number }
   | { readonly kind: 'interfaceSpeed'; readonly amount: number }
-  | { readonly kind: 'accessLevel'; readonly level: number }
+  /** Raises the access level by `amount` per copy (an integer >= 1), on top of `sleeve.baseAccessLevel`. */
+  | { readonly kind: 'accessLevel'; readonly amount: number }
   /** Multiplies the credits each network node produces by this factor per copy. */
   | { readonly kind: 'nodePayoutMultiplier'; readonly factor: number }
-  /** Multiplies the Circumvention stat by this factor per copy. */
-  | { readonly kind: 'circumventionMultiplier'; readonly factor: number }
+  /** Multiplies the ICE Rating stat by this factor per copy. */
+  | { readonly kind: 'iceRatingMultiplier'; readonly factor: number }
   /** No effect of its own: owning it satisfies an action's `unlock: { kind: 'buyable' }` rule. */
   | { readonly kind: 'unlock' }
   /** Network nodes grow by this fraction of themselves per second (0.000001 = 0.0001 percent), compounding; only whole nodes are added, the rest is carried. */
   | { readonly kind: 'networkGrowth'; readonly ratePerSecond: number }
-  /** Multiplies the base interface speed by `1 + perLn * ln(nodes)` (never below 1), before the run multiplier. */
+  /**
+   * Network nodes grow by `level * percentPerLevel` percent of themselves per second, where `level` is the (plain) action level of
+   * `sourceActionId`, per copy owned. E.g. `percentPerLevel: 0.001` at level 50 gives 0.05 percent per second. Same compounding and
+   * whole-node rules as `networkGrowth`.
+   */
+  | { readonly kind: 'networkGrowthFromActionLevel'; readonly sourceActionId: ActionId; readonly percentPerLevel: number }
+  /** Multiplies the base interface speed by `1 + perLn * ln(nodes)` (never below 1), before the hacking multiplier. */
   | { readonly kind: 'interfaceSpeedPerLnNodes'; readonly perLn: number }
   /** Adds the sleeve level of `sourceActionId` to the level of `targetActionId` when computing speed (not its XP progress). */
   | { readonly kind: 'levelBonusFromSleeveLevel'; readonly sourceActionId: ActionId; readonly targetActionId: ActionId }
@@ -139,13 +204,45 @@ export type BuyableEffect =
    * Lowers the XP needed for every sleeve level of every OTHER action by `min(maxReduction, perLevel * sleeve level of
    * sourceActionId)`, as a fraction (0.25 = 25 percent less XP). The source action itself is not affected.
    */
-  | { readonly kind: 'sleeveXpReduction'; readonly sourceActionId: ActionId; readonly perLevel: number; readonly maxReduction: number };
-
-/** Kinds of {@link BuyableEffect} that change the action the buyable belongs to (and so need an `actionId`). */
-export const ACTION_EFFECT_KINDS: readonly BuyableEffect['kind'][] = ['autoRun', 'outputMultiplier'];
+  | { readonly kind: 'sleeveXpReduction'; readonly sourceActionId: ActionId; readonly perLevel: number; readonly maxReduction: number }
+  /** Completed runs of the buyable's action may drop an item, as described by `drop`. Applies once, whatever the number of copies. */
+  | { readonly kind: 'itemDrop'; readonly drop: ItemDropRule }
+  /**
+   * Hacking Proficiency shifts the drop ratios of the buyable's action towards the rarer rarities: for every whole order of
+   * magnitude of proficiency (`floor(log10)`, none below 10) `fractionPerOrder` of each rarity's weight moves to the next rarity.
+   * The amounts are worked out up front for all rarities and moved at once (see `shiftWeights`). Applies once, whatever the number of copies.
+   */
+  | { readonly kind: 'rarityShiftFromProficiency'; readonly fractionPerOrder: number }
+  /** Multiplies the interface speed by `factor` per copy (after the hacking multiplier). */
+  | { readonly kind: 'interfaceSpeedMultiplier'; readonly factor: number }
+  /** Heat cools down `factor` times as fast per copy (shorter cooldown cycles). */
+  | { readonly kind: 'heatCooldownSpeed'; readonly factor: number }
+  /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */
+  | { readonly kind: 'hackingProficiencyMultiplier'; readonly factor: number }
+  /** Every ACTION level needs `amount` (a fraction, 0.01 = 1 percent) less XP per copy. Sleeve levels are not affected. */
+  | { readonly kind: 'actionXpReduction'; readonly amount: number }
+  /** Multiplies the drop chance (the chance of a drop at all) of every drop rule of `itemId` by `factor` per copy; the result never exceeds 1. */
+  | { readonly kind: 'itemDropChanceMultiplier'; readonly itemId: ItemId; readonly factor: number }
+  /** Node payout is multiplied by `1 + perItem x` the number of `itemId` items of `rarityId` held, per copy. */
+  | { readonly kind: 'nodePayoutFromItems'; readonly itemId: ItemId; readonly rarityId: RarityId; readonly perItem: number }
+  /**
+   * Lets the player give up items of `itemId` / `rarityId` for Moles: `molesPerItem` Moles each. While Moles remain, heat cools
+   * `cooldownBoost` (0.5 = 50 percent) faster, and every point of heat cooled uses up one Mole.
+   */
+  | {
+      readonly kind: 'backChannel';
+      readonly itemId: ItemId;
+      readonly rarityId: RarityId;
+      readonly molesPerItem: number;
+      readonly cooldownBoost: number;
+    };
 
 /** What a buyable is paid with. */
-export type Currency = 'credits' | 'networkNodes';
+/**
+ * What a buyable is paid with. `skillPoints` are not held: the points available are what the action levels have earned minus what the
+ * owned skills cost (see `skills.ts`), so paying them spends nothing from the state.
+ */
+export type Currency = 'credits' | 'networkNodes' | 'skillPoints';
 
 /** Static description of a purchase (one-time or repeatable). It is shown on its action's card, or in the Sleeve widget when it has no action. */
 export interface BuyableDefinition {
@@ -153,7 +250,10 @@ export interface BuyableDefinition {
   /** The action whose card shows this purchase (and whose behaviour an action effect changes). Absent: shown in the Sleeve widget. */
   readonly actionId?: ActionId;
   readonly name: string;
+  /** What the purchase does, in a sentence (shown in the hover tooltip). */
   readonly description: string;
+  /** A formula that explains the effect, shown under the description in the tooltip (e.g. `"Growth factor percentage = Action level / 1000"`). */
+  readonly formula?: string;
   /** Short text shown on the purchase's square button (default: initials of `name`). */
   readonly symbol?: string;
   /** Price of the first copy, in `currency` (before `global.costMultiplier`). */
@@ -181,6 +281,8 @@ export interface ProgressionConfig {
   readonly sleeveLevels: LevelRuleConfig;
   /** Credits at the start of a game and after a re-sleeve (>= 0). */
   readonly startingCredits: number;
+  /** The most that all sleeve-XP reduction buyables together can cut a sleeve level's XP requirement (a fraction in [0, 1); 0.99 = 99%). */
+  readonly maxSleeveXpReduction: number;
 }
 
 /** How levels translate into speed. */
@@ -195,8 +297,8 @@ export interface SpeedConfig {
 export interface GlobalTuning {
   /** Multiplies the speed of every action. */
   readonly speedMultiplier: number;
-  /** Multiplies every credit reward. */
-  readonly rewardMultiplier: number;
+  /** Multiplies the credits earned: run rewards paid in credits and passive network income. No other reward kind is affected. */
+  readonly creditMultiplier: number;
   /** Multiplies every XP gain (action XP; sleeve XP follows from runs). */
   readonly xpMultiplier: number;
   /** Multiplies every buyable price. */
@@ -209,16 +311,22 @@ export interface SleeveConfig {
   readonly baseAccessLevel: number;
   /** Interface speed of a new sleeve: a plain multiplier on the speed of every action (> 0; 1 = no change). */
   readonly baseInterfaceSpeed: number;
-  /** Heat of a new sleeve (>= 0). One point of heat is one percent of tax on all credits earned. */
+  /** Slope at 0 of the curve that turns the interface speed earned by actions into the bonus applied (> 0; 1 = first runs count in full). */
+  readonly earnedSpeedScale: number;
+  /** Shape of that curve (<= 1): 1 = straight line, 0 = logarithm, in between = diminishing returns without a ceiling. */
+  readonly earnedSpeedExponent: number;
+  /** Heat of a new sleeve (>= 0). */
   readonly baseHeat: number;
+  /** Share of the credits network nodes produce that one point of heat takes (0.01 = 1%; >= 0). ICE Rating lowers the effect. */
+  readonly heatTaxPerPoint: number;
   /** Time one heat cooldown cycle takes, in ms (> 0). Heat only cools while it is above 0. */
   readonly heatCooldownMs: number;
   /** Heat removed each time a cooldown cycle completes (> 0). */
   readonly heatCooldownAmount: number;
-  /** Circumvention of a new sleeve (>= 1). The stat is multiplied by buyables and raised by actions. */
-  readonly baseCircumvention: number;
-  /** Share of the heat tax removed per order of magnitude of Circumvention (0.005 = 0.5%; 100% is reached at 1e200). */
-  readonly circumventionReductionPerOrder: number;
+  /** ICE Rating of a new sleeve (>= 1). The stat is multiplied by buyables and raised by actions. */
+  readonly baseIceRating: number;
+  /** Share of the heat tax removed per order of magnitude of ICE Rating (0.005 = 0.5%; 100% is reached at 1e200). */
+  readonly iceRatingReductionPerOrder: number;
   /** Each point of Infamy makes a heat cooldown cycle this much longer (0.1 = 10% slower per point; >= 0). */
   readonly infamyHeatSlowdown: number;
   /** Infamy falls by exactly 1 each time this many ms have passed (a cycle, like the heat cooldown; > 0). */
@@ -251,12 +359,19 @@ export interface EngineConfig {
    * get longer (and the feedback effects above become approximate again).
    */
   readonly maxSlicesPerTick: number;
+  /**
+   * Shortest time one run can take, in ms (> 0). However fast an action gets, its run never takes less, so a speed that
+   * overflows cannot turn a duration into 0 (and the batch maths into NaN).
+   */
+  readonly minRunDurationMs: number;
 }
 
 /** Timing and test-aid settings used by the browser shell. */
 export interface RuntimeConfig {
   /** Interval between game steps, in ms (> 0). */
   readonly stepMs: number;
+  /** Shortest interval between screen refreshes, in ms (> 0). The game itself still steps every `stepMs`. */
+  readonly renderMs: number;
   /** Largest real-time gap simulated in one step, in ms (> 0). Longer gaps are not simulated (no offline progress yet). */
   readonly maxDeltaMs: number;
   /** Interval between autosaves, in ms (> 0). */
@@ -269,6 +384,8 @@ export interface RuntimeConfig {
 export interface GameConfig {
   readonly actions: readonly ActionDefinition[];
   readonly buyables: readonly BuyableDefinition[];
+  /** The item entity: kinds and rarity tiers (with their sell values). */
+  readonly items: ItemsConfig;
   readonly progression: ProgressionConfig;
   readonly speed: SpeedConfig;
   readonly global: GlobalTuning;
@@ -286,10 +403,12 @@ export interface ActionState {
   sleeveXp: BigNum;
   /** Completed runs of this action since its last sleeve-XP batch (0..runsPerSleeveXp-1). Survives re-sleeving. */
   runsTowardSleeveXp: number;
+  /** Augment schematics applied to this action, per rarity id: each raises the action XP its runs give (see `items.augment`). Reset by re-sleeving. */
+  augments: Record<RarityId, number>;
   /** True while the progress bar is filling. */
   running: boolean;
-  /** Time spent on the current run, in milliseconds (0 when idle). */
-  progressMs: number;
+  /** The share of the current run that is done: from 0 up to (not including) 1 (0 when idle). A change of speed does not change it. */
+  progress: number;
 }
 
 /** Complete mutable game state. Serialised by `serialization.ts`. */
@@ -301,25 +420,29 @@ export interface GameState {
   heat: number;
   /** Time spent on the current heat cooldown cycle, in ms. Only advances while heat > 0. Reset by re-sleeving. */
   heatCooldownMs: number;
-  /** Circumvention earned so far, starting at `sleeve.baseCircumvention`; buyable multipliers come on top. Reset by re-sleeving. */
-  circumvention: BigNum;
+  /** ICE Rating earned so far, starting at `sleeve.baseIceRating`; buyable multipliers come on top. Reset by re-sleeving. */
+  iceRating: BigNum;
   /** Infamy: slows heat cooldown, decays over time. Reset by re-sleeving. */
   infamy: number;
   /** Time spent on the current Infamy decay cycle, in ms. Only advances while Infamy > 0. Reset by re-sleeving. */
   infamyCooldownMs: number;
+  /** Moles: points of heat that still cool down faster, bought by giving up items (Back Channel Deals). Reset by re-sleeving. */
+  moles: number;
   /** Fraction of a node (0..1) the network has grown by itself but not yet completed; carried between ticks. Reset by re-sleeving. */
   networkRemainder: number;
-  /** Bonus gained from actions paying `nodePayout`: what each node produces is multiplied by `1 + this`. Reset by re-sleeving. */
+  /** Gained from actions paying `nodePayout`: credits per second added to the BASE value of what each node produces (`network.creditsPerNodePerSecond + this`; buyables multiply the sum). Reset by re-sleeving. */
   nodePayoutBonus: BigNum;
   /** Actions that were unlocked by a `nodes` rule and stay unlocked. Reset by re-sleeving. */
   unlockedActions: Record<ActionId, boolean>;
   /** Auto-run buyables the player has switched off (absent or false: running). Reset by re-sleeving. */
   autoRunOff: Record<BuyableId, boolean>;
-  /** Multiplier bonus gained from actions paying `interfaceSpeed`: interface speed is multiplied by `1 + this`. Reset by re-sleeving. */
-  interfaceSpeedBonus: BigNum;
+  /** Hacking Proficiency: gained from actions paying `hackingProficiency`; the hacking multiplier on interface speed is a concave function of it. Reset by re-sleeving. */
+  hackingProficiency: BigNum;
   actions: Record<ActionId, ActionState>;
   /** Copies owned per buyable id. Absent means 0. */
   purchased: Record<BuyableId, number>;
+  /** Items held: whole counts per item id and rarity id (absent means 0). Reset by re-sleeving. */
+  inventory: Record<ItemId, Record<RarityId, number>>;
 }
 
 /** `T` with every property read-only, recursively. `BigNum` values are immutable already and stay as they are. */

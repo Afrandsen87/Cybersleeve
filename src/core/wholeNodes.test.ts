@@ -64,7 +64,7 @@ describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () =
     expect(g.startAction('pkill')).toBe(true);
     expect(state(g).network.toNumber()).toBe(99);
     g.tick(1_000);
-    expect(g.getState().circumvention.eq(num(2))).toBe(true);
+    expect(g.getState().iceRating.eq(num(2))).toBe(true);
   });
 
   it('takes 1% of whatever is held when each run starts (auto-run: 1000 -> 990 -> 981)', () => {
@@ -73,7 +73,7 @@ describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () =
     g.buy('auto');
     g.tick(1_000); // pays 10 (990), completes, pays 9 (981)
     expect(state(g).network.toNumber()).toBe(981);
-    expect(g.getState().circumvention.eq(num(2))).toBe(true);
+    expect(g.getState().iceRating.eq(num(2))).toBe(true);
   });
 
   it('stops auto-running once the nodes fall below 100', () => {
@@ -119,7 +119,7 @@ describe('prices in nodes are whole numbers', () => {
   });
 
   it('credit prices are not rounded', () => {
-    const g = game([testConfig.actions[0]!], [free('c', undefined, { kind: 'accessLevel', level: 2 }, { cost: num(100) })], {
+    const g = game([testConfig.actions[0]!], [free('c', undefined, { kind: 'accessLevel', amount: 1 }, { cost: num(100) })], {
       global: { costMultiplier: 1.005 },
     });
     expect(g.costOf('c').toNumber()).toBeCloseTo(100.5, 10);
@@ -157,12 +157,15 @@ describe('Legend removes whole nodes, run by run', () => {
 describe('node payout bonus (Push malware)', () => {
   const push = (buyables: BuyableDefinition[] = []) => game([testConfig.actions[0]!, payoutAction], buyables);
 
-  it('each run adds 0.001 to the multiplier and 1 heat, and pays no credits', () => {
+  it('each run adds 0.001 credits per second to the BASE of every node (not to a multiplier) and 1 heat, and pays no credits', () => {
     const g = push();
     g.startAction('push');
     g.tick(1_000);
     expect(state(g).nodePayoutBonus.toNumber()).toBeCloseTo(0.001, 10);
-    expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(1.001, 10);
+    expect(g.sleeveStats().nodePayoutBonus).toBeCloseTo(0.001, 10);
+    expect(g.sleeveStats().nodePayoutMultiplier).toBe(1); // the multiplier is untouched: only buyables change it
+    state(g).network = num(100);
+    expect(g.passiveCreditsPerNode().toNumber()).toBeCloseTo((0.05 + 0.001) * 0.99, 10); // test config base 0.05, 1 heat takes 1%
     expect(state(g).heat).toBe(1);
     expect(g.getState().credits.isZero()).toBe(true);
   });
@@ -173,22 +176,22 @@ describe('node payout bonus (Push malware)', () => {
     expect(g.payoutPerRun('push').toNumber()).toBeCloseTo(0.001, 10);
   });
 
-  it('is additive with diminishing returns: 1000 runs give x2, 3000 runs x4', () => {
+  it('adds up linearly to the base: every run is worth the same, however many came before', () => {
     const g = push();
     state(g).nodePayoutBonus = num(1);
-    expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(2, 10);
+    expect(g.passiveCreditsPerNode().toNumber()).toBeCloseTo(0.05 + 1, 10);
     state(g).nodePayoutBonus = num(3);
-    expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(4, 10);
+    expect(g.passiveCreditsPerNode().toNumber()).toBeCloseTo(0.05 + 3, 10);
   });
 
-  it('multiplies with the Node payout buyable (x1.5 and a bonus of 1 give x3) and raises passive income', () => {
+  it('the Node payout buyable multiplies the sum of the base and the bonus (1.05 x 1.5) and raises passive income', () => {
     const g = push([free('np', undefined, { kind: 'nodePayoutMultiplier', factor: 1.5 })]);
     setCredits(g, num(1));
     g.buy('np');
     state(g).nodePayoutBonus = num(1);
     state(g).network = num(100);
-    expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(3, 10);
-    expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(100 * 0.05 * 3, 10);
+    expect(g.sleeveStats().nodePayoutMultiplier).toBeCloseTo(1.5, 10);
+    expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(100 * (0.05 + 1) * 1.5, 10);
   });
 
   it('is reset by re-sleeving', () => {

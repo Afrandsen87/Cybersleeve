@@ -29,9 +29,32 @@ body {
 }
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
   gap: 14px;
-  align-items: start;
+}
+/* Top band: Sleeve on the left, the other widgets to its right. */
+.dashboard {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch; /* the right-hand column is as tall as the Sleeve widget */
+}
+/* Network, Sleeve Improvements and Network Exploitation share the width in thirds; Inventory spans all below them. */
+.dashboard-right {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: 1fr auto; /* the widgets in the first row absorb any spare height; Inventory keeps its own */
+  gap: 14px;
+  align-items: stretch; /* widgets in a row are equally tall, so no gaps open between them */
+}
+.dashboard-right .inventory-widget {
+  grid-column: 1 / -1;
+}
+/* The line across the screen between the widgets and the actions. */
+.divider {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
 }
 .actions {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -44,14 +67,13 @@ body {
   background: transparent;
   opacity: 0.5;
 }
-.side {
-  display: grid;
-  gap: 14px;
-  align-content: start;
-}
 .sleeve-widget,
-.network-widget {
+.network-widget,
+.upgrades-widget,
+.exploitation-widget,
+.inventory-widget {
   display: grid;
+  align-content: start; /* extra height from stretching stays below the content */
   gap: 10px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -59,8 +81,46 @@ body {
   padding: 12px;
 }
 .sleeve-widget h2,
-.network-widget h2 {
+.network-widget h2,
+.upgrades-widget h2,
+.exploitation-widget h2,
+.inventory-widget h2 {
   margin: 0;
+}
+.inventory-widget[hidden],
+.inventory-row[hidden],
+.inventory-empty[hidden] {
+  display: none;
+}
+.inventory {
+  display: grid;
+  gap: 6px;
+}
+.inventory-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(4, auto);
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.inventory-label {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inventory-count {
+  font-weight: 700;
+  color: var(--cyan);
+}
+.inventory-sell {
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.inventory-empty {
+  font-size: 14px;
+  color: var(--muted);
 }
 .section-title {
   margin: 4px 0 0;
@@ -92,7 +152,8 @@ body {
   color: var(--cyan);
 }
 @media (max-width: 900px) {
-  .layout {
+  .dashboard,
+  .dashboard-right {
     grid-template-columns: 1fr;
   }
   .actions {
@@ -141,6 +202,7 @@ button:not(:disabled):hover {
   border-color: var(--cyan);
 }
 .action {
+  position: relative; /* the Augment button sits in the top right corner */
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 6px;
@@ -185,9 +247,20 @@ button:not(:disabled):hover {
   border-radius: 6px;
   overflow: hidden;
 }
-.bar-fill {
+/*
+ * Bar fills are always full width and scaled from the left by dom.ts (transform, not width: no re-layout per refresh). The transition
+ * lasts one refresh interval (--render-ms, set from runtime.renderMs) so a bar glides between refreshes instead of stepping.
+ */
+.bar-fill,
+.xp-fill {
+  width: 100%;
   height: 100%;
-  width: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--render-ms, 100ms) linear;
+  will-change: transform;
+}
+.bar-fill {
   background: linear-gradient(90deg, var(--cyan), var(--magenta));
 }
 .xp {
@@ -206,9 +279,13 @@ button:not(:disabled):hover {
   overflow: hidden;
 }
 .xp-fill {
-  height: 100%;
-  width: 0;
   background: var(--teal);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill,
+  .xp-fill {
+    transition: none;
+  }
 }
 .action.running {
   border-color: var(--magenta);
@@ -247,13 +324,16 @@ button:not(:disabled):hover {
 .stat[data-tip] {
   cursor: help;
 }
-/* One shared tooltip box, positioned by tooltip.ts so it always stays inside the window. */
+/*
+ * One shared tooltip box, positioned by tooltip.ts so it always stays inside the window. It grows to fit its longest line
+ * instead of wrapping text (only the line breaks in the text itself start a new line); the window width is the only limit.
+ */
 .tooltip {
   white-space: pre-line;
   position: fixed;
   z-index: 20;
   width: max-content;
-  max-width: 240px;
+  max-width: calc(100vw - 16px);
   padding: 8px 10px;
   border: 1px solid var(--cyan);
   border-radius: 8px;
@@ -307,4 +387,77 @@ button:not(:disabled):hover {
 }
 .reset-save {
   border-color: var(--magenta);
+}
+
+.notice {
+  margin: 8px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--magenta);
+  border-radius: 6px;
+  color: var(--magenta);
+}
+
+/* Rows and bars that can be hidden, although they are laid out with display rules of their own. */
+.stat[hidden],
+.xp[hidden] {
+  display: none;
+}
+
+/* The tabs at the top, centered. */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.tab {
+  min-width: 120px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.tab.active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+.tab-panel {
+  display: grid;
+  gap: 14px;
+}
+.tab-panel[hidden] {
+  display: none;
+}
+
+/* The Skills tab: a box holding the skills. */
+.skills-widget {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.skills-widget h2 {
+  margin: 0;
+}
+.skills-points {
+  font-size: 14px;
+  color: var(--cyan);
+}
+
+/* The Augment button in the top right corner of an action card. */
+.augment {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.augment[hidden] {
+  display: none;
+}
+.augment.applied:not(:disabled) {
+  border-color: var(--teal);
 }

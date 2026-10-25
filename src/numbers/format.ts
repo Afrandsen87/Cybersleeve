@@ -67,3 +67,14 @@ function scientific(mantissa: number, exponent: number, decimals: number): strin
   }
   return `${m}e${e}`;
 }
+
+/**
+ * Formats a plain JS number with at most `decimals` decimals, trailing zeros removed (`0.1500001` gives `"0.15"`).
+ *
+ * @param n value to format
+ * @param decimals decimals kept (default 3)
+ * @returns display string
+ */
+export function formatPlain(n: number, decimals = 3): string {
+  return String(Number(n.toFixed(decimals)));
+}

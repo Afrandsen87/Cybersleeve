@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * Hover tooltips that never leave the window. Any element with a `data-tip` attribute gets one.
+ * Hover tooltips that never leave the window. Elements get one through the {@link TipRegistry}.
  *
  * @remarks
  * The placement maths ({@link placeTooltip}) is pure and tested; {@link installTooltips} is the thin DOM binding.
@@ -52,16 +52,65 @@ export function placeTooltip(
   return { left: clamp(anchor.left, size.width, viewport.width), top: clamp(top, size.height, viewport.height) };
 }
 
+/** The attribute that marks an element as having a tooltip. Its value is unused: the text comes from the {@link TipRegistry}. */
+const TIP_ATTRIBUTE = 'data-tip';
+
 /**
- * Shows the `data-tip` text of the hovered or focused element in one shared tooltip box.
+ * Holds the tooltip text of each element as a function, so the text is only built for the element that is hovered.
  *
  * @remarks
- * The text is re-read when the attribute changes, so a tooltip stays current while the game updates it.
+ * Marking an element writes the `data-tip` attribute once (CSS and the hover handlers find anchors by it); replacing the
+ * function afterwards touches no DOM. Called by: `dom.ts` (fills it every frame), {@link installTooltips} (reads it on hover).
+ */
+export class TipRegistry {
+  private readonly providers = new WeakMap<HTMLElement, () => string>();
+
+  /**
+   * Sets or removes the tooltip of an element.
+   *
+   * @param el the element the tooltip belongs to
+   * @param provider builds the text when it is needed; `null` removes the tooltip
+   */
+  set(el: HTMLElement, provider: (() => string) | null): void {
+    if (provider === null) {
+      this.providers.delete(el);
+      if (el.hasAttribute(TIP_ATTRIBUTE)) el.removeAttribute(TIP_ATTRIBUTE);
+      return;
+    }
+    this.providers.set(el, provider);
+    if (!el.hasAttribute(TIP_ATTRIBUTE)) el.setAttribute(TIP_ATTRIBUTE, '');
+  }
+
+  /**
+   * The current text of an element's tooltip.
+   *
+   * @param el the element
+   * @returns the text, or an empty string when the element has none
+   */
+  textOf(el: HTMLElement): string {
+    return this.providers.get(el)?.() ?? '';
+  }
+}
+
+/** Handle returned by {@link installTooltips}. */
+export interface TooltipControl {
+  /** Re-reads the text of the tooltip that is showing (if any) so it follows the game. Does no layout work when the text is unchanged. */
+  refresh(): void;
+}
+
+/**
+ * Shows the tooltip of the hovered or focused element in one shared tooltip box.
+ *
+ * @remarks
+ * The text is asked from the {@link TipRegistry} when the pointer arrives and again on every {@link TooltipControl.refresh}, so a
+ * tooltip stays current while the game updates it, without the game building any text for elements nobody hovers.
  * Called by: `dom.ts` (`mountUi`). Side effects: appends one element to `doc.body`; adds listeners to `doc`.
  *
  * @param doc the document to attach to
+ * @param tips where the tooltip texts come from
+ * @returns the handle to refresh the visible tooltip
  */
-export function installTooltips(doc: Document): void {
+export function installTooltips(doc: Document, tips: TipRegistry): TooltipControl {
   const box = doc.createElement('div');
   box.className = 'tooltip';
   box.hidden = true;
@@ -70,11 +119,13 @@ export function installTooltips(doc: Document): void {
   let current: HTMLElement | null = null;
 
   const show = (anchor: HTMLElement): void => {
-    const text = anchor.dataset['tip'];
+    const text = tips.textOf(anchor);
     if (!text) {
       hide();
       return;
     }
+    // Same anchor and same text: nothing to measure or move.
+    if (anchor === current && !box.hidden && box.textContent === text) return;
     current = anchor;
     box.textContent = text;
     box.hidden = false;
@@ -91,7 +142,7 @@ export function installTooltips(doc: Document): void {
     box.hidden = true;
   };
   const anchorOf = (event: Event): HTMLElement | null =>
-    event.target instanceof Element ? event.target.closest<HTMLElement>('[data-tip]') : null;
+    event.target instanceof Element ? event.target.closest<HTMLElement>(`[${TIP_ATTRIBUTE}]`) : null;
 
   doc.addEventListener('mouseover', (e) => {
     const anchor = anchorOf(e);
@@ -108,7 +159,9 @@ export function installTooltips(doc: Document): void {
     if (anchor) show(anchor);
   });
   doc.addEventListener('focusout', hide);
-  new MutationObserver((records) => {
-    if (current && records.some((r) => r.target === current)) show(current);
-  }).observe(doc.body, { attributes: true, attributeFilter: ['data-tip'], subtree: true });
+  return {
+    refresh: () => {
+      if (current) show(current);
+    },
+  };
 }

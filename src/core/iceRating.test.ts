@@ -1,5 +1,5 @@
 /**
- * Circumvention, Infamy, action unlock rules and start costs, completion effects, toggleable auto-run and the node payout
+ * ICE Rating, Infamy, action unlock rules and start costs, completion effects, toggleable auto-run and the node payout
  * multiplier. Expected outcomes are stated explicitly so the maths can change later without regressions.
  */
 import { describe, expect, it } from 'vitest';
@@ -7,7 +7,6 @@ import { createGame } from '../app/createGame';
 import { num, numberFactory } from '../numbers';
 import { killAction, legendAction, networkAction, setCredits, testConfig } from '../testing/testConfig';
 import {
-  Economy,
   type BuyableDefinition,
   applyCompletionEffects,
   createConfig,
@@ -36,66 +35,58 @@ const mutable = (g: { getState(): unknown }) =>
     network: ReturnType<typeof num>;
     heat: number;
     infamy: number;
-    circumvention: ReturnType<typeof num>;
+    iceRating: ReturnType<typeof num>;
     unlockedActions: Record<string, boolean>;
     autoRunOff: Record<string, boolean>;
   };
 
-describe('heat tax with Circumvention', () => {
+describe('heat tax with ICE Rating', () => {
   it('removes a share of the heat effect: at 50% reduction credits stop at 200 heat, not 100', () => {
-    expect(heatTaxFactor(100, 0)).toBe(0);
-    expect(heatTaxFactor(100, 0.5)).toBeCloseTo(0.5, 10);
-    expect(heatTaxFactor(150, 0.5)).toBeCloseTo(0.25, 10);
-    expect(heatTaxFactor(200, 0.5)).toBe(0);
-    expect(heatTaxFactor(250, 0.5)).toBe(0);
+    expect(heatTaxFactor(100, 0, 0.01)).toBe(0);
+    expect(heatTaxFactor(100, 0.5, 0.01)).toBeCloseTo(0.5, 10);
+    expect(heatTaxFactor(150, 0.5, 0.01)).toBeCloseTo(0.25, 10);
+    expect(heatTaxFactor(200, 0.5, 0.01)).toBe(0);
+    expect(heatTaxFactor(250, 0.5, 0.01)).toBe(0);
   });
 
   it('at 100% reduction heat never costs credits, however high', () => {
-    expect(heatTaxFactor(1e9, 1)).toBe(1);
+    expect(heatTaxFactor(1e9, 1, 0.01)).toBe(1);
   });
 
-  const economy = new Economy(testConfig, numberFactory);
-  const sequential = (runs: number, heat: number, perRun: number, reduction: number) => {
-    let total = 0;
-    for (let i = 0; i < runs; i++) total += 10 * heatTaxFactor(heat + i * perRun, reduction);
-    return total;
-  };
-  it.each([
-    [50, 0, 1, 0.5],
-    [300, 10, 1, 0.5],
-    [10, 180, 2, 0.5],
-    [100, 0, 3, 0.25],
-    [40, 0, 5, 1],
-  ])('closed-form credits for %i runs (heat %f, +%f per run, reduction %f) match paying run by run', (runs, heat, perRun, r) => {
-    expect(economy.creditsForRuns(num(10), runs, heat, perRun, r).toNumber()).toBeCloseTo(sequential(runs, heat, perRun, r), 6);
-  });
-
-  it('credits still flow above 100 heat once reduced: heat 150 with a 50% reduction keeps 25%', () => {
+  it('node credits still flow above 100 heat once reduced: heat 150 with a 50% reduction keeps 25%', () => {
     const g = game([testConfig.actions[0]!]);
     mutable(g).heat = 150;
-    mutable(g).circumvention = num('1e100'); // 100 orders x 0.5% = 50% reduction
+    mutable(g).iceRating = num('1e100'); // 100 orders x 0.5% = 50% reduction
+    mutable(g).network = num(20);
     expect(g.sleeveStats().heatReduction).toBeCloseTo(0.5, 10);
-    g.startAction('a');
-    g.tick(10_000);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(0.125, 10); // 0.5 credits x 25%
+    g.tick(1_000);
+    expect(g.getState().credits.toNumber()).toBeCloseTo(0.25, 10); // 20 nodes x 0.05 credits/s x 25%
   });
 
-  it('and at 250 heat a 50% reduction earns nothing', () => {
+  it('and at 250 heat a 50% reduction leaves the nodes earning nothing', () => {
     const g = game([testConfig.actions[0]!]);
     mutable(g).heat = 250;
-    mutable(g).circumvention = num('1e100');
+    mutable(g).iceRating = num('1e100');
+    mutable(g).network = num(20);
+    g.tick(1_000);
+    expect(g.getState().credits.isZero()).toBe(true);
+  });
+
+  it('a run reward is paid in full even at 250 heat', () => {
+    const g = game([testConfig.actions[0]!]);
+    mutable(g).heat = 250;
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().credits.toNumber()).toBeCloseTo(0.5, 10);
   });
 });
 
-describe('Circumvention stat', () => {
-  const boost = free('boost', 'a', { kind: 'circumventionMultiplier', factor: 2 }, { maxPurchases: Infinity, costGrowth: 100 });
+describe('ICE Rating stat', () => {
+  const boost = free('boost', 'a', { kind: 'iceRatingMultiplier', factor: 2 }, { maxPurchases: Infinity, costGrowth: 100 });
 
   it('starts at 1 with no reduction', () => {
     const g = game([testConfig.actions[0]!], [boost]);
-    expect(g.sleeveStats().circumvention.eq(num(1))).toBe(true);
+    expect(g.sleeveStats().iceRating.eq(num(1))).toBe(true);
     expect(g.sleeveStats().heatReduction).toBe(0);
   });
 
@@ -103,17 +94,17 @@ describe('Circumvention stat', () => {
     const g = game([testConfig.actions[0]!], [boost]);
     setCredits(g, num(1e6));
     for (let i = 0; i < 3; i++) expect(g.buy('boost')).toBe('purchased');
-    expect(g.sleeveStats().circumvention.eq(num(8))).toBe(true);
+    expect(g.sleeveStats().iceRating.eq(num(8))).toBe(true);
     expect(g.sleeveStats().heatReduction).toBeCloseTo(0.005 * Math.log10(8), 10);
   });
 
   it('gives 0.5% per order of magnitude and is capped at 100% (1e200 and above)', () => {
     const g = game([testConfig.actions[0]!]);
-    mutable(g).circumvention = num('1e100');
+    mutable(g).iceRating = num('1e100');
     expect(g.sleeveStats().heatReduction).toBeCloseTo(0.5, 10);
-    mutable(g).circumvention = num('1e200');
+    mutable(g).iceRating = num('1e200');
     expect(g.sleeveStats().heatReduction).toBeCloseTo(1, 10);
-    mutable(g).circumvention = num('1e300');
+    mutable(g).iceRating = num('1e300');
     expect(g.sleeveStats().heatReduction).toBe(1);
   });
 
@@ -122,7 +113,7 @@ describe('Circumvention stat', () => {
     mutable(g).network = num(100);
     mutable(g).heat = 50;
     expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(100 * 0.05 * 0.5, 10);
-    mutable(g).circumvention = num('1e100');
+    mutable(g).iceRating = num('1e100');
     expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(100 * 0.05 * 0.75, 10);
   });
 });
@@ -147,7 +138,7 @@ describe('action with a node-count unlock and a start cost (Kill servers)', () =
     expect(g.isUnlocked('kill')).toBe(true);
   });
 
-  it('pays 50 nodes when a run starts, once, and adds 1 Circumvention on completion', () => {
+  it('pays 50 nodes when a run starts, once, and adds 1 ICE Rating on completion', () => {
     const g = kill();
     mutable(g).unlockedActions['kill'] = true;
     mutable(g).network = num(60);
@@ -156,7 +147,7 @@ describe('action with a node-count unlock and a start cost (Kill servers)', () =
     expect(g.startAction('kill')).toBe(true); // already running: nothing more is charged
     expect(g.getState().network.eq(num(10))).toBe(true);
     g.tick(1_000);
-    expect(g.getState().circumvention.eq(num(2))).toBe(true);
+    expect(g.getState().iceRating.eq(num(2))).toBe(true);
   });
 
   it('does not start without enough nodes and then charges nothing', () => {
@@ -175,10 +166,10 @@ describe('action with a node-count unlock and a start cost (Kill servers)', () =
     setCredits(g, num(1));
     g.buy('auto-kill');
     g.tick(1_000); // pays 50, completes run 1, pays 50 for run 2
-    expect(g.getState().circumvention.eq(num(2))).toBe(true);
+    expect(g.getState().iceRating.eq(num(2))).toBe(true);
     expect(g.getState().network.eq(num(20))).toBe(true);
     g.tick(1_000); // completes run 2, cannot pay for run 3
-    expect(g.getState().circumvention.eq(num(3))).toBe(true);
+    expect(g.getState().iceRating.eq(num(3))).toBe(true);
     expect(g.getState().actions['kill']!.running).toBe(false);
     expect(g.getState().network.eq(num(20))).toBe(true);
   });
@@ -190,17 +181,17 @@ describe('action with a node-count unlock and a start cost (Kill servers)', () =
     setCredits(g, num(1));
     g.buy('auto-kill');
     g.tick(3_000);
-    expect(g.getState().circumvention.eq(num(4))).toBe(true);
+    expect(g.getState().iceRating.eq(num(4))).toBe(true);
     expect(g.getState().network.eq(num(500 - 4 * 50))).toBe(true); // 3 completed + 1 paid for the next
   });
 
-  it('re-sleeving resets Circumvention and the remembered unlock', () => {
+  it('re-sleeving resets ICE Rating and the remembered unlock', () => {
     const g = kill();
     mutable(g).network = num(1000);
     g.tick(1);
-    mutable(g).circumvention = num(50);
+    mutable(g).iceRating = num(50);
     g.resleeve();
-    expect(g.getState().circumvention.eq(num(1))).toBe(true);
+    expect(g.getState().iceRating.eq(num(1))).toBe(true);
     expect(g.isUnlocked('kill')).toBe(false);
   });
 });
@@ -255,18 +246,21 @@ describe('action unlocked by a buyable with completion effects (Legend)', () => 
 });
 
 describe('applyCompletionEffects', () => {
-  it('applies the listed effects in closed form for several runs', () => {
-    const state = { network: num(1000), heat: 3 };
+  it('removes a quarter of the nodes per run, one run after the other', () => {
+    const state = { network: num(1000) };
     applyCompletionEffects(legendAction.completionEffects, state, 2, numberFactory);
-    expect(state.network.toNumber()).toBe(563);
-    expect(state.heat).toBe(103); // 3 + 2 runs x 50
+    expect(state.network.toNumber()).toBe(563); // 1000 -> 750 -> 563 (each removal rounded down)
   });
 
   it('does nothing without effects', () => {
-    const state = { network: num(10), heat: 3 };
+    const state = { network: num(10) };
     applyCompletionEffects(undefined, state, 5, numberFactory);
     expect(state.network.eq(num(10))).toBe(true);
-    expect(state.heat).toBe(3);
+  });
+
+  it('heat is added by heatPerRun, not by a completion effect', () => {
+    expect(legendAction.heatPerRun).toBe(50);
+    expect((legendAction.completionEffects ?? []).map((e) => e.kind)).toEqual(['removeNodesFraction']);
   });
 });
 
@@ -327,7 +321,7 @@ describe('Infamy', () => {
 describe('toggleable auto-run', () => {
   const auto = free('auto', 'a', { kind: 'autoRun' });
   const bought = () => {
-    const g = game([testConfig.actions[0]!], [auto, free('plain', 'a', { kind: 'outputMultiplier', factor: 2 })]);
+    const g = game([testConfig.actions[0]!], [auto, free('plain', 'a', { kind: 'rewardMultiplier', factor: 2 })]);
     setCredits(g, num(5));
     g.buy('auto');
     return g;
@@ -359,7 +353,7 @@ describe('toggleable auto-run', () => {
   });
 
   it('refuses to toggle what is not owned or not an auto-run, and changes nothing', () => {
-    const g = game([testConfig.actions[0]!], [auto, free('plain', 'a', { kind: 'outputMultiplier', factor: 2 })]);
+    const g = game([testConfig.actions[0]!], [auto, free('plain', 'a', { kind: 'rewardMultiplier', factor: 2 })]);
     expect(g.toggleAutoRun('auto')).toBe(false);
     expect(mutable(g).autoRunOff).toEqual({});
     setCredits(g, num(5));
@@ -405,7 +399,7 @@ describe('saving the newer stats', () => {
   });
   const withState = () => {
     const state = createInitialState(config, numberFactory);
-    state.circumvention = num(7);
+    state.iceRating = num(7);
     state.infamy = 3;
     state.unlockedActions['kill'] = true;
     state.purchased['auto-a'] = 1;
@@ -413,9 +407,9 @@ describe('saving the newer stats', () => {
     return state;
   };
 
-  it('round-trips Circumvention, Infamy, unlocked actions and auto-run switches', () => {
+  it('round-trips ICE Rating, Infamy, unlocked actions and auto-run switches', () => {
     const restored = deserializeState(serializeState(withState()), config, numberFactory)!;
-    expect(restored.circumvention.eq(num(7))).toBe(true);
+    expect(restored.iceRating.eq(num(7))).toBe(true);
     expect(restored.infamy).toBe(3);
     expect(restored.unlockedActions).toEqual({ kill: true });
     expect(restored.autoRunOff).toEqual({ 'auto-a': true });
@@ -423,9 +417,9 @@ describe('saving the newer stats', () => {
 
   it('an older save without them loads with fresh-game values', () => {
     const json = JSON.parse(serializeState(withState()));
-    for (const key of ['circumvention', 'infamy', 'unlockedActions', 'autoRunOff']) delete json[key];
+    for (const key of ['iceRating', 'infamy', 'unlockedActions', 'autoRunOff']) delete json[key];
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect(restored.circumvention.eq(num(1))).toBe(true);
+    expect(restored.iceRating.eq(num(1))).toBe(true);
     expect(restored.infamy).toBe(0);
     expect(restored.unlockedActions).toEqual({});
     expect(restored.autoRunOff).toEqual({});
@@ -434,12 +428,12 @@ describe('saving the newer stats', () => {
   it('sanitises tampered values', () => {
     const json = JSON.parse(serializeState(withState()));
     json.infamy = -3;
-    json.circumvention = '0.5';
+    json.iceRating = '0.5';
     json.unlockedActions = { kill: true, a: true, ghost: true }; // only actions with a node-count rule can be remembered
     json.autoRunOff = { 'auto-a': true, ghost: true };
     const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
     expect(restored.infamy).toBe(0);
-    expect(restored.circumvention.eq(num(1))).toBe(true);
+    expect(restored.iceRating.eq(num(1))).toBe(true);
     expect(restored.unlockedActions).toEqual({ kill: true });
     expect(restored.autoRunOff).toEqual({ 'auto-a': true });
   });
@@ -457,23 +451,23 @@ describe('validation of the newer settings', () => {
     expect(invalid({ actions: [action({ completionEffects: [{ kind: 'removeNodesFraction', fraction: 2 }] })] })).toContain(
       'between 0 and 1',
     );
-    expect(invalid({ actions: [action({ completionEffects: [{ kind: 'addHeat', heat: -1 }] })] })).toContain('addHeat');
+    expect(invalid({ actions: [action({ heatPerRun: -1 })] })).toContain('heatPerRun');
     expect(invalid({ actions: [action({ rewardKind: 'gold' })] })).toContain('unknown rewardKind');
   });
 
   it('rejects bad multipliers and sleeve settings', () => {
     const buyable = (effect: BuyableDefinition['effect']) => ({ buyables: [free('x', undefined, effect)] });
     expect(invalid(buyable({ kind: 'nodePayoutMultiplier', factor: 0.5 }))).toContain('factor must be >= 1');
-    expect(invalid(buyable({ kind: 'circumventionMultiplier', factor: 0 }))).toContain('factor must be >= 1');
+    expect(invalid(buyable({ kind: 'iceRatingMultiplier', factor: 0 }))).toContain('factor must be >= 1');
     const sleeve = {
       ...testConfig.sleeve,
-      baseCircumvention: 0,
+      baseIceRating: 0,
       infamyHeatSlowdown: -1,
       infamyDecayPeriodMs: 0,
-      circumventionReductionPerOrder: -1,
+      iceRatingReductionPerOrder: -1,
     };
     const text = invalid({ sleeve });
-    for (const part of ['baseCircumvention', 'infamyHeatSlowdown', 'infamyDecayPeriodMs', 'circumventionReductionPerOrder']) {
+    for (const part of ['baseIceRating', 'infamyHeatSlowdown', 'infamyDecayPeriodMs', 'iceRatingReductionPerOrder']) {
       expect(text).toContain(part);
     }
   });

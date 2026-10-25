@@ -6,12 +6,21 @@
 import type { BigNum, NumberFactory } from '../numbers';
 import type { ActionLookup } from './actionLookup';
 import { applyCompletionEffects } from './completion';
+import { type Diagnostics, silentDiagnostics } from './diagnostics';
+import type { ItemDrops } from './drops';
 import type { Economy } from './economy';
 import type { Progression } from './progression';
 import { payReward } from './rewards';
 import type { Shop } from './shop';
 import type { DerivedStats } from './stats';
 import type { ActionDefinition, ActionId, GameConfig, GameState } from './types';
+
+/**
+ * Rounding slack, as a share of one run: progress is a fraction, and `(1 - 0.9999) * 10000` is not exactly `1`. A run counts as
+ * complete when the time left is within this share of the time it needs, so rounding can never keep a finished run waiting; and a
+ * run that is not complete is always below `1 - PROGRESS_EPSILON`, so progress stays below 1.
+ */
+const PROGRESS_EPSILON = 1e-9;
 
 /**
  * Starts actions and advances their runs.
@@ -24,7 +33,7 @@ import type { ActionDefinition, ActionId, GameConfig, GameState } from './types'
  *
  * Called by: `engine.ts`.
  * Calls: {@link DerivedStats}, {@link Progression}, {@link Economy}, {@link Shop} (ownership for unlock rules),
- * `payReward`, `applyCompletionEffects`.
+ * `payReward`, `applyCompletionEffects`, {@link ItemDrops}.
  */
 export class ActionRunner {
   /**
@@ -38,6 +47,8 @@ export class ActionRunner {
    * @param shop ownership of buyables (for `unlock: { kind: 'buyable' }` rules)
    * @param factory number factory
    * @param definition action lookup
+   * @param drops rolls the items completed runs drop
+   * @param diagnostics receives a warning when game time has to be dropped (default: ignored)
    */
   constructor(
     private readonly config: GameConfig,
@@ -48,6 +59,8 @@ export class ActionRunner {
     private readonly shop: Shop,
     private readonly factory: NumberFactory,
     private readonly definition: ActionLookup,
+    private readonly drops: ItemDrops,
+    private readonly diagnostics: Diagnostics = silentDiagnostics,
   ) {}
 
   /**
@@ -146,18 +159,20 @@ export class ActionRunner {
     let remaining = deltaMs;
     for (let batches = 0; action.running && remaining > 0; batches++) {
       if (batches >= this.config.engine.maxBatchesPerTick) {
-        action.progressMs = 0;
+        this.diagnostics.warn(`${def.id}: dropped ${Math.round(remaining)} ms of game time after ${batches} run batches in one slice`);
+        action.progress = 0;
         return;
       }
       const duration = this.stats.currentDurationMs(def.id);
-      const needed = Math.max(0, duration - action.progressMs); // progress can exceed a duration that just got shorter
-      if (remaining < needed) {
-        action.progressMs += remaining;
+      // Progress is the share of the run done, so a change of speed only changes how long the rest of the run takes.
+      const needed = (1 - action.progress) * duration;
+      if (remaining < needed - PROGRESS_EPSILON * duration) {
+        action.progress += remaining / duration;
         return;
       }
       const runs = auto && !def.startCost ? this.runsInBatch(def, remaining - needed, duration) : 1;
-      remaining -= needed + (runs - 1) * duration;
-      action.progressMs = 0;
+      remaining = Math.max(0, remaining - (needed + (runs - 1) * duration));
+      action.progress = 0;
       this.completeRuns(def, runs);
       if (!auto || (def.startCost && !this.payStartCost(def))) action.running = false;
     }
@@ -173,34 +188,24 @@ export class ActionRunner {
    */
   private runsInBatch(def: ActionDefinition, spareMs: number, durationMs: number): number {
     const byTime = 1 + Math.floor(spareMs / durationMs);
-    const byLevel = this.progression.runsBeforeLevelChange(
-      this.state,
-      def.id,
-      this.stats.xpPerRun(def.id),
-      this.stats.outputMultiplier(def.id),
-    );
+    const byLevel = this.progression.runsBeforeLevelChange(this.state, def.id, this.stats.xpPerRun(def.id));
     return Math.max(1, Math.min(byTime, byLevel, Number.MAX_SAFE_INTEGER));
   }
 
   /**
-   * Applies `runs` completed runs of an action at once. Rewards are computed before heat and XP change; runs of an
-   * action that adds heat pay a falling amount because each run raises the tax on the next ({@link Economy.creditsForRuns}).
+   * Applies `runs` completed runs of an action at once. Every reward is paid in full: heat taxes only the credits that
+   * network nodes produce, never what a run pays (see `Economy.passiveCreditsPerNode`).
    */
   private completeRuns(def: ActionDefinition, runs: number): void {
     const count = this.factory.fromNumber(runs);
-    const multiplier = this.stats.outputMultiplier(def.id);
+    const multiplier = this.stats.rewardMultiplier(def.id);
     const gross = this.economy.grossReward(def, this.state.network, multiplier);
     const heatPerRun = def.heatPerRun ?? 0;
-    if (def.rewardKind === undefined || def.rewardKind === 'credits') {
-      this.state.credits = this.state.credits.add(
-        this.economy.creditsForRuns(gross, runs, this.state.heat, heatPerRun, this.stats.sleeveStats().heatReduction),
-      );
-    } else {
-      payReward(this.state, def.rewardKind, gross, count);
-    }
+    payReward(this.state, def.rewardKind ?? 'credits', gross, count);
     this.state.heat += runs * heatPerRun;
+    this.drops.roll(def.id, runs);
     this.latchUnlocks(); // before completion effects can shrink the network
     applyCompletionEffects(def.completionEffects, this.state, runs, this.factory);
-    this.progression.recordRuns(this.state, def.id, this.economy.xpPerRun(def, multiplier).mul(count), multiplier.mul(count));
+    this.progression.recordRuns(this.state, def.id, this.stats.xpPerRun(def.id).mul(count), count);
   }
 }

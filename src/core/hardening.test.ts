@@ -3,14 +3,12 @@ import { num, numberFactory } from '../numbers';
 import { malwareAction, networkAction, testConfig } from '../testing/testConfig';
 import { createGame } from '../app/createGame';
 import {
-  Economy,
   Progression,
   coolHeat,
   createClampOverflowPolicy,
   createConfig,
   createInitialState,
   deserializeState,
-  heatTaxFactor,
   validateConfig,
 } from './index';
 
@@ -23,7 +21,7 @@ describe('loading a save sanitises it', () => {
     const s = load({
       credits: '-50',
       network: '-1',
-      actions: { a: { xp: '-3', sleeveXp: '-9', runsTowardSleeveXp: 0, running: false, progressMs: 0 } },
+      actions: { a: { xp: '-3', sleeveXp: '-9', runsTowardSleeveXp: 0, running: false, progress: 0 } },
     })!;
     expect(s.credits.isZero()).toBe(true);
     expect(s.network.isZero()).toBe(true);
@@ -32,8 +30,8 @@ describe('loading a save sanitises it', () => {
   });
 
   it('drops non-finite times and keeps the run counter below runsPerSleeveXp', () => {
-    const s = load({ actions: { a: { xp: '0', sleeveXp: '0', runsTowardSleeveXp: 250, running: true, progressMs: 'Infinity' } } })!;
-    expect(s.actions['a']!.progressMs).toBe(0);
+    const s = load({ actions: { a: { xp: '0', sleeveXp: '0', runsTowardSleeveXp: 250, running: true, progress: 'Infinity' } } })!;
+    expect(s.actions['a']!.progress).toBe(0);
     expect(s.actions['a']!.runsTowardSleeveXp).toBe(50); // 250 mod 100
   });
 
@@ -83,53 +81,11 @@ describe('validateConfig - extra checks', () => {
   it('rejects a negative reward and negative cost', () => {
     const text = problems({
       actions: [{ ...testConfig.actions[0]!, reward: num(-1), xpPerRun: num(-1) }],
-      buyables: [{ id: 'x', name: 'x', description: '', cost: num(-5), effect: { kind: 'accessLevel' as const, level: 2 } }],
+      buyables: [{ id: 'x', name: 'x', description: '', cost: num(-5), effect: { kind: 'accessLevel' as const, amount: 1 } }],
     });
     expect(text).toContain('reward must be >= 0');
     expect(text).toContain('xpPerRun must be >= 0');
     expect(text).toContain('cost must be >= 0');
-  });
-});
-
-describe('Economy.creditsForRuns (closed form)', () => {
-  const economy = new Economy(config, numberFactory);
-  const gross = num(10);
-  /** Reference: pay run by run, raising the tax after each. */
-  const sequential = (runs: number, heat: number, perRun: number): number => {
-    let total = 0;
-    for (let i = 0; i < runs; i++) {
-      total += 10 * heatTaxFactor(heat);
-      heat += perRun;
-    }
-    return total;
-  };
-
-  it.each([
-    [1, 0, 1],
-    [50, 0, 1],
-    [99, 0, 1],
-    [100, 0, 1],
-    [101, 0, 1],
-    [5000, 0, 1],
-    [10, 13, 1],
-    [10, 13, 2.5],
-    [40, 90, 0.5],
-    [3, 0, 40],
-  ])('matches paying %i runs one by one (starting heat %f, +%f heat per run)', (runs, heat, perRun) => {
-    expect(economy.creditsForRuns(gross, runs, heat, perRun).toNumber()).toBeCloseTo(sequential(runs, heat, perRun), 6);
-  });
-
-  it('without heat per run it is runs times the taxed payout; at 100 heat or more nothing is paid', () => {
-    expect(economy.creditsForRuns(gross, 7, 0, 0).toNumber()).toBeCloseTo(70, 9);
-    expect(economy.creditsForRuns(gross, 7, 25, 0).toNumber()).toBeCloseTo(52.5, 9);
-    expect(economy.creditsForRuns(gross, 7, 100, 0).isZero()).toBe(true);
-    expect(economy.creditsForRuns(gross, 7, 120, 1).isZero()).toBe(true);
-  });
-
-  it('pays nothing for zero or negative runs, and cost does not grow with the run count', () => {
-    expect(economy.creditsForRuns(gross, 0, 0, 1).isZero()).toBe(true);
-    expect(economy.creditsForRuns(gross, -3, 0, 1).isZero()).toBe(true);
-    expect(economy.creditsForRuns(gross, 1e15, 0, 1).isFinite()).toBe(true);
   });
 });
 
@@ -197,29 +153,29 @@ describe('Progression.runsBeforeLevelChange', () => {
 
   it('is the number of runs until the action level threshold, the last run being the one that crosses it', () => {
     const s = createInitialState(config, numberFactory);
-    expect(progression.runsBeforeLevelChange(s, 'a', num(1), num(1))).toBe(10); // level 2 at 10 XP
+    expect(progression.runsBeforeLevelChange(s, 'a', num(1))).toBe(10); // level 2 at 10 XP
     s.actions['a']!.xp = num(4);
-    expect(progression.runsBeforeLevelChange(s, 'a', num(1), num(1))).toBe(6);
+    expect(progression.runsBeforeLevelChange(s, 'a', num(1))).toBe(6);
   });
 
   it('never returns a count that overshoots: a partial run count rounds down, and the result is at least 1', () => {
     const s = createInitialState(config, numberFactory);
     s.actions['a']!.xp = num(4);
-    expect(progression.runsBeforeLevelChange(s, 'a', num(2.5), num(1))).toBe(2); // 4 + 2 * 2.5 = 9, still below 10
+    expect(progression.runsBeforeLevelChange(s, 'a', num(2.5))).toBe(2); // 4 + 2 * 2.5 = 9, still below 10
     s.actions['a']!.xp = num(9.5);
-    expect(progression.runsBeforeLevelChange(s, 'a', num(3), num(1))).toBe(1);
+    expect(progression.runsBeforeLevelChange(s, 'a', num(3))).toBe(1);
   });
 
-  it('is limited by the sleeve level when that comes first (counted runs, not XP)', () => {
+  it('is limited by the sleeve level when that comes first (runs, not XP)', () => {
     const s = createInitialState(config, numberFactory);
-    // Sleeve level 2 needs 10 sleeve XP = 1000 counted runs; with 1 XP per run the action level (10 runs) comes first.
-    expect(progression.runsBeforeLevelChange(s, 'a', num(0), num(1))).toBe(1000);
+    // Sleeve level 2 needs 10 sleeve XP = 1000 runs; with 1 XP per run the action level (10 runs) comes first.
+    expect(progression.runsBeforeLevelChange(s, 'a', num(0))).toBe(1000);
     s.actions['a']!.runsTowardSleeveXp = 40;
-    expect(progression.runsBeforeLevelChange(s, 'a', num(0), num(8))).toBe(120); // (1000 - 40) / 8
+    expect(progression.runsBeforeLevelChange(s, 'a', num(0))).toBe(960); // 1000 - 40
   });
 
-  it('is unbounded when neither track can ever change', () => {
+  it('is never unbounded: even an action that earns no XP reaches its next sleeve level by counting runs', () => {
     const s = createInitialState(config, numberFactory);
-    expect(progression.runsBeforeLevelChange(s, 'a', num(0), num(0))).toBe(Infinity);
+    expect(Number.isFinite(progression.runsBeforeLevelChange(s, 'a', num(0)))).toBe(true);
   });
 });

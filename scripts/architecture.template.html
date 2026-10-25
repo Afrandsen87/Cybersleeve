@@ -140,47 +140,49 @@ details dt{font-weight:600;margin-top:6px} details dd{margin:0 0 0 14px;color:va
       <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody>
       <tr><td><code>credits</code></td><td>BigNum</td><td>Main currency</td></tr>
       <tr><td><code>network</code></td><td>BigNum</td><td>Network nodes built; each produces passive credits</td></tr>
-      <tr><td><code>actions[id]</code></td><td>ActionState</td><td><code>xp</code>, <code>sleeveXp</code> (survives re-sleeve), <code>runsTowardSleeveXp</code> (completed runs since the last sleeve-XP point, survives re-sleeve), <code>running</code>, <code>progressMs</code></td></tr>
+      <tr><td><code>actions[id]</code></td><td>ActionState</td><td><code>xp</code>, <code>sleeveXp</code> (survives re-sleeve), <code>runsTowardSleeveXp</code> (completed runs since the last sleeve-XP point, survives re-sleeve), <code>running</code>, <code>progress</code> (the share of the current run that is done, 0 up to 1)</td></tr>
       <tr><td><code>purchased[id]</code></td><td>number</td><td>Copies owned per buyable (absent = 0)</td></tr></tbody></table></div>
     <div class="card scroll"><h3>Definitions (content)</h3><table>
       <thead><tr><th>Type</th><th>Fields</th></tr></thead><tbody>
       <tr><td><code>ActionDefinition</code></td><td>id, name, baseDurationMs, reward, rewardKind (credits | networkNodes), xpPerRun, optional rewardPerNetworkNode / heatPerRun / requiredAccessLevel, optional levels / sleeveLevels / speedScaling overrides</td></tr>
       <tr><td><code>BuyableDefinition</code></td><td>id, actionId (the action it belongs to; absent = sleeve-wide), name, description, optional symbol, cost, effect, optional requires / maxPurchases / costGrowth</td></tr>
-      <tr><td><code>BuyableEffect</code></td><td><code>autoRun</code> | <code>outputMultiplier(factor)</code> (action effects) | <code>interfaceSpeed(amount)</code> | <code>accessLevel(level)</code> (sleeve effects), applied once per copy owned &ndash; union, extend in <code>effects.ts</code></td></tr>
+      <tr><td><code>BuyableEffect</code></td><td><code>autoRun</code> | <code>rewardMultiplier(factor)</code> | <code>itemDrop(drop)</code> (action effects) | <code>interfaceSpeed(amount)</code> | <code>accessLevel(amount)</code> (sleeve effects), applied once per copy owned &ndash; union, extend in <code>effects.ts</code></td></tr>
       <tr><td><code>GameConfig</code></td><td>actions, buyables, progression, speed, global, network, sleeve, engine, runtime (see Configuration)</td></tr></tbody></table></div>
   </div>
   <div class="grid g2" style="margin-top:12px">
     <div class="card"><h3>Level rule</h3>
-      <p>Levels start at 1. Defaults: level 2 at 10 XP, then x10 per level, i.e. <code>threshold(level n+1) = firstLevelXp &times; growthFactor^(n&minus;1)</code>. Both numbers are configurable, per track (each action and each action's own sleeve level). A logarithm gives the estimate, which is corrected against exact thresholds, so boundaries are exact and valid far beyond the double range.</p>
+      <p>Levels start at 0 and every level costs its own full amount: <code>cost(leaving level n) = firstLevelXp &times; growthFactor^n</code>, and the XP inside a level starts again at each level-up (stored as one running total; the part inside the level is derived). Defaults: 10, then 100, then 1000 more, so the totals are 10, 110, 1110, &hellip; Both numbers are configurable, per track (each action and each action's own sleeve level). A logarithm gives the estimate, which is corrected against exact totals, so boundaries are exact and valid far beyond the double range.</p>
       <svg viewBox="0 0 520 70" id="levelStrip" role="img" aria-label="Level thresholds"></svg></div>
     <div class="card"><h3>Speed &amp; rewards</h3>
       <pre><code>speed    = f(actionLevel) &times; f(sleeveLevel) &times; interfaceSpeed &times; global.speed
            f = linear: 1 + (L&minus;1)&times;perLevel   (default: = L)
                exponential: base^(L&minus;1)
 duration = baseDuration / speed
-per run  = reward &times; (nodes, if rewardPerNetworkNode) &times; outputMultiplier &times; global.reward
-           credits are then multiplied by (1 &minus; heat/100), at least 0; network nodes are not taxed
-passive  = network nodes &times; creditsPerNodePerSecond &times; global.reward &times; (1 &minus; heat/100)  credits per second
+per run  = reward &times; (nodes, if rewardPerNetworkNode) &times; rewardMultiplier
+           credits are also multiplied by global.creditMultiplier (the only reward lever); heat does not tax a run's
+           reward; every other reward kind is not scaled either
+passive  = network nodes &times; (creditsPerNodePerSecond + nodePayoutBonus) &times; global.creditMultiplier &times; nodePayoutMultiplier (buyables) &times; (1 &minus; heat &times; heatTaxPerPoint)  credits per second
 heat     = sleeve.baseHeat, + heatPerRun per completed run, &minus; heatCooldownAmount per heatCooldownMs while heat &gt; 0 (reset by re-sleeve)
-           xpPerRun &times; outputMultiplier &times; global.xp XP
-outputMultiplier = &prod; factor^copiesOwned
+           xpPerRun &times; global.xp XP (reward multipliers do not touch it)
+rewardMultiplier = &prod; factor^copiesOwned (scales the action's own reward per run only)
 sleeve XP (per action): +sleeveXpPerGrant per runsPerSleeveXp runs of that action</code></pre>
-      <p>Worked example (level worth 0.05 per level): action level 3, sleeve level 2, interface speed 1, base 10 s &rarr; 10 s / (1.1 &times; 1.05) = 8.66 s.</p></div>
+      <p>Worked example (level worth 0.05 per level): action level 2, sleeve level 1, interface speed 1, base 10 s &rarr; 10 s / (1.1 &times; 1.05) = 8.66 s.</p></div>
   </div>
   <div class="card scroll" style="margin-top:12px"><h3>Content of milestone 1 (<code>content/gameConfig.ts</code>)</h3><table>
     <thead><tr><th>Item</th><th>Value</th></tr></thead><tbody>
-    <tr><td>Action &ldquo;Practice Hacking&rdquo;</td><td>1 s base, +0.001 to the interface-speed multiplier (no credits) and +1 XP per run, click to start</td></tr>
-    <tr><td>Action &ldquo;Grow network&rdquo;</td><td>3 s base, +1 network node and +1 XP per run, no credits. Each node produces 0.05 credits per second, even while no action runs. Own action level and own sleeve level.</td></tr>
-    <tr><td>Action &ldquo;Push malware&rdquo;</td><td>6 s base, needs access level 2. Each run adds 0.1 % to the node payout multiplier (1000 runs give x2) and 1 heat; no credits.</td></tr>
-    <tr><td>Action &ldquo;Kill servers&rdquo;</td><td>2 min base, costs 1 % of the nodes per run (rounded down, so at least 100 nodes are needed; spent at the start), +1 Circumvention per run. Unlocks at 1000 nodes and stays unlocked.</td></tr>
-    <tr><td>Action &ldquo;Legend&rdquo;</td><td>5 min base, unlocked by the Unlock Legend buyable. Each run: +1 Infamy, removes 25 % of the nodes, adds 50 heat.</td></tr>
-    <tr><td>Circumvention / Infamy</td><td>Circumvention lowers heat&rsquo;s effect by 0.5 % per order of magnitude (100 % at 1e200), so credits stop at 100 / (1 &minus; reduction) heat. Infamy makes heat cool 10 % slower per point and falls by exactly 1 each 10 minute cycle (with a progress bar). Network nodes are always whole numbers.</td></tr>
-    <tr><td>Sleeve widget</td><td>Global stats and global buyables. Access level (1) gates actions; interface speed (0.1, shown as a number; multiplied by 1 + 0.001 per Practice Hacking run, so 1000 runs double it and 3000 quadruple it) multiplies the speed of every action; heat (0) taxes all credits earned (1 % per point) and cools down by 1 every 60 s while above 0. Buyables: Interface boost (+0.05 interface speed: 0.1 to 0.15, one-time) and Access upgrade (access level 2)</td></tr>
+    <tr><td>Action &ldquo;Practice Hacking&rdquo;</td><td>second in the grid; needs access level 2; 5 s base, +0.001 Hacking Proficiency (no credits; it raises the Hacking Multiplier on interface speed) and +1 XP per run, click to start</td></tr>
+    <tr><td>Action &ldquo;Grow network&rdquo;</td><td>first in the grid and open from the start; 3 s base, +1 network node and +1 XP per run, no credits. Each node produces 0.01 credits per second, even while no action runs. Own action level and own sleeve level.</td></tr>
+    <tr><td>Action &ldquo;Push malware&rdquo;</td><td>6 s base, needs access level 3. Each run adds 0.000001 credits per second to the base value of every node (10,000 runs double the base of 0.01; the Node payout buyable then multiplies the sum) and 1 heat; no credits.</td></tr>
+    <tr><td>Action &ldquo;Kill servers&rdquo;</td><td>2 min base, costs 1 % of the nodes per run (rounded down, so at least 100 nodes are needed; spent at the start), +1 ICE Rating per run. Needs access level 4.</td></tr>
+    <tr><td>Action &ldquo;Build Legend&rdquo;</td><td>5 min base, needs access level 5. Each run: +1 Infamy, removes 25 % of the nodes, adds 50 heat.</td></tr>
+    <tr><td>ICE Rating / Infamy</td><td>ICE Rating lowers heat&rsquo;s effect by 0.5 % per order of magnitude (100 % at 1e200), so credits stop at 100 / (1 &minus; reduction) heat. Infamy makes heat cool 10 % slower per point and falls by exactly 1 each 10 minute cycle (with a progress bar). Network nodes are always whole numbers.</td></tr>
+    <tr><td>Augments</td><td>Industrial Espionage (Grow network, 10,000 credits) lets Grow network runs drop Augment schematics (an item, any rarity). Every action card has an Augment button in its top right corner: it applies one schematic (the most common rarity held), adding 1 % to the action XP boost of its rarity on that action (additive within a rarity; the rarities multiply: 3 common, 3 uncommon and 3 rare give 1.03 &times; 1.03 &times; 1.03). Action levels only, not sleeve levels. Schematics cannot be sold. Reset by re-sleeving.</td></tr>
+    <tr><td>Tabs and skills</td><td>Two centered tabs, Character and Skills (points available in brackets next to Skills unless 0). Skill points: none at the start, the first when an action reaches level 1, then one per order of magnitude of the total of all action levels (2 at 10, 3 at 100, ...), 1 point per skill for now; skills are buyables paid in the <code>skillPoints</code> currency. Eight skills: interface speed, node payout, heat cooldown speed, Hacking Proficiency, action XP, Kompromat drop chance, node payout per uncommon Kompromat, and Back Channel Deals (common Kompromat for Moles: 5 each, 200% faster heat cooldown for that many points of heat; Moles counter in Network).</td></tr>
+    <tr><td>Sleeve widget</td><td>Global stats and global buyables. Access level (1) gates actions; interface speed (0.1, shown as a number; multiplied by the hacking multiplier: 1 plus a concave, ceiling-free function of the interface speed Practice Hacking has paid out) multiplies the speed of every action; heat (0) taxes the credits network nodes produce (1 % per point) and cools down by 1 every 60 s while above 0. Buyables: Interface boost (+0.05 interface speed: 0.1 to 0.15, one-time) and Access upgrade (5 credits, each copy costs 1000x more, +1 access level per copy)</td></tr>
     <tr><td>Auto-run</td><td>10,000 credits &ndash; restarts the action automatically (leftover time carries over)</td></tr>
-    <tr><td>Skill transfer / Study methods</td><td>50,000 credits: adds Practice Hacking&rsquo;s sleeve level to Grow Network&rsquo;s level (speed only). 1e15 credits: other actions&rsquo; sleeve levels need 0.01 % less XP per sleeve level of Practice Hacking, at most 25 % (Practice Hacking itself is not affected).</td></tr>
-    <tr><td>Grow Network buyables</td><td>Auto-run (100); Parallel nodes (10,000, &times;1000 per copy, &times;2 output); Self-replication (1e10: nodes grow 0.0001 % of themselves per second); Network synergy (1e35: base interface speed &times; (1 + ln(nodes)/100)).</td></tr>
+    <tr><td>Skill transfer / Study methods</td><td>1,000,000 credits: adds Practice Hacking&rsquo;s sleeve level to Grow Network&rsquo;s level (speed only). 1e15 credits: other actions&rsquo; sleeve levels need 0.01 % less XP per sleeve level of Practice Hacking, at most 25 % (Practice Hacking itself is not affected).</td></tr>
+    <tr><td>Grow Network buyables</td><td>Auto-run (100); Parallel nodes (500, &times;1000 per copy, &times;2 nodes paid per run); Self-replication (1e10: nodes grow (Grow network action level / 1000) % of themselves per second); Network synergy (1e35: base interface speed &times; (1 + ln(nodes)/100)).</td></tr>
     <tr><td>Node uplink (Sleeve)</td><td>Paid in 100 network nodes (each copy 100,000&times; more): +0.1 base interface speed.</td></tr>
-    <tr><td>Duplicate processors</td><td>Always available. First copy 150 credits, each further copy costs 10&times; more (150, 1.5K, 15K, ...). Unlimited copies; each doubles the output again (2<sup>n</sup>).</td></tr>
     <tr><td>Re-sleeve</td><td>always allowed for now (<code>alwaysAllowResleeve</code> policy)</td></tr></tbody></table></div>
 </section>
 
@@ -190,10 +192,11 @@ sleeve XP (per action): +sleeveXpPerGrant per runsPerSleeveXp runs of that actio
   <div class="card scroll"><table>
     <thead><tr><th>Section</th><th>Variables</th><th>Effect</th></tr></thead><tbody>
     <tr><td><code>actions[]</code></td><td>baseDurationMs, reward, rewardKind?, rewardPerNetworkNode?, heatPerRun?, requiredAccessLevel?, xpPerRun, levels?, speedScaling?</td><td>Per action: run time, credits and XP per run, optional own level rule / speed scaling</td></tr>
-    <tr><td><code>buyables[]</code></td><td>cost, effect (autoRun | outputMultiplier + factor), requires?, maxPurchases?, costGrowth?</td><td>Per buyable: price, what it does, gating, repeatability, price growth per copy</td></tr>
+    <tr><td><code>buyables[]</code></td><td>cost, effect (autoRun | rewardMultiplier + factor | itemDrop + drop rule), requires?, maxPurchases?, costGrowth?</td><td>Per buyable: price, what it does, gating, repeatability, price growth per copy</td></tr>
+    <tr><td><code>items</code></td><td>rarities[] (id, name, sellValue; most common first), definitions[] (id, name)</td><td>The item entity: which items exist, their rarity tiers and what each tier sells for</td></tr>
     <tr><td><code>progression</code></td><td>runsPerSleeveXp, sleeveXpPerGrant, actionLevels, sleeveLevels, startingCredits</td><td>XP and level thresholds, sleeve XP rate, starting credits</td></tr>
     <tr><td><code>speed</code></td><td>actionLevel, sleeveLevel (linear perLevel | exponential base)</td><td>How much each level is worth as a speed multiplier</td></tr>
-    <tr><td><code>global</code></td><td>speedMultiplier, rewardMultiplier, xpMultiplier, costMultiplier</td><td>Broad levers: one number scales all speed, rewards, XP or prices</td></tr>
+    <tr><td><code>global</code></td><td>speedMultiplier, creditMultiplier, xpMultiplier, costMultiplier</td><td>Broad levers: one number scales all speed, credits earned, XP or prices (the credit lever touches credits only)</td></tr>
     <tr><td><code>engine</code></td><td>maxBatchesPerTick</td><td>Safety cap on run batches per action per slice</td></tr>
     <tr><td><code>engine</code></td><td>maxSliceMs, maxSlicesPerTick</td><td>A tick is cut into slices of at most maxSliceMs (at most maxSlicesPerTick of them)</td></tr>
     <tr><td><code>runtime</code></td><td>stepMs, maxDeltaMs, autosaveMs, fastForwardFactor</td><td>Timer step, gap cap (no offline progress), autosave interval, test fast-forward factor</td></tr>
@@ -205,7 +208,7 @@ sleeve XP (per action): +sleeveXpPerGrant per runsPerSleeveXp runs of that actio
   <h2>State lifetimes</h2>
   <p class="lead">What survives a re-sleeve, a reload, and a new game.</p>
   <div class="card scroll"><table id="lifeTable"></table>
-    <p class="tip"><b style="color:var(--ok)">&#10003;</b> kept &nbsp; <b style="color:var(--warn)">&#10007;</b> reset. Saves are versioned JSON (<code>SAVE_VERSION</code> = 3; versions 1 and 2 still load, their global sleeve XP moves to the first action) with numbers as strings; unknown ids are ignored and corrupt saves load as a fresh game.</p></div>
+    <p class="tip"><b style="color:var(--ok)">&#10003;</b> kept &nbsp; <b style="color:var(--warn)">&#10007;</b> reset. Saves are versioned JSON (<code>SAVE_VERSION</code> = 3, the only version read: nothing has been released) with numbers as strings; unknown ids are ignored, a scalar the save lacks keeps its fresh-game value, and an unreadable save is backed up before the game starts over.</p></div>
 </section>
 
 <section id="tick">
@@ -416,10 +419,10 @@ function drawGraph(svg,spec){
 (function(){
   var S=[
    ["S – Single responsibility","Progression (XP/levels), Shop (purchases), Economy (reward and tax formulas), effects (buyable effects), speed (multiplier), serialization, GameLoop, SaveGame, SpeedToggle each have one job. GameEngine only orchestrates them."],
-   ["O – Open/closed","New speed factor = new SpeedModifier. New content or retuning = data in gameConfig.ts. New buyable effect = one union member plus one case in effects.ts."],
+   ["O – Open/closed","New speed factor = new SpeedModifier. New content or retuning = data in gameConfig.ts. New reward kind = one entry in REWARDS. New buyable effect = one union member, one entry in EFFECT_TRAITS, one validator and one case per resolver in effects.ts (each switch ends in assertNever, so a forgotten case does not compile)."],
    ["L – Liskov","Anything satisfying BigNum, Scheduler, KeyValueStore, ResleevePolicy or Tickable can be substituted; tests use fakes for the scheduler and storage."],
-   ["I – Interface segregation","Small ports: Scheduler (3 methods), Tickable (1), KeyValueStore (2), ResleevePolicy (1), SpeedControl (3). Consumers see only what they use."],
-   ["D – Dependency inversion","GameEngine receives Progression, Shop, modifiers, policy and number factory through its constructor; createGame is the single composition root. Game code never imports break_infinity.js."],
+   ["I – Interface segregation","Small ports: Scheduler (3 methods), Tickable (1), KeyValueStore (2), ResleevePolicy (1), SpeedControl (3), Diagnostics (1). The read side is split into StateQueries, ActionQueries, SleeveQueries and ShopQueries; consumers see only what they use."],
+   ["D – Dependency inversion","GameEngine receives Progression, Shop, DerivedStats, ActionRunner, NetworkSystem, the policies and the number factory through its constructor; createGame is the single composition root and builds none of them anywhere else. Game code never imports break_infinity.js."],
    ["Testability","No global mutable state, no hidden clocks: time is an argument, storage and scheduling are injected. See the Tests section."]
   ];
   document.getElementById("solidGrid").innerHTML=S.map(function(s){return "<div class='card'><h3>"+s[0]+"</h3><p>"+s[1]+"</p></div>";}).join("");
@@ -428,7 +431,7 @@ function drawGraph(svg,spec){
 /* level strip */
 (function(){
   var svg=document.getElementById("levelStrip");
-  var xs=["0","10","100","1K","10K","100K"];
+  var xs=["0","10","110","1,110","11,110","111,110"];
   el("line",{x1:20,y1:30,x2:500,y2:30,stroke:"var(--line)","stroke-width":3},svg);
   xs.forEach(function(x,i){
     var cx=40+i*88;
@@ -445,7 +448,7 @@ function drawGraph(svg,spec){
    ["credits",0,1,0],
    ["network (nodes)",0,1,0],
    ["actions[].xp, running, progressMs",0,1,0],
-   ["purchased (copies of auto-run, duplicate processors)",0,1,0],
+   ["purchased (copies of auto-run and the other buyables)",0,1,0],
    ["Speed toggle (x10)",1,0,0]
   ];
   var h="<thead><tr><th>Field</th><th>Re-sleeve</th><th>Reload (saved)</th><th>New game</th></tr></thead><tbody>";
@@ -464,9 +467,9 @@ function drawGraph(svg,spec){
    ["GameEngine.tick(delta)","cut into slices of at most maxSliceMs; per slice: passive income (NetworkSystem), network growth, heat cooldown and Infamy decay (closed form), then every unlocked action (ActionRunner); finally the OverflowPolicy repairs non-finite amounts (NaN becomes 0)","var(--c-core)"],
    ["Auto-run owned? mark action running","resolveEffects(buyables, state, action)","var(--c-core)"],
    ["Advance progress","duration = base / (actionLevel × that action's sleeveLevel); not enough time left → progress += remaining, stop","var(--c-core)"],
-   ["Batch completes: completeRuns(n)","n runs at once, n = as many as fit in the time left but no more than reach the next level change (Progression.runsBeforeLevelChange); credits via Economy.creditsForRuns (arithmetic series for the heat tax), XP and counted runs ×n","var(--c-core)"],
+   ["Batch completes: completeRuns(n)","n runs at once, n = as many as fit in the time left but no more than reach the next level change (Progression.runsBeforeLevelChange); reward paid in full via payReward (heat taxes node income only), XP and counted runs ×n","var(--c-core)"],
    ["Manual: stop and drop leftover. Auto: next batch","cost depends on the number of level changes, not on the number of runs; capped at maxBatchesPerTick per action per slice","var(--c-core)"],
-   ["onStep: render if page visible","buildViewModel → update DOM text; skipped while document.hidden","var(--c-ui)"],
+   ["Separately: RenderLoop frame (requestAnimationFrame)","at most every renderMs and never while document.hidden; buildViewModel (inside engine.snapshot, tooltips left unbuilt) → update changed DOM text; bars move by transform and ease for one interval; the visible tooltip is re-read","var(--c-ui)"],
    ["Schedule next step; autosave every 10 s and on hide","SaveGame.save → localStorage","var(--c-app)"]
   ];
   var x=130,w=620,h=52,gap=22,y=8;
@@ -611,15 +614,17 @@ function drawGraph(svg,spec){
 (function(){
   var R=[
    ["assume","Assumption: sleeve-XP counter","Sleeve XP is granted in whole points from a run counter that survives re-sleeving. Awaiting confirmation."],
-   ["assume","Assumption: output multipliers","The ×2 output multiplier of Duplicate processors also doubles XP, counted runs and the interface speed multiplier gained per run (two parallel runs = two completed actions)."],
+   ["assume","Decision: reward multipliers","A reward multiplier (for example Parallel nodes) multiplies the reward its own action pays per run and nothing else: not XP, not the runs counted towards sleeve XP, not heat or completion effects. There is no general output multiplier; each multiplier names what it scales."],
    ["assume","Assumption: purchases reset on re-sleeve","Buyables are one-time and are lost on re-sleeve. Easy to change if they should persist."],
    ["assume","Open: re-sleeve requirement","Currently always allowed (replaceable ResleevePolicy) so the mechanic can be tested."],
    ["risk","Background throttling","Browsers throttle timers in hidden tabs (about 1 call/s, later about 1/min). The loop simulates the full real-time gap, so nothing is lost, but updates are coarse. Gaps over 10 minutes are capped."],
    ["risk","No offline progress (deferred)","Closing the app or sleeping the device stops progress beyond the 10-minute cap. Out of scope for now by decision; the save has no timestamp yet, which the future mechanic will need (save format v4)."],
-   ["risk","Untested glue","main.ts is untested glue; dom.ts has only a happy-dom smoke test (mount, click, tick, render, re-sleeve gate, no redundant DOM writes). The target is desktop browsers for now; the PWA build still works but mobile layout and install flow are out of scope."],
-   ["risk","Extreme tuning","Exponential level scaling or very large global.speedMultiplier can push speed beyond the double range (duration 0); the per-tick batch cap then limits the damage, but such settings are not meaningful. validateConfig only checks basic ranges, not whether the progression is fun."],
+   ["risk","Untested glue","main.ts is untested glue; everything it calls is tested (throttle, tab guard, debug flag, game loop, render loop), and dom.ts has happy-dom tests (mount, click, tick, render, text table, stat rows, re-sleeve gate, no redundant DOM writes). The target is desktop browsers for now; the PWA build still works but mobile layout and install flow are out of scope."],
+   ["risk","Extreme tuning","Exponential level scaling or very large global.speedMultiplier can push speed beyond the double range. Derived multipliers saturate at the largest double (NaN counts as 1) and a run never takes less than engine.minRunDurationMs, so the maths stays finite; such settings are still not meaningful. validateConfig only checks basic ranges, not whether the progression is fun."],
+   ["risk","Two tabs","A tab that sees another tab write the save stops playing and saving and shows a notice (storage event), so the two cannot overwrite each other. The older tab must be reloaded to play again."],
+   ["risk","Repeated recomputation","DerivedStats recomputes sleeve stats and effects on every call; fine at the current content size, to be cached per slice if profiling asks for it."],
    ["risk","Number precision","Runs counter and level numbers are plain JS numbers (exact up to 2^53). BigNum keeps about 15 significant digits, so tiny additions to huge values are absorbed by design. Overflow (exponent ≥ 9e15) is reported by isFinite() and repaired every tick by the default OverflowPolicy (clamp to the largest finite value); the real reaction, the "infinity" prestige, is not designed yet."],
-   ["risk","Test aids in production","The Speed x10 toggle, the Reset save button (wipes everything, no confirmation) and the always-allowed Re-sleeve button (two clicks to confirm) are visible to every player and must be removed or hidden before release."],
+   ["risk","Test aids in production","The Speed x10 toggle and the Reset save button (wipes everything, no confirmation) are shown only in development builds or with ?debug in the address. The always-allowed Re-sleeve button (two clicks to confirm) is still visible to every player and must be replaced by the real requirement before release."],
    ["risk","Tick granularity","Within one slice passive income and heat cooling use the nodes and heat at the START of the slice, and heat added by runs only starts cooling in the next slice. Ticks longer than maxSliceMs are sliced so one long tick and many short ones agree closely (tested); beyond maxSlicesPerTick slices get longer and the agreement degrades gracefully. Runs of actions with a start cost still complete one per batch."],
    ["risk","Doc generator limits","This page is built by parsing the sources with the TypeScript compiler API, using an aliased TypeScript 5 (typescript5) because the project itself compiles with TypeScript 7, which has no JavaScript API. Only top-level declarations and class members are read; the doc-comment format is a leading block comment with TSDoc tags plus Called by:/Calls: lines. The coverage figure and the undocumented list show what was found."]
   ];

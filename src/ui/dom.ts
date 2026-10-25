@@ -2,12 +2,13 @@
  * @module ui
  *
  * Thin DOM binding. Builds the screen once, then only updates text/attributes each frame.
- * All decisions about WHAT to show live in `viewModel.ts` (tested); this file only places it.
+ * All decisions about WHAT to show live in `viewModel.ts` (tested) and all wording in `uiText.ts`; this file only places it.
  */
 import type { GameCommands, GameQueries } from '../core';
 import { ConfirmGate } from './confirmGate';
-import { installTooltips } from './tooltip';
-import { buildViewModel, type BuyableView, type SleeveSection } from './viewModel';
+import { installTooltips, TipRegistry } from './tooltip';
+import { type UiText, uiText as defaultText, type StatId } from './uiText';
+import { buildViewModel, type BuyableView, type InventoryView, type SleeveSection, type StatRowView, type TabView } from './viewModel';
 
 /** Number of cells in the action grid (3 columns x 2 rows). Cells without an action are shown empty. */
 const ACTION_GRID_SLOTS = 6;
@@ -17,6 +18,30 @@ export interface SpeedControl {
   readonly enabled: boolean;
   readonly factor: number;
   toggle(): boolean;
+}
+
+/** Optional settings of {@link mountUi}. */
+export interface MountOptions {
+  /** The display text (default: the placeholder text of the game). */
+  readonly text?: UiText;
+  /** Show the test aids in the corner (Test drop, Reset save and the fast-forward toggle). Default: true. */
+  readonly debugControls?: boolean;
+}
+
+/**
+ * Shows a message over the game (an alert for assistive technology).
+ *
+ * Called by: `main.ts`.
+ *
+ * @param root the element the game is mounted in
+ * @param message the text to show
+ */
+export function showNotice(root: HTMLElement, message: string): void {
+  const notice = root.ownerDocument.createElement('div');
+  notice.className = 'notice';
+  notice.setAttribute('role', 'alert');
+  notice.textContent = message;
+  root.prepend(notice);
 }
 
 /** Handles to update one action card. */
@@ -33,19 +58,8 @@ interface ActionCard {
   readonly sleeveXp: XpBar;
   /** Square purchase buttons of this action, by buyable id. */
   readonly buyables: ReadonlyMap<string, HTMLButtonElement>;
-}
-
-/** Handles to update the Sleeve widget. */
-interface SleeveWidget {
-  readonly root: HTMLElement;
-  readonly access: HTMLElement;
-  readonly interfaceSpeed: HTMLElement;
-  readonly circumvention: HTMLElement;
-  readonly infamy: HTMLElement;
-  readonly heat: HTMLElement;
-  readonly heatCooldown: XpBar;
-  readonly infamyCooldown: XpBar;
-  readonly buyables: ReadonlyMap<string, HTMLButtonElement>;
+  /** The Augment button in the top right corner of the card. */
+  readonly augment: HTMLButtonElement;
 }
 
 /** Handles to update one small experience bar with its label. */
@@ -55,21 +69,54 @@ interface XpBar {
   readonly fill: HTMLElement;
 }
 
+/** Handles to update one stat row. */
+interface StatHandle {
+  readonly row: HTMLElement;
+  readonly value: HTMLElement;
+  readonly bar: XpBar | null;
+}
+
+/** Handles to update the Inventory widget. */
+interface InventoryWidget {
+  readonly root: HTMLElement;
+  readonly empty: HTMLElement;
+  /** One entry per item and rarity, by `itemId/rarityId`. */
+  readonly rows: ReadonlyMap<
+    string,
+    { readonly row: HTMLElement; readonly count: HTMLElement; readonly backChannel: HTMLElement; readonly sell: readonly HTMLElement[] }
+  >;
+}
+
+/** A widget made of stat rows (the Sleeve and the Network). */
+interface StatWidget {
+  readonly root: HTMLElement;
+  readonly rows: ReadonlyMap<StatId, StatHandle>;
+}
+
 /**
  * Mounts the game UI into `root` and returns a function that refreshes it.
  *
- * Called by: `main.ts`. Calls: `buildViewModel`, {@link GameCommands} (`startAction`, `activateBuyable`, `resleeve`).
+ * Called by: `main.ts`. Calls: `buildViewModel`, {@link GameCommands} (`startAction`, `activateBuyable`, `sellItems`, `resleeve`).
  *
  * @param root container element
  * @param engine the engine to display and command
  * @param speed the test fast-forward switch shown in the corner
  * @param onResetSave called when the temporary "Reset save" button is pressed; must wipe the game and the stored save
+ * @param options display text and whether the test aids are shown
  * @returns `render`, to be called after every tick
  */
-export function mountUi(root: HTMLElement, engine: GameQueries & GameCommands, speed: SpeedControl, onResetSave: () => void): () => void {
-  const initial = buildViewModel(engine);
+export function mountUi(
+  root: HTMLElement,
+  engine: GameQueries & GameCommands,
+  speed: SpeedControl,
+  onResetSave: () => void,
+  options: MountOptions = {},
+): () => void {
+  const text = options.text ?? defaultText;
+  const initial = buildViewModel(engine, undefined, text);
   root.innerHTML = '';
-  installTooltips(root.ownerDocument);
+  const tips = new TipRegistry();
+  const tooltips = installTooltips(root.ownerDocument, tips);
 
   const header = h('header');
   const credits = h('div', 'credits');
@@ -97,15 +144,54 @@ export function mountUi(root: HTMLElement, engine: GameQueries & GameCommands, s
 
     const { element: upgrades, buttons: buyables } = upgradeRow(a.buyables, activate);
 
-    root.append(button, levelXp.root, sleeveXp.root, upgrades);
+    // The Augment button sits in the top right corner of the card, next to (not inside) the button that starts the action.
+    const augment = h('button', 'augment', a.augment?.label ?? '') as HTMLButtonElement;
+    augment.hidden = a.augment === null;
+    augment.addEventListener('click', () => {
+      engine.augmentAction(a.id);
+      render();
+    });
+
+    root.append(button, augment, levelXp.root, sleeveXp.root, upgrades);
     actionsEl.append(root);
-    cards.set(a.id, { root, button, title, info, bar, reward, levelXp, sleeveXp, buyables });
+    cards.set(a.id, { root, button, title, info, bar, reward, levelXp, sleeveXp, buyables, augment });
   }
 
   for (let i = initial.actions.length; i < ACTION_GRID_SLOTS; i++) actionsEl.append(h('div', 'action empty'));
 
-  const sleeveWidget = buildSleeveWidget(initial.sleeve.sections, activate);
-  const networkWidget = buildNetworkWidget();
+  const sleeveWidget = buildStatWidget('sleeve-widget', initial.sleeve.title, initial.sleeve.stats);
+  const sleeveButtons = new Map<string, HTMLButtonElement>();
+  // The sleeve-wide purchases live in two widgets beside Network: the ones paid in nodes in Network Exploitation, the rest in
+  // Sleeve Improvements.
+  const upgradesWidget = h('aside', 'upgrades-widget');
+  upgradesWidget.append(h('h2', undefined, text.titles.upgrades));
+  const exploitationWidget = h('aside', 'exploitation-widget');
+  exploitationWidget.append(h('h2', undefined, text.titles.exploitation));
+  for (const section of initial.sleeve.sections) {
+    if (section.id === 'nodes') addSection(exploitationWidget, section, activate, sleeveButtons, false);
+    else addSection(upgradesWidget, section, activate, sleeveButtons, section.id !== 'rebuyable'); // the rebuyables are the widget's main content
+  }
+  const networkWidget = buildStatWidget('network-widget', initial.network.title, initial.network.stats);
+  const inventoryWidget = buildInventoryWidget(
+    initial.inventory,
+    text,
+    (itemId, rarityId, amount) => {
+      engine.sellItems(itemId, rarityId, amount);
+      render();
+    },
+    (itemId, rarityId) => {
+      engine.giveUpForMoles(itemId, rarityId, 1);
+      render();
+    },
+  );
+
+  // The Skills tab: a box holding the skills (bought with skill points).
+  const skillsWidget = h('aside', 'skills-widget');
+  const skillsPoints = h('div', 'skills-points');
+  const skillButtons = new Map<string, HTMLButtonElement>();
+  const skillsRow = upgradeRow(initial.skills.buyables, activate);
+  for (const [id, button] of skillsRow.buttons) skillButtons.set(id, button);
+  skillsWidget.append(h('h2', undefined, initial.skills.title), skillsPoints, skillsRow.element);
 
   // Re-sleeving wipes most progress, so it takes two clicks: the first arms the gate, the second confirms.
   const resleeveGate = new ConfirmGate();
@@ -115,7 +201,7 @@ export function mountUi(root: HTMLElement, engine: GameQueries & GameCommands, s
     else if (resleeveGate.request()) engine.resleeve();
     render();
   });
-  const resleeveCancel = h('button', 'resleeve-cancel', 'Cancel') as HTMLButtonElement;
+  const resleeveCancel = h('button', 'resleeve-cancel', text.resleeve.cancel) as HTMLButtonElement;
   resleeveCancel.addEventListener('click', () => {
     resleeveGate.cancel();
     render();
@@ -124,84 +210,103 @@ export function mountUi(root: HTMLElement, engine: GameQueries & GameCommands, s
   resleeveRow.append(resleeveBtn, resleeveCancel);
 
   const speedBtn = h('button', 'speed-toggle') as HTMLButtonElement;
-  speedBtn.title = 'Test aid: fast-forward game time';
+  speedBtn.title = text.controls.speedToggleTip;
   speedBtn.addEventListener('click', () => speed.toggle());
 
-  const resetBtn = h('button', 'reset-save', 'Reset save') as HTMLButtonElement;
-  resetBtn.title = 'Temporary: wipes the game and starts over';
+  const dropBtn = h('button', 'test-drop', text.controls.testDrop) as HTMLButtonElement;
+  dropBtn.title = text.controls.testDropTip;
+  dropBtn.addEventListener('click', () => {
+    engine.dropTestItem();
+    render();
+  });
+
+  const resetBtn = h('button', 'reset-save', text.controls.resetSave) as HTMLButtonElement;
+  resetBtn.title = text.controls.resetSaveTip;
   resetBtn.addEventListener('click', () => {
     onResetSave();
     render();
   });
 
-  const corner = h('div', 'corner-controls');
-  corner.append(resetBtn, speedBtn);
-
-  const side = h('div', 'side');
-  side.append(sleeveWidget.root, networkWidget.root);
+  // Top band: Sleeve on the left; to its right Network beside the sleeve-wide purchases, with Inventory under both. A line splits it from the actions.
+  const right = h('div', 'dashboard-right');
+  right.append(networkWidget.root, upgradesWidget, exploitationWidget, inventoryWidget.root);
+  const dashboard = h('div', 'dashboard');
+  dashboard.append(sleeveWidget.root, right);
+  const divider = h('hr', 'divider');
   const layout = h('div', 'layout');
-  layout.append(actionsEl, side);
-  root.append(corner, header, layout, resleeveRow);
+  layout.append(dashboard, divider, actionsEl);
+  if (options.debugControls ?? true) {
+    const corner = h('div', 'corner-controls');
+    corner.append(dropBtn, resetBtn, speedBtn);
+    root.append(corner);
+  }
+  // The tabs at the top, centered: everything so far is on the Character tab, the skills are on the Skills tab.
+  const tabButtons = new Map<TabView['id'], HTMLButtonElement>();
+  const tabBar = h('nav', 'tabs');
+  for (const tab of initial.tabs) {
+    const button = h('button', 'tab') as HTMLButtonElement;
+    button.addEventListener('click', () => {
+      activeTab = tab.id;
+      render();
+    });
+    tabBar.append(button);
+    tabButtons.set(tab.id, button);
+  }
+  let activeTab: TabView['id'] = 'character';
+  const characterPanel = h('div', 'tab-panel character-panel');
+  characterPanel.append(layout, resleeveRow);
+  const skillsPanel = h('div', 'tab-panel skills-panel');
+  skillsPanel.append(skillsWidget);
+  root.append(tabBar, header, characterPanel, skillsPanel);
 
   function render(): void {
-    const vm = buildViewModel(engine);
-    setText(credits, `${vm.creditsText} credits`);
-    setText(networkWidget.nodes, vm.networkText);
-    setText(networkWidget.income, `+${vm.passiveIncomeText}`);
-    setText(networkWidget.payout, vm.payoutPerNodeText);
-    setRowTip(networkWidget.payout, vm.payoutTip);
+    const vm = buildViewModel(engine, undefined, text);
+    setText(credits, vm.creditsLine);
+    renderStats(networkWidget, vm.network.stats, tips);
+    renderInventory(inventoryWidget, vm.inventory, tips);
+    for (const tab of vm.tabs) {
+      const button = tabButtons.get(tab.id);
+      if (!button) continue;
+      setText(button, tab.label);
+      button.classList.toggle('active', tab.id === activeTab);
+    }
+    characterPanel.hidden = activeTab !== 'character';
+    skillsPanel.hidden = activeTab !== 'skills';
+    setText(skillsPoints, vm.skills.pointsText);
+    renderUpgrades(skillButtons, vm.skills.buyables, tips);
     for (const a of vm.actions) {
       const card = cards.get(a.id);
       if (!card) continue;
       setText(card.title, a.name);
-      setText(
-        card.info,
-        a.lockedReason
-          ? `Locked: ${a.lockedReason}`
-          : `Action speed ${a.speedText} | ${a.durationText}${a.startCostText ? ` | costs ${a.startCostText}` : ''}${a.auto ? ' | auto' : ''}`,
-      );
-      setXpBar(card.levelXp, `Lv ${a.level}`, a.xpText, a.nextLevelXpText, a.levelProgressPercent);
-      setXpBar(
-        card.sleeveXp,
-        `Sleeve Lv ${a.sleeve.level}`,
-        a.sleeve.xpText,
-        a.sleeve.nextLevelXpText,
-        a.sleeve.progressPercent,
-        `${a.sleeve.runsToNextXp} runs`,
-      );
-      setText(
-        card.reward,
-        `+${a.rewardText} ${a.rewardUnit}/run` +
-          (a.outputMultiplierText !== '1' ? ` | x${a.outputMultiplierText}` : '') +
-          (a.heatPerRun > 0 ? ` | +${a.heatPerRun} heat` : ''),
-      );
+      setText(card.info, a.infoText);
+      tips.set(card.info, a.unlocked ? () => a.speedTip : null);
+      setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
+      setXpBar(card.sleeveXp, a.sleeveBarText, a.sleeve.progressPercent);
+      setText(card.reward, a.rewardLine);
       card.button.disabled = !a.unlocked;
       card.root.classList.toggle('locked', !a.unlocked);
-      setWidth(card.bar, `${a.progressPercent}%`);
+      setFill(card.bar, a.progressPercent);
       card.root.classList.toggle('running', a.running);
-      renderUpgrades(card.buyables, a.buyables);
+      renderUpgrades(card.buyables, a.buyables, tips);
+      card.augment.hidden = a.augment === null;
+      if (a.augment) {
+        setText(card.augment, a.augment.label);
+        card.augment.disabled = !a.augment.enabled;
+        card.augment.classList.toggle('applied', a.augment.applied > 0);
+        const { augment } = a;
+        tips.set(card.augment, () => augment.tip);
+      }
     }
-    setText(sleeveWidget.access, vm.sleeve.accessLevelText);
-    setText(sleeveWidget.interfaceSpeed, vm.sleeve.interfaceSpeedText);
-    setRowTip(sleeveWidget.interfaceSpeed, vm.sleeve.interfaceSpeedTip);
-    setText(sleeveWidget.circumvention, vm.sleeve.circumventionText);
-    setRowTip(sleeveWidget.circumvention, vm.sleeve.circumventionTip);
-    setText(sleeveWidget.infamy, vm.sleeve.infamyText);
-    setRowTip(sleeveWidget.infamy, vm.sleeve.infamyTip);
-    setText(sleeveWidget.heat, vm.sleeve.heatText);
-    setRowTip(sleeveWidget.heat, vm.sleeve.heatTip);
-    setText(sleeveWidget.heatCooldown.label, vm.sleeve.heatCooling ? 'Heat cooldown' : 'Heat cooldown (paused: no heat)');
-    setWidth(sleeveWidget.heatCooldown.fill, `${vm.sleeve.heatCooldownPercent}%`);
-    setText(sleeveWidget.infamyCooldown.label, vm.sleeve.infamyCooling ? 'Infamy cooldown' : 'Infamy cooldown (paused: no infamy)');
-    setWidth(sleeveWidget.infamyCooldown.fill, `${vm.sleeve.infamyCooldownPercent}%`);
-    renderUpgrades(sleeveWidget.buyables, vm.sleeve.buyables);
+    renderStats(sleeveWidget, vm.sleeve.stats, tips);
+    renderUpgrades(sleeveButtons, vm.sleeve.buyables, tips);
     const armed = resleeveGate.isArmed && vm.canResleeve;
     resleeveBtn.disabled = !vm.canResleeve;
-    setText(resleeveBtn, armed ? 'Confirm re-sleeve: credits, network, levels and purchases reset' : 'Re-sleeve (test: no requirement)');
+    setText(resleeveBtn, armed ? text.resleeve.armed : text.resleeve.idle);
     resleeveBtn.classList.toggle('armed', armed);
     resleeveCancel.hidden = !armed;
-    setText(speedBtn, `Speed x${speed.factor}`);
+    setText(speedBtn, text.controls.speedToggle(speed.factor));
     speedBtn.classList.toggle('on', speed.enabled);
+    tooltips.refresh();
   }
   render();
   return render;
@@ -224,8 +329,22 @@ function upgradeRow(
   return { element, buttons };
 }
 
+/** Adds one row of purchase buttons (with its title, unless the widget's own heading already says it) to a widget and registers its buttons. */
+function addSection(
+  widget: HTMLElement,
+  section: SleeveSection,
+  buy: (id: string) => unknown,
+  into: Map<string, HTMLButtonElement>,
+  withTitle = true,
+): void {
+  const row = upgradeRow(section.buyables, buy);
+  if (withTitle) widget.append(h('h3', 'section-title', section.title));
+  widget.append(row.element);
+  for (const [id, button] of row.buttons) into.set(id, button);
+}
+
 /** Updates square purchase buttons (visibility, enabled state, hover tooltip text) from their view data. */
-function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, views: readonly BuyableView[]): void {
+function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, views: readonly BuyableView[], tips: TipRegistry): void {
   for (const b of views) {
     const upgrade = buttons.get(b.id);
     if (!upgrade) continue;
@@ -234,64 +353,98 @@ function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, views: 
     upgrade.classList.toggle('owned', b.owned > 0);
     upgrade.classList.toggle('off', b.toggleable && b.owned > 0 && !b.enabled);
     upgrade.classList.toggle('ready', b.ready);
-    setTip(upgrade, b.tip);
+    tips.set(upgrade, () => b.tip);
   }
 }
 
-/** Handles to update the Network widget. */
-interface NetworkWidget {
-  readonly root: HTMLElement;
-  readonly nodes: HTMLElement;
-  readonly income: HTMLElement;
-  readonly payout: HTMLElement;
-}
-
-/** Builds the Network widget: nodes, passive income and the payout per node. */
-function buildNetworkWidget(): NetworkWidget {
-  const root = h('aside', 'network-widget');
-  const stats = h('div', 'stats');
-  const stat = (label: string): HTMLElement => {
+/** Builds a widget (title and one row per stat, with a cycle bar under the rows that have one). */
+function buildStatWidget(className: string, title: string, stats: readonly StatRowView[]): StatWidget {
+  const root = h('aside', className);
+  const list = h('div', 'stats');
+  const rows = new Map<StatId, StatHandle>();
+  for (const stat of stats) {
     const row = h('div', 'stat');
     const value = h('span', 'stat-value');
-    row.append(h('span', 'stat-label', label), value);
-    stats.append(row);
-    return value;
-  };
-  const nodes = stat('Nodes');
-  const income = stat('Credits per second');
-  const payout = stat('Payout per node');
-  root.append(h('h2', undefined, 'Network'), stats);
-  return { root, nodes, income, payout };
-}
-
-/** Builds the Sleeve widget: global stats and the sleeve-wide purchases, one titled row per section. */
-function buildSleeveWidget(sections: readonly SleeveSection[], buy: (id: string) => unknown): SleeveWidget {
-  const root = h('aside', 'sleeve-widget');
-  const stats = h('div', 'stats');
-  const stat = (label: string): HTMLElement => {
-    const row = h('div', 'stat');
-    const value = h('span', 'stat-value');
-    row.append(h('span', 'stat-label', label), value);
-    stats.append(row);
-    return value;
-  };
-  const access = stat('Access level');
-  const interfaceSpeed = stat('Interface speed');
-  const circumvention = stat('Circumvention');
-  const heat = stat('Heat');
-  const heatCooldown = xpBar();
-  stats.append(heatCooldown.root);
-  const infamy = stat('Infamy');
-  const infamyCooldown = xpBar();
-  stats.append(infamyCooldown.root);
-  root.append(h('h2', undefined, 'Sleeve'), stats);
-  const buttons = new Map<string, HTMLButtonElement>();
-  for (const section of sections) {
-    const row = upgradeRow(section.buyables, buy);
-    root.append(h('h3', 'section-title', section.title), row.element);
-    for (const [id, button] of row.buttons) buttons.set(id, button);
+    row.append(h('span', 'stat-label', stat.label), value);
+    list.append(row);
+    let bar: XpBar | null = null;
+    if (stat.bar) {
+      bar = xpBar();
+      list.append(bar.root);
+    }
+    rows.set(stat.id, { row, value, bar });
   }
-  return { root, access, interfaceSpeed, circumvention, infamy, heat, heatCooldown, infamyCooldown, buyables: buttons };
+  root.append(h('h2', undefined, title), list);
+  return { root, rows };
+}
+
+/** Writes the stat rows of the view model into a widget. */
+function renderStats(widget: StatWidget, stats: readonly StatRowView[], tips: TipRegistry): void {
+  for (const stat of stats) {
+    const handle = widget.rows.get(stat.id);
+    if (!handle) continue;
+    handle.row.hidden = stat.hidden;
+    if (handle.bar) handle.bar.root.hidden = stat.hidden;
+    setText(handle.value, stat.text);
+    tips.set(handle.row, stat.hasTip ? () => stat.tip ?? '' : null);
+    if (stat.bar && handle.bar) setXpBar(handle.bar, stat.bar.label, stat.bar.percent);
+  }
+}
+
+/**
+ * Builds the Inventory widget: a row per item and rarity with its count and two sell buttons. Rows start hidden.
+ *
+ * Called by: {@link mountUi}.
+ *
+ * @param view the initial view data (decides which rows exist)
+ * @param text the display text (button labels)
+ * @param sell called with the item, the rarity and how many to sell when a sell button is pressed
+ */
+function buildInventoryWidget(
+  view: InventoryView,
+  text: UiText,
+  sell: (itemId: string, rarityId: string, amount: number | 'all') => void,
+  giveUp: (itemId: string, rarityId: string) => void,
+): InventoryWidget {
+  const root = h('aside', 'inventory-widget');
+  const list = h('div', 'inventory');
+  const empty = h('div', 'inventory-empty', view.emptyText);
+  const rows = new Map<string, { row: HTMLElement; count: HTMLElement; backChannel: HTMLElement; sell: HTMLElement[] }>();
+  for (const r of view.rows) {
+    const row = h('div', 'inventory-row');
+    const label = h('span', 'inventory-label', r.label);
+    const count = h('span', 'inventory-count');
+    const sellOne = h('button', 'inventory-sell', text.inventory.sellOne);
+    const sellAll = h('button', 'inventory-sell', text.inventory.sellAll);
+    sellOne.addEventListener('click', () => sell(r.itemId, r.rarityId, 1));
+    sellAll.addEventListener('click', () => sell(r.itemId, r.rarityId, 'all'));
+    const backChannel = h('button', 'inventory-sell inventory-back-channel', text.inventory.backChannel);
+    backChannel.addEventListener('click', () => giveUp(r.itemId, r.rarityId));
+    backChannel.hidden = true;
+    row.append(label, count, sellOne, sellAll, backChannel);
+    row.hidden = true;
+    list.append(row);
+    rows.set(`${r.itemId}/${r.rarityId}`, { row, count, backChannel, sell: [sellOne, sellAll] });
+  }
+  root.append(h('h2', undefined, view.title), list, empty);
+  root.hidden = !view.visible;
+  return { root, empty, rows };
+}
+
+/** Writes the inventory view into its widget: hides the widget and the empty stacks. */
+function renderInventory(widget: InventoryWidget, view: InventoryView, tips: TipRegistry): void {
+  widget.root.hidden = !view.visible;
+  widget.empty.hidden = view.rows.some((r) => r.count > 0);
+  for (const r of view.rows) {
+    const handle = widget.rows.get(`${r.itemId}/${r.rarityId}`);
+    if (!handle) continue;
+    handle.row.hidden = r.count <= 0;
+    setText(handle.count, r.countText);
+    handle.backChannel.hidden = !r.backChannel;
+    for (const button of handle.sell) button.hidden = !r.sellable;
+    tips.set(handle.backChannel, r.backChannel ? () => r.backChannelTip : null);
+    tips.set(handle.row, () => r.tip);
+  }
 }
 
 /** Builds an empty small experience bar (label above a thin grey/teal bar). */
@@ -305,14 +458,9 @@ function xpBar(): XpBar {
   return { root, label, fill };
 }
 
-/** Puts a hover tip on a stat's whole row (label and value), given its value element. */
-function setRowTip(value: HTMLElement, tip: string): void {
-  setTip(value.parentElement ?? value, tip);
-}
-
-function setXpBar(bar: XpBar, name: string, xp: string, next: string, percent: number, extra?: string): void {
-  setText(bar.label, `${name} - ${xp}/${next} XP${extra ? ` | ${extra}` : ''}`);
-  setWidth(bar.fill, `${percent}%`);
+function setXpBar(bar: XpBar, label: string, percent: number): void {
+  setText(bar.label, label);
+  setFill(bar.fill, percent);
 }
 
 /** Sets an element's text only when it changed, so an unchanged frame touches nothing in the DOM. */
@@ -320,14 +468,23 @@ function setText(el: HTMLElement, text: string): void {
   if (el.textContent !== text) el.textContent = text;
 }
 
-/** Sets an element's width only when it changed. */
-function setWidth(el: HTMLElement, width: string): void {
-  if (el.style.width !== width) el.style.width = width;
-}
-
-/** Sets a hover tip only when it changed (the tooltip watches this attribute). */
-function setTip(el: HTMLElement, tip: string): void {
-  if (el.dataset['tip'] !== tip) el.dataset['tip'] = tip;
+/**
+ * Sets how full a bar is. The fill is a full-width element scaled from the left (`transform`, which the browser can animate without
+ * re-laying out the page), and CSS eases it towards each new value over one refresh interval so it moves smoothly between refreshes.
+ * A bar that goes down (a run that finished and starts over) snaps back instead of sliding backwards.
+ *
+ * @param el the fill element
+ * @param rawPercent how full the bar is, 0 to 100 (rounded to two decimals: finer changes are far below a pixel)
+ */
+function setFill(el: HTMLElement, rawPercent: number): void {
+  const percent = Math.round(rawPercent * 100) / 100;
+  const key = String(percent);
+  const before = el.dataset['fill'];
+  if (before === key) return;
+  el.dataset['fill'] = key;
+  const snap = before !== undefined && percent < Number(before);
+  el.style.transition = snap ? 'none' : '';
+  el.style.transform = `scaleX(${percent / 100})`;
 }
 
 function h(tag: string, className?: string, text?: string): HTMLElement {

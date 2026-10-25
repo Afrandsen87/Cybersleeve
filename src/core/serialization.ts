@@ -11,20 +11,24 @@
  * Loaded values are sanitised, not trusted: negative amounts become 0, non-finite times are dropped, the run counter is
  * kept below `runsPerSleeveXp`, copy counts are capped, and a buyable whose `requires` are not owned is discarded.
  *
- * Versions: 1 stored `purchased` as a list of ids (one copy each); 2 stores copy counts; 3 moves sleeve XP and
- * its run counter from the top level into each action and adds the network. Version 1 and 2 saves are still
- * readable: their global sleeve XP is given to the first action in the configuration.
+ * The current version is read, and the one before it (version 3, which stored the progress of a run in milliseconds; such a run
+ * starts again). A scalar that a save lacks (a field added later) keeps its fresh-game value, so adding a scalar needs no new
+ * version; changing the meaning of an existing field does, together with a migration.
  */
 import type { BigNum, NumberFactory } from '../numbers';
+import { traitsOf } from './effectTraits';
 import { SCALAR_FIELDS, readScalar, writeScalars } from './fields';
 import { createInitialState } from './state';
 import type { GameConfig, GameState, GameStateView } from './types';
 
 /** Current save format version. */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
+
+/** The previous save format, where the progress of a run was stored in milliseconds (`progressMs`). Still read by {@link deserializeState}. */
+const PROGRESS_IN_MS_VERSION = 3;
 
 /**
- * Shape of the stored JSON (version 3): `version`, one entry per scalar field of `fields.ts` (amounts as strings, plain
+ * Shape of the stored JSON (current version): `version`, one entry per scalar field of `fields.ts` (amounts as strings, plain
  * numbers as numbers), the per-action progress, the flag maps and the owned copies.
  */
 interface SaveData {
@@ -32,8 +36,12 @@ interface SaveData {
   [scalar: string]: unknown;
   unlockedActions: Record<string, boolean>;
   autoRunOff: Record<string, boolean>;
-  actions: Record<string, { xp: string; sleeveXp: string; runsTowardSleeveXp: number; running: boolean; progressMs: number }>;
+  actions: Record<
+    string,
+    { xp: string; sleeveXp: string; runsTowardSleeveXp: number; augments: Record<string, number>; running: boolean; progress: number }
+  >;
   purchased: Record<string, number>;
+  inventory: Record<string, Record<string, number>>;
 }
 
 /**
@@ -56,19 +64,21 @@ export function serializeState(state: GameStateView): string {
           xp: a.xp.toString(),
           sleeveXp: a.sleeveXp.toString(),
           runsTowardSleeveXp: a.runsTowardSleeveXp,
+          augments: { ...a.augments },
           running: a.running,
-          progressMs: a.progressMs,
+          progress: a.progress,
         },
       ]),
     ),
     purchased: { ...state.purchased },
+    inventory: Object.fromEntries(Object.entries(state.inventory).map(([item, stacks]) => [item, { ...stacks }])),
   };
   writeScalars(state, data);
   return JSON.stringify(data);
 }
 
 /**
- * Restores a state from JSON (format versions 1 to 3).
+ * Restores a state from JSON (the current format version).
  *
  * Called by: `app/persistence.ts`.
  *
@@ -79,7 +89,7 @@ export function serializeState(state: GameStateView): string {
  */
 export function deserializeState(
   json: string,
-  config: Pick<GameConfig, 'actions' | 'buyables' | 'progression' | 'sleeve'>,
+  config: Pick<GameConfig, 'actions' | 'buyables' | 'items' | 'progression' | 'sleeve'>,
   factory: NumberFactory,
 ): GameState | null {
   let raw: unknown;
@@ -90,22 +100,17 @@ export function deserializeState(
   }
   if (!isRecord(raw)) return null;
   const version = raw['version'];
-  if (version !== 1 && version !== 2 && version !== SAVE_VERSION) return null;
+  if (version !== SAVE_VERSION && version !== PROGRESS_IN_MS_VERSION) return null;
 
   try {
     const state = createInitialState(config, factory);
-    // Scalars (credits, network, heat, ...): credits are read from every version, the rest only from the current one;
-    // an entry that is missing or unusable keeps its fresh-game value.
+    // Scalars (credits, network, heat, ...): an optional entry that is missing or unusable keeps its fresh-game value.
     const target = state as unknown as Record<string, unknown>;
-    for (const field of SCALAR_FIELDS) {
-      if (version === SAVE_VERSION || field.key === 'credits') target[field.key] = readScalar(field, raw[field.key], config, factory);
-    }
-    if (version === SAVE_VERSION) {
-      const savedUnlocked = isRecord(raw['unlockedActions']) ? raw['unlockedActions'] : {};
-      for (const a of config.actions) if (a.unlock?.kind === 'nodes' && savedUnlocked[a.id] === true) state.unlockedActions[a.id] = true;
-      const savedOff = isRecord(raw['autoRunOff']) ? raw['autoRunOff'] : {};
-      for (const b of config.buyables) if (b.effect.kind === 'autoRun' && savedOff[b.id] === true) state.autoRunOff[b.id] = true;
-    }
+    for (const field of SCALAR_FIELDS) target[field.key] = readScalar(field, raw[field.key], config, factory);
+    const savedUnlocked = isRecord(raw['unlockedActions']) ? raw['unlockedActions'] : {};
+    for (const a of config.actions) if (a.unlock?.kind === 'nodes' && savedUnlocked[a.id] === true) state.unlockedActions[a.id] = true;
+    const savedOff = isRecord(raw['autoRunOff']) ? raw['autoRunOff'] : {};
+    for (const b of config.buyables) if (traitsOf(b).toggleable && savedOff[b.id] === true) state.autoRunOff[b.id] = true;
 
     const runsPerSleeveXp = config.progression.runsPerSleeveXp;
     const savedActions = isRecord(raw['actions']) ? raw['actions'] : {};
@@ -114,40 +119,58 @@ export function deserializeState(
       if (!isRecord(saved)) continue;
       state.actions[def.id] = {
         xp: readAmount(saved['xp'], factory),
-        sleeveXp: version === SAVE_VERSION ? readAmount(saved['sleeveXp'], factory) : factory.fromNumber(0),
-        runsTowardSleeveXp: version === SAVE_VERSION ? readCount(saved['runsTowardSleeveXp']) % runsPerSleeveXp : 0,
+        sleeveXp: readAmount(saved['sleeveXp'], factory),
+        runsTowardSleeveXp: readCount(saved['runsTowardSleeveXp']) % runsPerSleeveXp,
+        augments: readAugments(saved['augments'], config.items),
         running: saved['running'] === true,
-        progressMs: readTime(saved['progressMs']),
+        // A version 3 save counted the progress of a run in ms of the speed it had then; that cannot be turned into a share of the
+        // run, so such a run starts again.
+        progress: version === SAVE_VERSION ? readProgress(saved['progress']) : 0,
       };
     }
 
-    // Before version 3 sleeve XP was global; it moves to the first action.
-    const first = config.actions[0];
-    const firstState = first ? state.actions[first.id] : undefined;
-    if (version !== SAVE_VERSION && firstState) {
-      firstState.sleeveXp = readAmount(raw['sleeveXp'], factory);
-      firstState.runsTowardSleeveXp = readCount(raw['runsTowardSleeveXp']) % runsPerSleeveXp;
-    }
-
-    const owned = readPurchased(raw['purchased'], version);
+    const owned = readPurchased(raw['purchased']);
     for (const b of config.buyables) {
       const count = Math.min(owned[b.id] ?? 0, b.maxPurchases ?? 1, Number.MAX_SAFE_INTEGER);
       if (count > 0) state.purchased[b.id] = count;
     }
     dropUnmetRequirements(state, config.buyables);
+    state.inventory = readInventory(raw['inventory'], config.items);
     return state;
   } catch {
     return null;
   }
 }
 
-/** Normalises `purchased` of either format to a count per id. */
-function readPurchased(v: unknown, version: unknown): Record<string, number> {
+/** Reads `purchased` as a count per id (anything that is not a whole number >= 0 counts as 0). */
+function readPurchased(v: unknown): Record<string, number> {
   const out: Record<string, number> = {};
-  if (version === 1) {
-    if (Array.isArray(v)) for (const id of v) if (typeof id === 'string') out[id] = 1;
-  } else if (isRecord(v)) {
-    for (const [id, n] of Object.entries(v)) out[id] = readCount(n);
+  if (isRecord(v)) for (const [id, n] of Object.entries(v)) out[id] = readCount(n);
+  return out;
+}
+
+/** Reads the augments applied to an action: only known rarities, whole counts above 0 (anything else is an empty record). */
+function readAugments(v: unknown, items: GameConfig['items']): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!isRecord(v)) return out;
+  for (const rarity of items.rarities) {
+    const count = Math.min(readCount(v[rarity.id]), Number.MAX_SAFE_INTEGER);
+    if (count > 0) out[rarity.id] = count;
+  }
+  return out;
+}
+
+/** Reads the inventory: only known items and rarities, whole counts above 0 (a save without one is an empty inventory). */
+function readInventory(v: unknown, items: GameConfig['items']): GameState['inventory'] {
+  const out: GameState['inventory'] = {};
+  if (!isRecord(v)) return out;
+  for (const item of items.definitions) {
+    const saved = v[item.id];
+    if (!isRecord(saved)) continue;
+    for (const rarity of items.rarities) {
+      const count = Math.min(readCount(saved[rarity.id]), Number.MAX_SAFE_INTEGER);
+      if (count > 0) (out[item.id] ??= {})[rarity.id] = count;
+    }
   }
   return out;
 }
@@ -176,10 +199,10 @@ function readAmount(v: unknown, factory: NumberFactory): BigNum {
   return n.isNegative() ? factory.fromNumber(0) : n;
 }
 
-/** Reads a time in ms: finite and >= 0, otherwise 0. */
-function readTime(v: unknown): number {
+/** Reads the progress of a run: a share of the run, finite and from 0 up to (not including) 1, otherwise 0. */
+function readProgress(v: unknown): number {
   const n = Number(v);
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  return Number.isFinite(n) && n > 0 && n < 1 ? n : 0;
 }
 
 function readNum(v: unknown, factory: NumberFactory): BigNum {

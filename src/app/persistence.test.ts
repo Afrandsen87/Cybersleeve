@@ -103,10 +103,10 @@ describe('createNewGameHandler (the temporary "Reset save" button)', () => {
     const s = g.getState();
     expect(s.credits.isZero()).toBe(true);
     expect(s.purchased).toEqual({});
-    expect(s.actions['a']).toMatchObject({ running: false, progressMs: 0, runsTowardSleeveXp: 0 });
+    expect(s.actions['a']).toMatchObject({ running: false, progress: 0, runsTowardSleeveXp: 0 });
     expect(s.actions['a']!.sleeveXp.isZero()).toBe(true);
     expect(store.getItem(SAVE_KEY)).toBeNull();
-    expect(g.sleeveLevel('a')).toBe(1);
+    expect(g.sleeveLevel('a')).toBe(0);
   });
 
   it('the engine keeps working normally after a reset', () => {

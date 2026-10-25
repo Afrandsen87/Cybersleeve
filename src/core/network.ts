@@ -4,26 +4,23 @@
  * The passive-income network: credits produced by the nodes, and nodes that grow by themselves.
  */
 import type { NumberFactory } from '../numbers';
-import { resolveNetworkGrowth } from './effects';
 import type { DerivedStats } from './stats';
-import type { GameConfig, GameState } from './types';
+import type { GameState } from './types';
 
 /**
  * Advances the network over a stretch of game time.
  *
- * Called by: `engine.ts` (`GameEngine.advance`). Calls: {@link DerivedStats.passiveCreditsPerSecond}, `resolveNetworkGrowth`.
+ * Called by: `engine.ts` (`GameEngine.advance`). Calls: {@link DerivedStats.passiveCreditsPerSecond}, {@link DerivedStats.networkGrowthRate}.
  */
 export class NetworkSystem {
   /**
    * Creates the network system.
    *
-   * @param config reads `buyables` (for growth effects)
    * @param state the live game state (mutated)
    * @param stats derived values
    * @param factory number factory
    */
   constructor(
-    private readonly config: Pick<GameConfig, 'buyables'>,
     private readonly state: GameState,
     private readonly stats: DerivedStats,
     private readonly factory: NumberFactory,
@@ -46,7 +43,7 @@ export class NetworkSystem {
    * @param deltaMs game time in milliseconds
    */
   grow(deltaMs: number): void {
-    const rate = resolveNetworkGrowth(this.config.buyables, this.state);
+    const rate = this.stats.networkGrowthRate();
     if (!(rate > 0) || this.state.network.isZero()) return;
     const factor = Math.expm1(Math.log1p(rate) * (deltaMs / 1000));
     const growth = this.state.network.mul(this.factory.fromNumber(factor)).add(this.factory.fromNumber(this.state.networkRemainder));

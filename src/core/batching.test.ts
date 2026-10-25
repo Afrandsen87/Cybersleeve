@@ -53,7 +53,7 @@ function expectSame(once: ReturnType<typeof createGame>, stepped: ReturnType<typ
     expect(a.actions[id]!.runsTowardSleeveXp, `${id} counter`).toBe(b.actions[id]!.runsTowardSleeveXp);
     expect(once.actionLevel(id)).toBe(stepped.actionLevel(id));
     expect(once.sleeveLevel(id)).toBe(stepped.sleeveLevel(id));
-    expect(a.actions[id]!.progressMs).toBeCloseTo(b.actions[id]!.progressMs, 3);
+    expect(a.actions[id]!.progress).toBeCloseTo(b.actions[id]!.progress, 6);
   }
 }
 
@@ -65,17 +65,17 @@ describe('closed-form runs match completing runs one at a time', () => {
     };
     // Not a round number of runs: a total that ends exactly on a run boundary can fall a hair short or over on either side.
     const { once, stepped } = twins(30_000_333, 60_000, setup);
-    expect(once.actionLevel('a')).toBeGreaterThan(4);
+    expect(once.actionLevel('a')).toBeGreaterThan(3);
     expectSame(once, stepped, ['a']);
   });
 
-  it('with output multipliers (dual + two duplicates): XP and counted runs jump by powers of two', () => {
+  it('with reward multipliers (dual + two duplicates): the reward jumps by powers of two, XP and counted runs do not', () => {
     const setup: Setup = (g) => {
       setCredits(g, num(100_000));
       for (const id of ['auto', 'dual', 'dup', 'dup']) expect(g.buy(id)).toBe('purchased');
     };
     const { once, stepped } = twins(1_000_000, 4_000, setup);
-    expect(once.sleeveLevel('a')).toBeGreaterThan(1); // the sleeve level changes mid-tick as well
+    expect(once.actionLevel('a')).toBeGreaterThan(0); // the level changes mid-tick
     expectSame(once, stepped, ['a']);
   });
 
@@ -134,7 +134,7 @@ describe('start costs and completion effects match run-by-run play', () => {
     );
   const mutable = (g: ReturnType<typeof createGame>) => g.getState() as { network: unknown; unlockedActions: Record<string, boolean> };
 
-  it('auto-running Kill servers pays 50 nodes per run and adds 1 Circumvention per run', () => {
+  it('auto-running Kill servers pays 50 nodes per run and adds 1 ICE Rating per run', () => {
     const setup: Setup = (g) => {
       setCredits(g, num(5));
       g.buy('auto-kill');
@@ -142,9 +142,9 @@ describe('start costs and completion effects match run-by-run play', () => {
       mutable(g).network = num(500);
     };
     const { once, stepped } = twins(5_000, 5, setup, config());
-    expect(once.getState().circumvention.eq(stepped.getState().circumvention)).toBe(true);
+    expect(once.getState().iceRating.eq(stepped.getState().iceRating)).toBe(true);
     closeTo(once.getState().network, stepped.getState().network);
-    expect(once.getState().circumvention.eq(num(6))).toBe(true);
+    expect(once.getState().iceRating.eq(num(6))).toBe(true);
   });
 
   it('auto-running with a share-of-nodes cost takes 1% of what is held at the start of every run', () => {
@@ -162,7 +162,7 @@ describe('start costs and completion effects match run-by-run play', () => {
     };
     const { once, stepped } = twins(5_000, 5, setup, cfg);
     expect(once.getState().network.eq(stepped.getState().network)).toBe(true);
-    expect(once.getState().circumvention.eq(stepped.getState().circumvention)).toBe(true);
+    expect(once.getState().iceRating.eq(stepped.getState().iceRating)).toBe(true);
     expect(once.getState().network.toNumber()).toBeLessThan(10_000);
   });
 
@@ -218,7 +218,7 @@ describe('feedback between systems does not depend on how time is delivered', ()
       engine,
     });
   const setup: Setup = (g) => g.buy('pauto');
-  const bonus = (g: ReturnType<typeof createGame>) => g.getState().interfaceSpeedBonus.toNumber();
+  const bonus = (g: ReturnType<typeof createGame>) => g.getState().hackingProficiency.toNumber();
 
   it('interface speed rising with every run: one 5 minute tick matches 6 000 steps of 50 ms (within 2%)', () => {
     const { once, stepped } = twins(300_000, 6_000, setup, feedback());

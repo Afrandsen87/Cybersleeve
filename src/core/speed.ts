@@ -17,6 +17,14 @@ export interface SpeedContext {
   readonly interfaceSpeed: number;
 }
 
+/** Identifiers of the factors built by {@link createSpeedModifiers}. */
+export const SPEED_FACTOR_IDS = {
+  actionLevel: 'action-level',
+  sleeveLevel: 'sleeve-level',
+  interfaceSpeed: 'interface-speed',
+  globalSpeed: 'global-speed',
+} as const;
+
 /** One factor of the speed multiplier. */
 export interface SpeedModifier {
   /** Stable identifier (used in tests and, later, UI breakdowns). */
@@ -31,11 +39,11 @@ export interface SpeedModifier {
  * Called by: the modifiers built in {@link createSpeedModifiers}.
  *
  * @param scaling the scaling rule
- * @param level level (integer >= 1)
- * @returns `1 + (level - 1) * perLevel` (linear) or `base ^ (level - 1)` (exponential)
+ * @param level level (integer >= 0; levels start at 0)
+ * @returns `1 + level * perLevel` (linear) or `base ^ level` (exponential): level 0 is worth exactly 1
  */
 export function levelFactor(scaling: LevelScaling, level: number): number {
-  return scaling.kind === 'linear' ? 1 + (level - 1) * scaling.perLevel : scaling.base ** (level - 1);
+  return scaling.kind === 'linear' ? 1 + level * scaling.perLevel : scaling.base ** level;
 }
 
 /**
@@ -52,12 +60,12 @@ export function createSpeedModifiers(config: Pick<GameConfig, 'actions' | 'speed
   for (const a of config.actions) if (a.speedScaling) overrides.set(a.id, a.speedScaling);
   return [
     {
-      id: 'action-level',
+      id: SPEED_FACTOR_IDS.actionLevel,
       factor: (c) => levelFactor(overrides.get(c.actionId) ?? config.speed.actionLevel, c.actionLevel),
     },
-    { id: 'sleeve-level', factor: (c) => levelFactor(config.speed.sleeveLevel, c.sleeveLevel) },
-    { id: 'interface-speed', factor: (c) => c.interfaceSpeed },
-    { id: 'global-speed', factor: () => config.global.speedMultiplier },
+    { id: SPEED_FACTOR_IDS.sleeveLevel, factor: (c) => levelFactor(config.speed.sleeveLevel, c.sleeveLevel) },
+    { id: SPEED_FACTOR_IDS.interfaceSpeed, factor: (c) => c.interfaceSpeed },
+    { id: SPEED_FACTOR_IDS.globalSpeed, factor: () => config.global.speedMultiplier },
   ];
 }
 
@@ -68,10 +76,35 @@ export function createSpeedModifiers(config: Pick<GameConfig, 'actions' | 'speed
  *
  * @param modifiers the factors to combine (empty list gives 1)
  * @param context values the factors depend on
- * @returns the total speed multiplier (> 0)
+ * @returns the total speed multiplier (> 0): overflow saturates at the largest double, NaN counts as 1
  */
 export function speedMultiplier(modifiers: readonly SpeedModifier[], context: SpeedContext): number {
-  return modifiers.reduce((product, m) => product * m.factor(context), 1);
+  const product = modifiers.reduce((p, m) => p * m.factor(context), 1);
+  return Number.isNaN(product) ? 1 : Math.min(product, Number.MAX_VALUE);
+}
+
+/** The value one modifier contributed to the speed multiplier. */
+export interface SpeedFactor {
+  /** The modifier's identifier (see {@link SPEED_FACTOR_IDS}). */
+  readonly id: string;
+  /** Its factor, sanitised like in {@link speedMultiplier}: NaN counts as 1, overflow saturates at the largest double. */
+  readonly factor: number;
+}
+
+/**
+ * The factors that {@link speedMultiplier} multiplies together, one per modifier, in order. Lets the interface explain a speed.
+ *
+ * Called by: `stats.ts` (`ActionStats.speedFactors`).
+ *
+ * @param modifiers the factors to evaluate (empty list gives an empty list)
+ * @param context values the factors depend on
+ * @returns one entry per modifier
+ */
+export function speedFactors(modifiers: readonly SpeedModifier[], context: SpeedContext): readonly SpeedFactor[] {
+  return modifiers.map((m) => {
+    const factor = m.factor(context);
+    return { id: m.id, factor: Number.isNaN(factor) ? 1 : Math.min(factor, Number.MAX_VALUE) };
+  });
 }
 
 /**
@@ -79,8 +112,10 @@ export function speedMultiplier(modifiers: readonly SpeedModifier[], context: Sp
  *
  * @param baseDurationMs duration at multiplier 1
  * @param multiplier result of {@link speedMultiplier}
- * @returns effective duration in milliseconds
+ * @param minDurationMs shortest duration a run may have (`engine.minRunDurationMs`, > 0); keeps the duration above 0 however
+ *   large the multiplier gets
+ * @returns effective duration in milliseconds, never below `minDurationMs`
  */
-export function effectiveDurationMs(baseDurationMs: number, multiplier: number): number {
-  return baseDurationMs / multiplier;
+export function effectiveDurationMs(baseDurationMs: number, multiplier: number, minDurationMs: number): number {
+  return Math.max(minDurationMs, baseDurationMs / multiplier);
 }

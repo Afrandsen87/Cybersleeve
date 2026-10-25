@@ -23,7 +23,7 @@ describe('GameEngine - manual running', () => {
     expect(g.getState().credits.eq(num(0.5))).toBe(true);
     expect(g.getState().actions['a']!.xp.eq(num(1))).toBe(true);
     expect(g.getState().actions['a']!.running).toBe(false);
-    expect(g.getState().actions['a']!.progressMs).toBe(0);
+    expect(g.getState().actions['a']!.progress).toBe(0);
   });
 
   it('needs a new click for the next run and discards leftover time', () => {
@@ -42,19 +42,19 @@ describe('GameEngine - manual running', () => {
     g.tick(0);
     g.tick(-5);
     g.tick(NaN);
-    expect(g.getState().actions['a']!.progressMs).toBe(0);
+    expect(g.getState().actions['a']!.progress).toBe(0);
   });
 });
 
 describe('GameEngine - levelling and speed', () => {
-  it('10th run reaches level 2 and shortens runs to 5 s', () => {
+  it('10th run reaches level 1 and shortens runs to 5 s', () => {
     const g = game();
     for (let i = 0; i < 10; i++) {
       g.startAction('a');
-      g.tick(10_000); // still level 1 (10 s runs) until the 10th run completes
+      g.tick(10_000); // still level 0 (10 s runs) until the 10th run completes
     }
     expect(g.getState().actions['a']!.xp.eq(num(10))).toBe(true);
-    expect(g.actionLevel('a')).toBe(2);
+    expect(g.actionLevel('a')).toBe(1);
     expect(g.currentDurationMs('a')).toBe(5_000);
   });
 
@@ -95,24 +95,24 @@ describe('GameEngine - configurable progression', () => {
     expect(g.getState().actions['a']!.xp.eq(num(4))).toBe(true);
   });
 
-  it('level thresholds come from the config (level 2 at 3 xp)', () => {
+  it('level thresholds come from the config (level 1 at 3 xp)', () => {
     const g = game({ progression: { actionLevels: { firstLevelXp: 3, growthFactor: 2 } } });
     for (let i = 0; i < 3; i++) {
       g.startAction('a');
       g.tick(10_000);
     }
-    expect(g.actionLevel('a')).toBe(2);
+    expect(g.actionLevel('a')).toBe(1);
   });
 
   it('level worth comes from the config (linear 0.5 per level, exponential sleeve)', () => {
     const g = game({ speed: { actionLevel: { kind: 'linear', perLevel: 0.5 }, sleeveLevel: { kind: 'exponential', base: 3 } } });
-    (g.getState().actions['a'] as { xp: unknown }).xp = num(100); // action level 3 -> 1 + 2*0.5 = 2
-    setSleeveXp(g, num(10)); // sleeve level 2 -> 3^1
+    (g.getState().actions['a'] as { xp: unknown }).xp = num(110); // action level 2 (10 + 100 XP) -> 1 + 2*0.5 = 2
+    setSleeveXp(g, num(10)); // sleeve level 1 -> 3^1
     expect(g.currentSpeed('a')).toBe(6);
   });
 
   it('global levers: speed, reward, xp and cost', () => {
-    const g = game({ global: { speedMultiplier: 2, rewardMultiplier: 10, xpMultiplier: 3, costMultiplier: 2 } });
+    const g = game({ global: { speedMultiplier: 2, creditMultiplier: 10, xpMultiplier: 3, costMultiplier: 2 } });
     expect(g.currentDurationMs('a')).toBe(5_000);
     expect(g.rewardPerRun('a').eq(num(5))).toBe(true);
     expect(g.xpPerRun('a').eq(num(3))).toBe(true);
@@ -155,49 +155,50 @@ describe('GameEngine - buyables', () => {
     g.tick(25_000); // two full runs (20 s) + 5 s into the third
     expect(g.getState().actions['a']!.xp.eq(num(2))).toBe(true);
     expect(g.getState().actions['a']!.running).toBe(true);
-    expect(g.getState().actions['a']!.progressMs).toBeCloseTo(5_000);
+    expect(g.getState().actions['a']!.progress).toBeCloseTo(0.5);
   });
 
-  it('dual processors doubles credits, xp and counted runs per cycle', () => {
+  it('dual processors doubles the credits per cycle and nothing else (not xp, not counted runs)', () => {
     const g = game();
     setCredits(g, num(15));
     expect(g.buy('dual')).toBe('purchased');
     g.startAction('a');
     g.tick(10_000);
     expect(g.getState().credits.eq(num(1))).toBe(true);
-    expect(g.getState().actions['a']!.xp.eq(num(2))).toBe(true);
-    expect(g.getState().actions['a']!.runsTowardSleeveXp).toBe(2);
+    expect(g.getState().actions['a']!.xp.eq(num(1))).toBe(true);
+    expect(g.getState().actions['a']!.runsTowardSleeveXp).toBe(1);
+    expect(g.xpPerRun('a').eq(num(1))).toBe(true);
   });
 
   it('refuses a purchase without enough credits', () => {
     expect(game().buy('auto')).toBe('cannot-afford');
   });
 
-  it('duplicate processors: hidden until dual is owned, then doubles output per copy, price x10 each', () => {
+  it('duplicate processors: hidden until dual is owned, then doubles the reward per copy, price x10 each', () => {
     const g = game();
     setCredits(g, num(15 + 150 + 1500 + 15000));
     expect(g.isBuyableAvailable('dup')).toBe(false);
     expect(g.buy('dup')).toBe('locked');
     g.buy('dual');
     expect(g.isBuyableAvailable('dup')).toBe(true);
-    expect(g.outputMultiplier('a').eq(num(2))).toBe(true);
+    expect(g.rewardMultiplier('a').eq(num(2))).toBe(true);
 
     expect(g.costOf('dup').eq(num(150))).toBe(true);
     expect(g.buy('dup')).toBe('purchased');
-    expect(g.outputMultiplier('a').eq(num(4))).toBe(true);
+    expect(g.rewardMultiplier('a').eq(num(4))).toBe(true);
     expect(g.costOf('dup').eq(num(1500))).toBe(true);
     expect(g.buy('dup')).toBe('purchased');
-    expect(g.outputMultiplier('a').eq(num(8))).toBe(true);
+    expect(g.rewardMultiplier('a').eq(num(8))).toBe(true);
     expect(g.costOf('dup').eq(num(15000))).toBe(true);
     expect(g.buy('dup')).toBe('purchased');
     expect(g.ownedCount('dup')).toBe(3);
-    expect(g.outputMultiplier('a').eq(num(16))).toBe(true);
+    expect(g.rewardMultiplier('a').eq(num(16))).toBe(true);
     expect(g.isBuyableMaxed('dup')).toBe(false);
 
     g.startAction('a');
     g.tick(10_000);
     expect(g.getState().credits.eq(num(0.5 * 16))).toBe(true);
-    expect(g.getState().actions['a']!.xp.eq(num(16))).toBe(true);
+    expect(g.getState().actions['a']!.xp.eq(num(1))).toBe(true); // the multiplier is on the reward only
   });
 
   it('auto-run with a huge tick completes every run that fits (no run is dropped)', () => {
@@ -239,7 +240,7 @@ describe('GameEngine - re-sleeve', () => {
 
   it('a higher sleeve level speeds up runs and survives re-sleeving (worked example)', () => {
     const g = game();
-    setSleeveXp(g, num(10)); // sleeve level 2
+    setSleeveXp(g, num(10)); // sleeve level 1
     expect(g.currentDurationMs('a')).toBe(5_000);
     g.resleeve();
     expect(g.currentDurationMs('a')).toBe(5_000);
@@ -271,7 +272,7 @@ describe('GameEngine - network action and passive income', () => {
   });
 
   it('passive income uses the configured rate and the global reward lever', () => {
-    const g = game({ network: { creditsPerNodePerSecond: 2 }, global: { rewardMultiplier: 3 } });
+    const g = game({ network: { creditsPerNodePerSecond: 2 }, global: { creditMultiplier: 3 } });
     (g.getState() as { network: unknown }).network = num(1);
     expect(g.passiveCreditsPerSecond().eq(num(6))).toBe(true);
   });
@@ -322,11 +323,55 @@ describe('GameEngine - sleeve stats and global buyables', () => {
     expect(g.getState().credits.isZero()).toBe(true);
   });
 
-  it('an access level buyable never lowers the access level', () => {
+  it('an access level buyable adds its amount to the base access level', () => {
     const g = game({ sleeve: { baseAccessLevel: 5 } });
     setCredits(g, num(1000));
     g.buy('access');
-    expect(g.sleeveStats().accessLevel).toBe(5);
+    expect(g.sleeveStats().accessLevel).toBe(6);
+  });
+
+  it('a repeatable access level buyable stacks: each copy adds its amount, each copy costs more', () => {
+    const g = game({
+      buyables: [
+        {
+          id: 'ax',
+          name: 'AX',
+          description: '',
+          cost: num(5),
+          costGrowth: 1000,
+          maxPurchases: Infinity,
+          effect: { kind: 'accessLevel', amount: 1 },
+        },
+      ],
+    });
+    setCredits(g, num(5 + 5_000 + 5_000_000));
+    expect(g.sleeveStats().accessLevel).toBe(1);
+    for (const [owned, level] of [
+      [1, 2],
+      [2, 3],
+      [3, 4],
+    ] as const) {
+      expect(g.buy('ax')).toBe('purchased');
+      expect(g.ownedCount('ax')).toBe(owned);
+      expect(g.sleeveStats().accessLevel).toBe(level);
+    }
+    expect(g.costOf('ax').eq(num(5e9))).toBe(true); // 5, 5K, 5M, then 5B
+  });
+
+  it('the access level a copy grants is gated by the actions: a locked action opens at exactly its required level', () => {
+    const locked = { ...testConfig.actions[0]!, id: 'locked', requiredAccessLevel: 3 };
+    const g = game({
+      actions: [locked],
+      buyables: [
+        { id: 'ax', name: 'AX', description: '', cost: num(1), maxPurchases: Infinity, effect: { kind: 'accessLevel', amount: 1 } },
+      ],
+    });
+    setCredits(g, num(10));
+    expect(g.isUnlocked('locked')).toBe(false);
+    g.buy('ax');
+    expect(g.isUnlocked('locked')).toBe(false);
+    g.buy('ax');
+    expect(g.isUnlocked('locked')).toBe(true);
   });
 
   it('a repeatable interface buyable adds its amount per copy', () => {
@@ -344,7 +389,7 @@ describe('GameEngine - sleeve stats and global buyables', () => {
     setCredits(g, num(1100));
     g.buy('speed');
     g.buy('access');
-    expect(g.outputMultiplier('a').eq(num(1))).toBe(true);
+    expect(g.rewardMultiplier('a').eq(num(1))).toBe(true);
     expect(g.isAutoRun('a')).toBe(false);
     g.resleeve();
     expect(g.sleeveStats()).toMatchObject({ accessLevel: 1, interfaceSpeed: 1, heat: 0 });
@@ -372,7 +417,7 @@ describe('GameEngine - interface speed', () => {
 
   it('stacks with action level, sleeve level and the global lever', () => {
     const g = game({ sleeve: { baseInterfaceSpeed: 0.5 }, global: { speedMultiplier: 4 } });
-    (g.getState().actions['a'] as { xp: unknown }).xp = num(100); // action level 3
+    (g.getState().actions['a'] as { xp: unknown }).xp = num(110); // action level 3 (10 + 100 XP)
     expect(g.currentSpeed('a')).toBe(3 * 1 * 0.5 * 4);
   });
 });
@@ -391,15 +436,17 @@ describe('GameEngine - heat tax', () => {
     expect(g.getState().credits.eq(num(0.5))).toBe(true);
   });
 
-  it('13 heat subtracts 13 percent of earned credits', () => {
+  it('13 heat subtracts 13 percent of the credits nodes produce, and nothing from a run reward', () => {
     const g = taxed(13);
     expect(g.creditKeepFactor()).toBeCloseTo(0.87, 10);
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(0.5 * 0.87, 10);
+    expect(g.getState().credits.toNumber()).toBeCloseTo(0.5, 10); // the run pays in full
+    (g.getState() as { network: unknown }).network = num(20);
+    expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(20 * 0.05 * 0.87, 10);
   });
 
-  it('also taxes passive network income', () => {
+  it('taxes passive network income', () => {
     const g = taxed(50);
     (g.getState() as { network: unknown }).network = num(20);
     expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(0.5, 10); // 20 * 0.05 * 0.5
@@ -407,14 +454,15 @@ describe('GameEngine - heat tax', () => {
     expect(g.getState().credits.toNumber()).toBeCloseTo(0.5, 10);
   });
 
-  it('does not tax network nodes, and 100 or more heat earns no credits at all', () => {
+  it('does not tax network nodes being built or run rewards; 100 heat stops only the credits nodes produce', () => {
     const both = game({ actions: [testConfig.actions[0]!, networkAction] });
     (both.getState() as { heat: number }).heat = 100;
+    (both.getState() as { network: unknown }).network = num(20);
     both.startAction('net');
     both.startAction('a');
     both.tick(20_000);
-    expect(both.getState().network.eq(num(1))).toBe(true);
-    expect(both.getState().credits.isZero()).toBe(true);
+    expect(both.getState().network.eq(num(21))).toBe(true); // 20 + 1 built
+    expect(both.getState().credits.toNumber()).toBeCloseTo(0.5, 10); // the run paid in full, the 20 nodes paid nothing
   });
 
   it('the base heat of the config counts as well', () => {
@@ -467,9 +515,9 @@ describe('GameEngine - interface speed reward', () => {
 
   it('is a multiplier with diminishing returns: 1000 runs double the speed, 3000 runs quadruple it', () => {
     const g = practice({ sleeve: { baseInterfaceSpeed: 0.1 } });
-    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(1);
+    (g.getState() as { hackingProficiency: ReturnType<typeof num> }).hackingProficiency = num(1);
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(0.2, 10);
-    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(3);
+    (g.getState() as { hackingProficiency: ReturnType<typeof num> }).hackingProficiency = num(3);
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(0.4, 10);
   });
 
@@ -478,7 +526,7 @@ describe('GameEngine - interface speed reward', () => {
       sleeve: { baseInterfaceSpeed: 1 },
       buyables: [{ id: 'b', name: 'B', description: '', cost: num(0), effect: { kind: 'interfaceSpeed', amount: 1 } }],
     });
-    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(1);
+    (g.getState() as { hackingProficiency: ReturnType<typeof num> }).hackingProficiency = num(1);
     g.buy('b');
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(4, 10); // (1 + 1) * (1 + 1)
   });
@@ -603,16 +651,17 @@ describe('GameEngine - access level and Push malware', () => {
     expect(g.sleeveStats().heat).toBe(1);
   });
 
-  it('heat taxes the next run: 1 heat keeps 99 percent', () => {
+  it('runs are paid in full whatever the heat: only node income is taxed', () => {
     const g = withMalware();
     setCredits(g, num(1000));
     g.buy('access');
     (g.getState() as { network: unknown }).network = num(100);
     g.startAction('mal');
-    g.tick(6_000); // pays 100 at 0 heat, then heat = 1
+    const before = g.getState().credits.toNumber();
+    g.tick(6_000); // pays 100, then heat = 1
     g.startAction('mal');
-    g.tick(6_000); // pays 99
-    expect(g.getState().credits.toNumber()).toBeCloseTo(199, 8);
+    g.tick(6_000); // pays 100 again
+    expect(g.getState().credits.toNumber() - before).toBeGreaterThanOrEqual(200 - 1e-8);
     expect(g.getState().heat).toBe(2);
   });
 
@@ -651,9 +700,9 @@ describe('GameEngine - sleeve levels are per action', () => {
 
   it('a sleeve level speeds up only its own action', () => {
     const g = both();
-    setSleeveXp(g, num(10), 'a'); // sleeve level 2 for 'a' only
-    expect(g.sleeveLevel('a')).toBe(2);
-    expect(g.sleeveLevel('net')).toBe(1);
+    setSleeveXp(g, num(10), 'a'); // sleeve level 1 for 'a' only
+    expect(g.sleeveLevel('a')).toBe(1);
+    expect(g.sleeveLevel('net')).toBe(0);
     expect(g.currentDurationMs('a')).toBe(5_000);
     expect(g.currentDurationMs('net')).toBe(20_000);
   });
@@ -661,6 +710,36 @@ describe('GameEngine - sleeve levels are per action', () => {
   it('a per-action sleeve level rule overrides the default', () => {
     const g = game({ actions: [{ ...testConfig.actions[0]!, sleeveLevels: { firstLevelXp: 2, growthFactor: 2 } }] });
     setSleeveXp(g, num(2));
-    expect(g.sleeveLevel('a')).toBe(2);
+    expect(g.sleeveLevel('a')).toBe(1);
+  });
+});
+
+describe('GameEngine - the credit multiplier scales credits only', () => {
+  const lever = { global: { creditMultiplier: 7 } };
+  const everyKind = [
+    { kind: 'networkNodes', field: 'network' },
+    { kind: 'hackingProficiency', field: 'hackingProficiency' },
+    { kind: 'nodePayout', field: 'nodePayoutBonus' },
+    { kind: 'iceRating', field: 'iceRating' },
+    { kind: 'infamy', field: 'infamy' },
+  ] as const;
+
+  it.each(everyKind)('does not change what a $kind reward pays', ({ kind, field }) => {
+    const action = { id: 'x', name: 'X', baseDurationMs: 1_000, reward: num(1), rewardKind: kind, xpPerRun: num(1) };
+    const paid = (overrides: object): number => {
+      const g = game({ ...overrides, actions: [testConfig.actions[0]!, action] });
+      g.startAction('x');
+      g.tick(1_000);
+      const value = (g.getState() as unknown as Record<string, { toNumber?: () => number } | number>)[field];
+      return typeof value === 'number' ? value : value!.toNumber!();
+    };
+    expect(paid(lever)).toBe(paid({}));
+  });
+
+  it('multiplies credits paid by a run and by passive income', () => {
+    const g = game(lever);
+    expect(g.rewardPerRun('a').eq(num(3.5))).toBe(true);
+    (g.getState() as { network: unknown }).network = num(20);
+    expect(g.passiveCreditsPerSecond().eq(num(7))).toBe(true);
   });
 });

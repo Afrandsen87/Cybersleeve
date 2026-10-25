@@ -76,7 +76,7 @@ export class SaveGame {
    */
   constructor(
     private readonly store: KeyValueStore,
-    private readonly config: Pick<GameConfig, 'actions' | 'buyables' | 'progression' | 'sleeve'>,
+    private readonly config: Pick<GameConfig, 'actions' | 'buyables' | 'items' | 'progression' | 'sleeve'>,
     private readonly factory: NumberFactory,
   ) {}
 

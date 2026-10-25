@@ -3,8 +3,8 @@
  *
  * Helpers for working with {@link GameConfig}: deriving variants and validating values.
  */
-import { REWARD_KINDS } from './rewards';
-import { ACTION_EFFECT_KINDS } from './types';
+import { traitsOf } from './effectTraits';
+import { REWARD_KINDS, rewardOf } from './rewards';
 import type {
   BuyableEffect,
   EngineConfig,
@@ -23,6 +23,7 @@ import type {
 export interface ConfigOverrides {
   readonly actions?: GameConfig['actions'];
   readonly buyables?: GameConfig['buyables'];
+  readonly items?: GameConfig['items'];
   readonly progression?: Partial<ProgressionConfig>;
   readonly speed?: Partial<SpeedConfig>;
   readonly global?: Partial<GlobalTuning>;
@@ -47,6 +48,7 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
   return {
     actions: overrides.actions ?? base.actions,
     buyables: overrides.buyables ?? base.buyables,
+    items: overrides.items ?? base.items,
     progression: { ...base.progression, ...overrides.progression },
     speed: { ...base.speed, ...overrides.speed },
     global: { ...base.global, ...overrides.global },
@@ -57,7 +59,7 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
   };
 }
 
-const CURRENCIES: readonly string[] = ['credits', 'networkNodes'];
+const CURRENCIES: readonly string[] = ['credits', 'networkNodes', 'skillPoints'];
 
 const positive = (v: number): boolean => Number.isFinite(v) && v > 0;
 const positiveInt = (v: number): boolean => Number.isInteger(v) && v >= 1;
@@ -95,7 +97,6 @@ function checkActionRules(a: GameConfig['actions'][number], buyableIds: Readonly
     if (e.kind === 'removeNodesFraction' && !(Number.isFinite(e.fraction) && e.fraction >= 0 && e.fraction <= 1)) {
       errors.push(`${where}: removeNodesFraction must be between 0 and 1`);
     }
-    if (e.kind === 'addHeat' && !(Number.isFinite(e.heat) && e.heat >= 0)) errors.push(`${where}: addHeat must be >= 0`);
   }
 }
 
@@ -104,6 +105,8 @@ interface EffectContext {
   /** Prefix for messages, e.g. `buyable "x"`. */
   readonly where: string;
   readonly actionIds: ReadonlySet<string>;
+  readonly itemIds: ReadonlySet<string>;
+  readonly rarityIds: ReadonlySet<string>;
   readonly errors: string[];
 }
 
@@ -119,17 +122,22 @@ const EFFECT_CHECKS: { readonly [K in BuyableEffect['kind']]: (effect: Extract<B
   {
     autoRun: () => {},
     unlock: () => {},
-    outputMultiplier: factorAtLeastOne,
+    rewardMultiplier: factorAtLeastOne,
     nodePayoutMultiplier: factorAtLeastOne,
-    circumventionMultiplier: factorAtLeastOne,
+    iceRatingMultiplier: factorAtLeastOne,
     interfaceSpeed: (e, { where, errors }) => {
       if (!(Number.isFinite(e.amount) && e.amount >= 0)) errors.push(`${where}: interface speed amount must be >= 0`);
     },
     accessLevel: (e, { where, errors }) => {
-      if (!(Number.isInteger(e.level) && e.level >= 1)) errors.push(`${where}: access level must be an integer >= 1`);
+      if (!(Number.isInteger(e.amount) && e.amount >= 1)) errors.push(`${where}: access level amount must be an integer >= 1`);
     },
     networkGrowth: (e, { where, errors }) => {
       if (!(Number.isFinite(e.ratePerSecond) && e.ratePerSecond >= 0)) errors.push(`${where}: network growth rate must be >= 0`);
+    },
+    networkGrowthFromActionLevel: (e, { where, actionIds, errors }) => {
+      if (!(Number.isFinite(e.percentPerLevel) && e.percentPerLevel >= 0))
+        errors.push(`${where}: network growth percent per level must be >= 0`);
+      if (!actionIds.has(e.sourceActionId)) errors.push(`${where}: network growth refers to unknown action "${e.sourceActionId}"`);
     },
     interfaceSpeedPerLnNodes: (e, { where, errors }) => {
       if (!(Number.isFinite(e.perLn) && e.perLn >= 0)) errors.push(`${where}: perLn must be >= 0`);
@@ -146,12 +154,73 @@ const EFFECT_CHECKS: { readonly [K in BuyableEffect['kind']]: (effect: Extract<B
         errors.push(`${where}: XP reduction maxReduction must be in [0, 1)`);
       }
     },
+    interfaceSpeedMultiplier: factorAtLeastOne,
+    heatCooldownSpeed: factorAtLeastOne,
+    hackingProficiencyMultiplier: factorAtLeastOne,
+    actionXpReduction: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.amount) && e.amount > 0 && e.amount < 1)) errors.push(`${where}: actionXpReduction amount must be in (0, 1)`);
+    },
+    itemDropChanceMultiplier: (e, ctx) => {
+      factorAtLeastOne(e, ctx);
+      if (!ctx.itemIds.has(e.itemId)) ctx.errors.push(`${ctx.where}: drop chance refers to unknown item "${e.itemId}"`);
+    },
+    nodePayoutFromItems: (e, { where, itemIds, rarityIds, errors }) => {
+      if (!itemIds.has(e.itemId)) errors.push(`${where}: refers to unknown item "${e.itemId}"`);
+      if (!rarityIds.has(e.rarityId)) errors.push(`${where}: refers to unknown rarity "${e.rarityId}"`);
+      if (!(Number.isFinite(e.perItem) && e.perItem >= 0)) errors.push(`${where}: perItem must be >= 0`);
+    },
+    backChannel: (e, { where, itemIds, rarityIds, errors }) => {
+      if (!itemIds.has(e.itemId)) errors.push(`${where}: refers to unknown item "${e.itemId}"`);
+      if (!rarityIds.has(e.rarityId)) errors.push(`${where}: refers to unknown rarity "${e.rarityId}"`);
+      if (!(Number.isFinite(e.molesPerItem) && e.molesPerItem > 0)) errors.push(`${where}: molesPerItem must be > 0`);
+      if (!(Number.isFinite(e.cooldownBoost) && e.cooldownBoost >= 0)) errors.push(`${where}: cooldownBoost must be >= 0`);
+    },
+    rarityShiftFromProficiency: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.fractionPerOrder) && e.fractionPerOrder > 0 && e.fractionPerOrder <= 1)) {
+        errors.push(`${where}: fractionPerOrder must be in (0, 1]`);
+      }
+    },
+    itemDrop: ({ drop }, { where, itemIds, rarityIds, errors }) => {
+      if (!itemIds.has(drop.itemId)) errors.push(`${where}: drop refers to unknown item "${drop.itemId}"`);
+      if (!(Number.isFinite(drop.chance) && drop.chance >= 0 && drop.chance <= 1))
+        errors.push(`${where}: drop chance must be between 0 and 1`);
+      let total = 0;
+      for (const [rarity, weight] of Object.entries(drop.rarityWeights)) {
+        if (!rarityIds.has(rarity)) errors.push(`${where}: drop weights refer to unknown rarity "${rarity}"`);
+        if (!(Number.isFinite(weight) && weight >= 0)) errors.push(`${where}: drop weight of "${rarity}" must be >= 0`);
+        else total += weight;
+      }
+      if (!(total > 0)) errors.push(`${where}: at least one drop weight must be > 0`);
+    },
   };
 
-/** Validates the numbers and action references of one buyable's effect. */
-function checkEffect(b: GameConfig['buyables'][number], actionIds: ReadonlySet<string>, errors: string[]): void {
+/** Validates the numbers and references of one buyable's effect. */
+function checkEffect(b: GameConfig['buyables'][number], ctx: Omit<EffectContext, 'where'>): void {
   const check = EFFECT_CHECKS[b.effect.kind] as (effect: BuyableEffect, ctx: EffectContext) => void;
-  check(b.effect, { where: `buyable "${b.id}"`, actionIds, errors });
+  check(b.effect, { ...ctx, where: `buyable "${b.id}"` });
+}
+
+/** Checks the item entity (unique ids, sell values) and returns the ids of the items and rarities. */
+function checkItems(items: GameConfig['items'], errors: string[]): { itemIds: Set<string>; rarityIds: Set<string> } {
+  const itemIds = new Set<string>();
+  const rarityIds = new Set<string>();
+  for (const item of items.definitions) {
+    if (itemIds.has(item.id)) errors.push(`duplicate item id "${item.id}"`);
+    itemIds.add(item.id);
+  }
+  for (const rarity of items.rarities) {
+    if (rarityIds.has(rarity.id)) errors.push(`duplicate rarity id "${rarity.id}"`);
+    rarityIds.add(rarity.id);
+    if (!rarity.sellValue.isFinite() || rarity.sellValue.isNegative()) errors.push(`rarity "${rarity.id}": sellValue must be >= 0`);
+  }
+  if (items.definitions.length > 0 && items.rarities.length === 0) errors.push('items need at least one rarity');
+  if (items.augment) {
+    if (!itemIds.has(items.augment.itemId)) errors.push(`items.augment refers to unknown item "${items.augment.itemId}"`);
+    if (!(Number.isFinite(items.augment.xpBonusPerItem) && items.augment.xpBonusPerItem > 0)) {
+      errors.push('items.augment.xpBonusPerItem must be > 0');
+    }
+  }
+  return { itemIds, rarityIds };
 }
 
 /**
@@ -199,8 +268,8 @@ export function validateConfig(config: GameConfig): string[] {
     if (!positive(a.baseDurationMs)) errors.push(`action "${a.id}": baseDurationMs must be > 0`);
     if (!a.reward.isFinite() || a.reward.isNegative()) errors.push(`action "${a.id}": reward must be >= 0`);
     if (!a.xpPerRun.isFinite() || a.xpPerRun.isNegative()) errors.push(`action "${a.id}": xpPerRun must be >= 0`);
-    if ((a.rewardKind === 'networkNodes' || a.rewardKind === 'interfaceSpeed' || a.rewardKind === 'nodePayout') && a.rewardPerNetworkNode) {
-      errors.push(`action "${a.id}": cannot pay network nodes per network node (the network would compound on itself)`);
+    if (a.rewardPerNetworkNode && REWARD_KINDS.includes(a.rewardKind ?? 'credits') && !rewardOf(a.rewardKind).mayBePerNetworkNode) {
+      errors.push(`action "${a.id}": a ${a.rewardKind} reward cannot be paid per network node (the network would compound on itself)`);
     }
     if (a.levels) checkLevelRule(`action "${a.id}".levels`, a.levels, errors);
     if (a.requiredAccessLevel !== undefined && !(Number.isInteger(a.requiredAccessLevel) && a.requiredAccessLevel >= 1)) {
@@ -222,15 +291,15 @@ export function validateConfig(config: GameConfig): string[] {
     buyableIds.add(b.id);
   }
   for (const a of config.actions) checkActionRules(a, buyableIds, errors);
+  const { itemIds, rarityIds } = checkItems(config.items, errors);
   for (const b of config.buyables) {
     if (!b.cost.isFinite() || b.cost.isNegative()) errors.push(`buyable "${b.id}": cost must be >= 0`);
-    const actionEffect = ACTION_EFFECT_KINDS.includes(b.effect.kind);
-    if (actionEffect && b.actionId === undefined) errors.push(`buyable "${b.id}": ${b.effect.kind} needs an actionId`);
+    if (traitsOf(b).needsAction && b.actionId === undefined) errors.push(`buyable "${b.id}": ${b.effect.kind} needs an actionId`);
     if (b.actionId !== undefined && !actionIds.has(b.actionId)) errors.push(`buyable "${b.id}": belongs to unknown action "${b.actionId}"`);
     if (b.currency !== undefined && !CURRENCIES.includes(b.currency)) {
       errors.push(`buyable "${b.id}": unknown currency`);
     }
-    checkEffect(b, actionIds, errors);
+    checkEffect(b, { actionIds, itemIds, rarityIds, errors });
     for (const r of b.requires ?? []) {
       if (!buyableIds.has(r)) errors.push(`buyable "${b.id}": requires unknown buyable "${r}"`);
       if (r === b.id) errors.push(`buyable "${b.id}": cannot require itself`);
@@ -247,6 +316,9 @@ export function validateConfig(config: GameConfig): string[] {
   if (!positiveInt(p.runsPerSleeveXp)) errors.push('progression.runsPerSleeveXp must be an integer >= 1');
   if (!positive(p.sleeveXpPerGrant)) errors.push('progression.sleeveXpPerGrant must be > 0');
   if (!(Number.isFinite(p.startingCredits) && p.startingCredits >= 0)) errors.push('progression.startingCredits must be >= 0');
+  if (!(Number.isFinite(p.maxSleeveXpReduction) && p.maxSleeveXpReduction >= 0 && p.maxSleeveXpReduction < 1)) {
+    errors.push('progression.maxSleeveXpReduction must be in [0, 1)');
+  }
   checkLevelRule('progression.actionLevels', p.actionLevels, errors);
   checkLevelRule('progression.sleeveLevels', p.sleeveLevels, errors);
 
@@ -257,12 +329,15 @@ export function validateConfig(config: GameConfig): string[] {
   const sl = config.sleeve;
   if (!(Number.isInteger(sl.baseAccessLevel) && sl.baseAccessLevel >= 1)) errors.push('sleeve.baseAccessLevel must be an integer >= 1');
   if (!(Number.isFinite(sl.baseInterfaceSpeed) && sl.baseInterfaceSpeed > 0)) errors.push('sleeve.baseInterfaceSpeed must be > 0');
+  if (!positive(sl.earnedSpeedScale)) errors.push('sleeve.earnedSpeedScale must be > 0');
+  if (!(Number.isFinite(sl.earnedSpeedExponent) && sl.earnedSpeedExponent <= 1)) errors.push('sleeve.earnedSpeedExponent must be <= 1');
   if (!(Number.isFinite(sl.baseHeat) && sl.baseHeat >= 0)) errors.push('sleeve.baseHeat must be >= 0');
+  if (!(Number.isFinite(sl.heatTaxPerPoint) && sl.heatTaxPerPoint >= 0)) errors.push('sleeve.heatTaxPerPoint must be >= 0');
   if (!positive(sl.heatCooldownMs)) errors.push('sleeve.heatCooldownMs must be > 0');
   if (!positive(sl.heatCooldownAmount)) errors.push('sleeve.heatCooldownAmount must be > 0');
-  if (!(Number.isFinite(sl.baseCircumvention) && sl.baseCircumvention >= 1)) errors.push('sleeve.baseCircumvention must be >= 1');
-  if (!(Number.isFinite(sl.circumventionReductionPerOrder) && sl.circumventionReductionPerOrder >= 0)) {
-    errors.push('sleeve.circumventionReductionPerOrder must be >= 0');
+  if (!(Number.isFinite(sl.baseIceRating) && sl.baseIceRating >= 1)) errors.push('sleeve.baseIceRating must be >= 1');
+  if (!(Number.isFinite(sl.iceRatingReductionPerOrder) && sl.iceRatingReductionPerOrder >= 0)) {
+    errors.push('sleeve.iceRatingReductionPerOrder must be >= 0');
   }
   if (!(Number.isFinite(sl.infamyHeatSlowdown) && sl.infamyHeatSlowdown >= 0)) errors.push('sleeve.infamyHeatSlowdown must be >= 0');
   if (!positive(sl.infamyDecayPeriodMs)) errors.push('sleeve.infamyDecayPeriodMs must be > 0');
@@ -271,16 +346,17 @@ export function validateConfig(config: GameConfig): string[] {
   checkScaling('speed.sleeveLevel', config.speed.sleeveLevel, errors);
 
   const g = config.global;
-  for (const key of ['speedMultiplier', 'rewardMultiplier', 'xpMultiplier', 'costMultiplier'] as const) {
+  for (const key of ['speedMultiplier', 'creditMultiplier', 'xpMultiplier', 'costMultiplier'] as const) {
     if (!positive(g[key])) errors.push(`global.${key} must be > 0`);
   }
 
   if (!positiveInt(config.engine.maxBatchesPerTick)) errors.push('engine.maxBatchesPerTick must be an integer >= 1');
   if (!positive(config.engine.maxSliceMs)) errors.push('engine.maxSliceMs must be > 0');
   if (!positiveInt(config.engine.maxSlicesPerTick)) errors.push('engine.maxSlicesPerTick must be an integer >= 1');
+  if (!positive(config.engine.minRunDurationMs)) errors.push('engine.minRunDurationMs must be > 0');
 
   const r = config.runtime;
-  for (const key of ['stepMs', 'maxDeltaMs', 'autosaveMs'] as const) {
+  for (const key of ['stepMs', 'renderMs', 'maxDeltaMs', 'autosaveMs'] as const) {
     if (!positive(r[key])) errors.push(`runtime.${key} must be > 0`);
   }
   if (!(Number.isFinite(r.fastForwardFactor) && r.fastForwardFactor > 1)) errors.push('runtime.fastForwardFactor must be > 1');

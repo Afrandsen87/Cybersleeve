@@ -15,6 +15,8 @@ import {
   resolveEffects,
   resolveSleeveStats,
   serializeState,
+  SPEED_FACTOR_IDS,
+  speedFactors,
   speedMultiplier,
   validateConfig,
   type LevelRuleConfig,
@@ -23,45 +25,73 @@ import {
 const config = testConfig;
 const rule = (c: LevelRuleConfig) => new LevelRule(c, numberFactory);
 
-describe('LevelRule (default 10 / 10)', () => {
+describe('LevelRule (default 10 / 10): every level costs its full amount on its own', () => {
   const r = rule({ firstLevelXp: 10, growthFactor: 10 });
 
+  // Levels start at 0. Level 1 costs 10, level 2 a further 100, level 3 a further 1000, ... so the totals are 10, 110, 1110, 11110.
   it.each([
-    [0, 1],
-    [1, 1],
-    [9, 1],
-    [9.99, 1],
-    [10, 2],
-    [99, 2],
-    [100, 3],
-    [999, 3],
-    [1000, 4],
-    [10_000, 5],
+    [0, 0],
+    [1, 0],
+    [9, 0],
+    [9.99, 0],
+    [10, 1],
+    [99, 1],
+    [100, 1],
+    [109, 1],
+    [110, 2],
+    [1_109, 2],
+    [1_110, 3],
+    [10_000, 3],
+    [11_110, 4],
   ])('xp %s -> level %s', (xp, level) => {
     expect(r.levelForXp(num(xp))).toBe(level);
   });
 
   it('keeps working at astronomical scale', () => {
-    expect(r.levelForXp(num('1e300'))).toBe(301);
-    expect(r.levelForXp(num('1e1000'))).toBe(1001);
+    // Total XP of n levels is 10 * (10^n - 1) / 9, about 1.1 * 10^n.
+    expect(r.levelForXp(num('1e300'))).toBe(299);
+    expect(r.levelForXp(num('1.12e300'))).toBe(300);
+    expect(r.levelForXp(num('1e1000'))).toBe(999);
   });
 
   it('maps non-finite xp to the maximum level instead of crashing', () => {
     expect(r.levelForXp(num(Infinity))).toBe(Number.MAX_SAFE_INTEGER);
   });
 
-  it('next-level threshold of level n is 10^n', () => {
-    expect(r.xpForNextLevel(1).eq(num(10))).toBe(true);
-    expect(r.xpForNextLevel(3).eq(num(1000))).toBe(true);
+  it('the total at which the next level is reached adds up every level before it', () => {
+    expect(r.xpForNextLevel(0).eq(num(10))).toBe(true);
+    expect(r.xpForNextLevel(1).eq(num(110))).toBe(true);
+    expect(r.xpForNextLevel(2).eq(num(1110))).toBe(true);
+  });
+
+  it('a level costs its full amount, whatever came before', () => {
+    expect(r.xpCostOfLevel(0).eq(num(10))).toBe(true);
+    expect(r.xpCostOfLevel(1).eq(num(100))).toBe(true);
+    expect(r.xpCostOfLevel(2).eq(num(1000))).toBe(true);
+    // Going from level 2 to 3 takes a full thousand, not 900.
+    expect(r.xpForNextLevel(2).sub(r.xpForNextLevel(1)).eq(num(1000))).toBe(true);
+  });
+
+  it.each([
+    [0, 0],
+    [5, 5],
+    [10, 0],
+    [55, 45],
+    [109, 99],
+    [110, 0],
+    [660, 550],
+  ])('xp %s leaves %s inside the current level (the count starts again at each level-up)', (xp, into) => {
+    expect(r.xpIntoLevel(num(xp)).toNumber()).toBeCloseTo(into, 9);
   });
 
   it.each([
     [0, 0],
     [5, 0.5],
     [10, 0],
-    [55, 0.5],
-    [100, 0],
-    [550, 0.5],
+    [60, 0.5],
+    [100, 0.9],
+    [110, 0],
+    [610, 0.5],
   ])('progress fraction at xp %s is %s (position within the current level)', (xp, fraction) => {
     expect(r.progressFraction(num(xp))).toBeCloseTo(fraction, 9);
   });
@@ -75,21 +105,21 @@ describe('LevelRule (default 10 / 10)', () => {
 });
 
 describe('LevelRule (custom thresholds)', () => {
-  it('first level at 5 XP, doubling: levels 2,3,4 at 5,10,20', () => {
+  it('first level costs 5 XP, doubling: levels 1,2,3,4 cost 5,10,20,40, so they are reached at 5,15,35,75 in total', () => {
     const r = rule({ firstLevelXp: 5, growthFactor: 2 });
-    expect(r.levelForXp(num(4.99))).toBe(1);
-    expect(r.levelForXp(num(5))).toBe(2);
-    expect(r.levelForXp(num(9.99))).toBe(2);
-    expect(r.levelForXp(num(10))).toBe(3);
-    expect(r.levelForXp(num(20))).toBe(4);
-    expect(r.levelForXp(num(40))).toBe(5);
-    expect(r.xpForNextLevel(1).eq(num(5))).toBe(true);
-    expect(r.xpForNextLevel(3).eq(num(20))).toBe(true);
+    expect(r.levelForXp(num(4.99))).toBe(0);
+    expect(r.levelForXp(num(5))).toBe(1);
+    expect(r.levelForXp(num(14.99))).toBe(1);
+    expect(r.levelForXp(num(15))).toBe(2);
+    expect(r.levelForXp(num(35))).toBe(3);
+    expect(r.levelForXp(num(75))).toBe(4);
+    expect(r.xpForNextLevel(0).eq(num(5))).toBe(true);
+    expect(r.xpForNextLevel(2).eq(num(35))).toBe(true);
   });
 
   it('is exact at every boundary even when the logarithm is inexact (growth 3, first 1)', () => {
     const r = rule({ firstLevelXp: 1, growthFactor: 3 });
-    for (let level = 2; level <= 30; level++) {
+    for (let level = 1; level <= 30; level++) {
       const at = r.xpForNextLevel(level - 1);
       expect(r.levelForXp(at)).toBe(level);
       expect(r.levelForXp(at.mul(num(0.999999)))).toBe(level - 1);
@@ -113,12 +143,12 @@ describe('speed', () => {
   });
 
   it('default: multiplier = action level x sleeve level', () => {
-    expect(speedMultiplier(modifiers, ctx(3, 2))).toBe(6);
+    expect(speedMultiplier(modifiers, ctx(2, 1))).toBe(6); // (1 + 2) x (1 + 1)
   });
 
   it('interface speed multiplies the speed by its value (0.5 halves it)', () => {
-    expect(speedMultiplier(modifiers, ctx(3, 2, 0.5))).toBe(3);
-    expect(effectiveDurationMs(1_000, speedMultiplier(modifiers, ctx(1, 1, 0.5)))).toBe(2_000);
+    expect(speedMultiplier(modifiers, ctx(2, 1, 0.5))).toBe(3);
+    expect(effectiveDurationMs(1_000, speedMultiplier(modifiers, ctx(0, 0, 0.5)), 0.001)).toBe(2_000);
   });
 
   it('empty modifier list gives 1', () => {
@@ -126,17 +156,17 @@ describe('speed', () => {
   });
 
   it('divides the base duration by the multiplier (worked example 10/6 s)', () => {
-    expect(effectiveDurationMs(10_000, speedMultiplier(modifiers, ctx(3, 2)))).toBeCloseTo(10_000 / 6);
+    expect(effectiveDurationMs(10_000, speedMultiplier(modifiers, ctx(2, 1)), 0.001)).toBeCloseTo(10_000 / 6);
   });
 
-  it('linear scaling: perLevel 0.5 gives 1 + 0.5 per level above 1', () => {
-    expect(levelFactor({ kind: 'linear', perLevel: 0.5 }, 1)).toBe(1);
-    expect(levelFactor({ kind: 'linear', perLevel: 0.5 }, 5)).toBe(3);
+  it('linear scaling: perLevel 0.5 gives 1 + 0.5 per level, and level 0 is worth exactly 1', () => {
+    expect(levelFactor({ kind: 'linear', perLevel: 0.5 }, 0)).toBe(1);
+    expect(levelFactor({ kind: 'linear', perLevel: 0.5 }, 4)).toBe(3);
   });
 
   it('exponential scaling: base 2 doubles per level', () => {
-    expect(levelFactor({ kind: 'exponential', base: 2 }, 1)).toBe(1);
-    expect(levelFactor({ kind: 'exponential', base: 2 }, 4)).toBe(8);
+    expect(levelFactor({ kind: 'exponential', base: 2 }, 0)).toBe(1);
+    expect(levelFactor({ kind: 'exponential', base: 2 }, 3)).toBe(8);
   });
 
   it('config drives the modifiers (sleeve exponential, global x3)', () => {
@@ -144,14 +174,14 @@ describe('speed', () => {
       speed: { sleeveLevel: { kind: 'exponential', base: 2 } },
       global: { speedMultiplier: 3 },
     });
-    expect(speedMultiplier(createSpeedModifiers(custom), ctx(2, 4))).toBe(2 * 8 * 3);
+    expect(speedMultiplier(createSpeedModifiers(custom), ctx(1, 3))).toBe(2 * 8 * 3);
   });
 
   it('a per-action scaling override wins over the global one', () => {
     const custom = createConfig(config, {
       actions: [{ ...config.actions[0]!, speedScaling: { kind: 'linear', perLevel: 10 } }],
     });
-    expect(speedMultiplier(createSpeedModifiers(custom), ctx(2, 1))).toBe(11);
+    expect(speedMultiplier(createSpeedModifiers(custom), ctx(1, 0))).toBe(11);
   });
 });
 
@@ -165,7 +195,7 @@ describe('heatTaxFactor', () => {
     [-5, 1],
     [NaN, 1],
   ])('heat %s keeps %s of earned credits', (heat, kept) => {
-    expect(heatTaxFactor(heat)).toBeCloseTo(kept, 10);
+    expect(heatTaxFactor(heat, 0, 0.01)).toBeCloseTo(kept, 10);
   });
 });
 
@@ -173,7 +203,16 @@ describe('resolveSleeveStats', () => {
   it('reports the current heat from the state', () => {
     const stats = resolveSleeveStats(
       config.buyables,
-      { purchased: {}, heat: 4, interfaceSpeedBonus: num(0), network: num(0), circumvention: num(1), infamy: 0, nodePayoutBonus: num(0) },
+      {
+        purchased: {},
+        heat: 4,
+        hackingProficiency: num(0),
+        network: num(0),
+        iceRating: num(1),
+        infamy: 0,
+        nodePayoutBonus: num(0),
+        inventory: {},
+      },
       config.sleeve,
       numberFactory,
     );
@@ -186,11 +225,12 @@ describe('resolveSleeveStats', () => {
       {
         purchased: {},
         heat: 0,
-        interfaceSpeedBonus: num(0.25),
+        hackingProficiency: num(0.25),
         network: num(0),
-        circumvention: num(1),
+        iceRating: num(1),
         infamy: 0,
         nodePayoutBonus: num(0),
+        inventory: {},
       },
       { ...config.sleeve, baseInterfaceSpeed: 0.5 },
       numberFactory,
@@ -212,23 +252,23 @@ describe('resolveEffects', () => {
   it('has no effects when nothing is owned', () => {
     const e = effects({});
     expect(e.autoRun).toBe(false);
-    expect(e.outputMultiplier.eq(num(1))).toBe(true);
+    expect(e.rewardMultiplier.eq(num(1))).toBe(true);
   });
 
   it('combines owned effects', () => {
     const e = effects({ auto: 1, dual: 1 });
     expect(e.autoRun).toBe(true);
-    expect(e.outputMultiplier.eq(num(2))).toBe(true);
+    expect(e.rewardMultiplier.eq(num(2))).toBe(true);
   });
 
   it('applies a repeated effect once per copy (dual x1, dup x3 -> 2^4)', () => {
-    expect(effects({ dual: 1, dup: 3 }).outputMultiplier.eq(num(16))).toBe(true);
+    expect(effects({ dual: 1, dup: 3 }).rewardMultiplier.eq(num(16))).toBe(true);
   });
 
   it('does not overflow for very many copies', () => {
     const e = effects({ dual: 1, dup: 2000 });
-    expect(e.outputMultiplier.isFinite()).toBe(true);
-    expect(e.outputMultiplier.floorLog10()).toBe(Math.floor(2001 * Math.log10(2)));
+    expect(e.rewardMultiplier.isFinite()).toBe(true);
+    expect(e.rewardMultiplier.floorLog10()).toBe(Math.floor(2001 * Math.log10(2)));
   });
 
   it('ignores effects targeting other actions', () => {
@@ -277,13 +317,36 @@ describe('Progression', () => {
     expect(s.actions['a']!.runsTowardSleeveXp).toBe(5);
   });
 
-  it('action level 2 at exactly 10 xp (10 runs)', () => {
+  it('action level 1 at exactly 10 xp (10 runs)', () => {
     const s = createInitialState(config, numberFactory);
     for (let i = 0; i < 9; i++) record(s, 1, 1);
+    expect(progression.actionLevel(s, 'a')).toBe(0);
+    record(s, 1, 1);
     expect(progression.actionLevel(s, 'a')).toBe(1);
+    expect(progression.nextActionLevelXp(s, 'a').eq(num(110))).toBe(true); // 10 for level 1, a further 100 for level 2
+    expect(progression.actionXpIntoLevel(s, 'a').isZero()).toBe(true); // the count starts again
+    expect(progression.actionXpForLevel(s, 'a').eq(num(100))).toBe(true);
+  });
+
+  it('the XP counted inside a level starts again at each level-up, and the next level needs the full amount', () => {
+    const s = createInitialState(config, numberFactory);
+    record(s, 109, 109);
+    expect(progression.actionLevel(s, 'a')).toBe(1);
+    expect(progression.actionXpIntoLevel(s, 'a').toNumber()).toBe(99);
     record(s, 1, 1);
     expect(progression.actionLevel(s, 'a')).toBe(2);
-    expect(progression.nextActionLevelXp(s, 'a').eq(num(100))).toBe(true);
+    expect(progression.actionXpIntoLevel(s, 'a').toNumber()).toBe(0);
+    expect(progression.actionXpForLevel(s, 'a').toNumber()).toBe(1000);
+    record(s, 999, 999);
+    expect(progression.actionLevel(s, 'a')).toBe(2);
+    record(s, 1, 1);
+    expect(progression.actionLevel(s, 'a')).toBe(3);
+  });
+
+  it('every level starts at 0', () => {
+    const s = createInitialState(config, numberFactory);
+    expect(progression.actionLevel(s, 'a')).toBe(0);
+    expect(progression.sleeveLevel(s, 'a')).toBe(0);
   });
 
   it('a per-action level rule overrides the default', () => {
@@ -292,8 +355,10 @@ describe('Progression', () => {
     });
     const p = new Progression(custom, numberFactory);
     const s = createInitialState(custom, numberFactory);
-    p.recordRuns(s, 'a', num(4), num(4));
-    expect(p.actionLevel(s, 'a')).toBe(3);
+    p.recordRuns(s, 'a', num(5), num(5));
+    expect(p.actionLevel(s, 'a')).toBe(1); // level 1 costs 2, level 2 a further 4: 5 XP is not enough for level 2
+    p.recordRuns(s, 'a', num(1), num(1));
+    expect(p.actionLevel(s, 'a')).toBe(2);
   });
 
   it('rejects unknown actions', () => {
@@ -388,7 +453,7 @@ describe('serialization', () => {
     const s = createInitialState(config, numberFactory);
     s.credits = num('1.5e400');
     s.network = num(33);
-    s.actions['a'] = { xp: num(77), sleeveXp: num(12), runsTowardSleeveXp: 42, running: true, progressMs: 1234 };
+    s.actions['a'] = { xp: num(77), sleeveXp: num(12), runsTowardSleeveXp: 42, augments: { common: 3 }, running: true, progress: 0.25 };
     s.purchased['auto'] = 1;
     s.purchased['dual'] = 1;
     s.purchased['dup'] = 7;
@@ -400,39 +465,18 @@ describe('serialization', () => {
     expect(restored.actions['a']!.runsTowardSleeveXp).toBe(42);
     expect(restored.actions['a']!.xp.eq(num(77))).toBe(true);
     expect(restored.actions['a']!.running).toBe(true);
-    expect(restored.actions['a']!.progressMs).toBe(1234);
+    expect(restored.actions['a']!.progress).toBe(0.25);
     expect(restored.purchased).toEqual({ auto: 1, dual: 1, dup: 7 });
   });
 
-  it('still reads version 1 saves (purchased as a list of ids)', () => {
-    const json = JSON.stringify({
-      version: 1,
-      credits: '5',
-      sleeveXp: '3',
-      runsTowardSleeveXp: 4,
-      actions: { a: { xp: '9', running: false, progressMs: 0 } },
-      purchased: ['auto', 'dual', 'ghost'],
-    });
-    const s = deserializeState(json, config, numberFactory)!;
-    expect(s.purchased).toEqual({ auto: 1, dual: 1 });
-    expect(s.credits.eq(num(5))).toBe(true);
-  });
-
-  it('moves the global sleeve xp of version 1 and 2 saves to the first action and starts with no network', () => {
-    const json = JSON.stringify({
-      version: 2,
-      credits: '5',
-      sleeveXp: '3',
-      runsTowardSleeveXp: 4,
-      actions: { a: { xp: '9', running: false, progressMs: 0 } },
-      purchased: {},
-    });
-    const s = deserializeState(json, config, numberFactory)!;
-    expect(s.actions['a']!.sleeveXp.eq(num(3))).toBe(true);
-    expect(s.actions['a']!.runsTowardSleeveXp).toBe(4);
-    expect(s.actions['a']!.xp.eq(num(9))).toBe(true);
-    expect(s.network.isZero()).toBe(true);
-  });
+  it.each([0, 1, 2, 5, 99, '4', null])(
+    'refuses a save of another format version (%j): the game starts over instead of guessing',
+    (version) => {
+      const json = JSON.parse(serializeState(createInitialState(config, numberFactory)));
+      json.version = version;
+      expect(deserializeState(JSON.stringify(json), config, numberFactory)).toBeNull();
+    },
+  );
 
   it('round-trips heat, and a save without heat loads with 0', () => {
     const s = createInitialState(config, numberFactory);
@@ -489,7 +533,7 @@ describe('serialization', () => {
       version: 3,
       credits: '5',
       network: '0',
-      actions: { ghost: { xp: '9', sleeveXp: '0', runsTowardSleeveXp: 0, running: true, progressMs: 1 } },
+      actions: { ghost: { xp: '9', sleeveXp: '0', runsTowardSleeveXp: 0, running: true, progress: 0.5 } },
       purchased: { 'ghost-buyable': 1, dual: 1 },
     });
     const s = deserializeState(json, config, numberFactory)!;
@@ -536,16 +580,16 @@ describe('config helpers', () => {
           maxPurchases: 0,
           costGrowth: 0.5,
         },
-        { id: 'x', name: 'x', description: '', actionId: 'a', cost: num(-1), effect: { kind: 'outputMultiplier', factor: 0.5 } },
+        { id: 'x', name: 'x', description: '', actionId: 'a', cost: num(-1), effect: { kind: 'rewardMultiplier', factor: 0.5 } },
         { id: 'g1', name: 'g', description: '', actionId: 'a', cost: num(1), effect: { kind: 'interfaceSpeed', amount: -1 } },
-        { id: 'g2', name: 'g', description: '', cost: num(1), effect: { kind: 'accessLevel', level: 0 } },
+        { id: 'g2', name: 'g', description: '', cost: num(1), effect: { kind: 'accessLevel', amount: 0 } },
         { id: 'g3', name: 'g', description: '', cost: num(1), effect: { kind: 'autoRun' } },
       ],
       sleeve: { baseAccessLevel: 0, baseInterfaceSpeed: 0, baseHeat: -1, heatCooldownMs: 0, heatCooldownAmount: 0 },
       progression: { runsPerSleeveXp: 0, sleeveXpPerGrant: 0, startingCredits: -1 },
       speed: { actionLevel: { kind: 'linear', perLevel: 0 }, sleeveLevel: { kind: 'exponential', base: 0.5 } },
       network: { creditsPerNodePerSecond: -1 },
-      global: { speedMultiplier: 0, rewardMultiplier: -1, xpMultiplier: NaN, costMultiplier: 0 },
+      global: { speedMultiplier: 0, creditMultiplier: -1, xpMultiplier: NaN, costMultiplier: 0 },
       engine: { maxBatchesPerTick: 0 },
       runtime: { stepMs: 0, maxDeltaMs: -1, autosaveMs: 0, fastForwardFactor: 1 },
     });
@@ -569,7 +613,7 @@ describe('config helpers', () => {
       'speed.actionLevel.perLevel',
       'speed.sleeveLevel.base',
       'global.speedMultiplier',
-      'global.rewardMultiplier',
+      'global.creditMultiplier',
       'global.xpMultiplier',
       'global.costMultiplier',
       'maxBatchesPerTick',
@@ -580,7 +624,7 @@ describe('config helpers', () => {
       'network.creditsPerNodePerSecond',
       'needs an actionId',
       'interface speed amount must be >= 0',
-      'access level must be an integer >= 1',
+      'access level amount must be an integer >= 1',
       'sleeve.baseAccessLevel',
       'sleeve.baseInterfaceSpeed',
       'sleeve.baseHeat',
@@ -591,5 +635,37 @@ describe('config helpers', () => {
     ]) {
       expect(text, fragment).toContain(fragment);
     }
+  });
+});
+
+describe('speedFactors', () => {
+  const mods = createSpeedModifiers(config);
+  const context = { actionId: 'a', actionLevel: 3, sleeveLevel: 2, interfaceSpeed: 0.5 };
+
+  it('lists one factor per modifier, named, in order', () => {
+    const f = speedFactors(mods, context);
+    expect(f.map((x) => x.id)).toEqual([
+      SPEED_FACTOR_IDS.actionLevel,
+      SPEED_FACTOR_IDS.sleeveLevel,
+      SPEED_FACTOR_IDS.interfaceSpeed,
+      SPEED_FACTOR_IDS.globalSpeed,
+    ]);
+    expect(f.find((x) => x.id === SPEED_FACTOR_IDS.interfaceSpeed)!.factor).toBe(0.5);
+  });
+
+  it('multiplies to exactly the speed multiplier', () => {
+    const product = speedFactors(mods, context).reduce((p, x) => p * x.factor, 1);
+    expect(product).toBeCloseTo(speedMultiplier(mods, context), 12);
+  });
+
+  it('sanitises like the speed multiplier: NaN counts as 1, overflow saturates', () => {
+    const odd = [
+      { id: 'nan', factor: () => Number.NaN },
+      { id: 'big', factor: () => Number.POSITIVE_INFINITY },
+    ];
+    expect(speedFactors(odd, context)).toEqual([
+      { id: 'nan', factor: 1 },
+      { id: 'big', factor: Number.MAX_VALUE },
+    ]);
   });
 });

@@ -1,5 +1,6 @@
 // Generates docs/architecture.html from the source code (TSDoc comments, imports) and a real test run.
-// Usage: npm run docs
+// Usage: npm run docs          (writes docs/architecture.html, runs the tests)
+//        npm run docs:check    (writes nothing: fails when docs/architecture.html no longer matches the sources; part of `npm run check`)
 //
 // Extracted automatically: files, @module descriptions, import graph, exported symbols + class
 // members with their TSDoc (summary, @param, @returns, @throws, "Called by:", "Calls:"), documentation
@@ -13,6 +14,7 @@ import ts from 'typescript5';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const srcDir = join(root, 'src');
 const toPosix = (p) => p.split(sep).join('/');
+const CHECK = process.argv.includes('--check');
 
 /* ---------- collect files ---------- */
 function walk(dir) {
@@ -237,30 +239,32 @@ const cssFiles = allFiles
 let tests = { ran: false, total: 0, passed: 0, failed: 0, files: [] };
 const tmpOut = join(root, 'tmp-vitest-docs.json');
 try {
-  try {
-    execSync(`npx vitest run --reporter=json --outputFile="${tmpOut}"`, { cwd: root, stdio: 'ignore' });
-  } catch {
-    /* a failing test still writes the report */
-  }
-  if (existsSync(tmpOut)) {
-    const r = JSON.parse(readFileSync(tmpOut, 'utf8'));
-    tests = {
-      ran: true,
-      total: r.numTotalTests,
-      passed: r.numPassedTests,
-      failed: r.numFailedTests,
-      files: r.testResults.map((tr) => {
-        const rel = toPosix(relative(srcDir, tr.name.replace(/\//g, sep)));
-        const groups = new Map();
-        for (const a of tr.assertionResults) {
-          const g = a.ancestorTitles.join(' > ') || '(top level)';
-          const e = groups.get(g) ?? { name: g, tests: [] };
-          e.tests.push({ title: a.title, status: a.status });
-          groups.set(g, e);
-        }
-        return { file: rel, groups: [...groups.values()] };
-      }),
-    };
+  if (!CHECK) {
+    try {
+      execSync(`npx vitest run --reporter=json --outputFile="${tmpOut}"`, { cwd: root, stdio: 'ignore' });
+    } catch {
+      /* a failing test still writes the report */
+    }
+    if (existsSync(tmpOut)) {
+      const r = JSON.parse(readFileSync(tmpOut, 'utf8'));
+      tests = {
+        ran: true,
+        total: r.numTotalTests,
+        passed: r.numPassedTests,
+        failed: r.numFailedTests,
+        files: r.testResults.map((tr) => {
+          const rel = toPosix(relative(srcDir, tr.name.replace(/\//g, sep)));
+          const groups = new Map();
+          for (const a of tr.assertionResults) {
+            const g = a.ancestorTitles.join(' > ') || '(top level)';
+            const e = groups.get(g) ?? { name: g, tests: [] };
+            e.tests.push({ title: a.title, status: a.status });
+            groups.set(g, e);
+          }
+          return { file: rel, groups: [...groups.values()] };
+        }),
+      };
+    }
   }
 } finally {
   rmSync(tmpOut, { force: true });
@@ -284,6 +288,25 @@ const data = {
 const template = readFileSync(join(root, 'scripts', 'architecture.template.html'), 'utf8');
 const json = JSON.stringify(data).replace(/</g, '\\u003c');
 const html = template.replace('"__DATA__"', json);
+
+if (CHECK) {
+  // Compare everything the sources determine; the generation time and the test results are not part of the comparison.
+  const target = join(root, 'docs', 'architecture.html');
+  const [head, tail] = template.split('"__DATA__"');
+  const stale = (why) => {
+    console.error(`docs/architecture.html is stale (${why}). Run \`npm run docs\` and include the result in the change.`);
+    process.exit(1);
+  };
+  if (!existsSync(target)) stale('it does not exist');
+  const existing = readFileSync(target, 'utf8');
+  if (!existing.startsWith(head) || !existing.endsWith(tail)) stale('the curated sections in scripts/architecture.template.html changed');
+  const old = JSON.parse(existing.slice(head.length, existing.length - tail.length));
+  const comparable = (d) => JSON.stringify({ ...d, generatedAt: '', tests: null });
+  if (comparable(old) !== comparable(data)) stale('the sources, tests or their documentation changed');
+  console.log('docs/architecture.html is up to date.');
+  process.exit(0);
+}
+
 mkdirSync(join(root, 'docs'), { recursive: true });
 writeFileSync(join(root, 'docs', 'architecture.html'), html);
 console.log(

@@ -12,7 +12,7 @@ import {
   setCredits,
   testConfig,
 } from '../testing/testConfig';
-import { buildViewModel, formatSeconds } from './viewModel';
+import { buildViewModel, formatSeconds, statRow } from './viewModel';
 
 const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
 
@@ -47,12 +47,14 @@ describe('view model - unlocks, start costs and toggles', () => {
     expect(auto.maxed).toBe(true);
     expect(auto.clickable).toBe(true);
     expect(auto.enabled).toBe(true);
-    expect(auto.tip).toContain('ON');
+    expect(auto.tip).toContain('(on)');
+    expect(auto.tip).toContain('Click to switch off');
     g.toggleAutoRun('auto');
     auto = buildViewModel(g).actions[0]!.buyables.find((b) => b.id === 'auto')!;
     expect(auto.enabled).toBe(false);
     expect(auto.clickable).toBe(true);
-    expect(auto.tip).toContain('OFF');
+    expect(auto.tip).toContain('(off)');
+    expect(auto.tip).toContain('Click to switch on');
   });
 
   it('other buyables are not toggles and are clickable only while affordable', () => {
@@ -64,26 +66,27 @@ describe('view model - unlocks, start costs and toggles', () => {
     expect(buildViewModel(g).actions[0]!.buyables.find((b) => b.id === 'dual')!.clickable).toBe(true);
   });
 
-  it('shows Circumvention, Infamy and the heat tax after Circumvention, each with an explaining tip', () => {
+  it('shows ICE Rating, Infamy and the heat tax after ICE Rating, each with an explaining tip', () => {
     const g = withNew();
-    const state = g.getState() as { heat: number; infamy: number; circumvention: unknown };
+    const state = g.getState() as { heat: number; infamy: number; iceRating: unknown };
     state.heat = 150;
     state.infamy = 2;
-    state.circumvention = num('1e100');
+    state.iceRating = num('1e100');
     const sleeve = buildViewModel(g).sleeve;
-    expect(sleeve.circumventionText).toBe('1e100');
-    expect(sleeve.circumventionTip).toContain('50% less heat effect');
-    expect(sleeve.heatText).toBe('150');
-    expect(sleeve.heatTip).toContain('150 x 0.5 = 75% tax');
-    expect(sleeve.heatTip).toContain('Credits stop at 200 heat');
-    expect(sleeve.infamyText).toBe('2');
-    expect(sleeve.infamyTip).toContain('x1.2 as long');
+    expect(statRow(sleeve.stats, 'iceRating').text).toBe('1e100');
+    expect(statRow(sleeve.stats, 'iceRating').tip).toContain('Heat Reduction = 50%');
+    expect(statRow(sleeve.stats, 'heat').text).toBe('150');
+    expect(statRow(sleeve.stats, 'heat').tip).toContain('Heat Reduction = 50% (from ICE Rating)');
+    expect(statRow(sleeve.stats, 'heat').tip).toContain('Heat Tax = 75% of all credits earned from nodes');
+    expect(statRow(sleeve.stats, 'heat').tip).toContain('Node credits stop at 200 heat');
+    expect(statRow(sleeve.stats, 'infamy').text).toBe('2');
+    expect(statRow(sleeve.stats, 'infamy').tip).toContain('Heat Cooldown Time = 72s'); // 60 s x (1 + 10% x 2 Infamy)
   });
 });
 
 describe('view model - sleeve sections, light-up and the newer texts', () => {
   const buy = (id: string, extra = {}) =>
-    ({ id, name: id, description: '', cost: num(1), effect: { kind: 'accessLevel', level: 2 }, ...extra }) as const;
+    ({ id, name: id, description: '', cost: num(1), effect: { kind: 'accessLevel', amount: 1 }, ...extra }) as const;
   const sections = (buyables: object[]) =>
     buildViewModel(game({ buyables })).sleeve.sections.map((s) => [s.title, s.buyables.map((b) => b.id)]);
 
@@ -136,20 +139,30 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
   it('shows the Infamy cycle as a bar that is paused at 0 Infamy', () => {
     const g = game();
     const s = g.getState() as { infamy: number; infamyCooldownMs: number };
-    expect(buildViewModel(g).sleeve.infamyCooling).toBe(false);
+    expect(statRow(buildViewModel(g).sleeve.stats, 'infamy').bar!.running).toBe(false);
     s.infamy = 2;
     s.infamyCooldownMs = 300_000;
     const sleeve = buildViewModel(g).sleeve;
-    expect(sleeve.infamyCooling).toBe(true);
-    expect(sleeve.infamyCooldownPercent).toBeCloseTo(50, 8);
+    expect(statRow(sleeve.stats, 'infamy').bar!.running).toBe(true);
+    expect(statRow(sleeve.stats, 'infamy').bar!.percent).toBeCloseTo(50, 8);
   });
 
-  it('shows the node payout multiplier with a tip, and names the Push malware reward unit', () => {
+  it('shows what one node really pays per second, with a tip that shows the calculation, and names the Push malware reward unit', () => {
     const g = game({ actions: [testConfig.actions[0]!, payoutAction] });
     (g.getState() as { nodePayoutBonus: ReturnType<typeof num> }).nodePayoutBonus = num(0.5);
+    (g.getState() as { network: ReturnType<typeof num> }).network = num(100);
     const vm = buildViewModel(g);
-    expect(vm.payoutPerNodeText).toBe('x1.5');
-    expect(vm.payoutTip).toContain('x1.5 (1 + 0.5 earned from actions)');
+    // test config: base 0.05 credits per node per second plus an action bonus of 0.5, no purchases, no heat: 0.55 per node, 55 for 100 nodes
+    expect(statRow(vm.network.stats, 'payout').text).toBe('0.55/s');
+    const tip = statRow(vm.network.stats, 'payout').tip ?? '';
+    expect(tip).toContain('Base = 0.05 credits/s');
+    expect(tip).toContain('Purchases = 1');
+    expect(tip).toContain('Payout per Node = (Base + Action Bonus) x Purchases');
+    expect(tip).toContain('Action Bonus = 0.5 credits/s');
+    expect(tip).toContain('Payout per Node = 0.55 credits/s');
+    expect(tip).toContain('Network Payout = 100 x 0.55 = 55 credits/s');
+    expect(tip).not.toContain('Credit Lever');
+    expect(tip).not.toContain('Heat Tax Kept');
     expect(vm.actions[1]!.rewardUnit).toBe('node payout');
     expect(vm.actions[1]!.rewardText).toBe('0.001');
   });
@@ -158,20 +171,11 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
 describe('view model - sleeve widget', () => {
   it('shows the starting stats and only the global buyables', () => {
     const vm = buildViewModel(game());
-    expect(vm.sleeve.accessLevelText).toBe('1');
-    expect(vm.sleeve.interfaceSpeedText).toBe('1');
-    expect(vm.sleeve.heatText).toBe('0');
+    expect(statRow(vm.sleeve.stats, 'access').text).toBe('1');
+    expect(statRow(vm.sleeve.stats, 'interfaceSpeed').text).toBe('1');
+    expect(statRow(vm.sleeve.stats, 'heat').text).toBe('0');
     expect(vm.sleeve.buyables.map((b) => b.id)).toEqual(['speed', 'access']);
     expect(vm.actions[0]!.buyables.map((b) => b.id)).toEqual(['auto', 'dual', 'dup']);
-  });
-
-  it('the interface speed tooltip shows the calculation: (base + boosts) x (1 + earned)', () => {
-    const g = game({ sleeve: { baseInterfaceSpeed: 0.1 } });
-    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(1);
-    const tip = buildViewModel(g).sleeve.interfaceSpeedTip;
-    expect(tip).toContain('0.1 (base + boosts)');
-    expect(tip).toContain('x 2 (1 + 1 earned from actions)');
-    expect(tip).toContain('= 0.2');
   });
 
   it('updates the stats after buying the global buyables (1 + 0.05 = 1.05, access level 2)', () => {
@@ -180,28 +184,28 @@ describe('view model - sleeve widget', () => {
     expect(g.buy('speed')).toBe('purchased');
     expect(g.buy('access')).toBe('purchased');
     const vm = buildViewModel(g);
-    expect(vm.sleeve.interfaceSpeedText).toBe('1.05');
-    expect(vm.sleeve.accessLevelText).toBe('2');
+    expect(statRow(vm.sleeve.stats, 'interfaceSpeed').text).toBe('1.05');
+    expect(statRow(vm.sleeve.stats, 'access').text).toBe('2');
     expect(vm.sleeve.buyables.map((b) => b.maxed)).toEqual([true, true]);
   });
 
   it('never shows a tax above 100% even when heat is higher', () => {
     const g = game();
     (g.getState() as { heat: number }).heat = 250;
-    expect(buildViewModel(g).sleeve.heatText).toBe('250');
-    expect(buildViewModel(g).sleeve.heatTip).toContain('= 100% tax');
+    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').text).toBe('250');
+    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').tip).toContain('Heat Tax = 100% of all credits earned from nodes');
   });
 });
 
 describe('view model - heat cooldown bar', () => {
   it('shows how far the 60 s cooldown cycle has progressed, and whether it is running', () => {
     const g = game();
-    expect(buildViewModel(g).sleeve.heatCooling).toBe(false);
+    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').bar!.running).toBe(false);
     (g.getState() as { heat: number }).heat = 3;
     g.tick(15_000);
     const sleeve = buildViewModel(g).sleeve;
-    expect(sleeve.heatCooling).toBe(true);
-    expect(sleeve.heatCooldownPercent).toBeCloseTo(25, 6);
+    expect(statRow(sleeve.stats, 'heat').bar!.running).toBe(true);
+    expect(statRow(sleeve.stats, 'heat').bar!.percent).toBeCloseTo(25, 6);
   });
 });
 
@@ -220,7 +224,7 @@ describe('view model - locked actions and heat', () => {
     expect(mal.unlocked).toBe(true);
   });
 
-  it('shows heat and its tax in the sleeve widget, and the payout after tax', () => {
+  it('shows heat and its tax in the sleeve widget; the run payout stays in full', () => {
     const g = three();
     setCredits(g, num(1000));
     g.buy('access');
@@ -229,9 +233,9 @@ describe('view model - locked actions and heat', () => {
     g.startAction('mal');
     g.tick(6_000);
     const vm = buildViewModel(g);
-    expect(vm.sleeve.heatText).toBe('1');
-    expect(vm.sleeve.heatTip).toContain('= 1% tax');
-    expect(vm.actions.find((a) => a.id === 'mal')!.rewardText).toBe('9.9');
+    expect(statRow(vm.sleeve.stats, 'heat').text).toBe('1');
+    expect(statRow(vm.sleeve.stats, 'heat').tip).toContain('Heat Tax = 1% of all credits earned from nodes');
+    expect(vm.actions.find((a) => a.id === 'mal')!.rewardText).toBe('10');
   });
 });
 
@@ -245,8 +249,8 @@ describe('view model', () => {
     expect(net.buyables).toEqual([]);
     expect(earn.rewardUnit).toBe('credits');
     expect(net.rewardUnit).toBe('nodes');
-    expect(vm.networkText).toBe('0');
-    expect(vm.passiveIncomeText).toBe('0');
+    expect(statRow(vm.network.stats, 'nodes').text).toBe('0');
+    expect(statRow(vm.network.stats, 'income').text).toBe('+0');
   });
 
   it('uses the configured symbol of a buyable', () => {
@@ -258,8 +262,8 @@ describe('view model', () => {
     const g = game();
     (g.getState() as { network: unknown }).network = num(40);
     const vm = buildViewModel(g);
-    expect(vm.networkText).toBe('40');
-    expect(vm.passiveIncomeText).toBe('2');
+    expect(statRow(vm.network.stats, 'nodes').text).toBe('40');
+    expect(statRow(vm.network.stats, 'income').text).toBe('+2');
   });
 
   it("falls back to the name's initials when a buyable has no symbol", () => {
@@ -270,14 +274,14 @@ describe('view model', () => {
     const vm = buildViewModel(game());
     expect(vm.creditsText).toBe('0');
     const a = vm.actions[0]!;
-    expect(a.sleeve.level).toBe(1);
+    expect(a.sleeve.level).toBe(0);
     expect(a.sleeve.runsToNextXp).toBe(100);
     expect(a.sleeve.progressPercent).toBe(0);
     expect(a.levelProgressPercent).toBe(0);
-    expect(a.level).toBe(1);
+    expect(a.level).toBe(0);
     expect(a.durationText).toBe('10s');
     expect(a.rewardText).toBe('0.5');
-    expect(a.outputMultiplierText).toBe('1');
+    expect(a.rewardMultiplierText).toBe('1');
     expect(a.progressPercent).toBe(0);
     expect(vm.actions[0]!.buyables.map((b) => [b.id, b.available, b.affordable])).toEqual([
       ['auto', true, false],
@@ -315,7 +319,7 @@ describe('view model', () => {
     expect(dup.maxed).toBe(false);
     expect(dup.costText).toBe('1.5K');
     expect(buildViewModel(g).actions[0]!.rewardText).toBe('2'); // 0.5 x (2 x 2)
-    expect(buildViewModel(g).actions[0]!.outputMultiplierText).toBe('4');
+    expect(buildViewModel(g).actions[0]!.rewardMultiplierText).toBe('4');
   });
 
   it('shows the cost with the global cost lever applied', () => {
@@ -326,5 +330,37 @@ describe('view model', () => {
   it('formats durations', () => {
     expect(formatSeconds(10_000)).toBe('10s');
     expect(formatSeconds(3333.33)).toBe('3.33s');
+  });
+});
+
+describe('view model - what one node pays', () => {
+  const withNodes = (overrides = {}) => {
+    const g = game(overrides);
+    (g.getState() as { network: ReturnType<typeof num> }).network = num(100);
+    return g;
+  };
+  const payout = (g: ReturnType<typeof game>) => statRow(buildViewModel(g).network.stats, 'payout');
+
+  it('equals the network income divided by the nodes (one source of truth)', () => {
+    const g = withNodes({ network: { creditsPerNodePerSecond: 0.2 } });
+    const income = Number(statRow(buildViewModel(g).network.stats, 'income').text.replace('+', ''));
+    expect(payout(g).text).toBe(`${income / 100}/s`);
+  });
+
+  it('is taxed by heat, and the tip says how much is kept', () => {
+    const g = withNodes();
+    (g.getState() as { heat: number }).heat = 20; // 20 points x 1% = 20% tax in the test config
+    expect(payout(g).text).toBe('0.04/s');
+    expect(payout(g).tip).toContain('Heat Tax Kept = 80%');
+  });
+
+  it('names the credit lever in the tip only when it is not 1', () => {
+    const g = withNodes({ global: { creditMultiplier: 2 } });
+    expect(payout(g).text).toBe('0.1/s');
+    expect(payout(g).tip).toContain('Credit Lever = 2');
+  });
+
+  it('keeps small amounts readable: 0.01 credits per node is not rounded away', () => {
+    expect(payout(withNodes({ network: { creditsPerNodePerSecond: 0.01 } })).text).toBe('0.01/s');
   });
 });

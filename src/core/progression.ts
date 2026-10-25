@@ -13,8 +13,11 @@ interface ReductionSource {
   readonly effect: Extract<BuyableEffect, { kind: 'sleeveXpReduction' }>;
 }
 
-/** The sleeve XP requirement can never be reduced by more than this fraction, however many reductions are owned. */
-const MAX_TOTAL_REDUCTION = 0.99;
+/** An `actionXpReduction` buyable. */
+interface ActionReductionSource {
+  readonly id: BuyableId;
+  readonly amount: number;
+}
 
 /** Above this many runs the exact remainder toward the next sleeve-XP batch is meaningless and dropped. */
 const EXACT_RUN_LIMIT = 1e15;
@@ -33,6 +36,8 @@ function wholeCount(x: BigNum): number {
  * `sleeveXpReduction` buyables scale down the XP every sleeve level asks for: a reduction `r` makes each threshold
  * `(1 - r)` times as large. The action whose sleeve level feeds a reduction is exempt from it, so the level is always
  * measured against the normal thresholds.
+ * `actionXpReduction` buyables do the same for every ACTION level (never the sleeve levels): each action level then needs `(1 - r)`
+ * times the XP.
  * Called by: `engine.ts`.
  */
 export class Progression {
@@ -41,6 +46,8 @@ export class Progression {
   private readonly runsPerSleeveXp: BigNum;
   private readonly sleeveXpPerGrant: BigNum;
   private readonly reductionSources: readonly ReductionSource[];
+  private readonly actionReductionSources: readonly ActionReductionSource[];
+  private readonly maxTotalReduction: number;
 
   /**
    * Creates the progression service from the configuration.
@@ -55,12 +62,16 @@ export class Progression {
     this.reductionSources = (config.buyables ?? []).flatMap((b) =>
       b.effect.kind === 'sleeveXpReduction' ? [{ id: b.id, effect: b.effect }] : [],
     );
+    this.actionReductionSources = (config.buyables ?? []).flatMap((b) =>
+      b.effect.kind === 'actionXpReduction' ? [{ id: b.id, amount: b.effect.amount }] : [],
+    );
     for (const a of config.actions) {
       this.actionRules.set(a.id, new LevelRule(a.levels ?? config.progression.actionLevels, factory));
       this.sleeveRules.set(a.id, new LevelRule(a.sleeveLevels ?? config.progression.sleeveLevels, factory));
     }
     this.runsPerSleeveXp = factory.fromNumber(config.progression.runsPerSleeveXp);
     this.sleeveXpPerGrant = factory.fromNumber(config.progression.sleeveXpPerGrant);
+    this.maxTotalReduction = config.progression.maxSleeveXpReduction;
   }
 
   /**
@@ -71,8 +82,8 @@ export class Progression {
    *
    * @param state state to mutate
    * @param actionId the action that completed
-   * @param xp action XP to add (already includes multipliers)
-   * @param runs runs to count towards sleeve XP (>= 1; a BigNum because output multipliers can be huge)
+   * @param xp action XP to add
+   * @param runs runs to count towards sleeve XP (>= 1)
    * @throws Error if the action id is unknown
    */
   recordRuns(state: GameState, actionId: ActionId, xp: BigNum, runs: BigNum): void {
@@ -100,23 +111,20 @@ export class Progression {
    *
    * @param state current state
    * @param actionId the action
-   * @param xpPerRun action XP one run grants (already includes multipliers)
-   * @param countedRuns runs one run counts towards sleeve XP (the output multiplier)
-   * @returns a whole number >= 1, possibly `Infinity` when nothing can ever change a level
+   * @param xpPerRun action XP one run grants
+   * @returns a whole number >= 1 (the sleeve level always bounds it: every run counts towards it)
    * @throws Error if the action id is unknown
    */
-  runsBeforeLevelChange(state: GameState, actionId: ActionId, xpPerRun: BigNum, countedRuns: BigNum): number {
+  runsBeforeLevelChange(state: GameState, actionId: ActionId, xpPerRun: BigNum): number {
     const action = this.requireAction(state, actionId);
     let runs = Infinity;
     if (!xpPerRun.isZero()) {
       runs = wholeCount(this.nextActionLevelXp(state, actionId).sub(action.xp).div(xpPerRun));
     }
-    if (!countedRuns.isZero()) {
-      const missingXp = this.nextSleeveLevelXp(state, actionId).sub(action.sleeveXp);
-      const grants = Math.max(1, wholeCount(missingXp.div(this.sleeveXpPerGrant)));
-      const neededRuns = this.factory.fromNumber(grants).mul(this.runsPerSleeveXp).sub(this.factory.fromNumber(action.runsTowardSleeveXp));
-      runs = Math.min(runs, wholeCount(neededRuns.div(countedRuns)));
-    }
+    const missingXp = this.nextSleeveLevelXp(state, actionId).sub(action.sleeveXp);
+    const grants = Math.max(1, wholeCount(missingXp.div(this.sleeveXpPerGrant)));
+    const neededRuns = this.factory.fromNumber(grants).mul(this.runsPerSleeveXp).sub(this.factory.fromNumber(action.runsTowardSleeveXp));
+    runs = Math.min(runs, wholeCount(neededRuns));
     return Math.max(1, runs);
   }
 
@@ -125,15 +133,49 @@ export class Progression {
    * @throws Error if the action id is unknown
    */
   actionLevel(state: GameState, actionId: ActionId): number {
-    return this.rule(this.actionRules, actionId).levelForXp(this.requireAction(state, actionId).xp);
+    return this.rule(this.actionRules, actionId).levelForXp(this.scaledActionXp(state, actionId));
   }
 
   /**
-   * XP at which the action reaches its next level.
+   * Fraction by which owned `actionXpReduction` buyables lower the XP every action level needs.
+   *
+   * @param state current state (reads `purchased`)
+   * @returns a fraction in [0, `progression.maxSleeveXpReduction`] (the same cap as the sleeve levels)
+   */
+  actionXpReduction(state: GameState): number {
+    let total = 0;
+    for (const { id, amount } of this.actionReductionSources) total += amount * (state.purchased[id] ?? 0);
+    return Math.min(total, this.maxTotalReduction);
+  }
+
+  /**
+   * Total XP at which the action reaches its next level (all earlier levels included).
    * @throws Error if the action id is unknown
    */
   nextActionLevelXp(state: GameState, actionId: ActionId): BigNum {
-    return this.rule(this.actionRules, actionId).xpForNextLevel(this.actionLevel(state, actionId));
+    return this.rule(this.actionRules, actionId)
+      .xpForNextLevel(this.actionLevel(state, actionId))
+      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
+  }
+
+  /**
+   * Experience gathered inside the action's current level (what is left of its total once the earlier levels are paid for).
+   * @throws Error if the action id is unknown
+   */
+  actionXpIntoLevel(state: GameState, actionId: ActionId): BigNum {
+    return this.rule(this.actionRules, actionId)
+      .xpIntoLevel(this.scaledActionXp(state, actionId))
+      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
+  }
+
+  /**
+   * Experience that leaving the action's current level costs on its own (the full amount, whatever came before).
+   * @throws Error if the action id is unknown
+   */
+  actionXpForLevel(state: GameState, actionId: ActionId): BigNum {
+    return this.rule(this.actionRules, actionId)
+      .xpCostOfLevel(this.actionLevel(state, actionId))
+      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
   }
 
   /**
@@ -141,7 +183,7 @@ export class Progression {
    * @throws Error if the action id is unknown
    */
   actionLevelProgress(state: GameState, actionId: ActionId): number {
-    return this.rule(this.actionRules, actionId).progressFraction(this.requireAction(state, actionId).xp);
+    return this.rule(this.actionRules, actionId).progressFraction(this.scaledActionXp(state, actionId));
   }
 
   /**
@@ -156,12 +198,12 @@ export class Progression {
    * Fraction by which owned `sleeveXpReduction` buyables lower the XP that one action's sleeve levels need.
    *
    * @remarks
-   * Per buyable: `min(maxReduction, perLevel * sleeve level of sourceActionId * copies)`, summed and capped below 1. The
+   * Per buyable: `min(maxReduction, perLevel * sleeve level of sourceActionId * copies)`, summed and capped at `progression.maxSleeveXpReduction`. The
    * source action itself is not reduced by its own buyable, so its level is measured against the normal thresholds.
    *
    * @param state current state (reads `purchased` and sleeve XP)
    * @param actionId the action whose sleeve levels are asked about
-   * @returns a fraction in [0, 0.99]
+   * @returns a fraction in [0, `progression.maxSleeveXpReduction`]
    */
   sleeveXpReduction(state: GameState, actionId: ActionId): number {
     let total = 0;
@@ -171,11 +213,11 @@ export class Progression {
       const level = this.sleeveLevelAt(state, effect.sourceActionId, 0);
       total += Math.min(effect.maxReduction, effect.perLevel * level * copies);
     }
-    return Math.min(total, MAX_TOTAL_REDUCTION);
+    return Math.min(total, this.maxTotalReduction);
   }
 
   /**
-   * Sleeve XP at which the action's next sleeve level is reached.
+   * Total sleeve XP at which the action's next sleeve level is reached (all earlier levels included).
    * @throws Error if the action id is unknown
    */
   nextSleeveLevelXp(state: GameState, actionId: ActionId): BigNum {
@@ -187,6 +229,28 @@ export class Progression {
   }
 
   /**
+   * Sleeve XP gathered inside the action's current sleeve level, in the reduced units the player pays in.
+   * @throws Error if the action id is unknown
+   */
+  sleeveXpIntoLevel(state: GameState, actionId: ActionId): BigNum {
+    const reduction = this.sleeveXpReduction(state, actionId);
+    return this.rule(this.sleeveRules, actionId)
+      .xpIntoLevel(this.scaledSleeveXp(state, actionId, reduction))
+      .mul(this.factory.fromNumber(1 - reduction));
+  }
+
+  /**
+   * Sleeve XP that leaving the action's current sleeve level costs on its own, after any reduction.
+   * @throws Error if the action id is unknown
+   */
+  sleeveXpForLevel(state: GameState, actionId: ActionId): BigNum {
+    const reduction = this.sleeveXpReduction(state, actionId);
+    return this.rule(this.sleeveRules, actionId)
+      .xpCostOfLevel(this.sleeveLevelAt(state, actionId, reduction))
+      .mul(this.factory.fromNumber(1 - reduction));
+  }
+
+  /**
    * Fraction (0..1) of the way from the action's current sleeve level to the next.
    * @throws Error if the action id is unknown
    */
@@ -194,6 +258,13 @@ export class Progression {
     return this.rule(this.sleeveRules, actionId).progressFraction(
       this.scaledSleeveXp(state, actionId, this.sleeveXpReduction(state, actionId)),
     );
+  }
+
+  /** Action XP measured against the unreduced thresholds: `xp / (1 - reduction)`. */
+  private scaledActionXp(state: GameState, actionId: ActionId): BigNum {
+    const xp = this.requireAction(state, actionId).xp;
+    const reduction = this.actionXpReduction(state);
+    return reduction > 0 ? xp.div(this.factory.fromNumber(1 - reduction)) : xp;
   }
 
   /** Sleeve level of an action if thresholds were reduced by `reduction`. */

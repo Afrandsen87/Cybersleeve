@@ -4,24 +4,29 @@
  * The two narrow faces of the game that the outside world (UI, tests, tools) depends on.
  *
  * @remarks
- * {@link GameQueries} changes nothing; {@link GameCommands} is everything a player can do. `GameEngine` implements
- * both, but a view only needs to know these interfaces, so it can be tested against a small fake.
+ * {@link GameQueries} changes nothing (and is the union of {@link StateQueries}, {@link ActionQueries}, {@link SleeveQueries}
+ * and {@link ShopQueries}); {@link GameCommands} is everything a player can do. `GameEngine` implements both, but a view
+ * only needs to know these interfaces, so it can be tested against a small fake.
  */
 import type { BigNum } from '../numbers';
-import type { SleeveStats } from './effects';
+import type { BackChannelRule, SleeveStats } from './effects';
 import type { PurchaseResult } from './shop';
-import type { ActionId, BuyableId, Currency, GameConfig, GameStateView } from './types';
+import type { SpeedFactor } from './speed';
+import type { ActionId, BuyableId, Currency, GameConfig, GameStateView, ItemId, RarityId } from './types';
 
 /** What clicking a purchase did: it was bought (or refused), or an owned auto-run was switched. */
 export type ActivateResult = PurchaseResult | 'switched-on' | 'switched-off';
 
-/** Read-only questions about the game. Called by: `ui/viewModel.ts`. Implemented by: `GameEngine`. */
-export interface GameQueries {
+/** Read-only access to the raw state and the content being played. */
+export interface StateQueries {
   /** Read-only view of the current state. */
   getState(): GameStateView;
   /** The content and tuning being played. */
   getConfig(): GameConfig;
+}
 
+/** Read-only questions about actions: whether they can run, how fast, what they pay and their levels. */
+export interface ActionQueries {
   /** True when the action's access level and unlock rule are satisfied. */
   isUnlocked(id: ActionId): boolean;
   /** What starting the action costs now, or `null` when free. */
@@ -30,31 +35,59 @@ export interface GameQueries {
   currentDurationMs(id: ActionId): number;
   /** Current speed multiplier of the action. */
   currentSpeed(id: ActionId): number;
+  /** The factors that multiply into the action's speed: action level, sleeve level, interface speed and the global lever. */
+  speedFactors(id: ActionId): readonly SpeedFactor[];
+  /** Levels added to the action's level for speed by purchases (its XP progress is not affected). */
+  levelBonus(id: ActionId): number;
   /** True when the action restarts itself. */
   isAutoRun(id: ActionId): boolean;
-  /** Output multiplier from purchases (>= 1). */
-  outputMultiplier(id: ActionId): BigNum;
-  /** What a completed run adds to the balance now (after the heat tax for credits). */
+  /** Multiplier on the action's own reward per run, from purchases (>= 1). It scales that reward only. */
+  rewardMultiplier(id: ActionId): BigNum;
+  /** What a completed run adds to the balance now (heat does not tax it). */
   payoutPerRun(id: ActionId): BigNum;
+  /** Action XP one completed run gives now (after any Augment schematics applied to the action). */
+  xpPerRun(id: ActionId): BigNum;
 
   /** Level of an action. */
   actionLevel(id: ActionId): number;
-  /** XP at which the action reaches its next level. */
+  /** XP gathered inside the action's current level (the running total resets, as far as the player sees, at each level-up). */
+  actionXpIntoLevel(id: ActionId): BigNum;
+  /** XP that leaving the action's current level costs on its own. */
+  actionXpForLevel(id: ActionId): BigNum;
+  /** Total XP at which the action reaches its next level (all earlier levels included). */
   nextActionLevelXp(id: ActionId): BigNum;
   /** Fraction (0..1) of the way to the next action level. */
   actionLevelProgress(id: ActionId): number;
   /** Sleeve level of an action. */
   sleeveLevel(id: ActionId): number;
-  /** Sleeve XP at which the next sleeve level is reached. */
+  /** Sleeve XP gathered inside the action's current sleeve level. */
+  sleeveXpIntoLevel(id: ActionId): BigNum;
+  /** Sleeve XP that leaving the action's current sleeve level costs on its own, after any reduction. */
+  sleeveXpForLevel(id: ActionId): BigNum;
+  /** Total sleeve XP at which the next sleeve level is reached (all earlier levels included). */
   nextSleeveLevelXp(id: ActionId): BigNum;
   /** Fraction (0..1) of the way to the next sleeve level. */
   sleeveLevelProgress(id: ActionId): number;
+}
 
+/** Read-only questions about the sleeve as a whole and the network it carries. */
+export interface SleeveQueries {
   /** The global sleeve stats after sleeve-wide purchases. */
   sleeveStats(): SleeveStats;
+  /** The share (0..1) of node income kept after the heat tax, with the current ICE Rating. */
+  creditKeepFactor(): number;
+  /** Credits one network node delivers per second now (after the node payout multiplier and the heat tax). */
+  passiveCreditsPerNode(): BigNum;
   /** Credits per second the network delivers now. */
   passiveCreditsPerSecond(): BigNum;
+  /** True when the player may re-sleeve right now. */
+  canResleeve(): boolean;
+  /** The back channel unlocked by a skill, or `null`. */
+  backChannel(): BackChannelRule | null;
+}
 
+/** Read-only questions about buyables: ownership, price and availability. */
+export interface ShopQueries {
   /** Copies of a buyable owned. */
   ownedCount(id: BuyableId): number;
   /** Price of the next copy. */
@@ -69,9 +102,24 @@ export interface GameQueries {
   isBuyableMaxed(id: BuyableId): boolean;
   /** True when an owned auto-run buyable is switched on. */
   isAutoRunEnabled(id: BuyableId): boolean;
+  /** Skill points the player can still spend. */
+  skillPoints(): number;
+}
 
-  /** True when the player may re-sleeve right now. */
-  canResleeve(): boolean;
+/**
+ * Everything that can be asked of the game without changing it. Each part is a narrow interface of its own, so a piece of
+ * UI (or a test fake) can depend on just the part it reads.
+ * Called by: `ui/viewModel.ts`. Implemented by: `GameEngine`.
+ */
+export interface GameQueries extends StateQueries, ActionQueries, SleeveQueries, ShopQueries {
+  /**
+   * Runs read-only work in which the sleeve stats and the skill points are computed once instead of on every question.
+   * For building a screen. The work must not change the game.
+   *
+   * @param read the work
+   * @returns whatever `read` returns
+   */
+  snapshot<T>(read: () => T): T;
 }
 
 /** Everything the player can do. Called by: `ui/dom.ts`. Implemented by: `GameEngine`. */
@@ -83,6 +131,14 @@ export interface GameCommands {
    * Auto-run switches take effect on the next tick.
    */
   activateBuyable(id: BuyableId): ActivateResult;
+  /** Test aid: drops one item now by the current drop weights, whatever the chance. */
+  dropTestItem(): void;
+  /** Applies one Augment schematic to an action (raises its action XP per run). @returns true when one was applied */
+  augmentAction(id: ActionId): boolean;
+  /** Gives up items for Moles through the unlocked back channel. @param amount how many, or `'all'` @returns how many were given up */
+  giveUpForMoles(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number;
+  /** Sells items from the inventory for credits. @param amount how many, or `'all'` @returns how many were sold */
+  sellItems(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number;
   /** Re-sleeves if the policy allows it. @returns true when the reset was applied */
   resleeve(): boolean;
   /** Wipes the game, including what a re-sleeve keeps. */

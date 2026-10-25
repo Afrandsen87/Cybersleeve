@@ -8,11 +8,25 @@ import { initialScalars } from './fields';
 import type { ActionState, GameConfig, GameState } from './types';
 
 /** The scalar fields of the state (see `fields.ts`). */
-type ScalarKey = Exclude<keyof GameState, 'unlockedActions' | 'autoRunOff' | 'actions' | 'purchased'>;
+type ScalarKey = Exclude<keyof GameState, 'unlockedActions' | 'autoRunOff' | 'actions' | 'purchased' | 'inventory'>;
+
+/**
+ * THE positive list of what survives a re-sleeve: these per-action fields. Nothing else carries over; everything not
+ * named here (scalars, purchases, inventory, action XP, ...) resets, including anything added to the state later.
+ * The sleeve level is derived from `sleeveXp`; `runsTowardSleeveXp` is the partial progress to the next sleeve XP.
+ */
+export const CARRIED_OVER_ACTION_FIELDS = ['sleeveXp', 'runsTowardSleeveXp'] as const satisfies readonly (keyof ActionState)[];
+
+/** The carried-over part of one action's state. */
+function pickCarried(action: ActionState): Partial<ActionState> {
+  const carried: Record<string, unknown> = {};
+  for (const key of CARRIED_OVER_ACTION_FIELDS) carried[key] = action[key];
+  return carried as Partial<ActionState>;
+}
 
 /** A fresh action state: no XP, no sleeve XP, idle. */
 function freshActionState(factory: NumberFactory): ActionState {
-  return { xp: factory.fromNumber(0), sleeveXp: factory.fromNumber(0), runsTowardSleeveXp: 0, running: false, progressMs: 0 };
+  return { xp: factory.fromNumber(0), sleeveXp: factory.fromNumber(0), runsTowardSleeveXp: 0, augments: {}, running: false, progress: 0 };
 }
 
 /**
@@ -32,6 +46,7 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
     autoRunOff: {},
     actions,
     purchased: {},
+    inventory: {},
   };
 }
 
@@ -56,9 +71,9 @@ export function resetForNewGame(
  * Applies a re-sleeve to `state`.
  *
  * @remarks
- * Starts from a fresh game state and carries over only what survives: every action's sleeve XP and its run counter
- * towards the next sleeve-XP batch. Everything else resets, including fields added in the future (nothing has to be
- * listed here to be reset).
+ * Starts from a fresh game state and carries over only what {@link CARRIED_OVER_ACTION_FIELDS} names: every action's
+ * sleeve XP and its run counter towards the next sleeve-XP batch. Everything else resets, including fields added in the
+ * future (nothing has to be listed to be reset; to carry something over, add it to the list).
  *
  * Called by: `engine.ts`.
  *
@@ -74,10 +89,7 @@ export function resetForResleeve(
   const fresh = createInitialState(config, factory);
   for (const [id, action] of Object.entries(fresh.actions)) {
     const old = state.actions[id];
-    if (old) {
-      action.sleeveXp = old.sleeveXp;
-      action.runsTowardSleeveXp = old.runsTowardSleeveXp;
-    }
+    if (old) Object.assign(action, pickCarried(old));
   }
   Object.assign(state, fresh);
 }

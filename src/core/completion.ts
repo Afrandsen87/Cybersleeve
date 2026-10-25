@@ -3,8 +3,8 @@
  *
  * What an action does to the game each time a run completes, besides paying its reward.
  */
-import type { NumberFactory } from '../numbers';
-import type { BigNum } from '../numbers';
+import type { BigNum, NumberFactory } from '../numbers';
+import { assertNever } from './effectTraits';
 import type { CompletionEffect, GameState } from './types';
 
 /** Runs that remove nodes one run at a time (each rounded down); any further runs of one batch use the closed form. */
@@ -31,17 +31,18 @@ function removeNodes(nodes: BigNum, fraction: number, runs: number, factory: Num
  * Applies an action's completion effects for `runs` completed runs, in the order they are listed.
  *
  * @remarks
- * Nodes are whole: each run removes `floor(fraction * nodes)` (see {@link removeNodes}). Adding heat adds `heat` once per run.
- * Called by: `engine.ts` (`GameEngine.completeRuns`).
+ * Nodes are whole: each run removes `floor(fraction * nodes)` (see {@link removeNodes}). Heat is not an effect: actions add
+ * heat through `ActionDefinition.heatPerRun`.
+ * Called by: `actionRunner.ts` (`ActionRunner.completeRuns`).
  *
  * @param effects the effects to apply (nothing happens for `undefined` or an empty list)
- * @param state state to mutate (reads and writes `network` and `heat`)
+ * @param state state to mutate (reads and writes `network`)
  * @param runs number of completed runs (>= 1)
  * @param factory number factory
  */
 export function applyCompletionEffects(
   effects: readonly CompletionEffect[] | undefined,
-  state: Pick<GameState, 'network' | 'heat'>,
+  state: Pick<GameState, 'network'>,
   runs: number,
   factory: NumberFactory,
 ): void {
@@ -50,9 +51,8 @@ export function applyCompletionEffects(
       case 'removeNodesFraction':
         state.network = removeNodes(state.network, effect.fraction, runs, factory);
         break;
-      case 'addHeat':
-        state.heat += effect.heat * runs;
-        break;
+      default:
+        assertNever(effect.kind);
     }
   }
 }

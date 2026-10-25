@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { placeTooltip } from './tooltip';
 
@@ -31,5 +33,20 @@ describe('placeTooltip', () => {
       left: 8,
       top: 8,
     });
+  });
+});
+
+describe('the tooltip style', () => {
+  const css = readFileSync(fileURLToPath(new URL('./style.css', import.meta.url)), 'utf8');
+  const rule = /\.tooltip\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+
+  it('grows to fit its text: sized by content, and not capped at a narrow fixed width that would wrap long lines', () => {
+    expect(rule).toContain('width: max-content');
+    expect(rule).not.toMatch(/max-width:\s*\d+px/);
+  });
+
+  it('is still limited by the window, and keeps the line breaks the text itself contains', () => {
+    expect(rule).toMatch(/max-width:\s*calc\(100vw/);
+    expect(rule).toContain('white-space: pre-line');
   });
 });

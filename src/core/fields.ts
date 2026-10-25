@@ -1,7 +1,7 @@
 /**
  * @module core
  *
- * The scalar fields of {@link GameState} (credits, network, heat, circumvention, ...) described once as data.
+ * The scalar fields of {@link GameState} (credits, network, heat, iceRating, ...) described once as data.
  *
  * @remarks
  * Everything that has to treat every scalar the same way is driven by {@link SCALAR_FIELDS}: creating the initial
@@ -23,7 +23,7 @@ export type FieldConfig = Pick<GameConfig, 'progression' | 'sleeve'>;
 interface FieldBase {
   /** The field's name in `GameState` and in the save. */
   readonly key: string;
-  /** Always read from a save, even from versions before the scalars were stored. A missing or invalid value rejects the save. */
+  /** A missing or invalid value rejects the save (the game cannot start without it). */
   readonly required?: boolean;
   /** Only whole values are kept (loaded values are rounded down). */
   readonly whole?: boolean;
@@ -61,12 +61,13 @@ export const SCALAR_FIELDS: readonly ScalarField[] = [
   { kind: 'big', key: 'network', required: true, whole: true, initial: (_c, f) => f.fromNumber(0) },
   { kind: 'num', key: 'heat', initial: (c) => c.sleeve.baseHeat },
   { kind: 'num', key: 'heatCooldownMs', initial: () => 0 },
-  { kind: 'big', key: 'circumvention', atLeastInitial: true, initial: (c, f) => f.fromNumber(c.sleeve.baseCircumvention) },
+  { kind: 'big', key: 'iceRating', atLeastInitial: true, initial: (c, f) => f.fromNumber(c.sleeve.baseIceRating) },
   { kind: 'num', key: 'infamy', whole: true, initial: () => 0 },
   { kind: 'num', key: 'infamyCooldownMs', initial: () => 0 },
+  { kind: 'num', key: 'moles', initial: () => 0 },
   { kind: 'num', key: 'networkRemainder', below: 1, initial: () => 0 },
   { kind: 'big', key: 'nodePayoutBonus', initial: (_c, f) => f.fromNumber(0) },
-  { kind: 'big', key: 'interfaceSpeedBonus', initial: (_c, f) => f.fromNumber(0) },
+  { kind: 'big', key: 'hackingProficiency', initial: (_c, f) => f.fromNumber(0) },
 ];
 
 const FIELDS_BY_KEY = new Map<string, ScalarField>(SCALAR_FIELDS.map((f) => [f.key, f]));
@@ -109,8 +110,7 @@ export function writeScalars(state: Readonly<Record<string, unknown>>, into: Rec
  * Reads one scalar from a save, sanitising it.
  *
  * @remarks
- * Amounts are accepted as numeric strings (or, for files from before they were `BigNum`, as plain numbers) and must be
- * finite; negatives become 0. Plain-number fields must be finite and >= 0. A missing or unusable optional entry gives
+ * Amounts are accepted as numeric strings and must be finite; negatives become 0. Plain-number fields must be finite and >= 0. A missing or unusable optional entry gives
  * the initial value, so older saves keep the fresh-game value.
  *
  * Called by: `serialization.ts`.
@@ -133,9 +133,6 @@ export function readScalar(field: ScalarField, raw: unknown, config: FieldConfig
   if (typeof raw === 'string') {
     value = factory.fromString(raw);
     if (!value.isFinite()) throw new Error('non-finite number');
-  } else if (typeof raw === 'number' && !field.required) {
-    if (!Number.isFinite(raw)) return initial;
-    value = factory.fromNumber(raw);
   } else if (field.required) {
     throw new Error('expected numeric string');
   } else {

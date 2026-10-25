@@ -58,15 +58,43 @@ Decided 2026-10-24 (by the user, after the first full review):
 - A temporary **Reset save** button wipes the game and the save (remove before release).
 - The folder is now a git repository (initialised 2026-10-24, nothing committed yet).
 
+Decided 2026-10-25 (by the user, after the second review):
+- **No global reward multiplier.** A lever applies to one named kind of reward and nothing else. Today the only one is `global.creditMultiplier` (credits earned: run rewards paid in credits and passive network income). It never touches nodes, ICE Rating, Infamy, or the interface-speed and node-payout bonuses. A lever for another kind is its own named setting, and which kinds a lever scales is stated in `REWARDS` (`core/rewards.ts`).
+- Every reward kind and every buyable effect kind is described once as data (`REWARDS`, `EFFECT_TRAITS`); code asks the descriptor instead of comparing kind names. Resolver `switch`es over effect kinds end in `assertNever` so a new kind cannot be forgotten.
+- All interface wording lives in `src/ui/uiText.ts`; `viewModel.ts` and `dom.ts` hold none. Stat widgets are data-driven rows (`StatRowView`), not hand-written per field.
+- The test aids (Reset save, Speed x10) are shown only in development builds or with `?debug` in the address.
+- Only the current save version is read (nothing has been released). Changing the meaning of a saved field needs a version bump and a migration; adding a scalar does not.
+- `npm run check` also runs `npm run docs:check`, which fails when `docs/architecture.html` is stale: run `npm run docs` after code or doc-comment changes.
+
+Decided 2026-10-25 (by the user, after testing):
+- **No general output multiplier.** The old `outputMultiplier` also scaled XP and counted runs, and made Practice Hacking's speed grow exponentially; it was removed. A `rewardMultiplier` buyable scales **only the reward its own action pays per run** (e.g. the nodes Grow Network pays). Every future multiplier states exactly what it multiplies; code never applies one multiplier to everything an action does.
+- Interface speed earned by Practice Hacking goes through a concave curve with no ceiling (`sleeve.earnedSpeedScale` / `earnedSpeedExponent`, `core/concaveBonus.ts`). Duplicate processors on Practice Hacking was removed.
+
+Decided 2026-10-25 (by the user, access ladder):
+- Actions are gated **only by access level** in the real content: Grow network 1, Practice Hacking 2, Push malware 3, Kill servers 4, Build Legend 5. Access upgrade (5 credits, x1000 per copy, unlimited) adds +1 level per copy (`accessLevel` effect is now `{ amount }` and stacks). The Unlock Legend buyable and Kill servers' node-count unlock were removed. The `unlock` rules and the `unlock` effect still exist in the engine (tests use them) but the real content uses none.
+
+Decided 2026-10-25 (by the user, items):
+- **Items are an entity** (`GameConfig.items`: kinds and rarity tiers with sell values). Practice Hacking gets the *Kompromat harvest* buyable (second on its card, 500 credits): 5% of completed runs drop a Kompromat file, rarity weights 90/9/1/0/0 over common, uncommon, rare, legendary, crisis. Items sell from the *Inventory* widget (under Network) for 10 credits at common and x10 per rarity. Drop chance and rarity weights are meant to change later, so they are data on the `itemDrop` effect, never constants in code. Random draws go through an injected `RandomSource` and are made per batch of runs (`core/sampling.ts`), never per run. Selling is not taxed by heat or scaled by the credit lever.
+
+- **Re-sleeve is a positive list:** only what `CARRIED_OVER_ACTION_FIELDS` (`core/state.ts`) names carries over (sleeve XP and its run counter); everything else resets. Paying out Kompromat is blackmail, not a sale, and the tooltip says so.
+
+- **Tabs and skills (2026-10-25):** the game has two tabs, Character (everything so far) and Skills (a box of skill buttons; a whole skill tree comes later). Skill points: none at the start, the first when an action reaches level 1, then one per order of magnitude of the total of all ACTION levels (1 at a total of 1, 2 at 10, 3 at 100), 1 point per skill for now. Skills are buyables paid in the `skillPoints` currency (nothing is stored: points available = earned - cost of the skills owned). Back Channel Deals gives Moles (a Network counter) by giving up common Kompromat; Moles make heat cool faster. Skills reset when re-sleeving (assumption).
+
+- **Augment schematics (2026-10-25):** *Industrial Espionage* (Grow network, 10,000 credits) lets Grow network drop the item *Augment schematic*. Every action card has an *Augment* button (top right) that applies one schematic: +1% to the action XP boost of ITS rarity, additively within a rarity, and the rarities multiply (3 common + 3 uncommon + 3 rare = 1.03 x 1.03 x 1.03); action levels only (not sleeve levels); the most common rarity held is used up first; schematics cannot be sold (`sellable: false`); reset by re-sleeving. The amount is data (`items.augment`).
+
+Decided 2026-10-25 (by the user, after the performance review):
+- **Rendering rules.** The screen is drawn by `RenderLoop` on `requestAnimationFrame` (rate-limited by `runtime.renderMs`); the game steps on its own timer. Bars move with `transform: scaleX()` plus a CSS transition of `--render-ms`, never by `width`. Hover texts are built only when shown: view-model tips are getters, `dom.ts` registers them in a `TipRegistry`, and nothing reads them every frame. `buildViewModel` runs inside `engine.snapshot(...)`. Measure before optimising: the game cost about 1% of a core when measured, so new UI work should keep it that way (no per-frame work that scales with the number of buyables beyond what the view model already does).
+
 Proposed, to confirm with the user when scaffolding:
 - Doc-comment format: **TSDoc** (in use), extracted by `scripts/generate-docs.mjs` into the HTML overview `docs/architecture.html` (in the style of `ARCHITECTURE_DerivativeClicker.html`).
 - Folder layout, build/run/test commands: see `docs/ARCHITECTURE.md` (project scaffolded 2026-10-24; code in `src/{numbers,core,content,app,ui}`, tests next to code as `*.test.ts`).
 - **No hard-coded tuning:** every number that affects progression (durations, rewards, XP, level thresholds, level worth, prices, caps, intervals) must live in `src/content/gameConfig.ts` (`GameConfig`) and be validated in `core/config.ts`. Describe new variables in `docs/CONFIG.md`. Unit tests use `src/testing/testConfig.ts`, never the real tuning.
 - Keep `docs/ARCHITECTURE.md`, `docs/CONFIG.md` and `DESIGN.md` updated in the same change as code.
 - Regenerate the HTML overview with `npm run docs` (output: `docs/architecture.html`) after code changes, and update the curated sections in `scripts/architecture.template.html` when the design changes. Doc format is TSDoc with `Called by:` / `Calls:` lines in the description.
-- Before reporting work done: run `npm run check` (typecheck, Biome, tests, build).
+- Before reporting work done: run `npm run check` (typecheck, Biome, tests, docs check, build).
 - Runs are applied in closed-form batches (no per-run iteration); keep it that way when adding mechanics, and extend `batching.test.ts` so one long tick and many short ones give the same run results.
 - Tests for the real content (`content/gameConfig.test.ts`) check invariants, never tuning numbers.
+- New mechanics extend `testing/invariants.ts` when they add state, and are covered by the random play in `core/properties.test.ts` (seeded, so failures reproduce).
 
 ## Game design (high level; details to be mapped out over time)
 

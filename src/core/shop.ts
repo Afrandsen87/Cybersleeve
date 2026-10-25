@@ -4,6 +4,8 @@
  * Purchases ("buyables") paid with credits or network nodes: one-time or repeatable, optionally gated.
  */
 import type { BigNum, NumberFactory } from '../numbers';
+import { traitsOf } from './effectTraits';
+import { Snapshot } from './snapshot';
 import type { BuyableDefinition, BuyableId, Currency, GameState } from './types';
 
 /** Why a purchase did or did not happen. */
@@ -23,11 +25,15 @@ export class Shop {
    * @param buyables all purchasable definitions
    * @param factory number factory
    * @param costMultiplier global price lever (`global.costMultiplier`)
+   * @param pointsEarned the skill points earned in total from the state (what `skillPoints` purchases are paid from; default none)
+   * @param snapshot scope in which the skill points are computed once (default: a private one that is never opened)
    */
   constructor(
     buyables: readonly BuyableDefinition[],
     private readonly factory: NumberFactory,
     private readonly costMultiplier: number,
+    private readonly pointsEarned: (state: GameState) => number = () => 0,
+    private readonly snapshot: Snapshot = new Snapshot(),
   ) {
     for (const b of buyables) this.byId.set(b.id, b);
   }
@@ -41,6 +47,12 @@ export class Shop {
   /** Copies of a buyable owned (0 if none or unknown). */
   owned(state: GameState, id: BuyableId): number {
     return state.purchased[id] ?? 0;
+  }
+
+  /** True when owning the buyable lets the player switch its effect on and off (see `EFFECT_TRAITS`). False for unknown ids. */
+  isToggleable(id: BuyableId): boolean {
+    const b = this.byId.get(id);
+    return b !== undefined && traitsOf(b).toggleable;
   }
 
   /** True when every buyable listed in `requires` is owned (always true without requirements). */
@@ -69,6 +81,34 @@ export class Shop {
     return b.currency === 'networkNodes' ? this.roundUp(price) : price;
   }
 
+  /**
+   * Skill points the player can still spend: those earned so far minus what the owned `skillPoints` purchases cost.
+   * Nothing is stored for them: buying a skill raises the cost owned, which lowers this.
+   *
+   * @param state current state
+   * @returns a whole number >= 0
+   */
+  skillPointsAvailable(state: GameState): number {
+    return this.snapshot.memo('skillPoints', () => this.computeSkillPoints(state));
+  }
+
+  /** The work behind {@link Shop.skillPointsAvailable}. */
+  private computeSkillPoints(state: GameState): number {
+    let spent = 0;
+    const lever = this.factory.fromNumber(this.costMultiplier);
+    for (const b of this.byId.values()) {
+      if (b.currency !== 'skillPoints') continue;
+      const owned = this.owned(state, b.id);
+      for (let copy = 0; copy < owned; copy++) {
+        spent += b.cost
+          .mul(this.factory.fromNumber(b.costGrowth ?? 1).pow(copy))
+          .mul(lever)
+          .toNumber();
+      }
+    }
+    return Math.max(0, this.pointsEarned(state) - spent);
+  }
+
   /** What the buyable is paid in (credits unless it says otherwise). @throws Error if the id is unknown */
   currencyOf(id: BuyableId): Currency {
     const b = this.byId.get(id);
@@ -93,14 +133,18 @@ export class Shop {
     if (this.isMaxed(state, id)) return 'max-reached';
     const price = this.costOf(state, id);
     if (this.balance(state, id).lt(price)) return 'cannot-afford';
-    if (this.currencyOf(id) === 'networkNodes') state.network = state.network.sub(price);
-    else state.credits = state.credits.sub(price);
+    const currency = this.currencyOf(id);
+    if (currency === 'networkNodes') state.network = state.network.sub(price);
+    else if (currency === 'credits') state.credits = state.credits.sub(price);
+    // skill points are not held: owning the copy is what spends them (see skillPointsAvailable)
     state.purchased[id] = this.owned(state, id) + 1;
     return 'purchased';
   }
 
   /** What the player holds of the buyable's currency. */
   private balance(state: GameState, id: BuyableId): BigNum {
-    return this.currencyOf(id) === 'networkNodes' ? state.network : state.credits;
+    const currency = this.currencyOf(id);
+    if (currency === 'skillPoints') return this.factory.fromNumber(this.skillPointsAvailable(state));
+    return currency === 'networkNodes' ? state.network : state.credits;
   }
 }

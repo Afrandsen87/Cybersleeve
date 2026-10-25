@@ -121,7 +121,7 @@ describe('interface speed from the network size', () => {
     setCredits(g, num(1));
     g.buy('syn');
     setNetwork(g, nodes);
-    (g.getState() as { interfaceSpeedBonus: ReturnType<typeof num> }).interfaceSpeedBonus = num(bonus);
+    (g.getState() as { hackingProficiency: ReturnType<typeof num> }).hackingProficiency = num(bonus);
     return g.sleeveStats();
   };
 
@@ -131,7 +131,7 @@ describe('interface speed from the network size', () => {
     expect(stats.interfaceSpeed).toBeCloseTo(2 * (1 + Math.log(1e10) / 100), 8);
   });
 
-  it('applies before the run multiplier, which multiplies the whole result', () => {
+  it('applies before the hacking multiplier, which multiplies the whole result', () => {
     const stats = speedWith(num(1e10), 1);
     expect(stats.interfaceSpeed).toBeCloseTo(2 * (1 + Math.log(1e10) / 100) * 2, 8);
   });
@@ -155,14 +155,14 @@ describe('level bonus from another action sleeve level', () => {
   it("adds the source action's sleeve level to the target's speed level, not to its XP progress", () => {
     const g = withBuyables([transfer]);
     const before = g.currentSpeed('net');
-    setSleeveXp(g, num(100), 'a'); // sleeve level 3 (thresholds 10 and 100)
-    expect(g.sleeveLevel('a')).toBe(3);
+    setSleeveXp(g, num(110), 'a'); // sleeve level 2 (the levels cost 10 and 100)
+    expect(g.sleeveLevel('a')).toBe(2);
     setCredits(g, num(1));
     g.buy('transfer');
-    expect(g.levelBonus('net')).toBe(3);
-    expect(g.actionLevel('net')).toBe(1);
+    expect(g.levelBonus('net')).toBe(2);
+    expect(g.actionLevel('net')).toBe(0);
     expect(g.getState().actions['net']!.xp.isZero()).toBe(true);
-    expect(g.currentSpeed('net')).toBeCloseTo(before * (1 + (3 + 1 - 1)), 10); // test config: linear, 1 per level
+    expect(g.currentSpeed('net')).toBeCloseTo(before * (1 + 2), 10); // test config: linear, 1 per level, level 0 is worth 1
   });
 
   it('does not touch other actions', () => {
@@ -198,30 +198,32 @@ describe('reduced sleeve XP requirement (other actions only)', () => {
     expect(g.sleeveXpReduction('net')).toBe(0);
   });
 
-  it('reduces the other actions by perLevel per source sleeve level (level 4, 0.01 -> 4% less XP)', () => {
-    const g = studied(1000);
-    expect(g.sleeveXpReduction('net')).toBeCloseTo(0.04, 10);
-    expect(g.nextSleeveLevelXp('net').toNumber()).toBeCloseTo(10_000 * 0.96, 6);
+  it('reduces the other actions by perLevel per source sleeve level (level 3, 0.01 -> 3% less XP)', () => {
+    const g = studied(1110); // sleeve level 3 (the levels cost 10, 100 and 1000)
+    expect(g.sleeveLevel('a')).toBe(3);
+    expect(g.sleeveXpReduction('net')).toBeCloseTo(0.03, 10);
+    expect(g.nextSleeveLevelXp('net').toNumber()).toBeCloseTo(11_110 * 0.97, 6);
+    expect(g.sleeveXpForLevel('net').toNumber()).toBeCloseTo(10_000 * 0.97, 6); // leaving level 3 costs 10,000 in full, 3% less
   });
 
-  it('a percentage-sized rate works: 0.0001 per level means level 5 gives 0.05% less XP', () => {
-    const g = studied(10_000, 0.0001);
-    expect(g.sleeveLevel('a')).toBe(5);
-    expect(g.sleeveXpReduction('net')).toBeCloseTo(0.0005, 10);
+  it('a percentage-sized rate works: 0.0001 per level means level 4 gives 0.04% less XP', () => {
+    const g = studied(11_110, 0.0001);
+    expect(g.sleeveLevel('a')).toBe(4);
+    expect(g.sleeveXpReduction('net')).toBeCloseTo(0.0004, 10);
   });
 
   it('the source action is not affected by its own reduction', () => {
-    const g = studied(1000);
+    const g = studied(1110);
     expect(g.sleeveXpReduction('a')).toBe(0);
-    expect(g.nextSleeveLevelXp('a').toNumber()).toBeCloseTo(10_000, 6);
-    // 99 XP stays level 2: without the exemption 2% off would lift it to level 3.
-    const short = studied(99);
-    expect(short.sleeveLevel('a')).toBe(2);
+    expect(g.nextSleeveLevelXp('a').toNumber()).toBeCloseTo(11_110, 6);
+    // 109 XP stays level 1: without the exemption 1% off would lift it to level 2 (110 XP).
+    const short = studied(109);
+    expect(short.sleeveLevel('a')).toBe(1);
   });
 
-  it('can lift another action over a threshold (99 XP is level 3 when the source is level 2: 2% off 100)', () => {
-    const g = studied(99);
-    expect(g.sleeveLevel('net')).toBe(3);
+  it('can lift another action over a threshold (109 XP is level 2 when the source is level 1: 1% off 110)', () => {
+    const g = studied(109);
+    expect(g.sleeveLevel('net')).toBe(2);
   });
 
   it('never goes beyond the cap (25% at most)', () => {
@@ -257,5 +259,125 @@ describe('validation of the newer effects', () => {
 
   it('accepts a sleeve-wide effect that is shown on an action card', () => {
     expect(invalid({ ...base, actionId: 'a', effect: { kind: 'networkGrowth', ratePerSecond: 0.1 } })).toBe('');
+  });
+});
+
+describe('reward multiplier on an action that pays network nodes', () => {
+  const parallel: BuyableDefinition = {
+    id: 'parallel',
+    name: 'Parallel',
+    description: '',
+    actionId: 'net',
+    cost: num(1),
+    costGrowth: 10,
+    maxPurchases: Infinity,
+    effect: { kind: 'rewardMultiplier', factor: 2 },
+  };
+  const runOnce = (copies: number) => {
+    const g = withBuyables([parallel]);
+    (g.getState() as { purchased: Record<string, number> }).purchased['parallel'] = copies;
+    g.startAction('net');
+    g.tick(20_000); // exactly one run of the 20 s action
+    return g;
+  };
+
+  it('doubles the nodes paid per copy owned', () => {
+    expect(runOnce(0).getState().network.eq(num(1))).toBe(true);
+    expect(runOnce(1).getState().network.eq(num(2))).toBe(true);
+    expect(runOnce(3).getState().network.eq(num(8))).toBe(true);
+  });
+
+  it('changes nothing else a run does: same XP, same counted runs, same heat, same duration', () => {
+    const plain = runOnce(0);
+    const boosted = runOnce(3);
+    const a = plain.getState().actions['net']!;
+    const b = boosted.getState().actions['net']!;
+    expect(b.xp.eq(a.xp)).toBe(true);
+    expect(b.runsTowardSleeveXp).toBe(a.runsTowardSleeveXp);
+    expect(boosted.getState().heat).toBe(plain.getState().heat);
+    expect(boosted.currentDurationMs('net')).toBe(plain.currentDurationMs('net'));
+    expect(boosted.xpPerRun('net').eq(plain.xpPerRun('net'))).toBe(true);
+  });
+
+  it('does not touch the credits of another action', () => {
+    const g = withBuyables([parallel]);
+    (g.getState() as { purchased: Record<string, number> }).purchased['parallel'] = 4;
+    expect(g.rewardPerRun('a').eq(testConfig.actions[0]!.reward)).toBe(true);
+  });
+});
+
+describe('network growth that depends on an action level', () => {
+  // percentPerLevel 1: the network grows by (action level)% of its size per second.
+  const levelGrowth: BuyableDefinition = {
+    id: 'lg',
+    name: 'Level growth',
+    description: '',
+    actionId: 'net',
+    cost: num(1),
+    maxPurchases: 3,
+    effect: { kind: 'networkGrowthFromActionLevel', sourceActionId: 'net', percentPerLevel: 1 },
+  };
+  const grownAt = (opts: { netXp?: number; copies?: number; ms?: number; steps?: number } = {}) => {
+    const g = withBuyables([levelGrowth], { network: { creditsPerNodePerSecond: 0 } });
+    setCredits(g, num(10));
+    for (let i = 0; i < (opts.copies ?? 1); i++) g.buy('lg');
+    (g.getState().actions['net'] as { xp: unknown }).xp = num(opts.netXp ?? 0);
+    setNetwork(g, num(1000));
+    const steps = opts.steps ?? 1;
+    for (let i = 0; i < steps; i++) g.tick((opts.ms ?? 10_000) / steps);
+    return g.getState().network.toNumber();
+  };
+
+  it('grows by level x percentPerLevel percent per second: level 0 does not grow, level 1 is 1% a second, level 2 is 2%', () => {
+    expect(grownAt()).toBe(1000);
+    expect(grownAt({ netXp: 10 })).toBe(Math.floor(1000 * 1.01 ** 10)); // level 1 at 10 XP
+    expect(grownAt({ netXp: 110 })).toBe(Math.floor(1000 * 1.02 ** 10)); // level 2 at 110 XP
+  });
+
+  it('stacks per copy owned', () => {
+    expect(grownAt({ copies: 2, netXp: 10 })).toBe(Math.floor(1000 * 1.02 ** 10));
+  });
+
+  it('uses the plain action level of the source, not a level bonus from purchases', () => {
+    const g = withBuyables(
+      [
+        levelGrowth,
+        {
+          id: 'bonus',
+          name: 'Bonus',
+          description: '',
+          cost: num(1),
+          effect: { kind: 'levelBonusFromSleeveLevel', sourceActionId: 'net', targetActionId: 'net' },
+        },
+      ],
+      { network: { creditsPerNodePerSecond: 0 } },
+    );
+    setCredits(g, num(10));
+    g.buy('lg');
+    g.buy('bonus');
+    (g.getState().actions['net'] as { xp: unknown }).xp = num(10); // level 1
+    setNetwork(g, num(1000));
+    g.tick(10_000);
+    expect(g.getState().network.toNumber()).toBe(Math.floor(1000 * 1.01 ** 10));
+  });
+
+  it('gives (almost) the same result for one long tick and many short ones', () => {
+    expect(Math.abs(grownAt({ steps: 100 }) - grownAt({ steps: 1 }))).toBeLessThanOrEqual(2);
+  });
+
+  it('does nothing without the buyable', () => {
+    const g = withBuyables([levelGrowth]);
+    setNetwork(g, num(1000));
+    g.tick(10_000);
+    expect(g.getState().network.eq(num(1000))).toBe(true);
+  });
+
+  it('is validated: a negative percent and an unknown source action are rejected', () => {
+    const problems = (effect: BuyableDefinition['effect']) =>
+      validateConfig(createConfig(testConfig, { buyables: [{ ...levelGrowth, effect }] })).join();
+    expect(problems({ kind: 'networkGrowthFromActionLevel', sourceActionId: 'net', percentPerLevel: -1 })).toContain('percent per level');
+    expect(problems({ kind: 'networkGrowthFromActionLevel', sourceActionId: 'ghost', percentPerLevel: 1 })).toContain(
+      'unknown action "ghost"',
+    );
   });
 });

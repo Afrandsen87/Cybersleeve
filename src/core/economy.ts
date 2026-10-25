@@ -1,111 +1,115 @@
 /**
  * @module core
  *
- * The pure formulas of what actions pay: rewards, XP, the heat tax and passive network income.
+ * The pure formulas of what actions pay: rewards, XP and passive network income (the only thing the heat tax applies to).
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import { heatTaxFactor } from './heat';
+import { rewardOf } from './rewards';
 import type { ActionDefinition, GameConfig } from './types';
 
 /**
- * Computes what runs and the network earn. Stateless; reads only the global levers and the network rate.
+ * Computes what runs and the network earn. Stateless; reads only the global levers, the heat tax rate and the network rate.
  *
- * Called by: `engine.ts`. Calls: {@link heatTaxFactor}.
+ * Called by: `engine.ts`, `stats.ts`, `actionRunner.ts`. Calls: {@link heatTaxFactor} (for node income), `rewardOf`.
  */
 export class Economy {
-  private readonly rewardLever: BigNum;
+  private readonly creditLever: BigNum;
   private readonly xpLever: BigNum;
-  private readonly nodeRate: number;
+  private readonly nodeBase: number;
+  private readonly creditLeverNumber: number;
+  private readonly taxPerPoint: number;
 
   /**
    * Creates the economy from the configuration.
    *
-   * @param config reads `global.rewardMultiplier`, `global.xpMultiplier` and `network.creditsPerNodePerSecond`
+   * @param config reads `global.creditMultiplier`, `global.xpMultiplier`, `network.creditsPerNodePerSecond` and `sleeve.heatTaxPerPoint`
    * @param factory number factory
    */
   constructor(
-    config: Pick<GameConfig, 'global' | 'network'>,
+    config: Pick<GameConfig, 'global' | 'network' | 'sleeve'>,
     private readonly factory: NumberFactory,
   ) {
-    this.rewardLever = factory.fromNumber(config.global.rewardMultiplier);
+    this.creditLever = factory.fromNumber(config.global.creditMultiplier);
     this.xpLever = factory.fromNumber(config.global.xpMultiplier);
-    this.nodeRate = config.network.creditsPerNodePerSecond * config.global.rewardMultiplier;
+    this.nodeBase = config.network.creditsPerNodePerSecond;
+    this.creditLeverNumber = config.global.creditMultiplier;
+    this.taxPerPoint = config.sleeve.heatTaxPerPoint;
   }
 
   /**
-   * Amount one completed run earns BEFORE the heat tax (credits or network nodes, see `ActionDefinition.rewardKind`):
-   * `reward * (nodes, if rewardPerNetworkNode) * outputMultiplier * global.rewardMultiplier`.
+   * The share of earned credits kept after the heat tax.
+   *
+   * @param heat current heat
+   * @param reduction share of the heat's effect removed by ICE Rating (0..1)
+   */
+  keepFactor(heat: number, reduction: number): number {
+    return heatTaxFactor(heat, reduction, this.taxPerPoint);
+  }
+
+  /**
+   * Amount one completed run earns (credits or network nodes, see `ActionDefinition.rewardKind`):
+   * `reward * (nodes, if rewardPerNetworkNode) * rewardMultiplier`, and for credits also `* global.creditMultiplier`.
+   * The credit lever scales credits only: only a reward kind marked `scaledByCreditMultiplier` is touched by it.
+   * Heat is not involved.
    *
    * @param def the action
    * @param network network nodes owned
-   * @param outputMultiplier output multiplier from purchases
+   * @param rewardMultiplier multiplier on this reward from purchases (nothing else is scaled by it)
    */
-  grossReward(def: ActionDefinition, network: BigNum, outputMultiplier: BigNum): BigNum {
+  grossReward(def: ActionDefinition, network: BigNum, rewardMultiplier: BigNum): BigNum {
     const base = def.rewardPerNetworkNode ? def.reward.mul(network) : def.reward;
-    return base.mul(outputMultiplier).mul(this.rewardLever);
+    const amount = base.mul(rewardMultiplier);
+    return rewardOf(def.rewardKind).scaledByCreditMultiplier ? amount.mul(this.creditLever) : amount;
   }
 
   /**
-   * What one run actually adds to the balance at the given heat: the gross reward, and for credits also after the
-   * heat tax. Everything else is untaxed. Network nodes are whole: the gross amount is rounded down.
+   * What one run actually adds to the balance: the gross reward, rounded down for rewards that come in whole units.
+   * Heat does not tax it: heat applies only to the credits network nodes produce.
    *
    * @param def the action
    * @param gross result of {@link Economy.grossReward}
-   * @param heat current heat
-   * @param reduction share of the heat's effect removed by Circumvention (0..1)
    */
-  payout(def: ActionDefinition, gross: BigNum, heat: number, reduction = 0): BigNum {
-    if (def.rewardKind === undefined || def.rewardKind === 'credits') {
-      return gross.mul(this.factory.fromNumber(heatTaxFactor(heat, reduction)));
-    }
-    return def.rewardKind === 'networkNodes' ? gross.floor() : gross;
+  payout(def: ActionDefinition, gross: BigNum): BigNum {
+    return rewardOf(def.rewardKind).wholePerRun ? gross.floor() : gross;
   }
 
   /**
-   * Credits earned by `runs` consecutive runs that each add `heatPerRun` heat, in closed form.
-   *
-   * @remarks
-   * Run k (from 0) pays `gross * keep(heat + k * heatPerRun)`, where `keep` is {@link heatTaxFactor}. The sum is an
-   * arithmetic series that stops contributing once heat reaches 100, so the cost does not depend on `runs`.
-   *
-   * @param gross credits per run before tax
-   * @param runs number of runs (>= 0)
-   * @param heat heat before the first run
-   * @param heatPerRun heat each run adds (>= 0)
-   * @param reduction share of the heat's effect removed by Circumvention (0..1); heat and heat per run both count
-   *   `(1 - reduction)` times as much towards the tax
-   * @returns the total credits after tax
-   */
-  creditsForRuns(gross: BigNum, runs: number, heat: number, heatPerRun: number, reduction = 0): BigNum {
-    if (!(runs > 0)) return this.factory.fromNumber(0);
-    const effective = Math.max(0, heat) * (1 - reduction);
-    const step = heatPerRun * (1 - reduction);
-    if (!(step > 0)) return gross.mul(this.factory.fromNumber(runs * heatTaxFactor(effective)));
-    if (effective >= 100) return this.factory.fromNumber(0);
-    const paying = Math.min(runs, Math.ceil((100 - effective) / step));
-    const keepSum = paying * heatTaxFactor(effective) - (step / 100) * ((paying * (paying - 1)) / 2);
-    return gross.mul(this.factory.fromNumber(Math.max(0, keepSum)));
-  }
-
-  /**
-   * Action XP gained per completed run: `xpPerRun * outputMultiplier * global.xpMultiplier`.
+   * Action XP gained per completed run: `xpPerRun * global.xpMultiplier`. Reward multipliers do not touch it.
    *
    * @param def the action
-   * @param outputMultiplier output multiplier from purchases
    */
-  xpPerRun(def: ActionDefinition, outputMultiplier: BigNum): BigNum {
-    return def.xpPerRun.mul(outputMultiplier).mul(this.xpLever);
+  xpPerRun(def: ActionDefinition): BigNum {
+    return def.xpPerRun.mul(this.xpLever);
   }
 
   /**
-   * Credits the network delivers per second: `nodes * creditsPerNodePerSecond * global.rewardMultiplier * payoutMultiplier * keep`.
+   * Credits the network delivers per second: `nodes * (creditsPerNodePerSecond + baseBonus) * global.creditMultiplier * payoutMultiplier * keep`.
    *
    * @param network network nodes owned
    * @param heat current heat (for the tax)
-   * @param reduction share of the heat's effect removed by Circumvention (0..1)
+   * @param reduction share of the heat's effect removed by ICE Rating (0..1)
    * @param payoutMultiplier multiplier on what each node produces (from buyables; default 1)
+   * @param baseBonus credits per second added to the base of every node (earned by actions; default 0)
    */
-  passiveCreditsPerSecond(network: BigNum, heat: number, reduction = 0, payoutMultiplier = 1): BigNum {
-    return network.mul(this.factory.fromNumber(this.nodeRate * payoutMultiplier * heatTaxFactor(heat, reduction)));
+  passiveCreditsPerSecond(network: BigNum, heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0): BigNum {
+    return network.mul(this.passiveCreditsPerNode(heat, reduction, payoutMultiplier, baseBonus));
+  }
+
+  /**
+   * Credits ONE network node delivers per second: `(creditsPerNodePerSecond + baseBonus) * global.creditMultiplier * payoutMultiplier * keep`.
+   * The bonus earned by actions is added to the BASE value of a node; the multiplier from buyables then multiplies the sum.
+   * The network's income is this times the number of nodes.
+   *
+   * Called by: {@link Economy.passiveCreditsPerSecond}, `stats.ts`.
+   *
+   * @param heat current heat (for the tax)
+   * @param reduction share of the heat's effect removed by ICE Rating (0..1)
+   * @param payoutMultiplier multiplier on what each node produces (from buyables; default 1)
+   * @param baseBonus credits per second added to the base of every node (earned by actions; default 0)
+   */
+  passiveCreditsPerNode(heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0): BigNum {
+    const base = (this.nodeBase + baseBonus) * this.creditLeverNumber;
+    return this.factory.fromNumber(base * payoutMultiplier * this.keepFactor(heat, reduction));
   }
 }

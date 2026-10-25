@@ -7,24 +7,27 @@
  * No timers, no DOM, no storage: time enters only through {@link GameEngine.tick}'s
  * `deltaMs` argument, which makes the engine fully deterministic and unit-testable.
  * The rules themselves live in small units: `DerivedStats` (calculations), `ActionRunner` (actions and runs),
- * `NetworkSystem` (passive income and growth), `cooldowns.ts` (heat and Infamy decay), `Shop` and `Progression`.
+ * `NetworkSystem` (passive income and growth), `cooldowns.ts` (heat and Infamy decay), `Shop` and `Progression`. The engine
+ * builds none of them: they arrive through {@link EngineDependencies} (see `app/createGame.ts`).
  */
 import type { BigNum, NumberFactory } from '../numbers';
-import { createActionLookup } from './actionLookup';
-import { ActionRunner } from './actionRunner';
+import type { ActionRunner } from './actionRunner';
 import type { ActivateResult, GameCommands, GameQueries } from './api';
 import { coolDownHeat, decayInfamy } from './cooldowns';
-import type { Economy } from './economy';
-import type { SleeveStats } from './effects';
-import { NetworkSystem } from './network';
+import type { BackChannelRule, SleeveStats } from './effects';
+import type { Augments } from './augments';
+import type { ItemDrops } from './drops';
+import type { Inventory } from './inventory';
+import type { NetworkSystem } from './network';
 import type { OverflowPolicy } from './overflow';
 import type { Progression } from './progression';
 import type { ResleevePolicy } from './resleeve';
 import type { PurchaseResult, Shop } from './shop';
-import type { SpeedModifier } from './speed';
+import type { Snapshot } from './snapshot';
+import type { SpeedFactor } from './speed';
 import { resetForNewGame, resetForResleeve } from './state';
-import { DerivedStats } from './stats';
-import type { ActionId, BuyableId, Currency, GameConfig, GameState, GameStateView } from './types';
+import type { DerivedStats } from './stats';
+import type { ActionId, BuyableId, Currency, GameConfig, GameState, GameStateView, ItemId, RarityId } from './types';
 
 /** The collaborators a {@link GameEngine} is built from (all injected; see `app/createGame.ts`). */
 export interface EngineDependencies {
@@ -32,43 +35,56 @@ export interface EngineDependencies {
   readonly progression: Progression;
   /** Purchase service. */
   readonly shop: Shop;
-  /** Reward, XP and passive-income formulas. */
-  readonly economy: Economy;
-  /** Factors of the speed multiplier. */
-  readonly speedModifiers: readonly SpeedModifier[];
+  /** Read-only calculations over the state (built on the same state the engine owns). */
+  readonly stats: DerivedStats;
+  /** Starts actions and advances their runs (built on the same state the engine owns). */
+  readonly runner: ActionRunner;
+  /** Passive income and network growth (built on the same state the engine owns). */
+  readonly network: NetworkSystem;
+  /** Applies Augment schematics to actions. */
+  readonly augments: Augments;
+  /** Rolls item drops (also used by the drop test aid). */
+  readonly drops: ItemDrops;
+  /** Items held and their sale (built on the same state the engine owns). */
+  readonly inventory: Inventory;
   /** Decides when re-sleeving is allowed. */
   readonly resleevePolicy: ResleevePolicy;
   /** Reaction to numbers leaving the representable range. */
   readonly overflowPolicy: OverflowPolicy;
   /** Number factory. */
   readonly factory: NumberFactory;
+  /** The scope that `stats` and `shop` memoise in (the same object they were built with). */
+  readonly snapshot: Snapshot;
 }
 
 /**
  * Orchestrates the core game rules. Depends on collaborators passed to the
- * constructor (dependency inversion); owns the single mutable {@link GameState}.
+ * constructor (dependency inversion); owns the single mutable {@link GameState}, which the injected units share.
  *
  * Called by: `app/loop.ts` (tick), `ui` event handlers ({@link GameCommands}), `ui/viewModel.ts` ({@link GameQueries}),
  * `app/createGame.ts` (construction).
- * Calls: {@link DerivedStats}, {@link ActionRunner}, {@link NetworkSystem}, {@link Progression}, {@link Shop},
+ * Calls: the injected {@link DerivedStats}, {@link ActionRunner}, {@link NetworkSystem}, {@link Progression}, {@link Shop},
  * `coolDownHeat`, `decayInfamy`, {@link OverflowPolicy}.
  */
 export class GameEngine implements GameQueries, GameCommands {
   private readonly progression: Progression;
   private readonly shop: Shop;
-  private readonly economy: Economy;
   private readonly resleevePolicy: ResleevePolicy;
   private readonly overflowPolicy: OverflowPolicy;
   private readonly factory: NumberFactory;
   private readonly stats: DerivedStats;
   private readonly runner: ActionRunner;
   private readonly network: NetworkSystem;
+  private readonly inventory: Inventory;
+  private readonly drops: ItemDrops;
+  private readonly augments: Augments;
+  private readonly scope: Snapshot;
 
   /**
    * Creates an engine. Construct through `app/createGame.ts` rather than directly.
    *
    * @param config content and tuning
-   * @param state initial state (owned by the engine from now on)
+   * @param state initial state (owned by the engine from now on; `deps.stats`, `deps.runner` and `deps.network` must be built on this same object)
    * @param deps collaborators
    */
   constructor(
@@ -79,20 +95,33 @@ export class GameEngine implements GameQueries, GameCommands {
     ({
       progression: this.progression,
       shop: this.shop,
-      economy: this.economy,
+      stats: this.stats,
+      runner: this.runner,
+      network: this.network,
+      inventory: this.inventory,
+      drops: this.drops,
+      augments: this.augments,
       resleevePolicy: this.resleevePolicy,
       overflowPolicy: this.overflowPolicy,
       factory: this.factory,
+      snapshot: this.scope,
     } = deps);
-    const definition = createActionLookup(config.actions);
-    this.stats = new DerivedStats(config, state, this.progression, this.economy, deps.speedModifiers, this.factory, definition);
-    this.runner = new ActionRunner(config, state, this.stats, this.progression, this.economy, this.shop, this.factory, definition);
-    this.network = new NetworkSystem(config, state, this.stats, this.factory);
   }
 
   /** Read-only view of the current state. */
   getState(): GameStateView {
     return this.state;
+  }
+
+  /**
+   * Runs read-only work in which the sleeve stats and the skill points are computed once. For building a screen, which asks for them
+   * from many places. The work must not change the game (no commands, no ticks).
+   *
+   * @param read the work
+   * @returns whatever `read` returns
+   */
+  snapshot<T>(read: () => T): T {
+    return this.scope.run(read);
   }
 
   /** The configuration this engine runs. */
@@ -112,13 +141,12 @@ export class GameEngine implements GameQueries, GameCommands {
   }
 
   /**
-   * Switches an owned auto-run buyable on or off.
-   * @param id the auto-run buyable
+   * Switches an owned toggleable buyable (an auto-run) on or off.
+   * @param id the toggleable buyable
    * @returns true when auto-run is now on; false when it is now off or the buyable is not owned (nothing changes then)
    */
   toggleAutoRun(id: BuyableId): boolean {
-    const owned = this.ownedCount(id) > 0 && this.config.buyables.some((b) => b.id === id && b.effect.kind === 'autoRun');
-    if (!owned) return false;
+    if (this.ownedCount(id) <= 0 || !this.shop.isToggleable(id)) return false;
     if (this.state.autoRunOff[id]) delete this.state.autoRunOff[id];
     else this.state.autoRunOff[id] = true;
     return !this.state.autoRunOff[id];
@@ -134,9 +162,55 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns what happened
    */
   activateBuyable(id: BuyableId): ActivateResult {
-    const isAutoRun = this.config.buyables.some((b) => b.id === id && b.effect.kind === 'autoRun');
-    if (isAutoRun && this.ownedCount(id) > 0) return this.toggleAutoRun(id) ? 'switched-on' : 'switched-off';
+    if (this.shop.isToggleable(id) && this.ownedCount(id) > 0) return this.toggleAutoRun(id) ? 'switched-on' : 'switched-off';
     return this.buy(id);
+  }
+
+  /**
+   * Test aid: drops one item now, with the rarity drawn by the current drop weights (the chance of a drop at all is skipped).
+   * See `ItemDrops.forceDrop`.
+   */
+  dropTestItem(): void {
+    this.drops.forceDrop();
+  }
+
+  /**
+   * Sells items from the inventory for credits (the rarity's sell value each).
+   * @param itemId the item
+   * @param rarityId the rarity
+   * @param amount how many to sell, or `'all'`; more than held sells what is held
+   * @returns how many were sold
+   */
+  sellItems(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number {
+    return this.inventory.sell(itemId, rarityId, amount);
+  }
+
+  /**
+   * Applies one Augment schematic to an action: its action XP per run goes up by the schematic's bonus (additively) for the rest of
+   * this life. Uses up the most common schematic held. Sleeve XP is not affected.
+   *
+   * @param id the action to augment
+   * @returns true when a schematic was applied; false when none is held, the game has none, or the action is unknown
+   */
+  augmentAction(id: ActionId): boolean {
+    return this.augments.apply(id);
+  }
+
+  /**
+   * Gives up items for Moles through the unlocked back channel: each item taken adds `molesPerItem` Moles, which make heat cool faster.
+   * Does nothing without the Back Channel Deals skill, or for any other item or rarity than the one it names.
+   *
+   * @param itemId the item
+   * @param rarityId the rarity
+   * @param amount how many to give up, or `'all'`; more than held gives up what is held
+   * @returns how many were given up
+   */
+  giveUpForMoles(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number {
+    const channel = this.stats.backChannel();
+    if (!channel || channel.itemId !== itemId || channel.rarityId !== rarityId) return 0;
+    const taken = this.inventory.take(itemId, rarityId, amount);
+    this.state.moles += taken * channel.molesPerItem;
+    return taken;
   }
 
   /**
@@ -185,14 +259,19 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.currentSpeed(id);
   }
 
+  /** The factors the current speed of an action is made of. */
+  speedFactors(id: ActionId): readonly SpeedFactor[] {
+    return this.stats.speedFactors(id);
+  }
+
   /** Levels added to an action's level for speed by buyables; its XP progress is not affected. */
   levelBonus(id: ActionId): number {
     return this.stats.levelBonus(id);
   }
 
-  /** Output multiplier from purchases for an action (>= 1). */
-  outputMultiplier(id: ActionId): BigNum {
-    return this.stats.outputMultiplier(id);
+  /** Multiplier on the action's own reward per run, from purchases (>= 1). It scales that reward only. */
+  rewardMultiplier(id: ActionId): BigNum {
+    return this.stats.rewardMultiplier(id);
   }
 
   /** True when the action restarts itself. */
@@ -200,12 +279,12 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.isAutoRun(id);
   }
 
-  /** Amount earned per completed run BEFORE the heat tax (credits, nodes, ...; see `ActionDefinition.rewardKind`). @throws Error if unknown */
+  /** Amount earned per completed run (credits, nodes, ...; see `ActionDefinition.rewardKind`). @throws Error if unknown */
   rewardPerRun(id: ActionId): BigNum {
     return this.stats.rewardPerRun(id);
   }
 
-  /** What a completed run actually adds to the balance now (credits after the heat tax). @throws Error if unknown */
+  /** What a completed run actually adds to the balance now (heat does not tax it). @throws Error if unknown */
   payoutPerRun(id: ActionId): BigNum {
     return this.stats.payoutPerRun(id);
   }
@@ -222,7 +301,27 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.progression.actionLevel(this.state, id);
   }
 
-  /** XP at which the action reaches its next level. @throws Error if unknown */
+  /** XP gathered inside the action's current level. @throws Error if unknown */
+  actionXpIntoLevel(id: ActionId): BigNum {
+    return this.progression.actionXpIntoLevel(this.state, id);
+  }
+
+  /** XP that leaving the action's current level costs on its own. @throws Error if unknown */
+  actionXpForLevel(id: ActionId): BigNum {
+    return this.progression.actionXpForLevel(this.state, id);
+  }
+
+  /** Sleeve XP gathered inside the action's current sleeve level. @throws Error if unknown */
+  sleeveXpIntoLevel(id: ActionId): BigNum {
+    return this.progression.sleeveXpIntoLevel(this.state, id);
+  }
+
+  /** Sleeve XP that leaving the action's current sleeve level costs on its own, after any reduction. @throws Error if unknown */
+  sleeveXpForLevel(id: ActionId): BigNum {
+    return this.progression.sleeveXpForLevel(this.state, id);
+  }
+
+  /** Total XP at which the action reaches its next level. @throws Error if unknown */
   nextActionLevelXp(id: ActionId): BigNum {
     return this.progression.nextActionLevelXp(this.state, id);
   }
@@ -237,7 +336,7 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.progression.sleeveLevel(this.state, id);
   }
 
-  /** Sleeve XP at which the action's next sleeve level is reached. @throws Error if unknown */
+  /** Total sleeve XP at which the action's next sleeve level is reached. @throws Error if unknown */
   nextSleeveLevelXp(id: ActionId): BigNum {
     return this.progression.nextSleeveLevelXp(this.state, id);
   }
@@ -259,9 +358,24 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.sleeveStats();
   }
 
-  /** The share of earned credits kept after the heat tax (`1 - heat * (1 - circumvention reduction) / 100`, never below 0). */
+  /** The back channel unlocked by a skill (which item and rarity can be given up, and for how many Moles each), or `null`. */
+  backChannel(): BackChannelRule | null {
+    return this.stats.backChannel();
+  }
+
+  /** Skill points the player can still spend (earned from the action levels, minus what the owned skills cost). */
+  skillPoints(): number {
+    return this.shop.skillPointsAvailable(this.state);
+  }
+
+  /** The share of earned credits kept after the heat tax (`1 - heat * (1 - iceRating reduction) / 100`, never below 0). */
   creditKeepFactor(): number {
     return this.stats.creditKeepFactor();
+  }
+
+  /** Credits one network node delivers per second right now, after the heat tax and the node payout multiplier. */
+  passiveCreditsPerNode(): BigNum {
+    return this.stats.passiveCreditsPerNode();
   }
 
   /** Credits the network delivers per second right now, after the heat tax and the node payout multiplier. */
@@ -347,7 +461,8 @@ export class GameEngine implements GameQueries, GameCommands {
     this.runner.latchUnlocks();
     this.network.payPassiveIncome(deltaMs);
     this.network.grow(deltaMs);
-    coolDownHeat(this.state, this.config.sleeve, deltaMs);
+    const sleeve = this.stats.sleeveStats();
+    coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost);
     decayInfamy(this.state, this.config.sleeve, deltaMs);
     this.runner.tickAll(deltaMs);
     this.runner.latchUnlocks();

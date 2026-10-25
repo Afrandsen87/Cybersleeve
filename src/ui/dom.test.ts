@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
+import { hoverText } from '../testing/hover';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
+import { createConfig } from '../core';
 import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
@@ -23,7 +25,7 @@ beforeEach(() => {
 describe('mountUi (smoke test against the real engine)', () => {
   it('paints immediately, before the first tick', () => {
     const { root } = mount();
-    expect(root.querySelector('.credits')?.textContent).toBe('0 credits');
+    expect(root.querySelector('.credits')?.textContent).toBe('Credits: 0');
     expect(root.querySelector('.action-title')?.textContent).toBe('A');
   });
 
@@ -33,10 +35,10 @@ describe('mountUi (smoke test against the real engine)', () => {
     expect(game.getState().actions['a']?.running).toBe(true);
     game.tick(5_000);
     render();
-    expect((root.querySelector('.bar-fill') as HTMLElement).style.width).toBe('50%');
+    expect((root.querySelector('.bar-fill') as HTMLElement).style.transform).toBe('scaleX(0.5)');
     game.tick(5_000);
     render();
-    expect(root.querySelector('.credits')?.textContent).toBe('0.5 credits');
+    expect(root.querySelector('.credits')?.textContent).toBe('Credits: 0.5');
   });
 
   it('a purchase button buys; once owned, an auto-run button switches on and off', () => {
@@ -57,7 +59,7 @@ describe('mountUi (smoke test against the real engine)', () => {
     const { root } = mount();
     for (const button of root.querySelectorAll<HTMLElement>('.upgrade')) {
       expect(button.getAttribute('aria-label')).toBeTruthy();
-      expect(button.dataset['tip']).toBeTruthy();
+      expect(hoverText(button)).toBeTruthy();
     }
   });
 
@@ -97,5 +99,69 @@ describe('mountUi (smoke test against the real engine)', () => {
     render();
     expect(observer.takeRecords()).toEqual([]);
     expect(mutations).toEqual([]);
+  });
+});
+
+describe('mountUi - the speed line of an action card', () => {
+  it('carries a hover tip while the action is open', () => {
+    const { root } = mount();
+    const info = root.querySelector<HTMLElement>('.action-info')!;
+    expect(hoverText(info)).toContain('Action Speed = Action Level x Sleeve Level x Interface Speed');
+  });
+});
+
+describe('screen layout', () => {
+  it('puts the Sleeve and the right-hand widgets above a dividing line, and the actions below it', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    mountUi(root, createGame({ config: testConfig }), { enabled: false, factor: 1, toggle: () => false }, () => {});
+    const layout = root.querySelector('.layout')!;
+    expect([...layout.children].map((e) => e.className.split(' ')[0])).toEqual(['dashboard', 'divider', 'actions']);
+    const dashboard = layout.querySelector('.dashboard')!;
+    expect([...dashboard.children].map((e) => e.className.split(' ')[0])).toEqual(['sleeve-widget', 'dashboard-right']);
+  });
+});
+
+describe('sleeve purchases', () => {
+  const nodeBuyable = {
+    id: 'uplink',
+    name: 'Uplink',
+    description: '',
+    currency: 'networkNodes' as const,
+    cost: num(100),
+    effect: { kind: 'interfaceSpeed' as const, amount: 0.1 },
+  };
+  const mount = () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const config = createConfig(testConfig, { buyables: [...testConfig.buyables, nodeBuyable] });
+    mountUi(root, createGame({ config }), { enabled: false, factor: 1, toggle: () => false }, () => {});
+    return root;
+  };
+
+  it('sit in widgets beside Network, not inside the Sleeve widget', () => {
+    const root = mount();
+    expect(root.querySelector('.sleeve-widget .upgrade')).toBeNull();
+    expect(root.querySelector('.sleeve-widget .section-title')).toBeNull();
+    const right = [...root.querySelector('.dashboard-right')!.children];
+    expect(right[1]).toBe(root.querySelector('.upgrades-widget'));
+    expect(right[2]).toBe(root.querySelector('.exploitation-widget'));
+  });
+
+  it('the ones paid in credits go to Sleeve Improvements, the ones paid in nodes to Network Exploitation', () => {
+    const root = mount();
+    expect(root.querySelector('.upgrades-widget h2')!.textContent).toBe('Sleeve Improvements');
+    expect(root.querySelector('.exploitation-widget h2')!.textContent).toBe('Network Exploitation');
+    expect(root.querySelectorAll('.upgrades-widget .upgrade').length).toBeGreaterThan(0);
+    const exploitation = [...root.querySelectorAll('.exploitation-widget .upgrade')];
+    expect(exploitation.map((b) => b.getAttribute('aria-label'))).toEqual(['Uplink']);
+    expect(root.querySelector('.exploitation-widget .section-title')).toBeNull();
+  });
+
+  it('Sleeve Improvements has no "Rebuyable" heading, but its buttons are there', () => {
+    const root = mount();
+    const titles = [...root.querySelectorAll('.upgrades-widget .section-title')].map((e) => e.textContent);
+    expect(titles).not.toContain('Rebuyable');
+    expect(root.querySelectorAll('.upgrades-widget .upgrade').length).toBeGreaterThan(0);
   });
 });
