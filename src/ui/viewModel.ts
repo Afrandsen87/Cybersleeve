@@ -15,6 +15,9 @@ import {
   type GameConfig,
   type GameQueries,
   type GameStateView,
+  AUTOMATION_FEATURES,
+  type AutomationFeature,
+  type FactorTerm,
   type SleeveStats,
   SPEED_FACTOR_IDS,
   earnedSpeedBeyond,
@@ -29,6 +32,7 @@ import {
   type SleeveSectionId,
   type SquareCellId,
   type StatId,
+  type TipTerm,
   type UiText,
   uiText as defaultText,
 } from './uiText';
@@ -108,6 +112,8 @@ export interface ActionSquareView {
 /** Display data of one action. */
 export interface ActionView {
   readonly id: string;
+  /** The critical success highlight: `null` while there was no critical success in the last second, else the text to show (a mark, or crits per second). */
+  readonly critText: string | null;
   readonly name: string;
   readonly level: number;
   readonly xpText: string;
@@ -182,7 +188,7 @@ export interface BuyableView {
   readonly repeatable: boolean;
   /** No more copies can be bought. */
   readonly maxed: boolean;
-  /** Requirements met; unavailable buyables are hidden. */
+  /** Requirements met and the price within reach of what was held (see `reveal.buyableOrders`; the square's purchases are always in reach); other buyables are hidden. */
   readonly available: boolean;
   /** Can be bought right now. */
   readonly affordable: boolean;
@@ -263,6 +269,8 @@ export interface InventoryRowView {
   readonly rarityIndex: number | null;
   /** Items held. A tile with 0 is shown dimmed. */
   readonly count: number;
+  /** The item is unlocked: a purchase that drops it is owned, or some of it is held. Every rarity of an unlocked item shows, even at 0; an item that is not unlocked is hidden. */
+  readonly unlocked: boolean;
   /** The stack can be paid out for credits (false for items such as Augment schematics, which are applied instead). */
   readonly sellable: boolean;
   readonly countText: string;
@@ -293,8 +301,39 @@ export interface InventoryView {
 
 /** One tab at the top. */
 export interface TabView {
-  readonly id: 'character' | 'skills' | 'stats';
+  readonly id: 'character' | 'skills' | 'automation' | 'stats';
   readonly label: string;
+  /** Shown once the tab is useful: no tab shows until the first skill point has been earned. */
+  readonly visible: boolean;
+  /** The tab blinks: something in it waits for the player (a skill point to spend). */
+  readonly attention: boolean;
+}
+
+/** One feature in the Automation tab. */
+export interface AutomationFeatureView {
+  readonly id: AutomationFeature;
+  readonly name: string;
+  readonly description: string;
+  readonly unlocked: boolean;
+  /** The unlock button works: a point is left. */
+  readonly canUnlock: boolean;
+}
+
+/** Display data of the Automation tab. */
+export interface AutomationView {
+  readonly title: string;
+  /** Automation points still to spend. */
+  readonly points: number;
+  readonly pointsText: string;
+  readonly features: readonly AutomationFeatureView[];
+  /** Auto Burn: its switch (text and state) and the heat ceiling. */
+  readonly autoBurn: { readonly on: boolean; readonly switchText: string; readonly ceiling: number; readonly ceilingLabel: string };
+  /** Autosale: every rarity with its switch. */
+  readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean }[];
+  /** Augment dispersal: every action with its share in percent. */
+  readonly actions: readonly { readonly id: string; readonly name: string; readonly percent: number }[];
+  /** The label of the share inputs. */
+  readonly shareLabel: string;
 }
 
 /** The re-sleeve skills: a tree whose nodes need other nodes bought first. */
@@ -349,6 +388,7 @@ export interface ViewModel {
   readonly skills: SkillsView;
   /** The latest finished sleeve-runs. */
   readonly runs: RunsView;
+  readonly automation: AutomationView;
   readonly network: NetworkView;
   readonly inventory: InventoryView;
   readonly actions: readonly ActionView[];
@@ -401,8 +441,32 @@ function nextUnlock(config: GameConfig, accessLevel: number): { name: string; le
   return next === null ? null : { name: next.name, level: String(next.requiredAccessLevel ?? 1) };
 }
 
+/**
+ * Names the owned purchases behind a multiplier: one term per purchase, with its copies when more than one is owned.
+ *
+ * Called by: {@link buildScoped}, {@link sleeveRows}. Calls: `formatPlain`.
+ *
+ * @param terms what each owned buyable contributes (from `SleeveStats`)
+ * @param config game configuration (names the buyables)
+ * @param owned copies owned of a buyable
+ * @param format formats a factor for display
+ */
+function namedTerms(
+  terms: readonly FactorTerm[],
+  config: GameConfig,
+  owned: (buyableId: string) => number,
+  format: (factor: number) => string,
+): TipTerm[] {
+  return terms.map((t) => {
+    const name = config.buyables.find((b) => b.id === t.buyableId)?.name ?? t.buyableId;
+    const copies = owned(t.buyableId);
+    return { label: copies > 1 ? `${name} (${copies} copies)` : name, value: format(t.factor) };
+  });
+}
+
 /** The sleeve stat rows. */
 function sleeveRows(stats: SleeveStats, state: ReturnType<GameQueries['getState']>, config: GameConfig, text: UiText): StatRowView[] {
+  const ownedCount = (id: string): number => state.purchased[id] ?? 0;
   const { sleeve } = config;
   const keep = 1 - stats.heatReduction;
   const stopsAt = keep > 0 && sleeve.heatTaxPerPoint > 0 ? text.format.heatPoints(formatPlain(1 / sleeve.heatTaxPerPoint / keep)) : null;
@@ -459,6 +523,10 @@ function sleeveRows(stats: SleeveStats, state: ReturnType<GameQueries['getState'
     ),
     row('iceRating', text, formatBigNum(stats.iceRating), () =>
       text.tips.iceRating({
+        earned: formatBigNum(stats.iceRatingEarned),
+        levelBonus: stats.iceRatingBonus.gt(numberFactory.fromNumber(0)) ? formatBigNum(stats.iceRatingBonus) : null,
+        multipliers: namedTerms(stats.iceRatingTerms, config, ownedCount, (f) => formatPlain(f)),
+        total: formatBigNum(stats.iceRating),
         orders: formatPlain(orders),
         perOrderPercent: formatPlain(sleeve.iceRatingReductionPerOrder * 100),
         reductionPercent: formatPlain(stats.heatReduction * 100),
@@ -962,6 +1030,16 @@ function inventoryView(engine: GameQueries, factory: NumberFactory, text: UiText
     id === undefined ? undefined : engine.getConfig().actions.find((a) => a.id === id)?.name;
   const zeroDayAction = actionNameOf(zeroDay?.actionId);
   const adminKeyAction = actionNameOf(adminKey?.actionId);
+  /** An item is unlocked once a purchase that drops it is owned, or some of it (in any rarity) is held. */
+  const unlockedItems = new Set(
+    items.definitions
+      .filter(
+        (item) =>
+          items.rarities.some((r) => itemCount(state, item.id, r.id) > 0) ||
+          buyables.some((b) => b.effect.kind === 'itemDrop' && b.effect.drop.itemId === item.id && engine.ownedCount(b.id) > 0),
+      )
+      .map((item) => item.id),
+  );
   const rows = items.definitions.flatMap((item) =>
     // An item without rarity is one stack (kept under the most common rarity) and is named by the item alone.
     (item.hasRarity === false ? items.rarities.slice(0, 1) : items.rarities).map((rarity): InventoryRowView => {
@@ -980,6 +1058,7 @@ function inventoryView(engine: GameQueries, factory: NumberFactory, text: UiText
         symbol: initials(item.name),
         rarityIndex: item.hasRarity === false ? null : items.rarities.indexOf(rarity),
         count,
+        unlocked: unlockedItems.has(item.id),
         countText: formatBigNum(factory.fromNumber(count)),
         sellable: item.sellable !== false,
         usable,
@@ -1069,7 +1148,7 @@ function inventoryView(engine: GameQueries, factory: NumberFactory, text: UiText
   const dropSource = buyables.some((b) => b.effect.kind === 'itemDrop' && engine.ownedCount(b.id) > 0);
   return {
     title: text.titles.inventory,
-    visible: dropSource || rows.some((r) => r.count > 0),
+    visible: dropSource || rows.some((r) => r.count > 0), // an unlocked item is either held or has a drop source
     rows,
   };
 }
@@ -1114,7 +1193,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
       owned,
       repeatable,
       maxed,
-      available: engine.isBuyableAvailable(b.id),
+      available: engine.isBuyableAvailable(b.id) && (SQUARE_EFFECTS.includes(b.effect.kind) || engine.isBuyableRevealed(b.id)),
       affordable,
       toggleable,
       enabled,
@@ -1165,8 +1244,10 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
     const augment = augmentView(engine, def.id, text);
     const overclock = overclockView(engine, def.id, text);
     const focus = focusView(engine, def.id, text);
+    const crits = engine.recentCrits(def.id);
     return {
       id: def.id,
+      critText: crits.count > 0 ? text.action.critFlash(crits.count, formatBigNum(factory.fromNumber(crits.perSecond))) : null,
       name: def.name,
       level,
       xpText,
@@ -1216,6 +1297,11 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
   });
 
   const keep = engine.creditKeepFactor();
+  const automation = engine.automation();
+  const statsShown = state.runs.length > 0; // the first re-sleeve writes the first run down
+  const skillsShown = engine.skillPointsEarned() > 0 || statsShown; // the re-sleeve skills are on the Skills tab
+  const automationShown = automation.pointsEarned() > 0;
+  const tabsShown = skillsShown || automationShown || statsShown;
   return {
     creditsText: formatBigNum(state.credits),
     creditsLine: text.credits(formatBigNum(state.credits)),
@@ -1227,15 +1313,25 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
           text.tips.payout({
             base: formatPlain(config.network.creditsPerNodePerSecond),
             creditLever: config.global.creditMultiplier === 1 ? null : formatPlain(config.global.creditMultiplier),
-            purchases: formatPlain(stats.nodePayoutMultiplier),
+            purchases: namedTerms(
+              stats.nodePayoutTerms,
+              config,
+              (id) => state.purchased[id] ?? 0,
+              (f) => formatPlain(f, MULTIPLIER_DECIMALS),
+            ),
             actionBonus: formatPlain(stats.nodePayoutBonus, ACTION_BONUS_DECIMALS),
-            keepPercent: keep >= 1 ? null : formatPlain(keep * 100),
             perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
+          }),
+        ),
+        row('income', text, text.format.income(formatBigNum(engine.passiveCreditsPerSecond())), () =>
+          text.tips.income({
             nodes: formatBigNum(state.network),
+            perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
+            keepPercent: keep >= 1 ? null : formatPlain(keep * 100),
+            gross: formatBigNum(engine.passiveCreditsPerNode().mul(state.network)),
             total: formatBigNum(engine.passiveCreditsPerSecond()),
           }),
         ),
-        row('income', text, text.format.income(formatBigNum(engine.passiveCreditsPerSecond()))),
         row(
           'synths',
           text,
@@ -1263,9 +1359,20 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
       ],
     },
     tabs: [
-      { id: 'character', label: text.tabs.character },
-      { id: 'skills', label: text.tabs.skills(engine.skillPoints() + engine.resleevePoints()) },
-      { id: 'stats', label: text.tabs.stats },
+      { id: 'character', label: text.tabs.character, visible: tabsShown, attention: false },
+      {
+        id: 'skills',
+        label: text.tabs.skills(engine.skillPoints() + engine.resleevePoints()),
+        visible: skillsShown,
+        attention: engine.skillPoints() + engine.resleevePoints() > 0,
+      },
+      {
+        id: 'automation',
+        label: text.tabs.automation(automation.pointsAvailable()),
+        visible: automationShown,
+        attention: automation.pointsAvailable() > 0,
+      },
+      { id: 'stats', label: text.tabs.stats, visible: statsShown, attention: false },
     ],
     skills: {
       title: text.titles.skills,
@@ -1281,6 +1388,27 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
       },
     },
     runs: runsView(state.runs, config, text),
+    automation: {
+      title: text.titles.automation,
+      points: automation.pointsAvailable(),
+      pointsText: text.automation.points(formatPlain(automation.pointsAvailable())),
+      features: AUTOMATION_FEATURES.map((id) => ({
+        id,
+        name: text.automation.features[id].name,
+        description: text.automation.features[id].description,
+        unlocked: automation.isUnlocked(id),
+        canUnlock: !automation.isUnlocked(id) && automation.pointsAvailable() >= 1,
+      })),
+      autoBurn: {
+        on: automation.isAutoBurnOn(),
+        switchText: text.automation.autoBurnSwitch(automation.isAutoBurnOn()),
+        ceiling: automation.autoBurnCeiling(),
+        ceilingLabel: text.automation.autoBurnCeiling,
+      },
+      rarities: config.items.rarities.map((r) => ({ id: r.id, name: r.name, on: automation.isAutosaleOn(r.id) })),
+      actions: config.actions.map((a) => ({ id: a.id, name: a.name, percent: automation.dispersal(a.id) })),
+      shareLabel: text.automation.dispersalShare,
+    },
     inventory: inventoryView(engine, factory, text),
     actions,
     sleeve: {

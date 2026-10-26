@@ -181,6 +181,13 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
       acc.extraFocusSlots += e.perCopy * owned;
     },
   },
+  automationPoints: {
+    // read only by the Automation unit, which sums the copies itself
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isInteger(e.perCopy) && e.perCopy >= 1)) errors.push(`${where}: automationPoints perCopy must be an integer >= 1`);
+    },
+  },
   criticalChance: {
     traits: sleeveWide,
     validate: (e, { where, errors }) => {

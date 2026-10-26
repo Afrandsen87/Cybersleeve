@@ -52,6 +52,8 @@ export const NODE_UPLINK = 'node-uplink';
 export const NODE_PAYOUT = 'node-payout';
 /** Id of the sleeve buyable that multiplies ICE Rating. */
 export const ICE_RATING_BOOST = 'ice-rating-boost';
+/** Id of the sleeve buyable that gives automation points (each unlocks one automation feature). */
+export const AUTOMATION_CORE = 'automation-core';
 /** Id of the Push malware auto-run buyable. */
 export const MALWARE_AUTO_RUN = 'malware-auto-run';
 /** Id of the repeatable Push malware buyable that doubles what each run adds to the node base payout. */
@@ -147,18 +149,37 @@ export const PERSISTENCE = 'persistence';
 /** Id of the Push malware buyable whose critical runs bank guaranteed critical successes for Grow network. */
 export const RANSOMWARE = 'ransomware';
 
-/** The Overclock unlock of one action: the price is the same for every action for now. */
+/** Price of each action's Auto-run buyable; the Overclock and Focus unlock prices are derived from it. */
+const AUTO_RUN_COSTS: Readonly<Record<string, number>> = {
+  [GROW_NETWORK]: 10,
+  [PRACTICE_HACKING]: 100,
+  [PUSH_MALWARE]: 15_000,
+  [KILL_SERVERS]: 1e9,
+  [LEGEND]: 1e15,
+};
+/** The Auto-run price of an action; an action without an entry in `AUTO_RUN_COSTS` is a content error. */
+const autoRunCost = (actionId: string): number => {
+  const cost = AUTO_RUN_COSTS[actionId];
+  if (cost === undefined) throw new Error(`No Auto-run price for action "${actionId}"`);
+  return cost;
+};
+/** An action's Overclock unlock costs this many times its Auto-run price (Grow network: 10 -> 250). */
+const OVERCLOCK_UNLOCK_COST_RATIO = 25;
+/** An action's Focus unlock costs this many times its Auto-run price (Grow network: 10 -> 1,000). */
+const FOCUS_UNLOCK_COST_RATIO = 100;
+
+/** The Overclock unlock of one action: its price is a fixed multiple of the action's Auto-run price. */
 const overclockUnlock = (actionId: string, description: string): BuyableDefinition => ({
   id: overclockUnlockId(actionId),
   name: 'Overclock',
   symbol: 'OV',
   description,
   actionId,
-  cost: num(250),
+  cost: num(autoRunCost(actionId) * OVERCLOCK_UNLOCK_COST_RATIO),
   effect: { kind: 'overclockUnlock' },
 });
 
-/** The Focus unlock of one action: the price is the same for every action for now. */
+/** The Focus unlock of one action: its price is a fixed multiple of the action's Auto-run price. */
 const focusUnlock = (actionId: string): BuyableDefinition => ({
   id: focusUnlockId(actionId),
   name: 'Focus',
@@ -166,20 +187,20 @@ const focusUnlock = (actionId: string): BuyableDefinition => ({
   description:
     'Unlocks Focus for this action: while focused it runs 25% faster. Only a few actions can be focused at once (Focus upgrades add slots).',
   actionId,
-  cost: num(1_000),
+  cost: num(autoRunCost(actionId) * FOCUS_UNLOCK_COST_RATIO),
   effect: { kind: 'focusUnlock' },
 });
 
 /** The game's configuration (content and tuning). */
 export const gameConfig: GameConfig = {
   items: {
-    /** Most common first. Each tier sells for an order of magnitude more than the one before, starting at 10 credits. */
+    /** Most common first. Common sells for 100 credits; each tier is two orders of magnitude above the one before. */
     rarities: [
-      { id: 'common', name: 'Common', sellValue: num(10) },
-      { id: 'uncommon', name: 'Uncommon', sellValue: num(100) },
-      { id: 'rare', name: 'Rare', sellValue: num(1_000) },
-      { id: 'legendary', name: 'Legendary', sellValue: num(10_000) },
-      { id: 'crisis', name: 'Crisis level', sellValue: num(100_000) },
+      { id: 'common', name: 'Common', sellValue: num(100) },
+      { id: 'uncommon', name: 'Uncommon', sellValue: num(10_000) },
+      { id: 'rare', name: 'Rare', sellValue: num(1_000_000) },
+      { id: 'legendary', name: 'Legendary', sellValue: num(100_000_000) },
+      { id: 'crisis', name: 'Crisis level', sellValue: num(10_000_000_000) },
     ],
     definitions: [
       { id: KOMPROMAT, name: 'Kompromat file' },
@@ -201,7 +222,7 @@ export const gameConfig: GameConfig = {
     augment: { itemId: AUGMENT_SCHEMATIC, xpBonusPerItem: 0.01 },
     /** One Burn lead used from the Inventory takes 5% of the CURRENT heat away and is used up. */
     burnLead: { itemId: BURN_LEAD, heatFraction: 0.05 },
-    /** While the Zero-day toggle is on, every completed Push malware run uses one Zero-day up and is a critical success. */
+    /** While the Zero-day toggle is on, every completed Push malware run uses one Zero-day up and gets +100% critical chance. */
     zeroDay: { itemId: ZERO_DAY, actionId: PUSH_MALWARE },
     /**
      * While the Admin key toggle is on, every completed Practice Hacking run uses one Admin key up and is a critical success. Each such
@@ -307,7 +328,7 @@ export const gameConfig: GameConfig = {
       symbol: '↻',
       description: 'Restarts the action automatically when it finishes.',
       actionId: PRACTICE_HACKING,
-      cost: num(100),
+      cost: num(autoRunCost(PRACTICE_HACKING)),
       effect: { kind: 'autoRun' },
     },
     {
@@ -364,7 +385,7 @@ export const gameConfig: GameConfig = {
       symbol: '↻',
       description: 'Restarts the action automatically when it finishes.',
       actionId: GROW_NETWORK,
-      cost: num(50),
+      cost: num(autoRunCost(GROW_NETWORK)),
       effect: { kind: 'autoRun' },
     },
     {
@@ -439,7 +460,7 @@ export const gameConfig: GameConfig = {
       symbol: '↻',
       description: 'Restarts the action automatically when it finishes.',
       actionId: PUSH_MALWARE,
-      cost: num(15_000),
+      cost: num(autoRunCost(PUSH_MALWARE)),
       effect: { kind: 'autoRun' },
     },
     {
@@ -447,7 +468,7 @@ export const gameConfig: GameConfig = {
       name: 'Zero-day exploits',
       symbol: '0D',
       description:
-        'Each completed run has a chance to drop a Zero-day. Switch Zero-days on in the Inventory: each completed run then uses one up and is a critical success.',
+        'Each completed run has a chance to drop a Zero-day. Switch Zero-days on in the Inventory: each completed run then uses one up and gets +100% critical chance.',
       actionId: PUSH_MALWARE,
       cost: num(5_000),
       effect: {
@@ -484,8 +505,7 @@ export const gameConfig: GameConfig = {
       id: RANSOMWARE,
       name: 'Ransomware',
       symbol: 'RW',
-      description:
-        'Every critical Push malware run gives Grow network a guaranteed critical success: its next completed run is critical for sure.',
+      description: 'Every critical success of Push malware gives Grow network +100% critical chance on its next completed run.',
       actionId: PUSH_MALWARE,
       // Placeholder price (balance is not tuned yet).
       cost: num(100_000),
@@ -507,7 +527,7 @@ export const gameConfig: GameConfig = {
       symbol: '↻',
       description: 'Restarts the action automatically when it finishes (each restart pays the start cost).',
       actionId: KILL_SERVERS,
-      cost: num(1e9), // 1 billion
+      cost: num(autoRunCost(KILL_SERVERS)),
       effect: { kind: 'autoRun' },
     },
     {
@@ -563,7 +583,7 @@ export const gameConfig: GameConfig = {
       name: 'Black box recorder',
       symbol: 'BB',
       description:
-        'Each completed run has a chance to drop an Admin key. Switch Admin keys on in the Inventory: each completed Practice Hacking run then uses one up and is a critical success, and may drop a Skill shard.',
+        'Each completed run has a chance to drop an Admin key. Switch Admin keys on in the Inventory: each completed Practice Hacking run then uses one up and gets +100% critical chance, and may drop a Skill shard.',
       actionId: KILL_SERVERS,
       // Placeholder price (balance is not tuned yet).
       cost: num(1e20),
@@ -582,7 +602,7 @@ export const gameConfig: GameConfig = {
       symbol: '↻',
       description: 'Restarts the action automatically when it finishes.',
       actionId: LEGEND,
-      cost: num(1e15), // 1 Qa
+      cost: num(autoRunCost(LEGEND)),
       effect: { kind: 'autoRun' },
     },
     // Unlocks of the per-action toggles, shown in the square on each action card (not in its row of purchases).
@@ -653,6 +673,7 @@ export const gameConfig: GameConfig = {
       symbol: 'NF',
       description: 'Doubles the chance that a run drops a Kompromat file.',
       currency: 'skillPoints',
+      requires: [KOMPROMAT_HARVEST], // only offered once the purchase that makes it useful is owned
       cost: num(1),
       effect: { kind: 'itemDropChanceMultiplier', itemId: KOMPROMAT, factor: 2 },
     },
@@ -662,6 +683,7 @@ export const gameConfig: GameConfig = {
       symbol: 'EK',
       description: 'Each uncommon Kompromat file you hold raises node payout by 1%.',
       currency: 'skillPoints',
+      requires: [KOMPROMAT_HARVEST], // only offered once the purchase that makes it useful is owned
       cost: num(1),
       effect: { kind: 'nodePayoutFromItems', itemId: KOMPROMAT, rarityId: 'uncommon', perItem: 0.01 },
     },
@@ -671,6 +693,7 @@ export const gameConfig: GameConfig = {
       symbol: 'BC',
       description: 'Give up common Kompromat files for Moles. Each Mole is one point of heat that cools down 200% faster.',
       currency: 'skillPoints',
+      requires: [KOMPROMAT_HARVEST], // only offered once the purchase that makes it useful is owned
       cost: num(1),
       // 5 Moles per file given up; while Moles remain the heat cools 200% faster
       effect: { kind: 'backChannel', itemId: KOMPROMAT, rarityId: 'common', molesPerItem: 5, cooldownBoost: 2 },
@@ -681,6 +704,7 @@ export const gameConfig: GameConfig = {
       symbol: 'OB',
       description: 'Push malware makes only 2x as much heat per run while overclocked, instead of 3x.',
       currency: 'skillPoints',
+      requires: [overclockUnlockId(PUSH_MALWARE)], // only offered once the purchase that makes it useful is owned
       cost: num(1),
       effect: { kind: 'overclockHeatFactor', targetActionId: PUSH_MALWARE, factor: 2 },
     },
@@ -728,6 +752,16 @@ export const gameConfig: GameConfig = {
       effect: { kind: 'placeholder' },
     },
     // Global (sleeve) buyables: no actionId; they change the sleeve's stats. Prices are placeholders.
+    {
+      id: AUTOMATION_CORE,
+      name: 'Automation core',
+      symbol: 'AC',
+      description: 'Gives 1 automation point. Each point unlocks one automation feature in the Automation tab. Each copy costs 100x more.',
+      cost: num(1_000_000),
+      costGrowth: 100,
+      maxPurchases: Infinity,
+      effect: { kind: 'automationPoints', perCopy: 1 },
+    },
     {
       id: ICE_RATING_BOOST,
       name: 'ICE Rating boost',
@@ -819,7 +853,7 @@ export const gameConfig: GameConfig = {
       name: 'Critical success',
       symbol: 'CS',
       description:
-        'Every completed run of any action has a 5% chance to be a critical success: double XP and triple payout. Each copy adds 5% and costs 1000x more.',
+        'Every completed run of any action has a 5% chance to be a critical success: double XP and triple payout. Each copy adds 5% and costs 1000x more. Above 100% a run can have several critical successes, each paying and teaching again.',
       cost: num(50),
       costGrowth: 1_000, // every 3rd order of magnitude
       maxPurchases: Infinity,
@@ -836,6 +870,12 @@ export const gameConfig: GameConfig = {
 
   /** Each re-sleeve gives one re-sleeve point; the Stats tab lists the last 10 sleeve-runs. */
   resleeve: { pointsPerResleeve: 1, runsShown: 10 },
+
+  /** A purchase shows once its price is within 3 orders of magnitude of the most of its currency held this life. */
+  reveal: { buyableOrders: 3 },
+
+  /** Auto Burn starts out using Burn leads once heat is above 20 points (placeholder; the player changes it). */
+  automation: { autoBurnCeiling: 20 },
 
   progression: {
     /** Completed runs of one action per batch of that action's sleeve XP. */

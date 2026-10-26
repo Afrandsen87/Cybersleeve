@@ -15,6 +15,7 @@
  * version; changing the meaning of an existing field does, together with a migration.
  */
 import type { BigNum, NumberFactory } from '../numbers';
+import { AUTOMATION_FEATURES } from './automation';
 import { traitsOf } from './effectTraits';
 import { SCALAR_FIELDS, readScalar, writeScalars } from './fields';
 import { createInitialState } from './state';
@@ -39,6 +40,13 @@ interface SaveData {
   bankedCriticals: Record<string, number>;
   runs: { creditsPerSecond: string; actionLevelsTotal: number }[];
   synths: { runIndex: number }[];
+  automation: {
+    unlocked: Record<string, boolean>;
+    autoBurnOn: boolean;
+    autoBurnCeiling: number;
+    autosale: Record<string, boolean>;
+    dispersal: Record<string, number>;
+  };
   actions: Record<
     string,
     {
@@ -75,6 +83,13 @@ export function serializeState(state: GameStateView): string {
     bankedCriticals: { ...state.bankedCriticals },
     runs: state.runs.map((r) => ({ creditsPerSecond: r.creditsPerSecond.toString(), actionLevelsTotal: r.actionLevelsTotal })),
     synths: state.synths.map((s) => ({ runIndex: s.runIndex })),
+    automation: {
+      unlocked: { ...state.automation.unlocked } as Record<string, boolean>,
+      autoBurnOn: state.automation.autoBurnOn,
+      autoBurnCeiling: state.automation.autoBurnCeiling,
+      autosale: { ...state.automation.autosale },
+      dispersal: { ...state.automation.dispersal },
+    },
     actions: Object.fromEntries(
       Object.entries(state.actions).map(([id, a]) => [
         id,
@@ -175,9 +190,44 @@ export function deserializeState(
       const links = Math.min(readCount(savedChains[def.id]), rule?.effect.kind === 'overclockChain' ? rule.effect.chain.maxLinks : 0);
       if (links > 0) state.chains[def.id] = links;
     }
+    readAutomation(state, raw['automation'], config);
     return state;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Reads the automation settings: a feature is unlocked only while there are points for it (the first listed features keep theirs if
+ * the save claims more than the points owned), Auto Burn is on only when unlocked, the ceiling must be a finite number >= 0, and
+ * autosale and dispersal keep only known rarities and actions (shares clamped to 1..100).
+ */
+function readAutomation(state: GameState, raw: unknown, config: Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>): void {
+  if (config.automation === undefined || !isRecord(raw)) return;
+  const earned = config.buyables.reduce(
+    (n, b) => (b.effect.kind === 'automationPoints' ? n + b.effect.perCopy * (state.purchased[b.id] ?? 0) : n),
+    0,
+  );
+  const saved = isRecord(raw['unlocked']) ? raw['unlocked'] : {};
+  let points = earned;
+  for (const feature of AUTOMATION_FEATURES) {
+    if (points > 0 && saved[feature] === true) {
+      state.automation.unlocked[feature] = true;
+      points--;
+    }
+  }
+  const auto = state.automation;
+  const ceiling = raw['autoBurnCeiling'];
+  if (typeof ceiling === 'number' && Number.isFinite(ceiling) && ceiling >= 0) auto.autoBurnCeiling = ceiling;
+  auto.autoBurnOn = raw['autoBurnOn'] === true && auto.unlocked.autoBurn === true;
+  const savedSale = isRecord(raw['autosale']) ? raw['autosale'] : {};
+  const savedShares = isRecord(raw['dispersal']) ? raw['dispersal'] : {};
+  if (auto.unlocked.autosale) for (const r of config.items.rarities) if (savedSale[r.id] === true) auto.autosale[r.id] = true;
+  if (auto.unlocked.dispersal) {
+    for (const a of config.actions) {
+      const share = savedShares[a.id];
+      if (typeof share === 'number' && Number.isFinite(share) && share > 0) auto.dispersal[a.id] = Math.min(100, share);
+    }
   }
 }
 

@@ -9,6 +9,7 @@
  * are separate from state (what changes while playing), so content and tuning can change
  * without touching engine code (open/closed).
  */
+import type { AutomationState } from './automation';
 import type { BigNum } from '../numbers';
 
 /** Identifier of an action (e.g. `"practice-hacking"`). Never shown to the player. */
@@ -312,6 +313,8 @@ export type BuyableEffect =
   | { readonly kind: 'overclockStrength'; readonly perCopy: number }
   /** Each copy owned adds `perCopy` Focus slots (a whole number >= 1) on top of `focus.baseSlots`: that many actions can be focused at once. */
   | { readonly kind: 'focusSlots'; readonly perCopy: number }
+  /** Each copy owned gives `perCopy` automation points (a whole number >= 1), each of which unlocks one automation feature. Sleeve-wide. */
+  | { readonly kind: 'automationPoints'; readonly perCopy: number }
   /** Every completed run of any action has `chance` (0..1) per copy owned to be a critical success (see {@link CriticalSuccessRule}); the total is capped at 1. */
   | { readonly kind: 'criticalChance'; readonly chance: number }
   | { readonly kind: 'rewardMultiplier'; readonly factor: number }
@@ -598,6 +601,22 @@ export interface ResleeveConfig {
   readonly runsShown: number;
 }
 
+/** The automation features and their starting values. Leave the section out for a game without automation. */
+export interface AutomationConfig {
+  /** Where Auto Burn's heat ceiling starts (>= 0): Burn leads are used while heat is above it. */
+  readonly autoBurnCeiling: number;
+}
+
+/** When a purchase appears in the interface. */
+export interface RevealConfig {
+  /**
+   * A purchase paid in credits or nodes shows once its price is within this many orders of magnitude of the most of that
+   * currency held in this life (at least 1) (so spending does not hide it again). `Infinity` shows everything. Purchases already owned,
+   * skills and the purchases in an action's square are always shown.
+   */
+  readonly buyableOrders: number;
+}
+
 /** Everything the game needs that is not state: content plus every tuning constant. */
 export interface GameConfig {
   /** Re-sleeve points and the history of finished runs. */
@@ -610,6 +629,10 @@ export interface GameConfig {
   readonly criticalSuccess: CriticalSuccessRule;
   /** What Focus does and how many actions can be focused at once at the start. */
   readonly focus: FocusConfig;
+  /** When purchases appear in the interface; leave out to show them all. */
+  readonly reveal?: RevealConfig;
+  /** The automation features (unlocked with automation points); leave out for a game without automation. */
+  readonly automation?: AutomationConfig;
   readonly progression: ProgressionConfig;
   readonly speed: SpeedConfig;
   readonly global: GlobalTuning;
@@ -660,8 +683,12 @@ export interface GameState {
   /** The synthetic sleeves, in the order they were gained. Survives re-sleeving; only a new game clears it. */
   synths: SynthSleeve[];
   credits: BigNum;
+  /** The most credits held at any moment of this life (see `RevealConfig`); never below what is held. Reset by re-sleeving. */
+  peakCredits: BigNum;
   /** Network nodes built so far; each produces passive credits. Reset by re-sleeving. */
   network: BigNum;
+  /** The most nodes held at any moment of this life (see `RevealConfig`). Reset by re-sleeving. */
+  peakNetwork: BigNum;
   /**
    * Current heat: starts at `sleeve.baseHeat`, raised by actions, lowered by the cooldown and by Burn leads. Reset by re-sleeving.
    * It may hold fractions of a point (Overclock adds heat continuously), but the cooldown only ever removes whole points: it waits
@@ -698,6 +725,8 @@ export interface GameState {
   chains: Record<ActionId, number>;
   /** Hacking Proficiency: gained from actions paying `hackingProficiency`; the hacking multiplier on interface speed is a concave function of it. Reset by re-sleeving. */
   hackingProficiency: BigNum;
+  /** What the player unlocked and set in the Automation tab. Reset by re-sleeving. */
+  automation: AutomationState;
   actions: Record<ActionId, ActionState>;
   /** Copies owned per buyable id. Absent means 0. */
   purchased: Record<BuyableId, number>;

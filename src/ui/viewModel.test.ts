@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
+import { seededRandom } from '../testing/random';
 import { num } from '../numbers';
 import {
   killAction,
@@ -163,11 +164,10 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
     expect(statRow(vm.network.stats, 'payout').text).toBe('0.55/s');
     const tip = statRow(vm.network.stats, 'payout').tip ?? '';
     expect(tip).toContain('Base = 0.05 credits/s');
-    expect(tip).toContain('Purchases = 1');
-    expect(tip).toContain('Payout per Node = (Base + Action Bonus) x Purchases');
+    expect(tip).not.toContain('Purchases');
+    expect(tip).toContain('Payout per Node = (Base + Action Bonus)\n');
     expect(tip).toContain('Action Bonus = 0.5 credits/s');
     expect(tip).toContain('Payout per Node = 0.55 credits/s');
-    expect(tip).toContain('Network Payout = 100 x 0.55 = 55 credits/s');
     expect(tip).not.toContain('Credit Lever');
     expect(tip).not.toContain('Heat Tax Kept');
     expect(vm.actions[1]!.rewardUnit).toBe('node payout');
@@ -362,11 +362,17 @@ describe('view model - what one node pays', () => {
     expect(payout(g).text).toBe(`${income / 100}/s`);
   });
 
-  it('is taxed by heat, and the tip says how much is kept', () => {
+  it('is not taxed by heat: the tax is taken from the credits per second instead, and that tip says how much is kept', () => {
     const g = withNodes();
     (g.getState() as { heat: number }).heat = 20; // 20 points x 1% = 20% tax in the test config
-    expect(payout(g).text).toBe('0.04/s');
-    expect(payout(g).tip).toContain('Heat Tax Kept = 80%');
+    expect(payout(g).text).toBe('0.05/s');
+    expect(payout(g).tip).not.toContain('Heat Tax');
+    const income = statRow(buildViewModel(g).network.stats, 'income');
+    expect(income.text).toBe('+4'); // 100 nodes x 0.05 x 80%
+    expect(income.tip).toContain('Credits per Second = Nodes x Payout per Node x Heat Tax Kept');
+    expect(income.tip).toContain('Heat Tax Kept = 80%');
+    expect(income.tip).toContain('Before the Heat Tax = 5 credits/s');
+    expect(income.tip).toContain('Credits per Second = 4');
   });
 
   it('names the credit lever in the tip only when it is not 1', () => {
@@ -377,5 +383,31 @@ describe('view model - what one node pays', () => {
 
   it('keeps small amounts readable: 0.01 credits per node is not rounded away', () => {
     expect(payout(withNodes({ network: { creditsPerNodePerSecond: 0.01 } })).text).toBe('0.01/s');
+  });
+});
+
+describe('view model - critical success highlight', () => {
+  const crit = {
+    id: 'crit',
+    name: 'Crit',
+    description: '',
+    cost: num(1),
+    maxPurchases: Infinity,
+    effect: { kind: 'criticalChance', chance: 1 },
+  } as const;
+  const config = createConfig(testConfig, { buyables: [...testConfig.buyables, crit], network: { creditsPerNodePerSecond: 0 } });
+  const textOf = (g: ReturnType<typeof createGame>) => buildViewModel(g).actions[0]!.critText;
+
+  it('is off without a critical success, a mark for one in the last second, and an average per second for several', () => {
+    const g = createGame({ config, random: seededRandom(1) });
+    setCredits(g, num(100));
+    g.buy('crit');
+    g.buy('auto');
+    expect(textOf(g)).toBeNull();
+    g.startAction('a');
+    g.tick(10_000 + 1);
+    expect(textOf(g)).toBe('CRITICAL!');
+    g.tick(10_000 * 500); // a long tick completes many runs in the last slices: several critical successes inside one second
+    expect(textOf(g)).toMatch(/^\d+ crits\/s$/);
   });
 });

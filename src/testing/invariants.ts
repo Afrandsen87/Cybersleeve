@@ -6,7 +6,7 @@
  */
 import type { BigNum } from '../numbers';
 import type { GameConfig, GameStateView } from '../core';
-import { SCALAR_FIELDS } from '../core';
+import { AUTOMATION_FEATURES, SCALAR_FIELDS } from '../core';
 
 /** Config sections the checks read. */
 type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'items' | 'progression'>;
@@ -57,6 +57,25 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
     } else if (!Number.isFinite(value as number) || (value as number) < 0) {
       problems.push(`${field.key} is not a finite number >= 0: ${String(value)}`);
     }
+  }
+  const auto = state.automation;
+  const earned = config.buyables.reduce(
+    (n, b) => (b.effect.kind === 'automationPoints' ? n + b.effect.perCopy * (state.purchased[b.id] ?? 0) : n),
+    0,
+  );
+  const unlockedCount = AUTOMATION_FEATURES.filter((f) => auto.unlocked[f]).length;
+  if (unlockedCount > earned) problems.push(`more automation features unlocked (${unlockedCount}) than points earned (${earned})`);
+  if (!(Number.isFinite(auto.autoBurnCeiling) && auto.autoBurnCeiling >= 0))
+    problems.push(`autoBurnCeiling is not valid: ${auto.autoBurnCeiling}`);
+  if (auto.autoBurnOn && !auto.unlocked.autoBurn) problems.push('Auto Burn is on but not unlocked');
+  if (Object.keys(auto.autosale).length > 0 && !auto.unlocked.autosale) problems.push('autosale is set but not unlocked');
+  if (Object.keys(auto.dispersal).length > 0 && !auto.unlocked.dispersal) problems.push('augment dispersal is set but not unlocked');
+  for (const [id, share] of Object.entries(auto.dispersal)) {
+    if (!(Number.isFinite(share) && share > 0 && share <= 100)) problems.push(`dispersal of ${id} is not a share in (0, 100]: ${share}`);
+    if (!config.actions.some((a) => a.id === id)) problems.push(`dispersal names unknown action ${id}`);
+  }
+  for (const id of Object.keys(auto.autosale)) {
+    if (!config.items.rarities.some((r) => r.id === id)) problems.push(`autosale names unknown rarity ${id}`);
   }
   if (!isWhole(state.network)) problems.push(`network is not whole: ${state.network.toString()}`);
   if (!(state.networkRemainder >= 0 && state.networkRemainder < 1))

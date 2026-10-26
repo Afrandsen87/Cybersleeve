@@ -14,7 +14,15 @@ import {
   practiceAction,
   testConfig,
 } from '../testing/testConfig';
-import { createConfig, deserializeState, serializeState, type BuyableDefinition, type GameConfig, type GameEngine } from './index';
+import {
+  AUTOMATION_FEATURES,
+  createConfig,
+  deserializeState,
+  serializeState,
+  type BuyableDefinition,
+  type GameConfig,
+  type GameEngine,
+} from './index';
 
 const buyable = (b: Partial<BuyableDefinition> & Pick<BuyableDefinition, 'id' | 'effect'>): BuyableDefinition => ({
   name: b.id,
@@ -111,7 +119,7 @@ const contents: [string, GameConfig][] = [
 
 const TICKS = [0, 1, 16, 50, 999, 1_000, 5_000, 60_000, 3_600_000];
 
-type Mutable = { credits: unknown; network: unknown; heat: number; legend: number };
+type Mutable = { credits: unknown; network: unknown; heat: number; legend: number; inventory: Record<string, Record<string, number>> };
 
 /** Half the time buys the buyable of an effect kind first, so that its toggle can be reached in a few random steps. */
 function maybeBuy(g: GameEngine, config: GameConfig, random: Random, kind: BuyableDefinition['effect']['kind']): void {
@@ -142,7 +150,25 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
   else if (roll < 0.72)
     state.heat = randomInt(random, 300) / (1 + randomInt(random, 4)); // whole and fractional heat
   else if (roll < 0.74) state.legend = randomInt(random, 5);
-  else g.tick(pick(random, TICKS));
+  else if (roll < 0.78) {
+    // automation: points come with the buyable, then random unlocks and settings (all of them refuse what is not allowed)
+    maybeBuy(g, config, random, 'automationPoints');
+    const auto = g.automation();
+    const feature = pick(random, AUTOMATION_FEATURES);
+    const r = random();
+    if (r < 0.3) auto.unlock(feature);
+    else if (r < 0.5) auto.setAutoBurn(random() < 0.7);
+    else if (r < 0.6) auto.setAutoBurnCeiling(randomInt(random, 120) / 2);
+    else if (r < 0.7) auto.setAutosale(pick(random, config.items.rarities).id, random() < 0.7);
+    else if (r < 0.8) auto.setDispersal(pick(random, config.actions).id, randomInt(random, 120));
+    else {
+      // some stock for the automation to work on
+      const item = pick(random, config.items.definitions);
+      const rarity = pick(random, config.items.rarities);
+      const stack = (state.inventory[item.id] ??= {});
+      stack[rarity.id] = (stack[rarity.id] ?? 0) + randomInt(random, 50);
+    }
+  } else g.tick(pick(random, TICKS));
 }
 
 describe.each(contents)('random play on %s', (_name, config) => {

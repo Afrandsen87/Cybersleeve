@@ -347,7 +347,17 @@ describe('the square on the screen', () => {
     const { card } = mount();
     const children = [...card(0).children].map((c) => c.className.split(' ')[0]);
     // The start-run button floats in the corner (absolutely positioned), so it is last and takes no grid cell.
-    expect(children).toEqual(['action-main', 'action-reward', 'xp', 'xp', 'square', 'upgrades', 'start-run', 'action-poster']);
+    expect(children).toEqual([
+      'action-main',
+      'action-reward',
+      'xp',
+      'xp',
+      'square',
+      'upgrades',
+      'start-run',
+      'action-poster',
+      'crit-badge',
+    ]);
   });
 
   it('shows a poster naming the access level instead of a locked card, and the poster is empty of the lock once revealed', () => {
@@ -595,7 +605,7 @@ describe('the Admin key and Skill shard tiles', () => {
     state(game).inventory['ak'] = { common: 1 };
     state(game).inventory['sh'] = { common: 1 };
     const key = view(game, 'Admin key').tip;
-    expect(key).toContain('every completed A run uses one up and is a critical success');
+    expect(key).toContain('every completed A run uses one up and gets +100% critical chance');
     expect(key).toContain('2% chance to drop a Skill shard');
     expect(key).toContain('Click to switch on');
     const shard = view(game, 'Skill shard').tip;

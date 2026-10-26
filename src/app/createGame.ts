@@ -12,6 +12,8 @@ import {
   BackChannel,
   BurnLeads,
   CriticalLinks,
+  Automation,
+  CritFeed,
   CriticalSuccesses,
   Economy,
   GameEngine,
@@ -81,6 +83,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
         ? earnedSkillPoints(config.actions.map((a) => progression.actionLevel(s, a.id)))
         : s.runs.length * config.resleeve.pointsPerResleeve,
     snapshot,
+    config.reveal?.buyableOrders ?? Infinity,
     (buyable) => synths.onPurchased(buyable),
   );
   const economy = new Economy(config, factory);
@@ -94,6 +97,9 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const zeroDays = new ZeroDays(config, state, inventory);
   const adminKeys = new ZeroDays(config, state, inventory, 'adminKey', random);
   const links = new CriticalLinks(stats, state);
+  const critFeed = new CritFeed();
+  const burnLeads = new BurnLeads(config, state, inventory, () => stats.heatCoolingBlocked());
+  const augments = new Augments(config, state, inventory);
   const runner = new ActionRunner(
     config,
     state,
@@ -107,6 +113,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     zeroDays,
     adminKeys,
     links,
+    critFeed,
     diagnostics,
   );
   return new GameEngine(config, state, {
@@ -116,13 +123,15 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     runner,
     inventory,
     backChannel: new BackChannel(state, stats, inventory),
-    burnLeads: new BurnLeads(config, state, inventory, () => stats.heatCoolingBlocked()),
+    burnLeads,
     zeroDays,
     adminKeys,
     skillShards: new SkillShards(config, state, inventory, (id) => runner.isUnlocked(id), random),
     toggles: new ActionToggles(state, stats),
+    critFeed,
     drops,
-    augments: new Augments(config, state, inventory),
+    augments,
+    automation: new Automation(config, state, inventory, burnLeads, augments),
     network: new NetworkSystem(state, stats, factory, synths),
     synths,
     resleever: new Resleever(config, state, stats, progression, synths, factory),

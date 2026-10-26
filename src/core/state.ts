@@ -4,6 +4,7 @@
  * Creation and resetting of {@link GameState}.
  */
 import type { NumberFactory } from '../numbers';
+import { createAutomationState } from './automation';
 import { initialScalars } from './fields';
 import type { ActionState, Currency, GameConfig, GameState } from './types';
 
@@ -17,6 +18,7 @@ type ScalarKey = Exclude<
   | 'adminKeysOn'
   | 'chains'
   | 'bankedCriticals'
+  | 'automation'
   | 'actions'
   | 'purchased'
   | 'inventory'
@@ -25,7 +27,7 @@ type ScalarKey = Exclude<
 >;
 
 /** Config the state is created and reset from. */
-type StateConfig = Pick<GameConfig, 'actions' | 'progression' | 'sleeve'>;
+type StateConfig = Pick<GameConfig, 'actions' | 'automation' | 'progression' | 'sleeve'>;
 
 /**
  * The currencies whose buyables survive a re-sleeve: re-sleeve skills are permanent. Skills paid in skill points (and everything else
@@ -82,6 +84,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
     bankedCriticals: {},
     runs: [],
     synths: [],
+    automation: createAutomationState(config),
     actions,
     purchased: {},
     inventory: {},

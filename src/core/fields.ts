@@ -59,6 +59,8 @@ export type ScalarField = BigField | NumField;
  */
 export const SCALAR_FIELDS: readonly ScalarField[] = [
   { kind: 'big', key: 'credits', required: true, initial: (c, f) => f.fromNumber(c.progression.startingCredits) },
+  { kind: 'big', key: 'peakCredits', initial: (c, f) => f.fromNumber(c.progression.startingCredits) },
+  { kind: 'big', key: 'peakNetwork', whole: true, initial: (_c, f) => f.fromNumber(0) },
   { kind: 'big', key: 'network', required: true, whole: true, initial: (_c, f) => f.fromNumber(0) },
   { kind: 'num', key: 'heat', initial: (c) => c.sleeve.baseHeat },
   { kind: 'num', key: 'heatCooldownMs', initial: () => 0 },

@@ -4,13 +4,14 @@
  * Thin DOM binding. Builds the screen once, then only updates text/attributes each frame.
  * All decisions about WHAT to show live in `viewModel.ts` (tested) and all wording in `uiText.ts`; this file only places it.
  */
-import type { GameCommands, GameQueries } from '../core';
+import type { AutomationControls, AutomationFeature, GameCommands, GameQueries } from '../core';
 import { ConfirmGate } from './confirmGate';
 import { CREDITS_ICON_ID, type IconSource, noIcons, START_RUN_ICON_ID } from './pixelIcon';
 import { installTooltips, TipRegistry } from './tooltip';
 import { type SquareCellId, type UiText, uiText as defaultText, type StatId } from './uiText';
 import {
   buildViewModel,
+  type AutomationView,
   type BuyableView,
   type ActionSquareView,
   type InventoryRowView,
@@ -125,6 +126,8 @@ interface ActionCard {
   /** The poster that replaces the card's content while the action is locked. */
   readonly poster: HTMLElement;
   readonly title: HTMLElement;
+  /** The mark that lights up for a second when the action hits a critical success. */
+  readonly crit: HTMLElement;
   readonly info: HTMLElement;
   readonly bar: HTMLElement;
   readonly reward: HTMLElement;
@@ -168,6 +171,8 @@ interface InventoryWidget {
   /** The section of items that are kept or used, and the section of items that can be sold (each hidden when it has no items). */
   readonly keptSection: HTMLElement;
   readonly sellSection: HTMLElement;
+  /** The row of tiles of each item, by item id (hidden while the item is not unlocked). */
+  readonly groups: ReadonlyMap<string, HTMLElement>;
   /** One tile per item and rarity, by `itemId/rarityId`, with the element that shows its count. */
   readonly tiles: ReadonlyMap<string, { readonly tile: HTMLButtonElement; readonly count: HTMLElement }>;
   /** The buttons beside the sellable tiles; they act on the selected stack. */
@@ -265,9 +270,11 @@ export function mountUi(
     startBtn.addEventListener('click', () => engine.startAction(a.id));
 
     const poster = h('div', 'action-poster');
-    root.append(button, reward, levelXp.root, sleeveXp.root, squareEl, upgrades, startBtn, poster);
+    const crit = h('div', 'crit-badge');
+    crit.hidden = true;
+    root.append(button, reward, levelXp.root, sleeveXp.root, squareEl, upgrades, startBtn, poster, crit);
     actionsEl.append(root);
-    cards.set(a.id, { root, poster, button, start: startBtn, title, info, bar, reward, levelXp, sleeveXp, buyables, square });
+    cards.set(a.id, { root, poster, button, start: startBtn, title, crit, info, bar, reward, levelXp, sleeveXp, buyables, square });
   }
 
   for (let i = initial.actions.length; i < ACTION_GRID_SLOTS; i++) actionsEl.append(h('div', 'action empty'));
@@ -401,7 +408,7 @@ export function mountUi(
     corner.append(revealBtn, dropBtn, doubleBtn, resetBtn, speedBtn);
     root.append(corner);
   }
-  // The tabs at the top, centered: everything so far is on the Character tab, the skills are on the Skills tab.
+  // The tabs sit on the credits line, to the right of the balance: everything so far is on the Character tab, the skills are on the Skills tab.
   const tabButtons = new Map<TabView['id'], HTMLButtonElement>();
   const tabBar = h('nav', 'tabs');
   for (const tab of initial.tabs) {
@@ -420,7 +427,11 @@ export function mountUi(
   skillsPanel.append(skillsWidget, resleeveWidget);
   const statsPanel = h('div', 'tab-panel stats-panel');
   statsPanel.append(statsWidget);
-  root.append(tabBar, header, characterPanel, skillsPanel, statsPanel);
+  const automationWidget = buildAutomationWidget(initial.automation, engine.automation(), text, () => render());
+  const automationPanel = h('div', 'tab-panel automation-panel');
+  automationPanel.append(automationWidget.root);
+  header.append(tabBar);
+  root.append(header, characterPanel, skillsPanel, automationPanel, statsPanel);
 
   /** Redraws the list of runs when it has changed (it only changes at a re-sleeve). */
   function renderRuns(rows: readonly RunRowView[]): void {
@@ -451,11 +462,16 @@ export function mountUi(
       const button = tabButtons.get(tab.id);
       if (!button) continue;
       setText(button, tab.label);
+      button.hidden = !tab.visible;
       button.classList.toggle('active', tab.id === activeTab);
+      button.classList.toggle('attention', tab.attention);
     }
+    tabBar.hidden = !vm.tabs.some((t) => t.visible);
     characterPanel.hidden = activeTab !== 'character';
     skillsPanel.hidden = activeTab !== 'skills';
     statsPanel.hidden = activeTab !== 'stats';
+    automationPanel.hidden = activeTab !== 'automation';
+    renderAutomation(automationWidget, vm.automation);
     setText(skillsPoints, vm.skills.pointsText);
     renderUpgrades(skillButtons, vm.skills.buyables, tips);
     resleeveWidget.hidden = !vm.skills.resleeve.visible;
@@ -473,6 +489,9 @@ export function mountUi(
       const card = cards.get(a.id);
       if (!card) continue;
       setText(card.title, a.name);
+      card.crit.hidden = a.critText === null;
+      setText(card.crit, a.critText ?? '');
+      card.root.classList.toggle('crit-hit', a.critText !== null);
       setText(card.info, a.infoText);
       tips.set(card.info, a.unlocked ? () => a.speedTip : null);
       setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
@@ -692,6 +711,7 @@ function buildInventoryWidget(
     root,
     keptSection: h('section', 'inventory-section'),
     sellSection: h('section', 'inventory-section inventory-for-sale'),
+    groups,
     tiles,
     sellOne: h('button', 'inventory-action', text.inventory.sellOne) as HTMLButtonElement,
     sellAll: h('button', 'inventory-action', text.inventory.sellAll) as HTMLButtonElement,
@@ -748,8 +768,6 @@ function buildInventoryWidget(
   sellBody.append(sellGrid, buttons);
   widget.keptSection.append(h('h3', 'section-title', text.inventory.sections.kept), keptGrid);
   widget.sellSection.append(h('h3', 'section-title', text.inventory.sections.sellable), sellBody);
-  widget.keptSection.hidden = !view.rows.some((r) => !r.sellable);
-  widget.sellSection.hidden = !view.rows.some((r) => r.sellable);
   const body = h('div', 'inventory-body');
   body.append(widget.keptSection, widget.sellSection);
   root.append(h('h2', undefined, view.title), body);
@@ -763,6 +781,10 @@ function buildInventoryWidget(
  */
 function renderInventory(widget: InventoryWidget, view: InventoryView, tips: TipRegistry): void {
   widget.root.hidden = !view.visible;
+  // Only items that are unlocked show; a section with no item to show is hidden too.
+  for (const [itemId, group] of widget.groups) group.hidden = !view.rows.some((r) => r.itemId === itemId && r.unlocked);
+  widget.keptSection.hidden = !view.rows.some((r) => !r.sellable && r.unlocked);
+  widget.sellSection.hidden = !view.rows.some((r) => r.sellable && r.unlocked);
   const selectedKey = widget.selected;
   const selected = view.rows.find((r) => r.sellable && stackKey(r.itemId, r.rarityId) === selectedKey);
   if (selectedKey !== null && !(selected && selected.count > 0)) widget.selected = null;
@@ -844,4 +866,124 @@ function h(tag: string, className?: string, text?: string): HTMLElement {
   if (className) el.className = className;
   if (text) el.textContent = text;
   return el;
+}
+
+/** Handles to update the Automation tab. */
+interface AutomationWidget {
+  readonly root: HTMLElement;
+  readonly points: HTMLElement;
+  /** Each feature's box, its unlock button and the controls that show once it is unlocked. */
+  readonly features: ReadonlyMap<AutomationFeature, { box: HTMLElement; unlock: HTMLButtonElement; controls: HTMLElement }>;
+  readonly autoBurnSwitch: HTMLButtonElement;
+  readonly autoBurnCeiling: HTMLInputElement;
+  readonly rarities: ReadonlyMap<string, HTMLButtonElement>;
+  readonly shares: ReadonlyMap<string, HTMLInputElement>;
+}
+
+/** A labelled number input. A change (Enter or leaving the field) is passed to `onChange` as a number. */
+function numberField(
+  label: string,
+  min: number,
+  max: number | null,
+  onChange: (value: number) => void,
+): { row: HTMLElement; input: HTMLInputElement } {
+  const row = h('label', 'automation-field');
+  row.append(h('span', undefined, label));
+  const input = h('input') as HTMLInputElement;
+  input.type = 'number';
+  input.min = String(min);
+  if (max !== null) input.max = String(max);
+  input.addEventListener('change', () => onChange(Number(input.value)));
+  row.append(input);
+  return { row, input };
+}
+
+/**
+ * Builds the Automation tab: the points, and one box per feature with an unlock button and, once unlocked, its controls (Auto Burn's switch and
+ * ceiling, a switch per rarity for autosale, a share per action for dispersal). Every press goes to the automation controls of the engine,
+ * which decide what is allowed.
+ *
+ * Called by: {@link mountUi}.
+ *
+ * @param view the initial view data (decides which switches and inputs exist)
+ * @param controls the engine's automation controls
+ * @param text the display text
+ * @param refresh redraws the screen after a press
+ */
+function buildAutomationWidget(view: AutomationView, controls: AutomationControls, text: UiText, refresh: () => void): AutomationWidget {
+  const root = h('aside', 'automation-widget');
+  const points = h('div', 'skills-points');
+  root.append(h('h2', undefined, view.title), points);
+  const features = new Map<AutomationFeature, { box: HTMLElement; unlock: HTMLButtonElement; controls: HTMLElement }>();
+  const autoBurnSwitch = h('button', 'automation-switch') as HTMLButtonElement;
+  autoBurnSwitch.addEventListener('click', () => {
+    controls.setAutoBurn(!controls.isAutoBurnOn());
+    refresh();
+  });
+  const ceiling = numberField(view.autoBurn.ceilingLabel, 0, null, (v) => {
+    controls.setAutoBurnCeiling(v);
+    refresh();
+  });
+  const rarities = new Map<string, HTMLButtonElement>();
+  const shares = new Map<string, HTMLInputElement>();
+  for (const f of view.features) {
+    const box = h('section', `automation-feature automation-${f.id}`);
+    const unlock = h('button', 'automation-unlock', text.automation.unlock) as HTMLButtonElement;
+    unlock.addEventListener('click', () => {
+      controls.unlock(f.id);
+      refresh();
+    });
+    const body = h('div', 'automation-controls');
+    if (f.id === 'autoBurn') body.append(autoBurnSwitch, ceiling.row);
+    else if (f.id === 'autosale') {
+      for (const r of view.rarities) {
+        const b = h('button', 'automation-switch', r.name) as HTMLButtonElement;
+        b.addEventListener('click', () => {
+          controls.setAutosale(r.id, !controls.isAutosaleOn(r.id));
+          refresh();
+        });
+        rarities.set(r.id, b);
+        body.append(b);
+      }
+    } else {
+      for (const a of view.actions) {
+        const field = numberField(`${a.name}: ${view.shareLabel}`, 0, 100, (v) => {
+          controls.setDispersal(a.id, v);
+          refresh();
+        });
+        shares.set(a.id, field.input);
+        body.append(field.row);
+      }
+    }
+    box.append(h('h3', 'section-title', f.name), h('p', 'automation-description', f.description), unlock, body);
+    features.set(f.id, { box, unlock, controls: body });
+    root.append(box);
+  }
+  return { root, points, features, autoBurnSwitch, autoBurnCeiling: ceiling.input, rarities, shares };
+}
+
+/** Sets an input's value from the game unless the player is typing in it (their text is not overwritten). */
+function syncInput(input: HTMLInputElement, value: number): void {
+  if (input.ownerDocument.activeElement !== input) input.value = String(value);
+}
+
+/** Writes the Automation view into its widget: the points, which features are unlocked, and the current settings. */
+function renderAutomation(widget: AutomationWidget, view: AutomationView): void {
+  setText(widget.points, view.pointsText);
+  for (const f of view.features) {
+    const handle = widget.features.get(f.id);
+    if (!handle) continue;
+    handle.unlock.hidden = f.unlocked;
+    handle.unlock.disabled = !f.canUnlock;
+    handle.controls.hidden = !f.unlocked;
+    handle.box.classList.toggle('unlocked', f.unlocked);
+  }
+  setText(widget.autoBurnSwitch, view.autoBurn.switchText);
+  widget.autoBurnSwitch.classList.toggle('on', view.autoBurn.on);
+  syncInput(widget.autoBurnCeiling, view.autoBurn.ceiling);
+  for (const r of view.rarities) widget.rarities.get(r.id)?.classList.toggle('on', r.on);
+  for (const a of view.actions) {
+    const input = widget.shares.get(a.id);
+    if (input) syncInput(input, a.percent);
+  }
 }

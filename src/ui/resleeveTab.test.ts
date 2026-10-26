@@ -160,9 +160,9 @@ describe('the screen', () => {
   const click = (root: HTMLElement, label: string) =>
     [...root.querySelectorAll<HTMLButtonElement>('.tab')].find((t) => t.textContent?.startsWith(label))!.click();
 
-  it('has three tabs: Character, Skills and Stats', () => {
+  it('has four tabs: Character, Skills, Automation and Stats', () => {
     const { root } = mount();
-    expect([...root.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual(['Character', 'Skills (1)', 'Stats']);
+    expect([...root.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual(['Character', 'Skills (1)', 'Automation', 'Stats']);
   });
 
   it('shows the re-sleeve skills as a tree of rows, a locked skill dimmed, and lets the player buy from the top', () => {

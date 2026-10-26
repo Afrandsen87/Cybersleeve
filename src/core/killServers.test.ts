@@ -106,7 +106,9 @@ describe('Credit Siphon', () => {
     const g = game(undefined, 1_000);
     own(g, 'siphon');
     (g.getState() as { heat: number }).heat = 50;
-    const perNode = g.passiveCreditsPerNode().toNumber();
+    // the heat tax applies to income, not to the payout per node: the siphon still pays what a node delivers after the tax
+    expect(g.passiveCreditsPerNode().toNumber()).toBeCloseTo(0.05, 9);
+    const perNode = g.passiveCreditsPerNode().toNumber() * g.creditKeepFactor();
     expect(perNode).toBeCloseTo(0.025, 9);
     const before = g.getState().credits.toNumber();
     g.startAction('pkill');

@@ -53,12 +53,32 @@ describe('skills in the view model', () => {
   it('has the two tabs, Character and Skills, and shows the points next to Skills unless there are none', () => {
     const g = pointGame();
     expect(buildViewModel(g).tabs).toEqual([
-      { id: 'character', label: 'Character' },
-      { id: 'skills', label: 'Skills (1)' },
-      { id: 'stats', label: 'Stats' },
+      { id: 'character', label: 'Character', visible: true, attention: false },
+      { id: 'skills', label: 'Skills (1)', visible: true, attention: true },
+      { id: 'automation', label: 'Automation', visible: false, attention: false },
+      { id: 'stats', label: 'Stats', visible: false, attention: false },
     ]);
     g.buy('s1');
     expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
+  });
+
+  it('no tab shows until the first skill point is earned, and the Skills tab blinks only while a point is waiting', () => {
+    const g = createGame({ config });
+    expect(buildViewModel(g).tabs.map((t) => t.visible)).toEqual([false, false, false, false]);
+    loose(g).actions['z']!.xp = num(10);
+    expect(buildViewModel(g).tabs.map((t) => [t.visible, t.attention])).toEqual([
+      [true, false],
+      [true, true],
+      [false, false],
+      [false, false],
+    ]);
+    g.buy('s1'); // the point is spent: the tabs stay, the blinking stops
+    expect(buildViewModel(g).tabs.map((t) => [t.visible, t.attention])).toEqual([
+      [true, false],
+      [true, false],
+      [false, false],
+      [false, false],
+    ]);
   });
 
   it('lists the skills, and keeps them out of the Sleeve purchases', () => {
@@ -140,11 +160,26 @@ describe('the screen', () => {
   };
   const panel = (root: HTMLElement, cls: string) => root.querySelector<HTMLElement>(`.${cls}`)!;
 
-  it('has the two tabs at the top, centered, before everything else', () => {
+  it('has the two tabs on the credits line, and the Skills tab blinks while a point waits', () => {
     const { root } = mount();
-    const tabs = root.querySelector('.tabs')!;
-    expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual(['Character', 'Skills (1)', 'Stats']);
-    expect(tabs.nextElementSibling).toBe(root.querySelector('header')); // the tabs come first, then the credits and the panels
+    const tabs = root.querySelector<HTMLElement>('.tabs')!;
+    expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual(['Character', 'Skills (1)', 'Automation', 'Stats']);
+    expect(tabs.querySelectorAll<HTMLElement>('.tab[hidden]')).toHaveLength(2); // Automation waits for its first point, Stats for the first re-sleeve
+    expect(tabs.parentElement).toBe(root.querySelector('header')); // the same line as the credits
+    expect(tabs.previousElementSibling).toBe(root.querySelector('.credits'));
+    expect(tabs.hidden).toBe(false);
+    expect(root.querySelector('.tab.attention')!.textContent).toBe('Skills (1)');
+  });
+
+  it('hides the tab bar until the first skill point is earned, then shows it', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const game = createGame({ config });
+    const render = mountUi(root, game, speed, () => {});
+    expect(root.querySelector<HTMLElement>('.tabs')!.hidden).toBe(true);
+    loose(game).actions['z']!.xp = num(10);
+    render();
+    expect(root.querySelector<HTMLElement>('.tabs')!.hidden).toBe(false);
   });
 
   it('starts on Character, which holds everything so far; the Skills tab holds only the skills box', () => {

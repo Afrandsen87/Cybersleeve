@@ -84,7 +84,8 @@ export class Economy {
   }
 
   /**
-   * Credits the network delivers per second: `nodes * (creditsPerNodePerSecond + baseBonus) * global.creditMultiplier * payoutMultiplier * keep`.
+   * Credits the network delivers per second: `nodes * (creditsPerNodePerSecond + baseBonus) * global.creditMultiplier * payoutMultiplier`, then
+   * times `keep`, the share the heat tax leaves. The tax applies here, to the whole income, and not to what one node pays.
    *
    * @param network network nodes owned
    * @param heat current heat (for the tax)
@@ -93,23 +94,23 @@ export class Economy {
    * @param baseBonus credits per second added to the base of every node (earned by actions; default 0)
    */
   passiveCreditsPerSecond(network: BigNum, heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0): BigNum {
-    return network.mul(this.passiveCreditsPerNode(heat, reduction, payoutMultiplier, baseBonus));
+    return network
+      .mul(this.passiveCreditsPerNode(payoutMultiplier, baseBonus))
+      .mul(this.factory.fromNumber(this.keepFactor(heat, reduction)));
   }
 
   /**
-   * Credits ONE network node delivers per second: `(creditsPerNodePerSecond + baseBonus) * global.creditMultiplier * payoutMultiplier * keep`.
+   * Credits ONE network node delivers per second, before the heat tax: `(creditsPerNodePerSecond + baseBonus) * global.creditMultiplier * payoutMultiplier`.
    * The bonus earned by actions is added to the BASE value of a node; the multiplier from buyables then multiplies the sum.
-   * The network's income is this times the number of nodes.
+   * The network's income is this times the number of nodes, times the share the heat tax leaves (see {@link Economy.passiveCreditsPerSecond}).
    *
    * Called by: {@link Economy.passiveCreditsPerSecond}, `stats.ts`.
    *
-   * @param heat current heat (for the tax)
-   * @param reduction share of the heat's effect removed by ICE Rating (0..1)
    * @param payoutMultiplier multiplier on what each node produces (from buyables; default 1)
    * @param baseBonus credits per second added to the base of every node (earned by actions; default 0)
    */
-  passiveCreditsPerNode(heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0): BigNum {
+  passiveCreditsPerNode(payoutMultiplier = 1, baseBonus = 0): BigNum {
     const base = (this.nodeBase + baseBonus) * this.creditLeverNumber;
-    return this.factory.fromNumber(base * payoutMultiplier * this.keepFactor(heat, reduction));
+    return this.factory.fromNumber(base * payoutMultiplier);
   }
 }

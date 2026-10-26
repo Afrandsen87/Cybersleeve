@@ -28,12 +28,22 @@ export function criticalRuleFor(base: CriticalSuccessRule, def: Pick<ActionDefin
   return { ...base, ...def.criticalSuccess };
 }
 
+/** How a batch of completed runs came out. */
+export interface CriticalBatch {
+  /** Critical successes in the batch in all: one run can have several (a whole number >= 0). */
+  readonly crits: number;
+  /** Runs without any critical success (a whole number, 0..runs). They pay and teach as usual. */
+  readonly plainRuns: number;
+}
+
 /**
- * Draws how many of a batch of completed runs are critical successes.
+ * Settles how many critical successes a batch of completed runs got.
  *
  * @remarks
- * Like item drops, this is one binomial draw per batch (not one roll per run), so a batch of a million runs costs as much as one
- * run. The chance is read when the runs complete.
+ * Every run has a critical chance `c` that may exceed 100%: it gets `floor(c)` critical successes for sure and one more with
+ * probability `c - floor(c)` (150% is one sure success and a 50% chance of a second). On top of that, `covered` runs each carry +100%
+ * (a Zero-day, an Admin key or a banked success), on distinct runs, so they are one more sure success each. Everything is drawn
+ * once per batch with binomial draws (not once per run), so a batch of a million runs costs as much as one.
  *
  * Called by: `actionRunner.ts` (`ActionRunner.completeRuns`).
  * Calls: {@link CriticalChanceSource.criticalChance}, `binomial`.
@@ -51,13 +61,22 @@ export class CriticalSuccesses {
   ) {}
 
   /**
-   * How many of `runs` completed runs are critical.
+   * Settles a batch.
    *
    * @param runs how many runs completed (a whole number >= 1)
-   * @returns a whole number in `0..runs` (always 0 while no `criticalChance` buyable is owned; no random number is drawn then)
+   * @param covered how many of them carry +100% critical chance from items or the bank (a whole number, 0..runs)
+   * @returns the critical successes and the runs that got none; no random number is drawn while there is no chance below 100% to roll
    */
-  roll(runs: number): number {
+  settle(runs: number, covered: number): CriticalBatch {
     const chance = this.source.criticalChance();
-    return chance > 0 ? binomial(runs, chance, this.random) : 0;
+    const sure = Math.floor(chance);
+    const part = chance - sure;
+    // Two draws, so that the runs that carry +100% and those that do not can be told apart: covered runs always have at least one success.
+    const uncovered = runs - covered;
+    const uncoveredExtra = part > 0 ? binomial(uncovered, part, this.random) : 0;
+    const coveredExtra = part > 0 ? binomial(covered, part, this.random) : 0;
+    const crits = covered + runs * sure + uncoveredExtra + coveredExtra;
+    const plainRuns = sure > 0 ? 0 : uncovered - uncoveredExtra;
+    return { crits, plainRuns };
   }
 }

@@ -30,6 +30,7 @@ export class Shop {
    * @param costMultiplier global price lever (`global.costMultiplier`)
    * @param pointsEarned the points of a currency earned in total from the state (what purchases paid in `skillPoints` or `resleevePoints` are paid from; default none)
    * @param snapshot scope in which the points are computed once (default: a private one that is never opened)
+   * @param revealOrders `reveal.buyableOrders`: how many orders of magnitude above the peak balance a price may be and still show (default: all show)
    * @param onPurchased called after every purchase (default: nothing)
    */
   constructor(
@@ -38,6 +39,7 @@ export class Shop {
     private readonly costMultiplier: number,
     private readonly pointsEarned: (currency: PointCurrency, state: GameState) => number = () => 0,
     private readonly snapshot: Snapshot = new Snapshot(),
+    private readonly revealOrders: number = Infinity,
     private readonly onPurchased: PurchaseListener = () => {},
   ) {
     for (const b of buyables) this.byId.set(b.id, b);
@@ -81,6 +83,22 @@ export class Shop {
     return (b.requires ?? []).every((r) => this.owned(state, r) > 0);
   }
 
+  /**
+   * True when the purchase should be shown: it is available and either already owned, paid in skill points, or its next price is within
+   * `revealOrders` orders of magnitude of the most of its currency ever held this life (`peakCredits` / `peakNetwork`, counted as at least 1).
+   * Called by: `ui/viewModel.ts` through the engine.
+   */
+  isRevealed(state: GameState, id: BuyableId): boolean {
+    if (!this.isAvailable(state, id)) return false;
+    if (this.owned(state, id) > 0 || this.revealOrders === Infinity) return true;
+    const currency = this.currencyOf(id);
+    if (currency === 'skillPoints') return true;
+    const peak = currency === 'networkNodes' ? state.peakNetwork : state.peakCredits;
+    // a peak below one counts as one, so a new game with nothing yet still shows the cheapest purchases
+    const reference = peak.lt(this.factory.fromNumber(1)) ? this.factory.fromNumber(1) : peak;
+    return this.costOf(state, id).lte(reference.mul(this.factory.fromNumber(10).pow(this.revealOrders)));
+  }
+
   /** True when no further copy can be bought (`maxPurchases` reached). */
   isMaxed(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
@@ -110,6 +128,11 @@ export class Shop {
    */
   pointsAvailable(state: GameState, currency: PointCurrency): number {
     return this.snapshot.memo(currency, () => this.computePoints(state, currency));
+  }
+
+  /** Skill points earned in total from the action levels, spent or not. Called by: `engine.ts`. */
+  skillPointsEarned(state: GameState): number {
+    return this.pointsEarned('skillPoints', state);
   }
 
   /** The work behind {@link Shop.pointsAvailable}. */

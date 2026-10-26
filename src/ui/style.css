@@ -90,7 +90,8 @@ body {
   margin: 0;
 }
 .inventory-widget[hidden],
-.inventory-section[hidden] {
+.inventory-section[hidden],
+.item-group[hidden] {
   display: none;
 }
 /*
@@ -281,8 +282,11 @@ body {
   }
 }
 header {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
 .credits {
   font-size: 28px;
@@ -331,6 +335,23 @@ button:not(:disabled):hover {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 12px;
+}
+.action.crit-hit {
+  border-color: var(--magenta, #ff2bd6);
+  box-shadow: 0 0 12px var(--magenta, #ff2bd6);
+}
+/* The mark beside the start button while an action has hit a critical success in the last second. */
+.crit-badge {
+  position: absolute;
+  top: 10px;
+  right: 40px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--magenta, #ff2bd6);
+}
+.crit-badge[hidden] {
+  display: none;
 }
 .action-main {
   display: grid;
@@ -624,11 +645,32 @@ button:not(:disabled):hover {
   display: none;
 }
 
-/* The tabs at the top, centered. */
+/* The tabs, on the credits line. */
 .tabs {
   display: flex;
-  justify-content: center;
   gap: 8px;
+}
+.tabs[hidden],
+.tab[hidden] {
+  display: none;
+}
+/* A tab with something waiting in it blinks. */
+.tab.attention {
+  animation: tab-blink 1s ease-in-out infinite;
+}
+@keyframes tab-blink {
+  50% {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab.attention {
+    animation: none;
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
 }
 .tab {
   min-width: 120px;
@@ -851,4 +893,63 @@ button:not(:disabled):hover {
 .square-unlock.purchasable:not(:disabled),
 .cell.purchasable:not(:disabled) {
   border-color: var(--bright-blue);
+}
+
+/* The Automation tab: a box with one section per feature. */
+.automation-widget {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.automation-widget h2 {
+  margin: 0;
+}
+.automation-feature {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.automation-feature.unlocked {
+  border-color: var(--cyan);
+}
+.automation-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.automation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.automation-controls[hidden],
+.automation-unlock[hidden] {
+  display: none;
+}
+.automation-switch.on {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+.automation-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.automation-field input {
+  width: 6em;
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 6px;
 }

@@ -64,6 +64,11 @@ describe('Heat, ICE Rating and Legend tooltips', () => {
     const g = game();
     set(g, { iceRating: num('1e100') });
     expect(sleeveTip(g, 'iceRating').split('\n')).toEqual([
+      'ICE Rating = Earned',
+      '',
+      'Earned = 1e100',
+      'ICE Rating = 1e100',
+      '',
       'Heat Reduction = Orders of Magnitude x Reduction per Order',
       '',
       'Orders of Magnitude = 100',
@@ -265,7 +270,7 @@ describe('the tooltips of the real game follow one standard', () => {
     const tip = buildViewModel(createGame())
       .actions.flatMap((a) => a.buyables)
       .find((b) => b.id === 'network-auto-run')!.tip;
-    expect(tip.split('\n')).toEqual(['Auto-run', 'Restarts the action automatically when it finishes.', '', 'Cost = 50 credits']);
+    expect(tip.split('\n')).toEqual(['Auto-run', 'Restarts the action automatically when it finishes.', '', 'Cost = 10 credits']);
   });
 
   it('uses the names of the things the player sees, not internal ones', () => {
@@ -312,8 +317,41 @@ describe('Critical success tooltip', () => {
     expect(row.tip?.split('\n')).toEqual([
       'Chance per completed run = 10%',
       '',
-      'A critical success gives 2x action XP and pays 3x the reward',
+      'Each critical success gives 2x action XP and pays 3x the reward',
+      'Above 100% a run can have several critical successes: 150% is one for sure and a 50% chance of a second',
       'Some actions may do something different',
     ]);
+  });
+});
+
+describe('Calculation tooltips name every purchase behind a multiplier', () => {
+  const real = () => createGame({ config: gameConfig });
+
+  it('ICE Rating: lists the earned value, each multiplying purchase with its copies, and the total', () => {
+    const g = real();
+    set(g, { iceRating: num(10), purchased: { 'ice-rating-boost': 2 } });
+    const tip = statRow(buildViewModel(g).sleeve.stats, 'iceRating').tip ?? '';
+    expect(tip).toContain('ICE Rating = Earned x ICE Rating boost (2 copies)');
+    expect(tip).toContain('Earned = 10');
+    expect(tip).toContain('ICE Rating boost (2 copies) = x4');
+    expect(tip).toContain('ICE Rating = 40');
+  });
+
+  it('Payout per node: names each boost with its value instead of one aggregated number', () => {
+    const g = real();
+    set(g, { purchased: { 'node-payout': 3, 'skill-bandwidth': 1 } });
+    const tip = statRow(buildViewModel(g).network.stats, 'payout').tip ?? '';
+    expect(tip).toContain('(Base + Action Bonus) x Bandwidth Leech x Node payout (3 copies)');
+    expect(tip).toContain('Node payout (3 copies) = x8');
+    expect(tip).toContain('Bandwidth Leech = x1.1');
+    expect(tip).not.toContain('Purchases');
+  });
+
+  it('the named factors multiply to the payout multiplier the game really uses', () => {
+    const g = real();
+    set(g, { purchased: { 'node-payout': 2, 'skill-bandwidth': 1 } });
+    const stats = g.sleeveStats();
+    const product = stats.nodePayoutTerms.reduce((p, t) => p * t.factor, 1);
+    expect(product).toBeCloseTo(stats.nodePayoutMultiplier, 10);
   });
 });

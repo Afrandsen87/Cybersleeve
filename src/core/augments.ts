@@ -63,6 +63,27 @@ export class Augments {
   }
 
   /**
+   * Applies up to `count` schematics to an action, the most common rarities first.
+   *
+   * @param actionId the action to augment
+   * @param count how many to apply at most (a whole number >= 1)
+   * @returns how many were applied (0 when the action is unknown, the game has no schematic, or none is held)
+   */
+  applyMany(actionId: ActionId, count: number): number {
+    const augment = this.config.items.augment;
+    const action = this.state.actions[actionId];
+    if (!augment || !action) return 0;
+    let applied = 0;
+    for (const rarity of this.rarityIds) {
+      if (applied >= count) break;
+      const taken = this.inventory.take(augment.itemId, rarity, count - applied);
+      if (taken > 0) action.augments[rarity] = (action.augments[rarity] ?? 0) + taken;
+      applied += taken;
+    }
+    return applied;
+  }
+
+  /**
    * Applies one schematic to an action, using up the most common rarity held.
    *
    * @param actionId the action to augment
