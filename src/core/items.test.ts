@@ -250,11 +250,11 @@ describe('selling items', () => {
     expect(g.getState().credits.eq(num(10))).toBe(true);
   });
 
-  it('every rarity sells for an order of magnitude more than the one before, in the real content', async () => {
+  it('every rarity sells for two orders of magnitude more than the one before, in the real content', async () => {
     const { gameConfig } = await import('../content/gameConfig');
     const values = gameConfig.items.rarities.map((r) => r.sellValue.toNumber());
-    expect(values[0]).toBe(10);
-    for (let i = 1; i < values.length; i++) expect(values[i]! / values[i - 1]!).toBe(10);
+    expect(values[0]).toBe(100);
+    for (let i = 1; i < values.length; i++) expect(values[i]! / values[i - 1]!).toBe(100);
   });
 });
 

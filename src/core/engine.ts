@@ -17,14 +17,17 @@ import type { ActivateResult, GameCommands, GameQueries } from './api';
 import { coolDownHeat, decayLegend } from './cooldowns';
 import type { BackChannelRule, SleeveStats } from './effects';
 import type { Augments } from './augments';
+import type { Automation, AutomationControls } from './automation';
 import type { BackChannel } from './backChannel';
 import type { BurnLeads } from './burnLeads';
+import type { CritFeed, RecentCrits } from './critFeed';
 import type { SkillShards } from './skillShards';
 import type { ZeroDays } from './zeroDays';
 import type { ItemDrops } from './drops';
 import type { Inventory } from './inventory';
 import type { NetworkSystem } from './network';
 import type { OverflowPolicy } from './overflow';
+import { notePeaks } from './reveal';
 import type { Progression } from './progression';
 import type { ResleevePolicy } from './resleeve';
 import type { PurchaseResult, Shop } from './shop';
@@ -64,6 +67,10 @@ export interface EngineDependencies {
   readonly skillShards: SkillShards;
   /** Switches the Overclock and Focus toggles of actions (built on the same state the engine owns). */
   readonly toggles: ActionToggles;
+  /** Remembers recent critical successes for the display (the same feed the runner records into). */
+  readonly critFeed: CritFeed;
+  /** The automation features and their points (built on the same state the engine owns). */
+  readonly automation: Automation;
   /** Decides when re-sleeving is allowed. */
   readonly resleevePolicy: ResleevePolicy;
   /** Reaction to numbers leaving the representable range. */
@@ -99,6 +106,8 @@ export class GameEngine implements GameQueries, GameCommands {
   private readonly adminKeys: ZeroDays;
   private readonly skillShards: SkillShards;
   private readonly toggles: ActionToggles;
+  private readonly critFeed: CritFeed;
+  private readonly automationUnit: Automation;
   private readonly drops: ItemDrops;
   private readonly augments: Augments;
   private readonly scope: Snapshot;
@@ -128,6 +137,8 @@ export class GameEngine implements GameQueries, GameCommands {
       adminKeys: this.adminKeys,
       skillShards: this.skillShards,
       toggles: this.toggles,
+      critFeed: this.critFeed,
+      automation: this.automationUnit,
       drops: this.drops,
       augments: this.augments,
       resleevePolicy: this.resleevePolicy,
@@ -166,7 +177,9 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns true when the action is now running
    */
   startAction(id: ActionId): boolean {
-    return this.runner.start(id);
+    const started = this.runner.start(id);
+    notePeaks(this.state); // Credit Siphon pays at the start
+    return started;
   }
 
   /**
@@ -207,6 +220,7 @@ export class GameEngine implements GameQueries, GameCommands {
   doubleCredits(): void {
     this.state.credits = this.state.credits.add(this.state.credits);
     this.overflowPolicy.apply(this.state);
+    notePeaks(this.state);
   }
 
   /**
@@ -217,7 +231,9 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns how many were sold
    */
   sellItems(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number {
-    return this.inventory.sell(itemId, rarityId, amount);
+    const sold = this.inventory.sell(itemId, rarityId, amount);
+    notePeaks(this.state);
+    return sold;
   }
 
   /**
@@ -306,6 +322,7 @@ export class GameEngine implements GameQueries, GameCommands {
   resleeve(): boolean {
     if (!this.canResleeve()) return false;
     resetForResleeve(this.state, this.config, this.factory);
+    this.critFeed.clear();
     return true;
   }
 
@@ -315,6 +332,7 @@ export class GameEngine implements GameQueries, GameCommands {
    */
   newGame(): void {
     resetForNewGame(this.state, this.config, this.factory);
+    this.critFeed.clear();
   }
 
   // ---- queries about actions ------------------------------------------------------------------------------------
@@ -500,6 +518,11 @@ export class GameEngine implements GameQueries, GameCommands {
   }
 
   /** Skill points the player can still spend (earned from the action levels, minus what the owned skills cost). */
+  skillPointsEarned(): number {
+    return this.shop.skillPointsEarned(this.state);
+  }
+
+  /** Skill points the player can still spend. */
   skillPoints(): number {
     return this.shop.skillPointsAvailable(this.state);
   }
@@ -537,6 +560,21 @@ export class GameEngine implements GameQueries, GameCommands {
   /** True when the buyable's requirements are met. */
   isBuyableAvailable(id: BuyableId): boolean {
     return this.shop.isAvailable(this.state, id);
+  }
+
+  /** The automation features: points, unlocks and settings. */
+  automation(): AutomationControls {
+    return this.automationUnit;
+  }
+
+  /** Critical successes of an action in the last second of game time, for highlighting it (not saved). */
+  recentCrits(id: ActionId): RecentCrits {
+    return this.critFeed.recent(id);
+  }
+
+  /** True when the buyable is available and close enough to the player's means to be shown (see `reveal.buyableOrders`). */
+  isBuyableRevealed(id: BuyableId): boolean {
+    return this.shop.isRevealed(this.state, id);
   }
 
   /** True when no more copies can be bought. */
@@ -594,6 +632,7 @@ export class GameEngine implements GameQueries, GameCommands {
    * next one. Finally the {@link OverflowPolicy} repairs any amount that left the representable range.
    */
   private advance(deltaMs: number): void {
+    this.critFeed.advance(deltaMs);
     this.network.payPassiveIncome(deltaMs);
     this.network.grow(deltaMs);
     const sleeve = this.stats.sleeveStats();
@@ -602,6 +641,8 @@ export class GameEngine implements GameQueries, GameCommands {
       coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost);
     decayLegend(this.state, this.config.sleeve, deltaMs);
     this.runner.tickAll(deltaMs);
+    this.automationUnit.step();
     this.overflowPolicy.apply(this.state);
+    notePeaks(this.state);
   }
 }

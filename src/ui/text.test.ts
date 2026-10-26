@@ -73,7 +73,7 @@ describe('stat rows', () => {
     const withBar = [...vm.sleeve.stats, ...vm.network.stats].filter((s) => s.bar).map((s) => s.id);
     expect(withBar).toEqual(['heat', 'legend']);
     for (const row of vm.sleeve.stats) expect(row.tip, `${row.id} has no tip`).toBeTruthy();
-    expect(statRow(vm.network.stats, 'income').tip).toBeNull();
+    expect(statRow(vm.network.stats, 'nodes').tip).toBeNull();
   });
 
   it('statRow refuses an unknown row', () => {
@@ -134,8 +134,8 @@ describe('the screen renders stat rows from data', () => {
 
   it('a row without a tip carries no tip attribute', () => {
     const { root } = mount();
-    const income = [...root.querySelectorAll<HTMLElement>('.stat')].find((r) => r.textContent?.startsWith('Credits per second'))!;
-    expect(income.hasAttribute('data-tip')).toBe(false);
+    const nodes = [...root.querySelectorAll<HTMLElement>('.stat')].find((r) => r.textContent?.startsWith('Nodes'))!;
+    expect(nodes.hasAttribute('data-tip')).toBe(false);
   });
 
   it('shows the passive income with its plus sign', () => {

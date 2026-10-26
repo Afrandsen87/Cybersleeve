@@ -12,7 +12,9 @@ import type {
   GlobalTuning,
   LevelRuleConfig,
   LevelScaling,
+  AutomationConfig,
   NetworkConfig,
+  RevealConfig,
   ProgressionConfig,
   RuntimeConfig,
   SleeveConfig,
@@ -26,6 +28,8 @@ export interface ConfigOverrides {
   readonly items?: GameConfig['items'];
   readonly criticalSuccess?: Partial<GameConfig['criticalSuccess']>;
   readonly focus?: Partial<GameConfig['focus']>;
+  readonly reveal?: Partial<RevealConfig>;
+  readonly automation?: Partial<AutomationConfig>;
   readonly progression?: Partial<ProgressionConfig>;
   readonly speed?: Partial<SpeedConfig>;
   readonly global?: Partial<GlobalTuning>;
@@ -53,6 +57,8 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
     items: overrides.items ?? base.items,
     criticalSuccess: { ...base.criticalSuccess, ...overrides.criticalSuccess },
     focus: { ...base.focus, ...overrides.focus },
+    ...(base.automation || overrides.automation ? { automation: { autoBurnCeiling: 0, ...base.automation, ...overrides.automation } } : {}),
+    ...(base.reveal || overrides.reveal ? { reveal: { buyableOrders: Infinity, ...base.reveal, ...overrides.reveal } } : {}),
     progression: { ...base.progression, ...overrides.progression },
     speed: { ...base.speed, ...overrides.speed },
     global: { ...base.global, ...overrides.global },
@@ -312,6 +318,10 @@ export function validateConfig(config: GameConfig): string[] {
     if (config.criticalSuccess[key] === undefined) errors.push(`criticalSuccess.${key} is required`);
   }
 
+  if (config.automation && !(Number.isFinite(config.automation.autoBurnCeiling) && config.automation.autoBurnCeiling >= 0)) {
+    errors.push('automation.autoBurnCeiling must be >= 0');
+  }
+  if (config.reveal && !(config.reveal.buyableOrders >= 0)) errors.push('reveal.buyableOrders must be >= 0 (Infinity shows everything)');
   if (!positive(config.focus.speedBonus)) errors.push('focus.speedBonus must be > 0');
   if (!positiveInt(config.focus.baseSlots)) errors.push('focus.baseSlots must be an integer >= 1');
 

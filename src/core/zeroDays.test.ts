@@ -148,14 +148,14 @@ describe('Zero-days: guaranteed critical runs', () => {
     expect(g.getState().zeroDaysOn).toBe(false);
   });
 
-  it('the rest of a batch still rolls the critical chance: with chance 1 every run is critical, Zero-days or not', () => {
+  it('a Zero-day adds +100% on top of the normal chance: with chance 100% four runs and one Zero-day are five critical successes', () => {
     const g = game(configWith({ critChance: 1 }));
     g.buy('crit');
     give(g, 1);
     g.toggleZeroDays();
     const before = credits(g);
     run(g, 4);
-    expect(credits(g) - before).toBeCloseTo(4 * 0.5 * 3, 9);
+    expect(credits(g) - before).toBeCloseTo(5 * 0.5 * 3, 9); // one run has two critical successes: 2 x 3 x 0.5, the other three 3 x 0.5
     expect(held(g)).toBe(0);
   });
 

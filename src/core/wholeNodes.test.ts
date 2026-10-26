@@ -165,7 +165,7 @@ describe('node payout bonus (Push malware)', () => {
     expect(g.sleeveStats().nodePayoutBonus).toBeCloseTo(0.001, 10);
     expect(g.sleeveStats().nodePayoutMultiplier).toBe(1); // the multiplier is untouched: only buyables change it
     state(g).network = num(100);
-    expect(g.passiveCreditsPerNode().toNumber()).toBeCloseTo((0.05 + 0.001) * 0.99, 10); // test config base 0.05, 1 heat takes 1%
+    expect(g.passiveCreditsPerNode().toNumber()).toBeCloseTo(0.05 + 0.001, 10); // test config base 0.05; the heat tax is not part of the payout per node
     expect(state(g).heat).toBe(1);
     expect(g.getState().credits.isZero()).toBe(true);
   });

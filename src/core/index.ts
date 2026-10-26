@@ -17,6 +17,7 @@ export {
 export {
   type ActionEffects,
   type BackChannelRule,
+  type FactorTerm,
   type SleeveStats,
   resolveEffects,
   resolveLevelBonus,
@@ -42,7 +43,16 @@ export { INFINITY, saturate } from './infinity';
 export { EFFECTS, definitionOf, type EffectDefinition } from './effectRegistry';
 export { earnedSkillPoints } from './skills';
 export { ItemDrops, type DropRules } from './drops';
-export { CriticalSuccesses, criticalRuleFor, type CriticalChanceSource } from './critical';
+export {
+  AUTOMATION_FEATURES,
+  Automation,
+  type AutomationControls,
+  type AutomationFeature,
+  type AutomationState,
+  createAutomationState,
+} from './automation';
+export { CRIT_WINDOW_MS, CritFeed, type RecentCrits } from './critFeed';
+export { CriticalSuccesses, criticalRuleFor, type CriticalBatch, type CriticalChanceSource } from './critical';
 export { shiftWeights, wholeOrders } from './rarityShift';
 export { type RandomSource, binomial, multinomial } from './sampling';
 export { type OverflowPolicy, createClampOverflowPolicy } from './overflow';

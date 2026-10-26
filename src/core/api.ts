@@ -10,7 +10,9 @@
  */
 import type { BigNum } from '../numbers';
 import type { FocusStatus, OverclockStatus } from './actionToggles';
+import type { AutomationControls } from './automation';
 import type { BackChannelRule, SleeveStats } from './effects';
+import type { RecentCrits } from './critFeed';
 import type { PurchaseResult } from './shop';
 import type { SpeedFactor } from './speed';
 import type { ActionId, BuyableId, Currency, GameConfig, GameStateView, ItemId, RarityId } from './types';
@@ -85,9 +87,9 @@ export interface ActionQueries {
 export interface SleeveQueries {
   /** The global sleeve stats after sleeve-wide purchases. */
   sleeveStats(): SleeveStats;
-  /** The share (0..1) of node income kept after the heat tax, with the current ICE Rating. */
+  /** The share (0..1) of the network's credits per second kept after the heat tax, with the current ICE Rating. */
   creditKeepFactor(): number;
-  /** Credits one network node delivers per second now (after the node payout multiplier and the heat tax). */
+  /** Credits one network node delivers per second now (after the node payout multiplier; the heat tax is taken from the income). */
   passiveCreditsPerNode(): BigNum;
   /** Credits per second the network delivers now. */
   passiveCreditsPerSecond(): BigNum;
@@ -119,12 +121,20 @@ export interface ShopQueries {
   canBuy(id: BuyableId): boolean;
   /** True when the buyable's requirements are met. */
   isBuyableAvailable(id: BuyableId): boolean;
+  /** The automation features: points, what is unlocked and the settings (the commands are on the same object). */
+  automation(): AutomationControls;
+  /** Critical successes of an action in the last second of game time (the count and the average per second). */
+  recentCrits(id: ActionId): RecentCrits;
+  /** True when the buyable is available and its price is close enough to what the player has held to be shown. */
+  isBuyableRevealed(id: BuyableId): boolean;
   /** True when no more copies can be bought. */
   isBuyableMaxed(id: BuyableId): boolean;
   /** True when an owned auto-run buyable is switched on. */
   isAutoRunEnabled(id: BuyableId): boolean;
   /** Skill points the player can still spend. */
   skillPoints(): number;
+  /** Skill points earned in total, spent or not: 0 until an action first reaches level 1. */
+  skillPointsEarned(): number;
 }
 
 /**

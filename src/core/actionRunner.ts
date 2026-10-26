@@ -7,6 +7,7 @@ import type { BigNum, NumberFactory } from '../numbers';
 import type { ActionLookup } from './actionLookup';
 import { applyCompletionEffects } from './completion';
 import type { CriticalSuccesses } from './critical';
+import type { CritFeed } from './critFeed';
 import { type Diagnostics, silentDiagnostics } from './diagnostics';
 import type { ItemDrops } from './drops';
 import type { Economy } from './economy';
@@ -53,6 +54,7 @@ export class ActionRunner {
    * @param zeroDays uses up the Zero-days that make runs critical for sure
    * @param adminKeys uses up the Admin keys that make runs critical for sure (and may drop Skill shards)
    * @param links spends and banks the guaranteed critical successes of critical links
+   * @param feed told about the critical successes of every batch (for the highlight on the action card)
    * @param diagnostics receives a warning when game time has to be dropped (default: ignored)
    */
   constructor(
@@ -68,6 +70,7 @@ export class ActionRunner {
     private readonly zeroDays: ZeroDays,
     private readonly adminKeys: ZeroDays,
     private readonly links: CriticalLinks,
+    private readonly feed: CritFeed,
     private readonly diagnostics: Diagnostics = silentDiagnostics,
   ) {}
 
@@ -161,7 +164,7 @@ export class ActionRunner {
   private paySiphon(id: ActionId, destroyed: BigNum): void {
     const seconds = this.stats.siphonSeconds(id);
     if (!(seconds > 0)) return;
-    const perNode = this.stats.passiveCreditsPerNode();
+    const perNode = this.stats.taxedCreditsPerNode();
     this.state.credits = this.state.credits.add(destroyed.mul(perNode).mul(this.factory.fromNumber(seconds)));
   }
 
@@ -270,24 +273,25 @@ export class ActionRunner {
    * network nodes produce, never what a run pays (see `Economy.passiveCreditsPerNode`).
    *
    * @remarks
-   * How many of the runs are critical successes is settled once for the batch: the runs a banked success or a Zero-day covers are critical for
-   * sure, and the chance is drawn for the rest. Each critical run then banks what the action's critical links give. Ordinary runs pay and teach as usual; a critical run
-   * pays `rewardMultiplier` times the reward and gives `xpMultiplier` times the action XP, and applies the rule's own completion
-   * effects. Heat, drops and the runs counted towards sleeve XP do not depend on it.
+   * The critical successes of the batch are settled once (see `CriticalSuccesses.settle`): a run can have several, the chance may exceed 100%, and a banked
+   * success, Zero-day or Admin key adds +100% to one run each. Each critical success then banks what the action's critical links give. Runs without one pay and
+   * teach as usual; every critical success pays `rewardMultiplier` times the reward and gives `xpMultiplier` times the action XP, and applies the rule's own
+   * completion effects once. Heat, drops and the runs counted towards sleeve XP do not depend on it.
    */
   private completeRuns(def: ActionDefinition, runs: number): void {
     const count = this.factory.fromNumber(runs);
-    // Banked successes and Zero-days make that many runs critical for sure; the rest of the batch rolls the usual chance.
+    // A banked success, a Zero-day or an Admin key adds +100% critical chance to one run each (distinct runs); the chance itself may exceed 100%.
     const banked = this.links.claim(def.id, runs);
     const zeroDayRuns = this.zeroDays.claim(def.id, runs - banked);
-    const guaranteed = banked + zeroDayRuns + this.adminKeys.claim(def.id, runs - banked - zeroDayRuns);
-    const critical = guaranteed + this.criticals.roll(runs - guaranteed);
+    const covered = banked + zeroDayRuns + this.adminKeys.claim(def.id, runs - banked - zeroDayRuns);
+    const { crits: critical, plainRuns } = this.criticals.settle(runs, covered);
     this.links.bank(def.id, critical);
+    this.feed.record(def.id, critical);
     const rule = this.stats.criticalRule(def.id);
     const multiplier = this.stats.rewardMultiplier(def.id);
     const gross = this.economy.grossReward(def, this.state.network, multiplier);
     const kind = def.rewardKind ?? 'credits';
-    payReward(this.state, kind, gross, this.factory.fromNumber(runs - critical));
+    payReward(this.state, kind, gross, this.factory.fromNumber(plainRuns));
     if (critical > 0)
       payReward(this.state, kind, gross.mul(this.factory.fromNumber(rule.rewardMultiplier)), this.factory.fromNumber(critical));
     const overclock = this.stats.activeOverclock(def.id);
@@ -298,7 +302,7 @@ export class ActionRunner {
     applyCompletionEffects(def.completionEffects, this.state, runs, this.factory);
     if (critical > 0) applyCompletionEffects(rule.completionEffects, this.state, critical, this.factory);
     if (overclock) applyCompletionEffects(overclock.completionEffects, this.state, runs, this.factory);
-    const xpRuns = this.factory.fromNumber(runs - critical + critical * rule.xpMultiplier);
+    const xpRuns = this.factory.fromNumber(plainRuns + critical * rule.xpMultiplier);
     this.progression.recordRuns(this.state, def.id, this.stats.xpPerRun(def.id).mul(xpRuns), count);
   }
 }

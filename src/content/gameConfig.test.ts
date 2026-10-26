@@ -11,6 +11,7 @@ import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
   ACCESS_UPGRADE,
+  AUTOMATION_CORE,
   ADMIN_KEY,
   BLACK_BOX_RECORDER,
   CASCADE_FAILURE,
@@ -45,6 +46,7 @@ import {
   PUSH_MALWARE,
   SKILLS,
   SKILL_BACK_CHANNEL,
+  SKILL_EXPLOIT_KOMPROMAT,
   SKILL_MUSCLE_MEMORY,
   SKILL_NOSE_FOR_SECRETS,
   RARITY_REFINEMENT,
@@ -136,6 +138,9 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     for (const id of SKILLS) {
       const g = createGame();
       expect(g.canBuy(id), `${id} can be bought without a point`).toBe(false);
+      // a skill is offered only once the purchase that unlocks it is owned
+      for (const r of gameConfig.buyables.find((b) => b.id === id)?.requires ?? [])
+        (g.getState().purchased as Record<string, number>)[r] = 1;
       (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(10); // the first action reaches level 1
       expect(g.actionLevel(gameConfig.actions[0]!.id)).toBe(1);
       expect(g.skillPoints()).toBe(1);
@@ -198,7 +203,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       g
         .getState()
         .credits.sub(before)
-        .eq(num(10 * common)),
+        .eq(num(100 * common)),
     ).toBe(true);
   });
 
@@ -464,6 +469,7 @@ describe('Back Channel Deals (real content)', () => {
   it('Moles make heat cool 200% faster: three times the pace, one Mole per point of heat', () => {
     const g = createGame();
     (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(10);
+    (g.getState().purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
     expect(g.buy(SKILL_BACK_CHANNEL)).toBe('purchased');
     (g.getState() as unknown as { heat: number; moles: number }).heat = 20;
     (g.getState() as unknown as { heat: number; moles: number }).moles = 5;
@@ -605,12 +611,16 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     expect(g.currentDurationMs(GROW_NETWORK)).toBeLessThan(before);
   });
 
-  it('the unlocks cost what the sleeve buyables did before they became per action, and the upgrades 1000x that', () => {
+  it("the unlocks cost a fixed multiple of the action's own Auto-run price (Grow network: 250 and 1,000), and the upgrades 1000x the old unlocks", () => {
     const cost = (id: string): number => gameConfig.buyables.find((b) => b.id === id)!.cost.toNumber();
+    const autoRun = (actionId: string): number =>
+      gameConfig.buyables.find((b) => b.actionId === actionId && b.effect.kind === 'autoRun')!.cost.toNumber();
     for (const a of gameConfig.actions) {
-      if (a.overclock) expect(cost(overclockUnlockId(a.id)), a.id).toBe(250);
-      expect(cost(focusUnlockId(a.id)), a.id).toBe(1_000);
+      if (a.overclock) expect(cost(overclockUnlockId(a.id)), a.id).toBeCloseTo(autoRun(a.id) * 25, 6);
+      expect(cost(focusUnlockId(a.id)), a.id).toBeCloseTo(autoRun(a.id) * 100, 6);
     }
+    expect(cost(overclockUnlockId(GROW_NETWORK))).toBe(250);
+    expect(cost(focusUnlockId(GROW_NETWORK))).toBe(1_000);
     expect(cost(OVERCLOCK_UPGRADE)).toBe(250 * 1_000);
     expect(cost(FOCUS_UPGRADE)).toBe(1_000 * 1_000);
   });
@@ -866,5 +876,46 @@ describe('the Kill servers Overclock tip (real content)', () => {
     expect(tip).toContain('Heat is held in place while this action runs');
     expect(tip).toContain('Reward Bonus = 100% (100% x Strength)');
     expect(tip).not.toMatch(/\b(not|never|no)\b/i);
+  });
+});
+
+describe('skills are offered by their unlocking purchase (real content)', () => {
+  const needs = (id: string): readonly string[] => gameConfig.buyables.find((b) => b.id === id)?.requires ?? [];
+
+  it('the Kompromat skills need Kompromat harvest, and Obfuscation needs the Push malware Overclock', () => {
+    for (const id of [SKILL_NOSE_FOR_SECRETS, SKILL_EXPLOIT_KOMPROMAT, SKILL_BACK_CHANNEL])
+      expect(needs(id), id).toEqual([KOMPROMAT_HARVEST]);
+    expect(needs(SKILL_OBFUSCATION)).toEqual([overclockUnlockId(PUSH_MALWARE)]);
+  });
+
+  it('a Kompromat skill is hidden until the harvest is owned, then shows', () => {
+    const g = createGame();
+    expect(g.isBuyableAvailable(SKILL_NOSE_FOR_SECRETS)).toBe(false);
+    (g.getState() as { credits: unknown }).credits = num(1_000);
+    (g.getState() as { actions: Record<string, { xp: unknown }> }).actions[PRACTICE_HACKING]!.xp = num(100);
+    expect(g.buy(KOMPROMAT_HARVEST)).toBe('purchased');
+    expect(g.isBuyableAvailable(SKILL_NOSE_FOR_SECRETS)).toBe(true);
+  });
+});
+
+describe('automation (real content)', () => {
+  it('automation points come from a sleeve buyable: 1,000,000 credits, 100x more per copy, unlimited, one point per copy', () => {
+    const core = gameConfig.buyables.find((b) => b.id === AUTOMATION_CORE)!;
+    expect(core.actionId).toBeUndefined();
+    expect(core.cost.toNumber()).toBe(1_000_000);
+    expect(core.costGrowth).toBe(100);
+    expect(core.maxPurchases).toBe(Infinity);
+    expect(core.effect).toEqual({ kind: 'automationPoints', perCopy: 1 });
+    expect(gameConfig.automation).toBeDefined();
+  });
+
+  it('there are three features and the first point is spent on one of them, here Auto Burn', () => {
+    const g = createGame();
+    setCredits(g, num(1_000_000));
+    expect(g.automation().pointsEarned()).toBe(0);
+    expect(g.buy(AUTOMATION_CORE)).toBe('purchased');
+    expect(g.automation().pointsAvailable()).toBe(1);
+    expect(g.automation().unlock('autoBurn')).toBe(true);
+    expect(g.automation().pointsAvailable()).toBe(0);
   });
 });

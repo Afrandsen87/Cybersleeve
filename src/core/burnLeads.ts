@@ -45,6 +45,21 @@ export class BurnLeads {
   }
 
   /**
+   * Uses up to `count` leads of a rarity at once: each takes its share of the heat that is left, so `n` leads leave `(1 - fraction)^n` of it.
+   *
+   * @param rarityId the rarity of the stack
+   * @param count how many to use at most (a whole number >= 1; `Infinity` uses every lead held)
+   * @returns how many were used (0 when none can be)
+   */
+  useMany(rarityId: RarityId, count: number): number {
+    const lead = this.config.items.burnLead;
+    if (!lead || !this.canUse(rarityId) || !(count >= 1)) return 0;
+    const used = this.inventory.take(lead.itemId, rarityId, count);
+    if (used > 0) this.state.heat *= (1 - lead.heatFraction) ** used;
+    return used;
+  }
+
+  /**
    * Uses one lead of a rarity: it is used up and takes its share of the current heat away.
    *
    * @param rarityId the rarity of the stack to use a lead from

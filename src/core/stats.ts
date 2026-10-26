@@ -180,6 +180,20 @@ export class DerivedStats implements ModeStatuses {
   }
 
   /**
+   * The most critical successes one completed run of this action can have now: the whole part of the chance, one more while a fraction of a
+   * chance remains, and one more while a Zero-day, Admin key or banked success can cover it. 0 when criticals are not possible.
+   */
+  maxCritsPerRun(id: ActionId): number {
+    const chance = this.criticalChance();
+    const { zeroDay, adminKey } = this.config.items;
+    const covered =
+      (this.state.zeroDaysOn && zeroDay?.actionId === id) ||
+      (this.state.adminKeysOn && adminKey?.actionId === id) ||
+      (this.state.bankedCriticals[id] ?? 0) > 0;
+    return Math.floor(chance) + (chance % 1 > 0 ? 1 : 0) + (covered ? 1 : 0);
+  }
+
+  /**
    * The chain links an action holds now: what its runs have built up while Overclock is on (0 when Overclock is off, the rule has no chain,
    * or the chain is broken).
    */
@@ -326,12 +340,12 @@ export class DerivedStats implements ModeStatuses {
   }
 
   /**
-   * The most action XP one run can give now: `xpPerRun`, times the critical XP multiplier while criticals are possible. Used to
+   * The most action XP one run can give now: `xpPerRun`, times the critical XP multiplier for each critical success the run can have at most. Used to
    * size a batch of runs so that no level threshold is crossed before its last run. @throws Error if the id is unknown
    */
   maxXpPerRun(id: ActionId): BigNum {
     const base = this.xpPerRun(id);
-    const factor = this.criticalPossible(id) ? this.criticalRule(id).xpMultiplier : 1;
+    const factor = Math.max(1, this.maxCritsPerRun(id) * this.criticalRule(id).xpMultiplier);
     return factor > 1 ? base.mul(this.factory.fromNumber(factor)) : base;
   }
 
@@ -340,13 +354,18 @@ export class DerivedStats implements ModeStatuses {
     return resolveNetworkGrowth(this.config.buyables, this.state, (id) => this.progression.actionLevel(this.state, id));
   }
 
-  /** Credits one network node delivers per second right now, after the payout multiplier and the heat tax. */
+  /** Credits one network node delivers per second right now, after the payout multiplier. The heat tax is not part of it (it applies to the income, see below). */
   passiveCreditsPerNode(): BigNum {
     const stats = this.sleeveStats();
-    return this.economy.passiveCreditsPerNode(this.state.heat, stats.heatReduction, stats.nodePayoutMultiplier, stats.nodePayoutBonus);
+    return this.economy.passiveCreditsPerNode(stats.nodePayoutMultiplier, stats.nodePayoutBonus);
   }
 
-  /** Credits the network delivers per second right now, after the heat tax. */
+  /** What one node delivers per second right now once the heat tax has taken its share: {@link DerivedStats.passiveCreditsPerNode} times the share kept. */
+  taxedCreditsPerNode(): BigNum {
+    return this.passiveCreditsPerNode().mul(this.factory.fromNumber(this.creditKeepFactor()));
+  }
+
+  /** Credits the network delivers per second right now: nodes times the per-node payout, then the heat tax on the whole. */
   passiveCreditsPerSecond(): BigNum {
     const stats = this.sleeveStats();
     return this.economy.passiveCreditsPerSecond(

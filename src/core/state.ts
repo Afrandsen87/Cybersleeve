@@ -4,6 +4,7 @@
  * Creation and resetting of {@link GameState}.
  */
 import type { NumberFactory } from '../numbers';
+import { createAutomationState } from './automation';
 import { initialScalars } from './fields';
 import type { ActionState, GameConfig, GameState } from './types';
 
@@ -17,6 +18,7 @@ type ScalarKey = Exclude<
   | 'adminKeysOn'
   | 'chains'
   | 'bankedCriticals'
+  | 'automation'
   | 'actions'
   | 'purchased'
   | 'inventory'
@@ -57,7 +59,10 @@ function freshActionState(factory: NumberFactory): ActionState {
  * @param config game content (one entry per action) and `progression.startingCredits`
  * @param factory number factory
  */
-export function createInitialState(config: Pick<GameConfig, 'actions' | 'progression' | 'sleeve'>, factory: NumberFactory): GameState {
+export function createInitialState(
+  config: Pick<GameConfig, 'actions' | 'automation' | 'progression' | 'sleeve'>,
+  factory: NumberFactory,
+): GameState {
   const actions: GameState['actions'] = {};
   for (const a of config.actions) actions[a.id] = freshActionState(factory);
   return {
@@ -69,6 +74,7 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
     adminKeysOn: false,
     chains: {},
     bankedCriticals: {},
+    automation: createAutomationState(config),
     actions,
     purchased: {},
     inventory: {},
@@ -86,7 +92,7 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
  */
 export function resetForNewGame(
   state: GameState,
-  config: Pick<GameConfig, 'actions' | 'progression' | 'sleeve'>,
+  config: Pick<GameConfig, 'actions' | 'automation' | 'progression' | 'sleeve'>,
   factory: NumberFactory,
 ): void {
   Object.assign(state, createInitialState(config, factory));
@@ -108,7 +114,7 @@ export function resetForNewGame(
  */
 export function resetForResleeve(
   state: GameState,
-  config: Pick<GameConfig, 'actions' | 'progression' | 'sleeve'>,
+  config: Pick<GameConfig, 'actions' | 'automation' | 'progression' | 'sleeve'>,
   factory: NumberFactory,
 ): void {
   const fresh = createInitialState(config, factory);

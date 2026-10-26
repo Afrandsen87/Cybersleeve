@@ -46,8 +46,8 @@ describe('critical chance', () => {
     expect(game(configWith({ chance: 0.05 }), 3).sleeveStats().criticalChance).toBeCloseTo(0.15, 12);
   });
 
-  it('never goes above 1, however many copies are owned', () => {
-    expect(game(configWith({ chance: 0.4 }), 5).sleeveStats().criticalChance).toBe(1);
+  it('may go above 100%: five copies of 40% is 200%', () => {
+    expect(game(configWith({ chance: 0.4 }), 5).sleeveStats().criticalChance).toBeCloseTo(2, 12);
   });
 });
 
@@ -70,6 +70,28 @@ describe('critical successes', () => {
     g.tick(10_000 * 4 + 1);
     expect(credits(g) - before).toBeCloseTo(4 * 0.5 * 3, 9);
     expect(xp(g)).toBe(8);
+  });
+
+  it('over-crit: at 200% every run has two critical successes, so a run pays 2 x 3x and gives 2 x 2x XP', () => {
+    const g = game(configWith({ chance: 0.4 }), 5); // five copies of 40%
+    const before = credits(g);
+    g.startAction('a');
+    g.tick(10_000 * 4 + 1);
+    expect(credits(g) - before).toBeCloseTo(4 * 0.5 * 3 * 2, 9); // 3 credits per run instead of 0.5
+    expect(xp(g)).toBe(4 * 2 * 2); // 4 XP per run instead of 1
+  });
+
+  it('over-crit: at 240% the average run has 2.4 successes (outcome: reward 0.5 x 3 x 2.4, XP 2 x 2.4 per run)', () => {
+    const g = game(configWith({ chance: 0.4 }), 6, 11);
+    const before = credits(g);
+    const runs = 5_000;
+    g.startAction('a');
+    g.tick(10_000 * runs + 1);
+    const perRun = (credits(g) - before) / runs;
+    expect(perRun).toBeGreaterThan(0.5 * 3 * 2.3);
+    expect(perRun).toBeLessThan(0.5 * 3 * 2.5);
+    expect(xp(g) / runs).toBeGreaterThan(2 * 2.3);
+    expect(xp(g) / runs).toBeLessThan(2 * 2.5);
   });
 
   it('the multipliers come from the configuration', () => {
@@ -156,20 +178,58 @@ describe('criticalRuleFor and CriticalSuccesses', () => {
     expect(criticalRuleFor(base, { criticalSuccess: { xpMultiplier: 9 } })).toEqual({ xpMultiplier: 9, rewardMultiplier: 3 });
   });
 
-  it('draws no random number while the chance is 0', () => {
+  it('draws no random number while the chance is 0, and no run is critical', () => {
     let draws = 0;
-    const roll = new CriticalSuccesses({ criticalChance: () => 0 }, () => {
+    const batch = new CriticalSuccesses({ criticalChance: () => 0 }, () => {
       draws++;
       return 0.5;
-    }).roll(100);
-    expect(roll).toBe(0);
+    }).settle(100, 0);
+    expect(batch).toEqual({ crits: 0, plainRuns: 100 });
     expect(draws).toBe(0);
   });
 
-  it('every run is critical at chance 1, and the count never exceeds the runs', () => {
-    expect(new CriticalSuccesses({ criticalChance: () => 1 }, seededRandom(1)).roll(37)).toBe(37);
+  it('every run has one critical success at chance 100%, and none is plain', () => {
+    expect(new CriticalSuccesses({ criticalChance: () => 1 }, seededRandom(1)).settle(37, 0)).toEqual({ crits: 37, plainRuns: 0 });
+  });
+
+  it('a chance above 100% gives extra successes: 240% is 2 sure ones per run and a 40% chance of a third', () => {
+    const unit = new CriticalSuccesses({ criticalChance: () => 2.4 }, seededRandom(3));
+    let total = 0;
+    const batches = 200;
+    for (let i = 0; i < batches; i++) {
+      const { crits, plainRuns } = unit.settle(100, 0);
+      expect(plainRuns).toBe(0);
+      expect(crits).toBeGreaterThanOrEqual(200);
+      expect(crits).toBeLessThanOrEqual(300);
+      total += crits;
+    }
+    expect(total / (batches * 100)).toBeCloseTo(2.4, 1); // outcome: 2.4 successes per run on average
+  });
+
+  it('a covered run (+100%) has one more success for sure, on top of the normal chance', () => {
+    const none = new CriticalSuccesses({ criticalChance: () => 0 }, seededRandom(4));
+    expect(none.settle(10, 4)).toEqual({ crits: 4, plainRuns: 6 });
+    const all = new CriticalSuccesses({ criticalChance: () => 0 }, seededRandom(4));
+    expect(all.settle(10, 10)).toEqual({ crits: 10, plainRuns: 0 });
+    // 150%: every run has one sure success; a covered run adds one more
+    const over = new CriticalSuccesses({ criticalChance: () => 1.5 }, seededRandom(5));
+    for (let i = 0; i < 50; i++) {
+      const { crits, plainRuns } = over.settle(10, 3);
+      expect(plainRuns).toBe(0);
+      expect(crits).toBeGreaterThanOrEqual(10 + 3);
+      expect(crits).toBeLessThanOrEqual(10 + 3 + 10);
+    }
+  });
+
+  it('plain runs plus runs with a success account for every run when the chance is partial', () => {
     const half = new CriticalSuccesses({ criticalChance: () => 0.5 }, seededRandom(2));
-    for (let i = 0; i < 50; i++) expect(half.roll(10)).toBeLessThanOrEqual(10);
+    for (let i = 0; i < 50; i++) {
+      const { crits, plainRuns } = half.settle(10, 2);
+      expect(plainRuns).toBeGreaterThanOrEqual(0);
+      expect(plainRuns).toBeLessThanOrEqual(8); // the two covered runs are never plain
+      expect(crits).toBeGreaterThanOrEqual(2);
+      expect(10 - plainRuns).toBeLessThanOrEqual(crits); // every run that is not plain has at least one success
+    }
   });
 });
 

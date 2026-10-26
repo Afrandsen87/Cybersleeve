@@ -44,7 +44,7 @@ describe('inventory view model', () => {
     const g = createGame({ config });
     stock(g, { file: { rare: 2 } });
     expect(buildViewModel(g).inventory.rows[1]!.tip).toBe(
-      'Rare File\nUsed as blackmail: pays 100 credits each\nHeat and the credit lever leave the payment untouched\nClick to select it, then press Sell or Sell all\n\nDrop Chance = 0%\nOwned = 2\nPayment = 200 credits',
+      'Rare File\nUsed as blackmail: pays flat 100 credits each\nClick to select it, then press Sell or Sell all\n\nDrop Chance = 0%\nOwned = 2\nPayment = 200 credits',
     );
   });
 
@@ -123,8 +123,29 @@ describe('inventory widget', () => {
     expect(tiles().map((t) => t.querySelector('.item-count')!.textContent)).toEqual(['0', '0']);
   });
 
+  it('hides an item that is not unlocked, and shows all its rarities (even at 0) once a purchase that drops it is owned', () => {
+    const { game, render, widget } = mount();
+    render();
+    expect(widget.querySelector<HTMLElement>('.item-group')!.hidden).toBe(true);
+    expect(buildViewModel(game).inventory.rows.every((r) => !r.unlocked)).toBe(true);
+    setCredits(game, num(10));
+    game.buy('harvest');
+    render();
+    expect(widget.querySelector<HTMLElement>('.item-group')!.hidden).toBe(false);
+    expect(buildViewModel(game).inventory.rows.every((r) => r.unlocked)).toBe(true);
+  });
+
+  it('an item held without a drop source (a shard) is unlocked by being held', () => {
+    const g = createGame({ config });
+    stock(g, { file: { rare: 1 } });
+    expect(buildViewModel(g).inventory.rows.every((r) => r.unlocked)).toBe(true);
+  });
+
   it('puts sellable items in their own section to the right of the others', () => {
-    const { widget } = mount();
+    const { game, render, widget } = mount();
+    setCredits(game, num(10));
+    game.buy('harvest');
+    render();
     const sections = [...widget.querySelectorAll<HTMLElement>('.inventory-section')];
     expect(sections).toHaveLength(2);
     expect(sections[1]!.classList.contains('inventory-for-sale')).toBe(true);

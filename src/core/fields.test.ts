@@ -85,6 +85,7 @@ describe('scalar field registry', () => {
       'adminKeysOn',
       'chains',
       'bankedCriticals',
+      'automation',
       'actions',
       'purchased',
       'inventory',

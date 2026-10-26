@@ -8,7 +8,7 @@
  * touches this file only: `viewModel.ts` and `dom.ts` hold no display text of their own. Entries that depend on numbers
  * are functions that receive already-formatted strings; the numeric work stays in the view model.
  */
-import type { Currency, LevelScaling, RewardKind } from '../core';
+import type { AutomationFeature, Currency, LevelScaling, RewardKind } from '../core';
 import { formatPlain } from '../numbers';
 
 /** Identifier of a titled group of Sleeve purchases. */
@@ -265,23 +265,39 @@ export interface BackChannelTipParts {
   readonly boostPercent: string;
 }
 
+/** One named factor of a formula, e.g. a bought boost and what it multiplies by. */
+export interface TipTerm {
+  /** The name of the purchase (with its copies when more than one is owned). */
+  readonly label: string;
+  /** What it multiplies by, formatted. */
+  readonly value: string;
+}
+
 /** Pre-formatted pieces of the node payout explanation. */
 export interface PayoutTipParts {
   /** Credits one node produces per second before any multiplier. */
   readonly base: string;
   /** The credit lever (`global.creditMultiplier`), or `null` while it is 1. */
   readonly creditLever: string | null;
-  /** The multiplier from purchases. */
-  readonly purchases: string;
+  /** The purchases that multiply the payout, one named factor each (empty when none is owned). */
+  readonly purchases: readonly TipTerm[];
   /** Credits per second that actions (Push malware) have added to the base of every node. */
   readonly actionBonus: string;
-  /** Share of the credits kept after the heat tax in percent, or `null` while there is no tax. */
-  readonly keepPercent: string | null;
-  /** What one node pays per second now. */
+  /** What one node pays per second now (before the heat tax, which takes its share of the income instead). */
   readonly perNode: string;
+}
+
+/** Pre-formatted pieces of the credits per second explanation. */
+export interface IncomeTipParts {
   /** Nodes owned. */
   readonly nodes: string;
-  /** What the whole network pays per second now. */
+  /** What one node pays per second. */
+  readonly perNode: string;
+  /** Share of the income kept after the heat tax in percent, or `null` while there is no tax. */
+  readonly keepPercent: string | null;
+  /** Credits per second before the heat tax. */
+  readonly gross: string;
+  /** Credits per second after the heat tax. */
   readonly total: string;
 }
 
@@ -306,6 +322,14 @@ export interface HeatTipParts {
 
 /** Pre-formatted pieces of the ICE Rating explanation. */
 export interface IceRatingTipParts {
+  /** ICE Rating earned by runs. */
+  readonly earned: string;
+  /** Base ICE Rating that purchases add per action level, or `null` when there is none. */
+  readonly levelBonus: string | null;
+  /** The purchases that multiply ICE Rating, one named factor each (empty when none is owned). */
+  readonly multipliers: readonly TipTerm[];
+  /** ICE Rating now. */
+  readonly total: string;
   readonly orders: string;
   readonly perOrderPercent: string;
   readonly reductionPercent: string;
@@ -430,9 +454,23 @@ export interface UiText {
     readonly upgrades: string;
     readonly exploitation: string;
     readonly skills: string;
+    readonly automation: string;
   };
   /** The tabs at the top. The Skills tab shows the points available, unless there are none. */
-  readonly tabs: { readonly character: string; skills(points: number): string };
+  readonly tabs: { readonly character: string; skills(points: number): string; automation(points: number): string };
+  /** The Automation tab: the points, each feature and its controls. */
+  readonly automation: {
+    points(points: string): string;
+    /** The unlock button of a feature that is not unlocked yet (it costs one point). */
+    readonly unlock: string;
+    /** The name and what each feature does. */
+    readonly features: Readonly<Record<AutomationFeature, { readonly name: string; readonly description: string }>>;
+    /** Auto Burn's switch (shows the state) and the label of its heat ceiling. */
+    autoBurnSwitch(on: boolean): string;
+    readonly autoBurnCeiling: string;
+    /** The label of the share an action gets from Augment dispersal, in percent. */
+    readonly dispersalShare: string;
+  };
   /** The Skills box. */
   readonly skills: { points(points: string): string };
   /** The Inventory widget. */
@@ -470,6 +508,8 @@ export interface UiText {
     reward(parts: RewardLineParts): string;
     /** The label of the button in the top right corner of an action card that applies a schematic. */
     readonly augment: string;
+    /** The critical success highlight of a card: just a mark for one success in the last second, an average per second for several. */
+    critFlash(count: number, perSecond: string): string;
     /** The cells of the square on an action card: the symbol on the square button and the name read out for it. */
     readonly modes: Readonly<Record<SquareCellId, { readonly symbol: string; readonly name: string }>>;
   };
@@ -479,6 +519,7 @@ export interface UiText {
     hackingProficiency(parts: HackingProficiencyTipParts): string;
     actionSpeed(parts: ActionSpeedTipParts): string;
     payout(parts: PayoutTipParts): string;
+    income(parts: IncomeTipParts): string;
     heat(parts: HeatTipParts): string;
     iceRating(parts: IceRatingTipParts): string;
     legend(parts: LegendTipParts): string;
@@ -577,8 +618,34 @@ export const uiText: UiText = {
     upgrades: 'Sleeve Improvements',
     exploitation: 'Network Exploitation',
     skills: 'Skills',
+    automation: 'Automation',
   },
-  tabs: { character: 'Character', skills: (points) => (points > 0 ? `Skills (${points})` : 'Skills') },
+  tabs: {
+    character: 'Character',
+    skills: (points) => (points > 0 ? `Skills (${points})` : 'Skills'),
+    automation: (points) => (points > 0 ? `Automation (${points})` : 'Automation'),
+  },
+  automation: {
+    points: (points) => `Automation points: ${points}`,
+    unlock: 'Unlock (1 point)',
+    features: {
+      autoBurn: {
+        name: 'Auto Burn',
+        description: 'Keeps using Burn leads while heat is above the ceiling you set, just enough of them to bring it back down.',
+      },
+      autosale: {
+        name: 'Kompromat autosale',
+        description: 'Sells what you hold of the rarities you switch on, as it arrives, for the normal price.',
+      },
+      dispersal: {
+        name: 'Augment dispersal',
+        description: 'Applies the Augment schematics you hold to the actions by the shares you set. Actions with 0% get none.',
+      },
+    },
+    autoBurnSwitch: (on) => (on ? 'Auto Burn: on' : 'Auto Burn: off'),
+    autoBurnCeiling: 'Use leads above this heat',
+    dispersalShare: 'Share (%)',
+  },
   skills: { points: (points) => `Skill points: ${points}` },
   inventory: {
     label: (rarity, item) => `${rarity} ${item}`,
@@ -633,6 +700,7 @@ export const uiText: UiText = {
     reward: ({ amount, unit, multiplier, heatPerRun, heatPerSecond }) =>
       `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}${heatPerRun > 0 ? ` | +${heatPerRun} heat` : ''}${heatPerSecond > 0 ? ` | +${heatPerSecond} heat/s` : ''}`,
     augment: 'Augment',
+    critFlash: (count, perSecond) => (count > 1 ? `${perSecond} crits/s` : 'CRITICAL!'),
     modes: {
       autoRun: { symbol: '↻', name: 'Auto-run' },
       overclock: { symbol: 'OV', name: 'Overclock' },
@@ -710,19 +778,27 @@ export const uiText: UiText = {
         `Run Time = ${duration} (${baseDuration} / ${speed})`,
       ].join('\n');
     },
-    payout: ({ base, creditLever, purchases, actionBonus, keepPercent, perNode, nodes, total }) =>
+    payout: ({ base, creditLever, purchases, actionBonus, perNode }) =>
       [
-        `Payout per Node = (Base + Action Bonus) x ${creditLever === null ? '' : 'Credit Lever x '}Purchases${keepPercent === null ? '' : ' x Heat Tax Kept'}`,
-        'Network Payout = Nodes x Payout per Node',
+        `Payout per Node = (Base + Action Bonus)${[...(creditLever === null ? [] : ['Credit Lever']), ...purchases.map((t) => t.label)].map((f) => ` x ${f}`).join('')}`,
         '',
         `Base = ${base} credits/s`,
         ...(creditLever === null ? [] : [`Credit Lever = ${creditLever}`]),
-        `Purchases = ${purchases}`,
+        ...purchases.map((t) => `${t.label} = x${t.value}`),
         `Action Bonus = ${actionBonus} credits/s`,
-        ...(keepPercent === null ? [] : [`Heat Tax Kept = ${keepPercent}%`]),
         '',
         `Payout per Node = ${perNode} credits/s`,
-        `Network Payout = ${nodes} x ${perNode} = ${total} credits/s`,
+      ].join('\n'),
+    income: ({ nodes, perNode, keepPercent, gross, total }) =>
+      [
+        `Credits per Second = Nodes x Payout per Node${keepPercent === null ? '' : ' x Heat Tax Kept'}`,
+        '',
+        `Nodes = ${nodes}`,
+        `Payout per Node = ${perNode} credits/s`,
+        ...(keepPercent === null ? [] : [`Heat Tax Kept = ${keepPercent}%`]),
+        '',
+        ...(keepPercent === null ? [] : [`Before the Heat Tax = ${gross} credits/s`]),
+        `Credits per Second = ${total}`,
       ].join('\n'),
     heat: ({ heat, perPointPercent, reductionPercent, taxPercent, stopsAt, amount, cycleSeconds, moles }) =>
       [
@@ -737,8 +813,15 @@ export const uiText: UiText = {
         `Heat falls by ${amount} every ${cycleSeconds}s, in whole points only: it waits until there is at least ${amount}`,
         ...(moles === null ? [] : [`${moles.moles} Moles make it ${moles.boostPercent}% faster`]),
       ].join('\n'),
-    iceRating: ({ orders, perOrderPercent, reductionPercent, fullAt }) =>
+    iceRating: ({ earned, levelBonus, multipliers, total, orders, perOrderPercent, reductionPercent, fullAt }) =>
       [
+        `ICE Rating = ${levelBonus === null ? 'Earned' : '(Earned + Level Bonus)'}${multipliers.map((t) => ` x ${t.label}`).join('')}`,
+        '',
+        `Earned = ${earned}`,
+        ...(levelBonus === null ? [] : [`Level Bonus = ${levelBonus}`]),
+        ...multipliers.map((t) => `${t.label} = x${t.value}`),
+        `ICE Rating = ${total}`,
+        '',
         'Heat Reduction = Orders of Magnitude x Reduction per Order',
         '',
         `Orders of Magnitude = ${orders}`,
@@ -751,7 +834,8 @@ export const uiText: UiText = {
       [
         `Chance per completed run = ${chancePercent}%`,
         '',
-        `A critical success gives ${xpMultiplier}x action XP and pays ${rewardMultiplier}x the reward`,
+        `Each critical success gives ${xpMultiplier}x action XP and pays ${rewardMultiplier}x the reward`,
+        'Above 100% a run can have several critical successes: 150% is one for sure and a 50% chance of a second',
         'Some actions may do something different',
       ].join('\n'),
     legend: ({ legend, baseSeconds, speedupPercent, cycleSeconds, decayMinutes }) =>
@@ -778,8 +862,7 @@ export const uiText: UiText = {
     stack: ({ label, sellValue, count, total, unit, drops }) =>
       [
         label,
-        `Used as blackmail: pays ${sellValue} ${unit} each`,
-        'Heat and the credit lever leave the payment untouched',
+        `Used as blackmail: pays flat ${sellValue} ${unit} each`,
         'Click to select it, then press Sell or Sell all',
         '',
         ...dropChanceLines(drops),
@@ -853,7 +936,7 @@ export const uiText: UiText = {
     zeroDay: ({ label, drops, actionName, count, on, canToggle }) =>
       [
         label,
-        `While switched on, every completed ${actionName} run uses one up and is a critical success`,
+        `While switched on, every completed ${actionName} run uses one up and gets +100% critical chance`,
         'It switches itself off when the last one is used',
         '',
         ...dropChanceLines(drops),
@@ -864,7 +947,7 @@ export const uiText: UiText = {
     adminKey: ({ label, drops, actionName, count, on, canToggle, bonusName, bonusPercent }) =>
       [
         label,
-        `While switched on, every completed ${actionName} run uses one up and is a critical success`,
+        `While switched on, every completed ${actionName} run uses one up and gets +100% critical chance`,
         ...(bonusName === null ? [] : [`Each of those critical runs has a ${bonusPercent}% chance to drop a ${bonusName}`]),
         'It switches itself off when the last one is used',
         '',

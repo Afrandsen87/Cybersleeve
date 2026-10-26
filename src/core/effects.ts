@@ -9,6 +9,14 @@ import { type ActionAccumulator, definitionOf, type SleeveAccumulator } from './
 import { INFINITY, saturate } from './infinity';
 import type { ActionId, BuyableDefinition, ChainRule, GameState, ItemDropRule, SleeveConfig } from './types';
 
+/** One owned buyable's share of a multiplier. */
+export interface FactorTerm {
+  /** The buyable that contributes the factor. */
+  readonly buyableId: string;
+  /** What it multiplies by (1 means it changes nothing right now). */
+  readonly factor: number;
+}
+
 /** The global sleeve stats after all owned sleeve-wide buyables are applied. */
 export interface SleeveStats {
   /** Access level (starts at `sleeve.baseAccessLevel`; each owned copy of an `accessLevel` buyable adds its `amount`). */
@@ -25,14 +33,22 @@ export interface SleeveStats {
   readonly hackingMultiplier: number;
   /** Current heat. One point is one percent of credit tax before ICE Rating. */
   readonly heat: number;
-  /** ICE Rating: the earned value times the `iceRatingMultiplier` buyables (>= 1). */
+  /** ICE Rating: the earned value plus the action-level bonuses, times the `iceRatingMultiplier` buyables (>= 1). */
   readonly iceRating: BigNum;
+  /** The part of ICE Rating earned by runs (before bonuses and multipliers). */
+  readonly iceRatingEarned: BigNum;
+  /** Base ICE Rating added by `iceRatingFromActionLevel` buyables (added to the earned value before the multipliers). */
+  readonly iceRatingBonus: BigNum;
+  /** What each owned buyable that multiplies ICE Rating contributes, in configuration order. Their product is the total multiplier. */
+  readonly iceRatingTerms: readonly FactorTerm[];
   /** Share (0..1) of the heat's effect removed by ICE Rating: `reductionPerOrder * log10(iceRating)`, at most 1. */
   readonly heatReduction: number;
   /** Legend: each point makes heat cool down faster. */
   readonly legend: number;
   /** Multiplier on what each network node produces, from `nodePayoutMultiplier` buyables (compounding per copy; >= 1). */
   readonly nodePayoutMultiplier: number;
+  /** What each owned buyable that multiplies the node payout contributes, in configuration order. Their product is {@link SleeveStats.nodePayoutMultiplier}. */
+  readonly nodePayoutTerms: readonly FactorTerm[];
   /** Credits per second added to the BASE value of every node, earned by actions paying `nodePayout` (>= 0). Buyables multiply the sum. */
   readonly nodePayoutBonus: number;
   /** Factor from `interfaceSpeedMultiplier` buyables, already part of `interfaceSpeed` (>= 1). */
@@ -43,7 +59,7 @@ export interface SleeveStats {
   readonly heatCooldownSpeed: number;
   /** The extra cooldown speed (0.5 = 50 percent) that applies while Moles remain, from `backChannel` buyables (0 without one). */
   readonly heatCooldownBoost: number;
-  /** Chance (0..1) that a completed run of any action is a critical success: the sum of owned `criticalChance` copies, capped at 1. */
+  /** Chance that a completed run of any action is a critical success: the sum of owned `criticalChance` copies. It may exceed 1 (150% is one sure success and a 50% chance of a second). */
   readonly criticalChance: number;
   /** How strong every Overclock is: 1, plus `perCopy` for each copy of an Overclock strength buyable (>= 1). */
   readonly overclockStrength: number;
@@ -182,9 +198,20 @@ export function resolveSleeveStats(
     extraFocusSlots: 0,
     overclockHeatFactors: {},
   };
+  const nodePayoutTerms: FactorTerm[] = [];
+  const iceRatingTerms: FactorTerm[] = [];
   for (const b of buyables) {
     const owned = state.purchased[b.id] ?? 0;
-    if (owned > 0) definitionOf(b).sleeve?.(acc, b.effect, { owned, state, factory, actionLevelOf });
+    if (owned <= 0) continue;
+    const payoutBefore = acc.nodePayoutFactor;
+    const iceBefore = acc.iceRatingFactor;
+    definitionOf(b).sleeve?.(acc, b.effect, { owned, state, factory, actionLevelOf });
+    // A buyable's term is how much it moved the running product, so every effect kind reports itself without extra code.
+    if (acc.nodePayoutFactor !== payoutBefore)
+      nodePayoutTerms.push({ buyableId: b.id, factor: saturate(acc.nodePayoutFactor / payoutBefore) });
+    if (!acc.iceRatingFactor.eq(iceBefore)) {
+      iceRatingTerms.push({ buyableId: b.id, factor: saturatingNumber(acc.iceRatingFactor.div(iceBefore)) });
+    }
   }
   const { accessLevel, interfaceBoosts, interfaceNetworkFactor } = acc;
   const iceRating = state.iceRating.add(acc.iceRatingBonus).mul(acc.iceRatingFactor);
@@ -217,15 +244,19 @@ export function resolveSleeveStats(
     hackingMultiplier,
     heat: state.heat,
     iceRating,
+    iceRatingEarned: state.iceRating,
+    iceRatingBonus: acc.iceRatingBonus,
+    iceRatingTerms,
     heatReduction,
     legend: state.legend,
     nodePayoutMultiplier: saturate(nodePayoutBuyableFactor),
+    nodePayoutTerms,
     nodePayoutBonus,
     interfaceSkillFactor: saturate(interfaceSkillFactor),
     hackingProficiencyFactor: saturate(hackingProficiencyFactor),
     heatCooldownSpeed: saturate(heatCooldownSpeed),
     heatCooldownBoost,
-    criticalChance: Math.min(1, acc.criticalChance),
+    criticalChance: acc.criticalChance,
     overclockStrength: acc.overclockStrength,
     extraFocusSlots: acc.extraFocusSlots,
     overclockHeatFactors: acc.overclockHeatFactors,
