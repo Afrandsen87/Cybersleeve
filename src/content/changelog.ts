@@ -19,6 +19,13 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-10-26',
+    changes: [
+      'New skill Purge Protocol: every heat cooldown cycle removes 1 more heat for each sleeve level of Build Legend.',
+      'A heat cooldown cycle never takes more than the whole points of heat that are left, so a bigger step can never leave heat stuck.',
+    ],
+  },
+  {
     version: '2026-10-25 21:33',
     changes: [
       'Kill servers: five new purchases. Cascade failure (more ICE Rating per run), Credit Siphon (credits for every node destroyed), Decommission protocol (runs take a smaller share of your nodes as the action levels up), Kill chain (consecutive overclocked runs build a chain that pays more and costs more) and Black box recorder.',

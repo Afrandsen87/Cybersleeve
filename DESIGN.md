@@ -89,7 +89,7 @@ Each stat has a hover tip; hovering the label or the value shows it.
 | Heat | 0 | A tax on **the credits network nodes produce**: each point takes 1% of that income (capped at 100%), lowered by ICE Rating. With a reduction r, node income stops at `100 / (1 − r)` heat. It never touches run rewards, item payments or building nodes. Heat may hold **fractions of a point** (Overclock adds heat continuously; a Burn lead removes a share of it), but it only ever cools in **whole points**. |
 | Legend | 0 | Makes the heat cooldown cycle **10% faster per point** (the cycle time is divided by 1 + 0.1 x Legend). Falls by exactly 1 each 10-minute cycle (a bar shows it) while above 0. |
 
-**Heat cooldown.** A bar fills over **60 s**; each time it completes, heat drops by 1, so heat is removed in whole points only: **while there is less than 1 heat the bar does not advance**, and a leftover fraction (0.4 of a point) stays until more heat comes in. With 3.5 heat the cooldown stops at 0.5. The bar counts progress in normal-speed time, so a change of speed never makes it jump; time is counted from the start of each step, so heat added by an action starts cooling in the next step.
+**Heat cooldown.** A bar fills over **60 s**; each time it completes, heat drops by 1 (more with Purge Protocol), so heat is removed in whole steps only: **while there is less than 1 whole point of heat the bar does not advance**, and a cycle never takes more than the whole points that are left (a step of 5 with 3.5 heat takes 3), so a bigger step cannot strand heat, and a leftover fraction (0.4 of a point) stays until more heat comes in. With 3.5 heat the cooldown stops at 0.5. The bar counts progress in normal-speed time, so a change of speed never makes it jump; time is counted from the start of each step, so heat added by an action starts cooling in the next step.
 
 ## 6. Network and passive income
 
@@ -183,6 +183,7 @@ Skills are buyables paid in **skill points**, shown as buttons on the Skills tab
 | Exploit Kompromat | Node payout ×(1 + 1% per uncommon Kompromat file held) |
 | Back Channel Deals | Adds a **Back channel** button beside Sell and Sell all: with the common Kompromat stack selected, each press gives up one file for **5 Moles** |
 | Obfuscation | Push malware's Overclock makes **2x** the heat per run instead of 3x (the factor is lowered, never raised; other actions are not affected). |
+| Purge Protocol | Every heat cooldown cycle removes **1 more heat per sleeve level of Build Legend**. The cycles are not faster, so the cooldown still completes in discrete steps and the bigger step applies from the first cycle after the skill is bought. A late-stage skill, part of removing the heat tax. |
 
 **Moles.** A Mole is one point of heat that cools **200% faster (three times the pace)**, on top of Cold Trail. While there are Moles and heat, every point of heat cooled uses up one Mole; with none left the heat cools at the normal pace. Moles are kept while there is no heat, and reset by re-sleeving.
 

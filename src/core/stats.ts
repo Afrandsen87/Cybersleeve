@@ -60,8 +60,13 @@ export class DerivedStats implements ModeStatuses {
   /** The global sleeve stats (access level, interface speed, heat, ...) after sleeve-wide purchases. */
   sleeveStats(): SleeveStats {
     return this.snapshot.memo('sleeveStats', () =>
-      resolveSleeveStats(this.config.buyables, this.state, this.config.sleeve, this.factory, (id) =>
-        this.progression.actionLevel(this.state, id),
+      resolveSleeveStats(
+        this.config.buyables,
+        this.state,
+        this.config.sleeve,
+        this.factory,
+        (id) => this.progression.actionLevel(this.state, id),
+        (id) => this.progression.sleeveLevel(this.state, id),
       ),
     );
   }

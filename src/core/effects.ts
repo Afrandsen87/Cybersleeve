@@ -43,6 +43,8 @@ export interface SleeveStats {
   readonly heatCooldownSpeed: number;
   /** The extra cooldown speed (0.5 = 50 percent) that applies while Moles remain, from `backChannel` buyables (0 without one). */
   readonly heatCooldownBoost: number;
+  /** Heat removed by each completed cooldown cycle: `sleeve.heatCooldownAmount` plus `heatCooldownAmountFromSleeveLevel` buyables (> 0). */
+  readonly heatCooldownAmount: number;
   /** Chance (0..1) that a completed run of any action is a critical success: the sum of owned `criticalChance` copies, capped at 1. */
   readonly criticalChance: number;
   /** How strong every Overclock is: 1, plus `perCopy` for each copy of an Overclock strength buyable (>= 1). */
@@ -154,6 +156,7 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
  * @param sleeve base values of the stats
  * @param factory number factory
  * @param actionLevelOf plain action level of an action (read by effects that scale with one; defaults to level 0 for all)
+ * @param sleeveLevelOf sleeve level of an action (read by effects that scale with one; defaults to level 0 for all)
  * @returns the current stats
  */
 export function resolveSleeveStats(
@@ -165,6 +168,7 @@ export function resolveSleeveStats(
   sleeve: SleeveConfig,
   factory: NumberFactory,
   actionLevelOf: (actionId: ActionId) => number = () => 0,
+  sleeveLevelOf: (actionId: ActionId) => number = () => 0,
 ): SleeveStats {
   const acc: SleeveAccumulator = {
     accessLevel: sleeve.baseAccessLevel,
@@ -177,6 +181,7 @@ export function resolveSleeveStats(
     hackingProficiencyFactor: 1,
     heatCooldownSpeed: 1,
     heatCooldownBoost: 0,
+    extraHeatCooldownAmount: 0,
     criticalChance: 0,
     overclockStrength: 1,
     extraFocusSlots: 0,
@@ -184,7 +189,7 @@ export function resolveSleeveStats(
   };
   for (const b of buyables) {
     const owned = state.purchased[b.id] ?? 0;
-    if (owned > 0) definitionOf(b).sleeve?.(acc, b.effect, { owned, state, factory, actionLevelOf });
+    if (owned > 0) definitionOf(b).sleeve?.(acc, b.effect, { owned, state, factory, actionLevelOf, sleeveLevelOf });
   }
   const { accessLevel, interfaceBoosts, interfaceNetworkFactor } = acc;
   const iceRating = state.iceRating.add(acc.iceRatingBonus).mul(acc.iceRatingFactor);
@@ -225,6 +230,7 @@ export function resolveSleeveStats(
     hackingProficiencyFactor: saturate(hackingProficiencyFactor),
     heatCooldownSpeed: saturate(heatCooldownSpeed),
     heatCooldownBoost,
+    heatCooldownAmount: saturate(sleeve.heatCooldownAmount + acc.extraHeatCooldownAmount),
     criticalChance: Math.min(1, acc.criticalChance),
     overclockStrength: acc.overclockStrength,
     extraFocusSlots: acc.extraFocusSlots,

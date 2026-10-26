@@ -121,7 +121,7 @@ Speed = actionLevel factor x the action's own sleeveLevel factor x interface spe
 | `baseHeat` | Heat of a new sleeve (>= 0, default 0). Actions add heat (`heatPerRun`, `heatPerSecond`); the cooldown removes it |
 | `heatTaxPerPoint` | Share of the credits network nodes produce that one point of heat takes (>= 0, default 0.01 = 1%). ICE Rating lowers the effect. Node credits stop at `1 / heatTaxPerPoint` heat without ICE Rating |
 | `heatCooldownMs` | Length of one heat cooldown cycle (> 0, default 60000 = 60 s). The cycle only advances while heat is above 0 |
-| `heatCooldownAmount` | Heat removed each time a cooldown cycle completes (> 0, default 1) |
+| `heatCooldownAmount` | Heat removed each time a cooldown cycle completes (> 0, default 1). The skill Purge Protocol (`heatCooldownAmountFromSleeveLevel`) adds `perLevel` per sleeve level of its source action |
 | `baseIceRating` | ICE Rating of a new sleeve (>= 1, default 1) |
 | `iceRatingReductionPerOrder` | Share of heat's effect removed per order of magnitude of ICE Rating (>= 0, default 0.005 = 0.5%, so 100% at 1e200) |
 | `legendHeatSpeedup` | Each Legend point makes heat cool this much faster: the cycle is divided by `1 + this x Legend` (>= 0, default 0.1 = 10%) |

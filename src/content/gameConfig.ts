@@ -74,6 +74,8 @@ export const SKILL_EXPLOIT_KOMPROMAT = 'skill-exploit-kompromat';
 export const SKILL_BACK_CHANNEL = 'skill-back-channel';
 /** Id of the skill that lowers the heat Push malware's Overclock makes per run. */
 export const SKILL_OBFUSCATION = 'skill-obfuscation';
+/** Id of the skill that makes each heat cooldown cycle remove more heat per sleeve level of Build Legend. */
+export const SKILL_PURGE_PROTOCOL = 'skill-purge-protocol';
 /** Every skill id, in the order the Skills tab lists them. */
 export const SKILLS = [
   SKILL_OVERCLOCK,
@@ -85,6 +87,7 @@ export const SKILLS = [
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_BACK_CHANNEL,
   SKILL_OBFUSCATION,
+  SKILL_PURGE_PROTOCOL,
 ] as const;
 /** Id of the Kill servers auto-run buyable. */
 export const KILL_AUTO_RUN = 'kill-auto-run';
@@ -672,6 +675,15 @@ export const gameConfig: GameConfig = {
       currency: 'skillPoints',
       cost: num(1),
       effect: { kind: 'overclockHeatFactor', targetActionId: PUSH_MALWARE, factor: 2 },
+    },
+    {
+      id: SKILL_PURGE_PROTOCOL,
+      name: 'Purge Protocol',
+      symbol: 'PP',
+      description: 'Each heat cooldown cycle removes 1 more heat for every sleeve level of Build Legend.',
+      currency: 'skillPoints',
+      cost: num(1), // placeholder; a late-stage skill, since sleeve levels of Build Legend come slowly
+      effect: { kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: LEGEND, perLevel: 1 },
     },
     // Global (sleeve) buyables: no actionId; they change the sleeve's stats. Prices are placeholders.
     {

@@ -59,6 +59,8 @@ export interface SleeveAccumulator {
   hackingProficiencyFactor: number;
   heatCooldownSpeed: number;
   heatCooldownBoost: number;
+  /** Heat removed per cooldown cycle on top of `sleeve.heatCooldownAmount`. */
+  extraHeatCooldownAmount: number;
   criticalChance: number;
   /** How strong every Overclock is: 1, plus `perCopy` for each copy of an Overclock strength buyable. */
   overclockStrength: number;
@@ -85,6 +87,8 @@ export interface SleeveHookContext {
   readonly factory: NumberFactory;
   /** Plain action level of an action (without level bonuses). */
   readonly actionLevelOf: (actionId: ActionId) => number;
+  /** Sleeve level of an action. */
+  readonly sleeveLevelOf: (actionId: ActionId) => number;
 }
 
 /** What a validator may look at besides the effect itself. */
@@ -288,6 +292,16 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
     validate: factorAtLeastOne,
     sleeve: (acc, e, { owned }) => {
       acc.heatCooldownSpeed *= e.factor ** owned;
+    },
+  },
+  heatCooldownAmountFromSleeveLevel: {
+    traits: sleeveWide,
+    validate: (e, { where, actionIds, errors }) => {
+      if (!(Number.isFinite(e.perLevel) && e.perLevel > 0)) errors.push(`${where}: heat per sleeve level must be > 0`);
+      if (!actionIds.has(e.sourceActionId)) errors.push(`${where}: heat per sleeve level refers to unknown action "${e.sourceActionId}"`);
+    },
+    sleeve: (acc, e, { owned, sleeveLevelOf }) => {
+      acc.extraHeatCooldownAmount += e.perLevel * sleeveLevelOf(e.sourceActionId) * owned;
     },
   },
   hackingProficiencyMultiplier: {

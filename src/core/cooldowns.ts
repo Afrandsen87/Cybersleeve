@@ -17,14 +17,22 @@ import type { GameState, SleeveConfig } from './types';
  * @param deltaMs game time in milliseconds
  * @param speed how many times as fast heat cools from skills (default 1)
  * @param boost the extra speed while Moles remain (default 0)
+ * @param amount heat removed per completed cycle (default `sleeve.heatCooldownAmount`; skills can raise it)
  */
-export function coolDownHeat(state: GameState, sleeve: SleeveConfig, deltaMs: number, speed = 1, boost = 0): void {
+export function coolDownHeat(
+  state: GameState,
+  sleeve: SleeveConfig,
+  deltaMs: number,
+  speed = 1,
+  boost = 0,
+  amount = sleeve.heatCooldownAmount,
+): void {
   const cycleMs = sleeve.heatCooldownMs / (1 + sleeve.legendHeatSpeedup * state.legend);
   const cooled = coolHeatBoosted(
     { heat: state.heat, cooldownMs: state.heatCooldownMs, moles: state.moles },
     deltaMs,
     cycleMs,
-    sleeve.heatCooldownAmount,
+    amount,
     speed,
     boost,
   );

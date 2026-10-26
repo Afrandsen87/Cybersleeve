@@ -382,7 +382,7 @@ function sleeveRows(stats: SleeveStats, state: ReturnType<GameQueries['getState'
   };
   const proficiency = state.hackingProficiency.mul(numberFactory.fromNumber(stats.hackingProficiencyFactor));
   const cooldownSpeed = stats.heatCooldownSpeed;
-  const coolsNow = stats.heat >= sleeve.heatCooldownAmount; // the cooldown waits for a whole point of heat
+  const coolsNow = stats.heat >= stats.heatCooldownAmount; // the cooldown waits until there is a whole amount of heat to remove
   const heatTip = (): string =>
     text.tips.heat({
       heat: formatPlain(stats.heat),
@@ -390,7 +390,7 @@ function sleeveRows(stats: SleeveStats, state: ReturnType<GameQueries['getState'
       reductionPercent: formatPlain(stats.heatReduction * 100),
       taxPercent: formatPlain(Math.min(100, stats.heat * keep * sleeve.heatTaxPerPoint * 100)),
       stopsAt,
-      amount: formatPlain(sleeve.heatCooldownAmount),
+      amount: formatPlain(stats.heatCooldownAmount),
       cycleSeconds: formatPlain(cycleMs / cooldownSpeed / 1000),
       moles: state.moles > 0 ? { moles: formatPlain(state.moles), boostPercent: formatPlain(stats.heatCooldownBoost * 100) } : null,
     });

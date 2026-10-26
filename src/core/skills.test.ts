@@ -193,6 +193,70 @@ describe('the eight skill effects', () => {
     expect(fast.getState().heatCooldownMs).toBeCloseTo(3_000, 6);
   });
 
+  describe('a heat cooldown cycle that removes more heat per sleeve level of an action', () => {
+    const purge = skill('purge', { kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: 'a', perLevel: 1 });
+    /** A game that owns the skill and whose action `a` has a sleeve level above 0. */
+    const purged = (): ReturnType<typeof createGame> => {
+      const g = skillGame({ config: withSkills([purge]) });
+      g.buy('purge');
+      mutable(g).actions['a']!.sleeveXp = num(1_000_000);
+      return g;
+    };
+
+    it('without the skill a cycle removes the base amount; with it, one more for every sleeve level', () => {
+      const plain = createGame({ config: testConfig });
+      const g = purged();
+      const level = g.sleeveLevel('a');
+      expect(level).toBeGreaterThanOrEqual(2); // the test needs a level that makes a visible difference
+      expect(plain.sleeveStats().heatCooldownAmount).toBe(testConfig.sleeve.heatCooldownAmount);
+      expect(g.sleeveStats().heatCooldownAmount).toBe(testConfig.sleeve.heatCooldownAmount + level);
+    });
+
+    it('one completed cycle takes that many points of heat, no faster than before', () => {
+      const g = purged();
+      const amount = g.sleeveStats().heatCooldownAmount;
+      mutable(g).heat = 100;
+      g.tick(testConfig.sleeve.heatCooldownMs - 1);
+      expect(g.getState().heat).toBe(100); // the cooldown is still in discrete steps: nothing until the cycle completes
+      g.tick(1);
+      expect(g.getState().heat).toBe(100 - amount);
+    });
+
+    it('comes online at once: the bigger step applies from the first cycle after the skill is bought', () => {
+      const g = skillGame({ config: withSkills([purge]) });
+      mutable(g).actions['a']!.sleeveXp = num(1_000_000);
+      mutable(g).heat = 100;
+      g.tick(testConfig.sleeve.heatCooldownMs / 2); // half a cycle in without the skill
+      g.buy('purge');
+      g.tick(testConfig.sleeve.heatCooldownMs / 2);
+      expect(g.getState().heat).toBe(100 - g.sleeveStats().heatCooldownAmount);
+    });
+
+    it('the last cycle takes only the whole points that are left, so a big step never strands heat', () => {
+      const g = purged();
+      const amount = g.sleeveStats().heatCooldownAmount;
+      mutable(g).heat = amount - 0.5; // less than one full step, and a fraction on top
+      g.tick(testConfig.sleeve.heatCooldownMs);
+      expect(g.getState().heat).toBe(0.5); // every whole point went; only the fraction stays, as before
+    });
+
+    it('a step of any size gives the same result in one long tick and many short ones', () => {
+      const long = purged();
+      const short = purged();
+      for (const g of [long, short]) mutable(g).heat = 1_000;
+      long.tick(5 * testConfig.sleeve.heatCooldownMs + 7_000);
+      for (let i = 0; i < 5 * 60 + 7; i++) short.tick(1_000);
+      expect(short.getState().heat).toBe(long.getState().heat);
+      expect(short.getState().heatCooldownMs).toBeCloseTo(long.getState().heatCooldownMs, 6);
+    });
+
+    it('rejects a rate that is not positive and an unknown action', () => {
+      const bad = (effect: BuyableDefinition['effect']): string => validateConfig(withSkills([skill('x', effect)])).join('|');
+      expect(bad({ kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: 'a', perLevel: 0 })).toContain('must be > 0');
+      expect(bad({ kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: 'ghost', perLevel: 1 })).toContain('unknown action "ghost"');
+    });
+  });
+
   it('Hacking Proficiency +5% counts the stored proficiency 5% higher', () => {
     const g = skillGame({ config: withSkills([skill('s', { kind: 'hackingProficiencyMultiplier', factor: 1.05 })]) });
     mutable(g).hackingProficiency = num(100);

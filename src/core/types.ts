@@ -383,6 +383,11 @@ export type BuyableEffect =
   | { readonly kind: 'interfaceSpeedMultiplier'; readonly factor: number }
   /** Heat cools down `factor` times as fast per copy (shorter cooldown cycles). */
   | { readonly kind: 'heatCooldownSpeed'; readonly factor: number }
+  /**
+   * Every heat cooldown cycle removes `perLevel` more heat per sleeve level of `sourceActionId` (and per copy). The cycles are not
+   * faster, so the cooldown still completes in discrete steps; each step is just bigger.
+   */
+  | { readonly kind: 'heatCooldownAmountFromSleeveLevel'; readonly sourceActionId: ActionId; readonly perLevel: number }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */
   | { readonly kind: 'hackingProficiencyMultiplier'; readonly factor: number }
   /** Every ACTION level needs `amount` (a fraction, 0.01 = 1 percent) less XP per copy. Sleeve levels are not affected. */

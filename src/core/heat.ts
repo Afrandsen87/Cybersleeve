@@ -19,16 +19,30 @@ export interface HeatCooldownState {
 }
 
 /**
- * How many whole cooldown cycles the heat can pay for: the cooldown removes `amount` at a time and never a fraction of it.
+ * The heat the cooldown can take away: whole points (or whole `amount`s when a cycle removes less than a point), never a fraction of one.
+ *
+ * Called by: {@link cyclesNeeded}, {@link coolHeat}, {@link coolHeatBoosted}.
+ *
+ * @param heat heat points (>= 0)
+ * @param amount heat removed per full cycle (> 0)
+ * @returns `heat` rounded down to a multiple of `min(1, amount)`, tolerant of tiny floating-point shortfalls (0 when there is less than one)
+ */
+function removable(heat: number, amount: number): number {
+  const unit = Math.min(1, amount);
+  return Math.floor(heat / unit + HEAT_EPSILON) * unit;
+}
+
+/**
+ * How many cooldown cycles it takes to remove everything {@link removable}: each cycle removes `amount`, and the last one only what is left.
  *
  * Called by: {@link coolHeat}, {@link coolHeatBoosted}.
  *
- * @param heat heat points (>= 0)
- * @param amount heat removed per cycle (> 0)
- * @returns `floor(heat / amount)`, tolerant of tiny floating-point shortfalls
+ * @param points the removable heat (>= 0)
+ * @param amount heat removed per full cycle (> 0)
+ * @returns `ceil(points / amount)`, 0 when there is nothing to remove
  */
-function wholeCycles(heat: number, amount: number): number {
-  return Math.floor(heat / amount + HEAT_EPSILON);
+function cyclesNeeded(points: number, amount: number): number {
+  return Math.ceil(points / amount - HEAT_EPSILON);
 }
 
 /** Heat with a leftover that is only floating-point dust taken for nothing. */
@@ -56,9 +70,10 @@ export function heatTaxFactor(heat: number, reduction: number, taxPerPoint: numb
  * Advances the heat cooldown in closed form: every full `cycleMs` removes `amount` heat.
  *
  * @remarks
- * Heat is removed in whole `amount`s only, so a fractional leftover (0.4 of a point) stays until more heat is added. Time only
- * counts while there is at least one whole `amount` to remove; once there is none the cycle restarts from 0 and waits.
- * The cost does not depend on `deltaMs`, so long ticks are cheap.
+ * Heat is removed in whole points only, so a fractional leftover (0.4 of a point) stays until more heat is added. A cycle removes
+ * `amount`, but never more than the whole points that are left: with `amount` 5 and 3.5 heat the cycle takes 3 and leaves 0.5, so a big
+ * `amount` can never strand heat. Time only counts while there is at least one whole point to remove; once there is none the cycle
+ * restarts from 0 and waits. The cost does not depend on `deltaMs`, so long ticks are cheap.
  *
  * Called by: `engine.ts`.
  *
@@ -69,11 +84,11 @@ export function heatTaxFactor(heat: number, reduction: number, taxPerPoint: numb
  * @returns heat and cycle progress after the step
  */
 export function coolHeat(current: HeatCooldownState, deltaMs: number, cycleMs: number, amount: number): HeatCooldownState {
-  const whole = wholeCycles(current.heat, amount);
-  if (!(whole >= 1)) return { heat: settle(Math.max(0, current.heat)), cooldownMs: 0 };
+  const points = removable(current.heat, amount);
+  if (!(points > 0)) return { heat: settle(Math.max(0, current.heat)), cooldownMs: 0 };
   const total = current.cooldownMs + deltaMs;
   const cycles = Math.floor(total / cycleMs);
-  if (cycles >= whole) return { heat: settle(current.heat - whole * amount), cooldownMs: 0 };
+  if (cycles >= cyclesNeeded(points, amount)) return { heat: settle(current.heat - points), cooldownMs: 0 };
   return { heat: settle(current.heat - cycles * amount), cooldownMs: total - cycles * cycleMs };
 }
 
@@ -90,7 +105,7 @@ export interface BoostedCooldownState extends HeatCooldownState {
  * `cooldownMs` counts progress in units of normal-speed time, so a cooldown that runs `speed` times as fast simply advances
  * `speed` times as far per millisecond, and a change of speed never makes the bar jump. While Moles remain, the cooldown runs
  * `boost` faster still (`speed * (1 + boost)`), and every point of heat cooled uses up one Mole; once the Moles are used up
- * (or no whole point of heat is left) the cooldown goes on at `speed`. As in {@link coolHeat}, only whole `amount`s are removed. The boosted stretch is worked out first (it lasts until the
+ * (or no whole point of heat is left) the cooldown goes on at `speed`. As in {@link coolHeat}, only whole points are removed and the last cycle takes only what is left. The boosted stretch is worked out first (it lasts until the
  * Moles or the heat run out), then the rest of the time at normal pace, so the cost never depends on `deltaMs`.
  * With `speed` 1 and no Moles it equals {@link coolHeat}.
  *
@@ -113,11 +128,12 @@ export function coolHeatBoosted(
   boost: number,
 ): BoostedCooldownState {
   let { heat, cooldownMs, moles } = current;
-  if (!(wholeCycles(heat, amount) >= 1)) return { heat: settle(Math.max(0, heat)), cooldownMs: 0, moles };
+  if (!(removable(heat, amount) > 0)) return { heat: settle(Math.max(0, heat)), cooldownMs: 0, moles };
   let time = deltaMs;
   const fast = speed * (1 + boost);
   if (moles > 0 && boost > 0) {
-    const limit = Math.min(Math.ceil(moles / amount), wholeCycles(heat, amount)); // cycles the boost can last
+    const points = removable(heat, amount);
+    const limit = Math.min(Math.ceil(moles / amount), cyclesNeeded(points, amount)); // cycles the boost can last
     const progress = cooldownMs + time * fast;
     const cycles = Math.floor(progress / cycleMs);
     if (cycles < limit) {
@@ -126,12 +142,12 @@ export function coolHeatBoosted(
     }
     // The Moles or the heat run out within this step: finish those cycles boosted, then carry on at normal pace.
     const timeUsed = Math.max(0, (limit * cycleMs - cooldownMs) / fast);
-    const cooled = limit * amount;
+    const cooled = Math.min(limit * amount, points);
     heat = settle(heat - cooled);
     moles = Math.max(0, moles - cooled);
     cooldownMs = 0;
     time = Math.max(0, time - timeUsed);
-    if (!(wholeCycles(heat, amount) >= 1)) return { heat, cooldownMs: 0, moles };
+    if (!(removable(heat, amount) > 0)) return { heat, cooldownMs: 0, moles };
   }
   const rest = coolHeat({ heat, cooldownMs }, time * speed, cycleMs, amount);
   return { heat: rest.heat, cooldownMs: rest.cooldownMs, moles };

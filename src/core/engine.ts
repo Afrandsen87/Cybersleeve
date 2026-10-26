@@ -599,7 +599,7 @@ export class GameEngine implements GameQueries, GameCommands {
     const sleeve = this.stats.sleeveStats();
     // An Overclock that stops heat cooling holds the cooldown in place while its action runs.
     if (!this.stats.heatCoolingBlocked())
-      coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost);
+      coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost, sleeve.heatCooldownAmount);
     decayLegend(this.state, this.config.sleeve, deltaMs);
     this.runner.tickAll(deltaMs);
     this.overflowPolicy.apply(this.state);
