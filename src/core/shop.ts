@@ -1,12 +1,15 @@
 /**
  * @module core
  *
- * Purchases ("buyables") paid with credits or network nodes: one-time or repeatable, optionally gated.
+ * Purchases ("buyables") paid with credits, network nodes or points: one-time or repeatable, optionally gated.
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import { traitsOf } from './effectTraits';
 import { Snapshot } from './snapshot';
-import type { BuyableDefinition, BuyableId, Currency, GameState } from './types';
+import type { BuyableDefinition, BuyableId, Currency, GameState, PointCurrency } from './types';
+
+/** Called after a copy of a buyable has been bought (for rules that react to a purchase, like the free synthetic sleeve). */
+export type PurchaseListener = (buyable: BuyableDefinition) => void;
 
 /** Why a purchase did or did not happen. */
 export type PurchaseResult = 'purchased' | 'max-reached' | 'locked' | 'cannot-afford' | 'unknown';
@@ -25,15 +28,17 @@ export class Shop {
    * @param buyables all purchasable definitions
    * @param factory number factory
    * @param costMultiplier global price lever (`global.costMultiplier`)
-   * @param pointsEarned the skill points earned in total from the state (what `skillPoints` purchases are paid from; default none)
-   * @param snapshot scope in which the skill points are computed once (default: a private one that is never opened)
+   * @param pointsEarned the points of a currency earned in total from the state (what purchases paid in `skillPoints` or `resleevePoints` are paid from; default none)
+   * @param snapshot scope in which the points are computed once (default: a private one that is never opened)
+   * @param onPurchased called after every purchase (default: nothing)
    */
   constructor(
     buyables: readonly BuyableDefinition[],
     private readonly factory: NumberFactory,
     private readonly costMultiplier: number,
-    private readonly pointsEarned: (state: GameState) => number = () => 0,
+    private readonly pointsEarned: (currency: PointCurrency, state: GameState) => number = () => 0,
     private readonly snapshot: Snapshot = new Snapshot(),
+    private readonly onPurchased: PurchaseListener = () => {},
   ) {
     for (const b of buyables) this.byId.set(b.id, b);
   }
@@ -96,22 +101,23 @@ export class Shop {
   }
 
   /**
-   * Skill points the player can still spend: those earned so far minus what the owned `skillPoints` purchases cost.
+   * Points of a currency the player can still spend: those earned so far minus what the owned purchases paid in that currency cost.
    * Nothing is stored for them: buying a skill raises the cost owned, which lowers this.
    *
    * @param state current state
+   * @param currency `skillPoints` or `resleevePoints`
    * @returns a whole number >= 0
    */
-  skillPointsAvailable(state: GameState): number {
-    return this.snapshot.memo('skillPoints', () => this.computeSkillPoints(state));
+  pointsAvailable(state: GameState, currency: PointCurrency): number {
+    return this.snapshot.memo(currency, () => this.computePoints(state, currency));
   }
 
-  /** The work behind {@link Shop.skillPointsAvailable}. */
-  private computeSkillPoints(state: GameState): number {
+  /** The work behind {@link Shop.pointsAvailable}. */
+  private computePoints(state: GameState, currency: PointCurrency): number {
     let spent = 0;
     const lever = this.factory.fromNumber(this.costMultiplier);
     for (const b of this.byId.values()) {
-      if (b.currency !== 'skillPoints') continue;
+      if (b.currency !== currency) continue;
       const owned = this.owned(state, b.id);
       for (let copy = 0; copy < owned; copy++) {
         spent += b.cost
@@ -120,7 +126,7 @@ export class Shop {
           .toNumber();
       }
     }
-    return Math.max(0, this.pointsEarned(state) - spent);
+    return Math.max(0, this.pointsEarned(currency, state) - spent);
   }
 
   /** What the buyable is paid in (credits unless it says otherwise). @throws Error if the id is unknown */
@@ -150,15 +156,16 @@ export class Shop {
     const currency = this.currencyOf(id);
     if (currency === 'networkNodes') state.network = state.network.sub(price);
     else if (currency === 'credits') state.credits = state.credits.sub(price);
-    // skill points are not held: owning the copy is what spends them (see skillPointsAvailable)
+    // points are not held: owning the copy is what spends them (see pointsAvailable)
     state.purchased[id] = this.owned(state, id) + 1;
+    this.onPurchased(this.byId.get(id)!);
     return 'purchased';
   }
 
   /** What the player holds of the buyable's currency. */
   private balance(state: GameState, id: BuyableId): BigNum {
     const currency = this.currencyOf(id);
-    if (currency === 'skillPoints') return this.factory.fromNumber(this.skillPointsAvailable(state));
+    if (currency === 'skillPoints' || currency === 'resleevePoints') return this.factory.fromNumber(this.pointsAvailable(state, currency));
     return currency === 'networkNodes' ? state.network : state.credits;
   }
 }

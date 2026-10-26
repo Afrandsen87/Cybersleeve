@@ -24,6 +24,10 @@ import {
   BURN_LEADS,
   PERSISTENCE,
   RANSOMWARE,
+  RESLEEVE_SKILLS,
+  SKILL_INCORPORATION,
+  SKILL_SLEEVE_EUPHORIA,
+  SKILL_SYNTHETIC_SLEEVES,
   SKILL_OBFUSCATION,
   ZERO_DAY,
   ZERO_DAY_EXPLOITS,
@@ -123,8 +127,8 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     setCredits(g, num('1e100'));
     (g.getState() as { network: unknown }).network = num('1e100'); // some buyables are paid in network nodes
     // Buy in config order, repeating until nothing more can be bought once (a gate may be listed after what it unlocks).
-    // Skills are paid in skill points, not credits: they have their own test below.
-    const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints');
+    // Skills are paid in skill points or re-sleeve points, not credits: they have their own tests below.
+    const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints' && b.currency !== 'resleevePoints');
     for (let pass = 0; pass < bought.length; pass++) {
       for (const b of bought) if (g.canBuy(b.id)) expect(g.buy(b.id)).toBe('purchased');
     }
@@ -153,6 +157,42 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       expect(b.cost.eq(num(1)), b.id).toBe(true);
       expect(b.actionId, b.id).toBeUndefined();
     }
+  });
+
+  it('the re-sleeve skills are Sleeve Euphoria and the two that need it, each costing 1 re-sleeve point and belonging to no action', () => {
+    const skills = gameConfig.buyables.filter((b) => b.currency === 'resleevePoints');
+    expect(skills.map((b) => b.id)).toEqual([...RESLEEVE_SKILLS]);
+    for (const b of skills) {
+      expect(b.cost.eq(num(1)), b.id).toBe(true);
+      expect(b.actionId, b.id).toBeUndefined();
+    }
+    const requires = (id: string): readonly string[] => skills.find((b) => b.id === id)?.requires ?? [];
+    expect(requires(SKILL_SLEEVE_EUPHORIA)).toEqual([]);
+    expect(requires(SKILL_SYNTHETIC_SLEEVES)).toEqual([SKILL_SLEEVE_EUPHORIA]);
+    expect(requires(SKILL_INCORPORATION)).toEqual([SKILL_SLEEVE_EUPHORIA]);
+  });
+
+  it('a new game has no re-sleeve point; each re-sleeve gives one, and the tree is bought from the top', () => {
+    const g = createGame();
+    expect(g.resleevePoints()).toBe(0);
+    expect(g.canBuy(SKILL_SLEEVE_EUPHORIA)).toBe(false);
+    g.resleeve();
+    expect(g.resleevePoints()).toBe(1);
+    expect(g.canBuy(SKILL_SYNTHETIC_SLEEVES), 'a node under Sleeve Euphoria is locked until it is bought').toBe(false);
+    expect(g.buy(SKILL_SLEEVE_EUPHORIA)).toBe('purchased');
+    expect(g.resleevePoints()).toBe(0);
+    g.resleeve();
+    expect(g.buy(SKILL_SYNTHETIC_SLEEVES)).toBe('purchased');
+    g.resleeve();
+    expect(g.buy(SKILL_INCORPORATION)).toBe('purchased');
+    expect(g.resleevePoints()).toBe(0);
+  });
+
+  it('Incorporation says in its tooltip that it does nothing for now', () => {
+    const view = buildViewModel(createGame())
+      .skills.resleeve.tiers.flat()
+      .find((b) => b.id === SKILL_INCORPORATION)!;
+    expect(view.tip).toContain('Does nothing for now');
   });
 
   it('every action can be unlocked by playing (no action is permanently locked)', () => {
@@ -209,9 +249,11 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       const owner =
         b.currency === 'skillPoints'
           ? vm.skills.buyables
-          : b.actionId === undefined
-            ? vm.sleeve.buyables
-            : vm.actions.find((a) => a.id === b.actionId)!.buyables;
+          : b.currency === 'resleevePoints'
+            ? vm.skills.resleeve.tiers.flat()
+            : b.actionId === undefined
+              ? vm.sleeve.buyables
+              : vm.actions.find((a) => a.id === b.actionId)!.buyables;
       expect(owner.map((v) => v.id)).toContain(b.id);
     }
   });

@@ -666,6 +666,63 @@ button:not(:disabled):hover {
   font-size: 14px;
   color: var(--cyan);
 }
+.skills-widget[hidden] {
+  display: none;
+}
+
+/* The re-sleeve skill tree: one row per depth, a short line down from each row to the next. */
+.skill-tree {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+}
+.skill-tier {
+  position: relative;
+  justify-content: center;
+}
+.skill-tier + .skill-tier::before {
+  content: "";
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  height: 18px;
+  border-left: 1px solid var(--line);
+}
+.upgrade.locked {
+  opacity: 0.35;
+}
+
+/* The Stats tab: the latest finished sleeve-runs. */
+.stats-widget {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.stats-widget h2 {
+  margin: 0;
+}
+.runs-table {
+  display: grid;
+  gap: 4px;
+}
+.run-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 2fr;
+  gap: 12px;
+  font-size: 14px;
+}
+.run-row.run-head {
+  color: var(--cyan);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+.runs-empty[hidden] {
+  display: none;
+}
 
 /* Pixel-art icon before the text of an action title, an inventory label or the credits (see applyIcon in dom.ts). */
 .has-icon::before {

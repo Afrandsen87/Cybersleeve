@@ -5,7 +5,7 @@
  */
 import type { NumberFactory } from '../numbers';
 import { initialScalars } from './fields';
-import type { ActionState, GameConfig, GameState } from './types';
+import type { ActionState, Currency, GameConfig, GameState } from './types';
 
 /** The scalar fields of the state (see `fields.ts`). */
 type ScalarKey = Exclude<
@@ -20,7 +20,18 @@ type ScalarKey = Exclude<
   | 'actions'
   | 'purchased'
   | 'inventory'
+  | 'runs'
+  | 'synths'
 >;
+
+/** Config the state is created and reset from. */
+type StateConfig = Pick<GameConfig, 'actions' | 'progression' | 'sleeve'>;
+
+/**
+ * The currencies whose buyables survive a re-sleeve: re-sleeve skills are permanent. Skills paid in skill points (and everything else
+ * bought) reset with the sleeve.
+ */
+export const CARRIED_OVER_BUYABLE_CURRENCIES = ['resleevePoints'] as const satisfies readonly Currency[];
 
 /**
  * THE positive list of what survives a re-sleeve: these per-action fields. Nothing else carries over; everything not
@@ -57,7 +68,7 @@ function freshActionState(factory: NumberFactory): ActionState {
  * @param config game content (one entry per action) and `progression.startingCredits`
  * @param factory number factory
  */
-export function createInitialState(config: Pick<GameConfig, 'actions' | 'progression' | 'sleeve'>, factory: NumberFactory): GameState {
+export function createInitialState(config: StateConfig, factory: NumberFactory): GameState {
   const actions: GameState['actions'] = {};
   for (const a of config.actions) actions[a.id] = freshActionState(factory);
   return {
@@ -69,6 +80,8 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
     adminKeysOn: false,
     chains: {},
     bankedCriticals: {},
+    runs: [],
+    synths: [],
     actions,
     purchased: {},
     inventory: {},
@@ -84,11 +97,7 @@ export function createInitialState(config: Pick<GameConfig, 'actions' | 'progres
  * @param config game content
  * @param factory number factory
  */
-export function resetForNewGame(
-  state: GameState,
-  config: Pick<GameConfig, 'actions' | 'progression' | 'sleeve'>,
-  factory: NumberFactory,
-): void {
+export function resetForNewGame(state: GameState, config: StateConfig, factory: NumberFactory): void {
   Object.assign(state, createInitialState(config, factory));
 }
 
@@ -96,25 +105,30 @@ export function resetForNewGame(
  * Applies a re-sleeve to `state`.
  *
  * @remarks
- * Starts from a fresh game state and carries over only what {@link CARRIED_OVER_ACTION_FIELDS} names: every action's
- * sleeve XP and its run counter towards the next sleeve-XP batch. Everything else resets, including fields added in the
- * future (nothing has to be listed to be reset; to carry something over, add it to the list).
+ * Starts from a fresh game state and carries over only what is named on the positive lists: {@link CARRIED_OVER_ACTION_FIELDS} (every
+ * action's sleeve XP and its run counter towards the next sleeve-XP batch), the record of finished runs and the synthetic sleeves
+ * (`runs`, `synths`), and the owned buyables paid in a currency of {@link CARRIED_OVER_BUYABLE_CURRENCIES} (the re-sleeve skills).
+ * Everything else resets, including fields added in the future (nothing has to be listed to be reset; to carry something over, add it
+ * to a list).
  *
- * Called by: `engine.ts`.
+ * Called by: `resleever.ts`.
  *
  * @param state state to mutate
- * @param config game content
+ * @param config game content (`buyables` decides which purchases are carried over)
  * @param factory number factory
  */
-export function resetForResleeve(
-  state: GameState,
-  config: Pick<GameConfig, 'actions' | 'progression' | 'sleeve'>,
-  factory: NumberFactory,
-): void {
+export function resetForResleeve(state: GameState, config: StateConfig & Pick<GameConfig, 'buyables'>, factory: NumberFactory): void {
   const fresh = createInitialState(config, factory);
   for (const [id, action] of Object.entries(fresh.actions)) {
     const old = state.actions[id];
     if (old) Object.assign(action, pickCarried(old));
+  }
+  fresh.runs = state.runs;
+  fresh.synths = state.synths;
+  const carried = new Set<string>(CARRIED_OVER_BUYABLE_CURRENCIES);
+  for (const b of config.buyables) {
+    const owned = state.purchased[b.id] ?? 0;
+    if (owned > 0 && b.currency !== undefined && carried.has(b.currency)) fresh.purchased[b.id] = owned;
   }
   Object.assign(state, fresh);
 }

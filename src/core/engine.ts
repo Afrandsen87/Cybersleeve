@@ -27,10 +27,12 @@ import type { NetworkSystem } from './network';
 import type { OverflowPolicy } from './overflow';
 import type { Progression } from './progression';
 import type { ResleevePolicy } from './resleeve';
+import type { Resleever } from './resleever';
 import type { PurchaseResult, Shop } from './shop';
 import type { Snapshot } from './snapshot';
 import type { SpeedFactor } from './speed';
-import { resetForNewGame, resetForResleeve } from './state';
+import { resetForNewGame } from './state';
+import type { SynthSleeves } from './synthSleeves';
 import type { DerivedStats } from './stats';
 import type { ActionId, BuyableId, Currency, GameConfig, GameState, GameStateView, ItemId, RarityId } from './types';
 
@@ -66,6 +68,10 @@ export interface EngineDependencies {
   readonly toggles: ActionToggles;
   /** Decides when re-sleeving is allowed. */
   readonly resleevePolicy: ResleevePolicy;
+  /** Performs a re-sleeve (writes the run down, resets, gives the synthetic sleeve). */
+  readonly resleever: Resleever;
+  /** The synthetic sleeves (built on the same state the engine owns). */
+  readonly synths: SynthSleeves;
   /** Reaction to numbers leaving the representable range. */
   readonly overflowPolicy: OverflowPolicy;
   /** Number factory. */
@@ -87,6 +93,8 @@ export class GameEngine implements GameQueries, GameCommands {
   private readonly progression: Progression;
   private readonly shop: Shop;
   private readonly resleevePolicy: ResleevePolicy;
+  private readonly resleever: Resleever;
+  private readonly synths: SynthSleeves;
   private readonly overflowPolicy: OverflowPolicy;
   private readonly factory: NumberFactory;
   private readonly stats: DerivedStats;
@@ -131,6 +139,8 @@ export class GameEngine implements GameQueries, GameCommands {
       drops: this.drops,
       augments: this.augments,
       resleevePolicy: this.resleevePolicy,
+      resleever: this.resleever,
+      synths: this.synths,
       overflowPolicy: this.overflowPolicy,
       factory: this.factory,
       snapshot: this.scope,
@@ -305,7 +315,7 @@ export class GameEngine implements GameQueries, GameCommands {
    */
   resleeve(): boolean {
     if (!this.canResleeve()) return false;
-    resetForResleeve(this.state, this.config, this.factory);
+    this.resleever.resleeve();
     return true;
   }
 
@@ -501,7 +511,27 @@ export class GameEngine implements GameQueries, GameCommands {
 
   /** Skill points the player can still spend (earned from the action levels, minus what the owned skills cost). */
   skillPoints(): number {
-    return this.shop.skillPointsAvailable(this.state);
+    return this.shop.pointsAvailable(this.state, 'skillPoints');
+  }
+
+  /** Re-sleeve points the player can still spend (earned by re-sleeving, minus what the owned re-sleeve skills cost). */
+  resleevePoints(): number {
+    return this.shop.pointsAvailable(this.state, 'resleevePoints');
+  }
+
+  /** True when the player owns the skill that gives synthetic sleeves. */
+  synthSleevesUnlocked(): boolean {
+    return this.synths.isUnlocked();
+  }
+
+  /** How many synthetic sleeves the player has. */
+  synthCount(): number {
+    return this.synths.count();
+  }
+
+  /** Credits per second all synthetic sleeves earn together (not taxed by heat). */
+  synthCreditsPerSecond(): BigNum {
+    return this.synths.creditsPerSecond();
   }
 
   /** The share of earned credits kept after the heat tax (`1 - heat * (1 - iceRating reduction) / 100`, never below 0). */

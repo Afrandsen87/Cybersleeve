@@ -47,9 +47,18 @@ export { shiftWeights, wholeOrders } from './rarityShift';
 export { type RandomSource, binomial, multinomial } from './sampling';
 export { type OverflowPolicy, createClampOverflowPolicy } from './overflow';
 export { Progression } from './progression';
-export { Shop, type PurchaseResult } from './shop';
+export { Shop, type PurchaseListener, type PurchaseResult } from './shop';
+export { euphoriaReduction } from './sleeveEuphoria';
+export { type SynthIncome, SynthSleeves, synthCreditsPerSecond } from './synthSleeves';
+export { Resleever } from './resleever';
 export { type ResleevePolicy, alwaysAllowResleeve } from './resleeve';
-export { CARRIED_OVER_ACTION_FIELDS, createInitialState, resetForNewGame, resetForResleeve } from './state';
+export {
+  CARRIED_OVER_ACTION_FIELDS,
+  CARRIED_OVER_BUYABLE_CURRENCIES,
+  createInitialState,
+  resetForNewGame,
+  resetForResleeve,
+} from './state';
 export type {
   ActionQueries,
   ActivateResult,

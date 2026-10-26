@@ -29,6 +29,8 @@ export type StatId =
   | 'income'
   | 'payout'
   | 'moles'
+  | 'synths'
+  | 'synthIncome'
   | 'criticalChance';
 
 /** The curve that turns Hacking Proficiency into the hacking multiplier (see `sleeve.earnedSpeedScale` and `earnedSpeedExponent`). */
@@ -247,6 +249,14 @@ export interface BurnLeadTipParts {
   readonly canUse: boolean;
 }
 
+/** Pre-formatted pieces of the synthetic sleeves explanation. */
+export interface SynthTipParts {
+  /** How many synthetic sleeves there are. */
+  readonly count: string;
+  /** What they earn per second together. */
+  readonly perSecond: string;
+}
+
 /** Pre-formatted pieces of the Moles explanation. */
 export interface MolesTipParts {
   /** Moles held. */
@@ -430,11 +440,20 @@ export interface UiText {
     readonly upgrades: string;
     readonly exploitation: string;
     readonly skills: string;
+    readonly resleeveSkills: string;
+    readonly stats: string;
   };
   /** The tabs at the top. The Skills tab shows the points available, unless there are none. */
-  readonly tabs: { readonly character: string; skills(points: number): string };
-  /** The Skills box. */
-  readonly skills: { points(points: string): string };
+  readonly tabs: { readonly character: string; skills(points: number): string; readonly stats: string };
+  /** The Skills box and the re-sleeve skills group. */
+  readonly skills: { points(points: string): string; resleevePoints(points: string): string };
+  /** The Stats tab: the list of the latest finished sleeve-runs. */
+  readonly runs: {
+    readonly empty: string;
+    readonly headers: { readonly run: string; readonly income: string; readonly levels: string };
+    /** The number of a run, e.g. `"Run 3"`. */
+    label(number: number): string;
+  };
   /** The Inventory widget. */
   readonly inventory: {
     /** The name of a stack, e.g. `"Common Kompromat file"`. */
@@ -496,6 +515,7 @@ export interface UiText {
     stackKept(parts: StackKeptTipParts): string;
     backChannel(parts: BackChannelTipParts): string;
     moles(parts: MolesTipParts): string;
+    synths(parts: SynthTipParts): string;
     networkGrowthValues(parts: NetworkGrowthValueParts): BuyableValues;
   };
   readonly resleeve: { readonly idle: string; readonly armed: string; readonly cancel: string };
@@ -577,9 +597,16 @@ export const uiText: UiText = {
     upgrades: 'Sleeve Improvements',
     exploitation: 'Network Exploitation',
     skills: 'Skills',
+    resleeveSkills: 'Re-sleeve skills',
+    stats: 'Stats',
   },
-  tabs: { character: 'Character', skills: (points) => (points > 0 ? `Skills (${points})` : 'Skills') },
-  skills: { points: (points) => `Skill points: ${points}` },
+  tabs: { character: 'Character', skills: (points) => (points > 0 ? `Skills (${points})` : 'Skills'), stats: 'Stats' },
+  skills: { points: (points) => `Skill points: ${points}`, resleevePoints: (points) => `Re-sleeve points: ${points}` },
+  runs: {
+    empty: 'No finished sleeve-runs yet. Re-sleeve to write the first one down.',
+    headers: { run: 'Run', income: 'Credits per second at the end', levels: 'Action levels in total' },
+    label: (number) => `Run ${number}`,
+  },
   inventory: {
     label: (rarity, item) => `${rarity} ${item}`,
     sections: { kept: 'Items', sellable: 'For sale' },
@@ -599,6 +626,8 @@ export const uiText: UiText = {
     income: 'Credits per second',
     payout: 'Payout per node',
     moles: 'Moles',
+    synths: 'Synthetic sleeves',
+    synthIncome: 'Synthetic credits per second',
     criticalChance: 'Critical success',
   },
   bars: {
@@ -613,7 +642,7 @@ export const uiText: UiText = {
     iceRating: 'iceRating',
     legend: 'legend',
   },
-  costUnits: { credits: 'credits', networkNodes: 'nodes', skillPoints: 'skill points' },
+  costUnits: { credits: 'credits', networkNodes: 'nodes', skillPoints: 'skill points', resleevePoints: 're-sleeve points' },
   lock: {
     access: (level) => `Needs access level ${level}`,
     poster: (level) => `Increase Access level to ${level} to unlock`,
@@ -894,6 +923,17 @@ export const uiText: UiText = {
       ].join('\n'),
     backChannel: ({ label, molesPerItem, boostPercent }) =>
       [label, `Give up one for ${molesPerItem} Moles`, `Each Mole is one point of heat that cools down ${boostPercent}% faster`].join('\n'),
+    synths: ({ count, perSecond }) =>
+      [
+        'Credits per Second = Sum of Credits per Second Then x min(1, Action Levels Now / Action Levels Then)',
+        '',
+        'Each synthetic sleeve copies a finished sleeve-run: Then is the end of that run, Now is this sleeve',
+        'A synthetic sleeve keeps its full amount once this sleeve has caught up with it',
+        'Heat takes none of it',
+        '',
+        `Synthetic Sleeves = ${count}`,
+        `Credits per Second = ${perSecond}`,
+      ].join('\n'),
     moles: ({ moles, boostPercent }) =>
       [
         'Heat Cooldown Speed = Normal Speed x (1 + Mole Boost) while Moles remain',
@@ -910,7 +950,7 @@ export const uiText: UiText = {
   },
   resleeve: {
     idle: 'Re-sleeve (test: no requirement)',
-    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset',
+    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. Re-sleeve skills stay, and you gain a re-sleeve point.',
     cancel: 'Cancel',
   },
   notices: {

@@ -14,6 +14,7 @@ import type {
   LevelScaling,
   NetworkConfig,
   ProgressionConfig,
+  ResleeveConfig,
   RuntimeConfig,
   SleeveConfig,
   SpeedConfig,
@@ -26,6 +27,7 @@ export interface ConfigOverrides {
   readonly items?: GameConfig['items'];
   readonly criticalSuccess?: Partial<GameConfig['criticalSuccess']>;
   readonly focus?: Partial<GameConfig['focus']>;
+  readonly resleeve?: Partial<ResleeveConfig>;
   readonly progression?: Partial<ProgressionConfig>;
   readonly speed?: Partial<SpeedConfig>;
   readonly global?: Partial<GlobalTuning>;
@@ -53,6 +55,7 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
     items: overrides.items ?? base.items,
     criticalSuccess: { ...base.criticalSuccess, ...overrides.criticalSuccess },
     focus: { ...base.focus, ...overrides.focus },
+    resleeve: { ...base.resleeve, ...overrides.resleeve },
     progression: { ...base.progression, ...overrides.progression },
     speed: { ...base.speed, ...overrides.speed },
     global: { ...base.global, ...overrides.global },
@@ -63,7 +66,7 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
   };
 }
 
-const CURRENCIES: readonly string[] = ['credits', 'networkNodes', 'skillPoints'];
+const CURRENCIES: readonly string[] = ['credits', 'networkNodes', 'skillPoints', 'resleevePoints'];
 
 const positive = (v: number): boolean => Number.isFinite(v) && v > 0;
 const positiveInt = (v: number): boolean => Number.isInteger(v) && v >= 1;
@@ -314,6 +317,9 @@ export function validateConfig(config: GameConfig): string[] {
 
   if (!positive(config.focus.speedBonus)) errors.push('focus.speedBonus must be > 0');
   if (!positiveInt(config.focus.baseSlots)) errors.push('focus.baseSlots must be an integer >= 1');
+
+  if (!positiveInt(config.resleeve.pointsPerResleeve)) errors.push('resleeve.pointsPerResleeve must be an integer >= 1');
+  if (!positiveInt(config.resleeve.runsShown)) errors.push('resleeve.runsShown must be an integer >= 1');
 
   const p = config.progression;
   if (!positiveInt(p.runsPerSleeveXp)) errors.push('progression.runsPerSleeveXp must be an integer >= 1');

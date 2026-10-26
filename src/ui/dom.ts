@@ -15,6 +15,7 @@ import {
   type ActionSquareView,
   type InventoryRowView,
   type InventoryView,
+  type RunRowView,
   type SleeveSection,
   type SquareCellView,
   type StatRowView,
@@ -301,6 +302,26 @@ export function mountUi(
   for (const [id, button] of skillsRow.buttons) skillButtons.set(id, button);
   skillsWidget.append(h('h2', undefined, initial.skills.title), skillsPoints, skillsRow.element);
 
+  // The re-sleeve skills: a tree, one row per depth (a skill sits below the ones it needs). Locked nodes are shown dimmed.
+  const resleeveWidget = h('aside', 'skills-widget resleeve-skills');
+  const resleevePoints = h('div', 'skills-points');
+  const resleeveTree = h('div', 'skill-tree');
+  const resleeveButtons = new Map<string, HTMLButtonElement>();
+  for (const tier of initial.skills.resleeve.tiers) {
+    const tierRow = upgradeRow(tier, activate, icons);
+    tierRow.element.classList.add('skill-tier');
+    for (const [id, button] of tierRow.buttons) resleeveButtons.set(id, button);
+    resleeveTree.append(tierRow.element);
+  }
+  resleeveWidget.append(h('h2', undefined, initial.skills.resleeve.title), resleevePoints, resleeveTree);
+
+  // The Stats tab: the latest finished sleeve-runs, newest first.
+  const statsWidget = h('aside', 'stats-widget');
+  const runsTable = h('div', 'runs-table');
+  const runsEmpty = h('div', 'runs-empty', text.runs.empty);
+  statsWidget.append(h('h2', undefined, initial.runs.title), runsEmpty, runsTable);
+  let runsShown = '';
+
   // Re-sleeving wipes most progress, so it takes two clicks: the first arms the gate, the second confirms.
   const resleeveGate = new ConfirmGate();
   const resleeveBtn = h('button', 'resleeve') as HTMLButtonElement;
@@ -396,8 +417,30 @@ export function mountUi(
   const characterPanel = h('div', 'tab-panel character-panel');
   characterPanel.append(layout, resleeveRow, saveRow);
   const skillsPanel = h('div', 'tab-panel skills-panel');
-  skillsPanel.append(skillsWidget);
-  root.append(tabBar, header, characterPanel, skillsPanel);
+  skillsPanel.append(skillsWidget, resleeveWidget);
+  const statsPanel = h('div', 'tab-panel stats-panel');
+  statsPanel.append(statsWidget);
+  root.append(tabBar, header, characterPanel, skillsPanel, statsPanel);
+
+  /** Redraws the list of runs when it has changed (it only changes at a re-sleeve). */
+  function renderRuns(rows: readonly RunRowView[]): void {
+    const signature = rows.map((r) => `${r.label}|${r.incomeText}|${r.levelsText}`).join('|');
+    if (signature === runsShown) return;
+    runsShown = signature;
+    runsEmpty.hidden = rows.length > 0;
+    const header = h('div', 'run-row run-head');
+    header.append(
+      h('span', undefined, text.runs.headers.run),
+      h('span', undefined, text.runs.headers.income),
+      h('span', undefined, text.runs.headers.levels),
+    );
+    const lines = rows.map((r) => {
+      const line = h('div', 'run-row');
+      line.append(h('span', undefined, r.label), h('span', undefined, r.incomeText), h('span', undefined, r.levelsText));
+      return line;
+    });
+    runsTable.replaceChildren(...(rows.length > 0 ? [header, ...lines] : []));
+  }
 
   function render(): void {
     const vm = buildViewModel(engine, undefined, text);
@@ -412,8 +455,20 @@ export function mountUi(
     }
     characterPanel.hidden = activeTab !== 'character';
     skillsPanel.hidden = activeTab !== 'skills';
+    statsPanel.hidden = activeTab !== 'stats';
     setText(skillsPoints, vm.skills.pointsText);
     renderUpgrades(skillButtons, vm.skills.buyables, tips);
+    resleeveWidget.hidden = !vm.skills.resleeve.visible;
+    setText(resleevePoints, vm.skills.resleeve.pointsText);
+    const treeSkills = vm.skills.resleeve.tiers.flat();
+    renderUpgrades(resleeveButtons, treeSkills, tips);
+    for (const b of treeSkills) {
+      const button = resleeveButtons.get(b.id);
+      if (!button) continue;
+      button.hidden = false; // the whole tree is visible; a node that cannot be bought yet is dimmed
+      button.classList.toggle('locked', !b.available);
+    }
+    if (!statsPanel.hidden) renderRuns(vm.runs.rows);
     for (const a of vm.actions) {
       const card = cards.get(a.id);
       if (!card) continue;

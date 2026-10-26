@@ -21,6 +21,11 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
   {
     version: '2026-10-26',
     changes: [
+      'Every re-sleeve now gives a re-sleeve point, spent on a new tree of re-sleeve skills in its own group on the Skills tab. They are kept when you re-sleeve.',
+      "New re-sleeve skill Sleeve Euphoria: every action level needs less XP the higher that action's sleeve level is (half as much at sleeve level 10, a quarter at 100).",
+      'New re-sleeve skill Synthetic Sleeves: run extra sleeves beside this one. Each earns the credits per second a finished run ended with, scaled by your action levels until you catch up. The Network widget shows how many you have and what they earn together.',
+      'New re-sleeve skill Incorporation: does nothing for now.',
+      'New Stats tab: the last 10 sleeve-runs, with the credits per second and action levels each ended with.',
       'New skill Purge Protocol: every heat cooldown cycle removes 1 more heat for each sleeve level of Build Legend.',
       'A heat cooldown cycle never takes more than the whole points of heat that are left, so a bigger step can never leave heat stuck.',
     ],

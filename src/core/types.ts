@@ -388,6 +388,19 @@ export type BuyableEffect =
    * faster, so the cooldown still completes in discrete steps; each step is just bigger.
    */
   | { readonly kind: 'heatCooldownAmountFromSleeveLevel'; readonly sourceActionId: ActionId; readonly perLevel: number }
+  /**
+   * Every ACTION level of every action needs less XP, by an amount that depends on that action's own SLEEVE level `L`: the reduction is
+   * `1 - remainingPerOrder ^ log10(L)` (0 up to level 1; with 0.5, half at level 10, three quarters at level 100), never above
+   * `maxReduction`. It multiplies with the flat `actionXpReduction` buyables and is not part of their cap.
+   */
+  | { readonly kind: 'actionXpReductionFromSleeveLevel'; readonly remainingPerOrder: number; readonly maxReduction: number }
+  /**
+   * Synthetic sleeves: buying it gives one synthetic sleeve (copied from the last finished sleeve-run), and every re-sleeve after that
+   * gives one more (copied from the run that just ended). See `synthSleeves.ts`.
+   */
+  | { readonly kind: 'synthSleeves' }
+  /** Does nothing (yet): a node of the re-sleeve tree whose effect is not designed. */
+  | { readonly kind: 'placeholder' }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */
   | { readonly kind: 'hackingProficiencyMultiplier'; readonly factor: number }
   /** Every ACTION level needs `amount` (a fraction, 0.01 = 1 percent) less XP per copy. Sleeve levels are not affected. */
@@ -417,7 +430,13 @@ export type BuyableEffect =
  * What a buyable is paid with. `skillPoints` are not held: the points available are what the action levels have earned minus what the
  * owned skills cost (see `skills.ts`), so paying them spends nothing from the state.
  */
-export type Currency = 'credits' | 'networkNodes' | 'skillPoints';
+export type Currency = 'credits' | 'networkNodes' | 'skillPoints' | 'resleevePoints';
+
+/**
+ * The currencies that are points, not held amounts: what the player can spend is what has been earned minus the cost of the buyables
+ * owned. Skill points come from action levels; re-sleeve points come from re-sleeving (`resleeve.pointsPerResleeve` each).
+ */
+export type PointCurrency = 'skillPoints' | 'resleevePoints';
 
 /** Static description of a purchase (one-time or repeatable). It is shown on its action's card, or in the Sleeve widget when it has no action. */
 export interface BuyableDefinition {
@@ -571,8 +590,18 @@ export interface FocusConfig {
   readonly baseSlots: number;
 }
 
+/** Tuning of re-sleeving and of the record kept of finished sleeve-runs. */
+export interface ResleeveConfig {
+  /** Re-sleeve points the player earns for each re-sleeve (a whole number >= 1). */
+  readonly pointsPerResleeve: number;
+  /** How many of the latest sleeve-runs the Stats tab lists (a whole number >= 1). */
+  readonly runsShown: number;
+}
+
 /** Everything the game needs that is not state: content plus every tuning constant. */
 export interface GameConfig {
+  /** Re-sleeve points and the history of finished runs. */
+  readonly resleeve: ResleeveConfig;
   readonly actions: readonly ActionDefinition[];
   readonly buyables: readonly BuyableDefinition[];
   /** The item entity: kinds and rarity tiers (with their sell values). */
@@ -608,8 +637,28 @@ export interface ActionState {
   progress: number;
 }
 
+/**
+ * What is kept of one finished sleeve-run (the life that ended with a re-sleeve). Synthetic sleeves are copies of such a run.
+ */
+export interface SleeveRunRecord {
+  /** The credits per second the sleeve's own network was producing when it was re-sleeved (after the heat tax; synthetic income is not part of it). */
+  readonly creditsPerSecond: BigNum;
+  /** The total of all action levels the sleeve had reached at that moment (a whole number >= 0). */
+  readonly actionLevelsTotal: number;
+}
+
+/** One synthetic sleeve: it belongs to the finished run `runs[runIndex]` and uses that run's numbers. */
+export interface SynthSleeve {
+  /** Index into `GameState.runs`. */
+  readonly runIndex: number;
+}
+
 /** Complete mutable game state. Serialised by `serialization.ts`. */
 export interface GameState {
+  /** Every finished sleeve-run, oldest first (one per re-sleeve, whatever skills were owned). Survives re-sleeving; only a new game clears it. */
+  runs: SleeveRunRecord[];
+  /** The synthetic sleeves, in the order they were gained. Survives re-sleeving; only a new game clears it. */
+  synths: SynthSleeve[];
   credits: BigNum;
   /** Network nodes built so far; each produces passive credits. Reset by re-sleeving. */
   network: BigNum;

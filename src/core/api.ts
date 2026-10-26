@@ -91,6 +91,12 @@ export interface SleeveQueries {
   passiveCreditsPerNode(): BigNum;
   /** Credits per second the network delivers now. */
   passiveCreditsPerSecond(): BigNum;
+  /** True when the player owns the skill that gives synthetic sleeves. */
+  synthSleevesUnlocked(): boolean;
+  /** How many synthetic sleeves the player has. */
+  synthCount(): number;
+  /** Credits per second all synthetic sleeves earn together (not taxed by heat). */
+  synthCreditsPerSecond(): BigNum;
   /** True when the player may re-sleeve right now. */
   canResleeve(): boolean;
   /** The back channel unlocked by a skill, or `null`. */
@@ -125,6 +131,8 @@ export interface ShopQueries {
   isAutoRunEnabled(id: BuyableId): boolean;
   /** Skill points the player can still spend. */
   skillPoints(): number;
+  /** Re-sleeve points the player can still spend. */
+  resleevePoints(): number;
 }
 
 /**

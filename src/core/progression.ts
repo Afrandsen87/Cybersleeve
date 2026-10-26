@@ -5,6 +5,7 @@
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import { LevelRule } from './level';
+import { euphoriaReduction } from './sleeveEuphoria';
 import type { ActionId, ActionState, BuyableEffect, BuyableId, GameConfig, GameState } from './types';
 
 /** A `sleeveXpReduction` buyable. */
@@ -17,6 +18,13 @@ interface ReductionSource {
 interface ActionReductionSource {
   readonly id: BuyableId;
   readonly amount: number;
+}
+
+/** An `actionXpReductionFromSleeveLevel` buyable (Sleeve Euphoria). */
+interface EuphoriaSource {
+  readonly id: BuyableId;
+  readonly remainingPerOrder: number;
+  readonly maxReduction: number;
 }
 
 /** A `runsPerSleeveXpReduction` buyable. */
@@ -56,6 +64,7 @@ export class Progression {
   private readonly sleeveXpPerGrant: BigNum;
   private readonly reductionSources: readonly ReductionSource[];
   private readonly actionReductionSources: readonly ActionReductionSource[];
+  private readonly euphoriaSources: readonly EuphoriaSource[];
   private readonly maxTotalReduction: number;
   /** Levels one Skill shard delays the action XP scaling by (0 when the game has none). */
   private readonly levelsPerShard: number;
@@ -75,6 +84,11 @@ export class Progression {
     );
     this.actionReductionSources = (config.buyables ?? []).flatMap((b) =>
       b.effect.kind === 'actionXpReduction' ? [{ id: b.id, amount: b.effect.amount }] : [],
+    );
+    this.euphoriaSources = (config.buyables ?? []).flatMap((b) =>
+      b.effect.kind === 'actionXpReductionFromSleeveLevel'
+        ? [{ id: b.id, remainingPerOrder: b.effect.remainingPerOrder, maxReduction: b.effect.maxReduction }]
+        : [],
     );
     this.runsReductionSources = (config.buyables ?? []).flatMap((b) =>
       b.effect.kind === 'runsPerSleeveXpReduction' ? [{ id: b.id, perCopy: b.effect.perCopy, minRuns: b.effect.minRuns }] : [],
@@ -185,15 +199,38 @@ export class Progression {
   }
 
   /**
-   * Fraction by which owned `actionXpReduction` buyables lower the XP every action level needs.
+   * Fraction by which the XP every level of one action needs is lowered.
    *
-   * @param state current state (reads `purchased`)
-   * @returns a fraction in [0, `progression.maxSleeveXpReduction`] (the same cap as the sleeve levels)
+   * @remarks
+   * Two sources multiply: the flat `actionXpReduction` buyables (summed, capped at `progression.maxSleeveXpReduction`, the same cap as the
+   * sleeve levels) and Sleeve Euphoria (`actionXpReductionFromSleeveLevel`, which depends on THIS action's sleeve level and has its own
+   * ceiling). The result is `1 - (1 - flat) x (1 - euphoria)`.
+   *
+   * @param state current state (reads `purchased` and sleeve XP)
+   * @param actionId the action whose levels are asked about
+   * @returns a fraction in [0, 1)
    */
-  actionXpReduction(state: GameState): number {
+  actionXpReduction(state: GameState, actionId: ActionId): number {
+    let flat = 0;
+    for (const { id, amount } of this.actionReductionSources) flat += amount * (state.purchased[id] ?? 0);
+    let remaining = 1 - Math.min(flat, this.maxTotalReduction);
+    for (const { id, remainingPerOrder, maxReduction } of this.euphoriaSources) {
+      if ((state.purchased[id] ?? 0) <= 0) continue;
+      remaining *= 1 - euphoriaReduction(this.sleeveLevel(state, actionId), remainingPerOrder, maxReduction);
+    }
+    return 1 - remaining;
+  }
+
+  /**
+   * The total of the ACTION levels of all actions (the number synthetic sleeves compare, and what skill points are earned from).
+   *
+   * @param state current state
+   * @returns a whole number >= 0
+   */
+  totalActionLevels(state: GameState): number {
     let total = 0;
-    for (const { id, amount } of this.actionReductionSources) total += amount * (state.purchased[id] ?? 0);
-    return Math.min(total, this.maxTotalReduction);
+    for (const id of this.actionRules.keys()) total += this.actionLevel(state, id);
+    return total;
   }
 
   /**
@@ -203,7 +240,7 @@ export class Progression {
   nextActionLevelXp(state: GameState, actionId: ActionId): BigNum {
     return this.rule(this.actionRules, actionId)
       .xpForNextLevel(this.actionLevel(state, actionId), this.xpDelay(state, actionId))
-      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
+      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state, actionId)));
   }
 
   /**
@@ -213,7 +250,7 @@ export class Progression {
   actionXpIntoLevel(state: GameState, actionId: ActionId): BigNum {
     return this.rule(this.actionRules, actionId)
       .xpIntoLevel(this.scaledActionXp(state, actionId), this.xpDelay(state, actionId))
-      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
+      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state, actionId)));
   }
 
   /**
@@ -223,7 +260,7 @@ export class Progression {
   actionXpForLevel(state: GameState, actionId: ActionId): BigNum {
     return this.rule(this.actionRules, actionId)
       .xpCostOfLevel(this.actionLevel(state, actionId), this.xpDelay(state, actionId))
-      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state)));
+      .mul(this.factory.fromNumber(1 - this.actionXpReduction(state, actionId)));
   }
 
   /**
@@ -323,7 +360,7 @@ export class Progression {
   /** Action XP measured against the unreduced thresholds: `xp / (1 - reduction)`. */
   private scaledActionXp(state: GameState, actionId: ActionId): BigNum {
     const xp = this.requireAction(state, actionId).xp;
-    const reduction = this.actionXpReduction(state);
+    const reduction = this.actionXpReduction(state, actionId);
     return reduction > 0 ? xp.div(this.factory.fromNumber(1 - reduction)) : xp;
   }
 

@@ -11,8 +11,10 @@
 import {
   type ActionDefinition,
   type BuyableDefinition,
+  type Currency,
   type GameConfig,
   type GameQueries,
+  type GameStateView,
   type SleeveStats,
   SPEED_FACTOR_IDS,
   earnedSpeedBeyond,
@@ -291,8 +293,37 @@ export interface InventoryView {
 
 /** One tab at the top. */
 export interface TabView {
-  readonly id: 'character' | 'skills';
+  readonly id: 'character' | 'skills' | 'stats';
   readonly label: string;
+}
+
+/** The re-sleeve skills: a tree whose nodes need other nodes bought first. */
+export interface ResleeveSkillsView {
+  readonly title: string;
+  /** Shown once the first sleeve-run has finished (before that there is nothing to spend). */
+  readonly visible: boolean;
+  /** Re-sleeve points that can still be spent. */
+  readonly points: number;
+  readonly pointsText: string;
+  /** The skills in rows by depth in the tree: the skills that need nothing first, then the ones that need those, and so on. */
+  readonly tiers: readonly (readonly BuyableView[])[];
+}
+
+/** One finished sleeve-run in the Stats tab. */
+export interface RunRowView {
+  /** E.g. `"Run 3"`. */
+  readonly label: string;
+  /** Credits per second the sleeve ended with. */
+  readonly incomeText: string;
+  /** The total of its action levels. */
+  readonly levelsText: string;
+}
+
+/** Display data of the Stats tab. */
+export interface RunsView {
+  readonly title: string;
+  /** The latest runs, newest first (at most `resleeve.runsShown`). */
+  readonly rows: readonly RunRowView[];
 }
 
 /** Display data of the Skills tab. */
@@ -303,6 +334,8 @@ export interface SkillsView {
   readonly pointsText: string;
   /** The skills, in configuration order. */
   readonly buyables: readonly BuyableView[];
+  /** The group of skills bought with re-sleeve points. */
+  readonly resleeve: ResleeveSkillsView;
 }
 
 /** Display data of the whole screen. */
@@ -314,6 +347,8 @@ export interface ViewModel {
   /** The tabs at the top, in order. */
   readonly tabs: readonly TabView[];
   readonly skills: SkillsView;
+  /** The latest finished sleeve-runs. */
+  readonly runs: RunsView;
   readonly network: NetworkView;
   readonly inventory: InventoryView;
   readonly actions: readonly ActionView[];
@@ -542,7 +577,7 @@ function sectionLayout(config: GameConfig): readonly { id: SleeveSectionId; ids:
   if (cached) return cached;
   const sectionOf = (b: BuyableDefinition): SleeveSectionId =>
     b.currency === 'networkNodes' ? 'nodes' : (b.maxPurchases ?? 1) > 1 ? 'rebuyable' : 'oneTime';
-  const defs = config.buyables.filter((b) => b.actionId === undefined && b.currency !== 'skillPoints');
+  const defs = config.buyables.filter((b) => b.actionId === undefined && !isPointCurrency(b.currency));
   const layout = (['rebuyable', 'oneTime', 'nodes'] as const)
     .map((id) => ({
       id,
@@ -554,6 +589,59 @@ function sectionLayout(config: GameConfig): readonly { id: SleeveSectionId; ids:
     .filter((section) => section.ids.length > 0);
   layoutCache.set(config, layout);
   return layout;
+}
+
+/** True for the currencies that are points (skill points, re-sleeve points): their buyables live in the Skills tab, not in the Sleeve widget. */
+function isPointCurrency(currency: Currency | undefined): boolean {
+  return currency === 'skillPoints' || currency === 'resleevePoints';
+}
+
+/**
+ * The re-sleeve skills in rows by depth: a skill that needs nothing is on row 0, any other one row below the deepest skill it needs.
+ *
+ * Called by: {@link buildViewModel}.
+ *
+ * @param config game content (decides which buyables are re-sleeve skills and what they require)
+ * @param viewById the view of every buyable
+ * @returns the rows, top first; a row holds its skills in configuration order
+ */
+function resleeveTiers(config: GameConfig, viewById: ReadonlyMap<string, BuyableView>): BuyableView[][] {
+  const skills = config.buyables.filter((b) => b.currency === 'resleevePoints');
+  const byId = new Map(skills.map((b) => [b.id, b]));
+  const depths = new Map<string, number>();
+  const depthOf = (id: string): number => {
+    const known = depths.get(id);
+    if (known !== undefined) return known;
+    depths.set(id, 0); // guards against a loop (validation rejects those, this only keeps a bad config from hanging the screen)
+    const needs = (byId.get(id)?.requires ?? []).filter((r) => byId.has(r));
+    const depth = needs.length === 0 ? 0 : 1 + Math.max(...needs.map(depthOf));
+    depths.set(id, depth);
+    return depth;
+  };
+  const tiers: BuyableView[][] = [];
+  for (const b of skills) {
+    const view = viewById.get(b.id);
+    if (view) (tiers[depthOf(b.id)] ??= []).push(view);
+  }
+  return tiers.filter((tier) => tier !== undefined);
+}
+
+/** The latest finished sleeve-runs, newest first. */
+function runsView(runs: GameStateView['runs'], config: GameConfig, text: UiText): RunsView {
+  const shown = runs.slice(-config.resleeve.runsShown);
+  const firstNumber = runs.length - shown.length + 1;
+  return {
+    title: text.titles.stats,
+    rows: shown
+      .map(
+        (run, i): RunRowView => ({
+          label: text.runs.label(firstNumber + i),
+          incomeText: text.format.income(formatBigNum(run.creditsPerSecond)),
+          levelsText: formatPlain(run.actionLevelsTotal),
+        }),
+      )
+      .reverse(),
+  };
 }
 
 /** Why an action is locked, in a few words (`null` when it is not). */
@@ -1149,6 +1237,22 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
         ),
         row('income', text, text.format.income(formatBigNum(engine.passiveCreditsPerSecond()))),
         row(
+          'synths',
+          text,
+          formatPlain(engine.synthCount()),
+          () => text.tips.synths({ count: formatPlain(engine.synthCount()), perSecond: formatBigNum(engine.synthCreditsPerSecond()) }),
+          null,
+          !engine.synthSleevesUnlocked(), // the entry appears with the skill that gives synthetic sleeves
+        ),
+        row(
+          'synthIncome',
+          text,
+          text.format.income(formatBigNum(engine.synthCreditsPerSecond())),
+          null,
+          null,
+          !engine.synthSleevesUnlocked(),
+        ),
+        row(
           'moles',
           text,
           formatPlain(state.moles),
@@ -1160,21 +1264,30 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
     },
     tabs: [
       { id: 'character', label: text.tabs.character },
-      { id: 'skills', label: text.tabs.skills(engine.skillPoints()) },
+      { id: 'skills', label: text.tabs.skills(engine.skillPoints() + engine.resleevePoints()) },
+      { id: 'stats', label: text.tabs.stats },
     ],
     skills: {
       title: text.titles.skills,
       points: engine.skillPoints(),
       pointsText: text.skills.points(formatPlain(engine.skillPoints())),
       buyables: buyableViews.filter((b) => config.buyables.find((d) => d.id === b.id)?.currency === 'skillPoints'),
+      resleeve: {
+        title: text.titles.resleeveSkills,
+        visible: state.runs.length > 0,
+        points: engine.resleevePoints(),
+        pointsText: text.skills.resleevePoints(formatPlain(engine.resleevePoints())),
+        tiers: resleeveTiers(config, viewById),
+      },
     },
+    runs: runsView(state.runs, config, text),
     inventory: inventoryView(engine, factory, text),
     actions,
     sleeve: {
       title: text.titles.sleeve,
       stats: sleeveRows(stats, state, config, text),
       buyables: buyableViews.filter(
-        (b) => b.actionId === undefined && config.buyables.find((d) => d.id === b.id)?.currency !== 'skillPoints',
+        (b) => b.actionId === undefined && !isPointCurrency(config.buyables.find((d) => d.id === b.id)?.currency),
       ),
       sections: sectionLayout(config).map((section) => ({
         id: section.id,

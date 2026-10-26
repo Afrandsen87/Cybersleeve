@@ -19,6 +19,7 @@ import {
   ItemDrops,
   NetworkSystem,
   Progression,
+  Resleever,
   Shop,
   alwaysAllowResleeve,
   createActionLookup,
@@ -29,6 +30,7 @@ import {
   silentDiagnostics,
   Snapshot,
   SkillShards,
+  SynthSleeves,
   ZeroDays,
   validateConfig,
   type Diagnostics,
@@ -69,12 +71,17 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const state = options.state ?? createInitialState(config, factory);
   const progression = new Progression(config, factory);
   const snapshot = new Snapshot();
+  const synths = new SynthSleeves(config, state, progression, factory);
   const shop = new Shop(
     config.buyables,
     factory,
     config.global.costMultiplier,
-    (s) => earnedSkillPoints(config.actions.map((a) => progression.actionLevel(s, a.id))),
+    (currency, s) =>
+      currency === 'skillPoints'
+        ? earnedSkillPoints(config.actions.map((a) => progression.actionLevel(s, a.id)))
+        : s.runs.length * config.resleeve.pointsPerResleeve,
     snapshot,
+    (buyable) => synths.onPurchased(buyable),
   );
   const economy = new Economy(config, factory);
   const definition = createActionLookup(config.actions);
@@ -116,7 +123,9 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     toggles: new ActionToggles(state, stats),
     drops,
     augments: new Augments(config, state, inventory),
-    network: new NetworkSystem(state, stats, factory),
+    network: new NetworkSystem(state, stats, factory, synths),
+    synths,
+    resleever: new Resleever(config, state, stats, progression, synths, factory),
     resleevePolicy: alwaysAllowResleeve,
     overflowPolicy: createClampOverflowPolicy(factory),
     factory,

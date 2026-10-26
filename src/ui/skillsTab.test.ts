@@ -55,6 +55,7 @@ describe('skills in the view model', () => {
     expect(buildViewModel(g).tabs).toEqual([
       { id: 'character', label: 'Character' },
       { id: 'skills', label: 'Skills (1)' },
+      { id: 'stats', label: 'Stats' },
     ]);
     g.buy('s1');
     expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
@@ -142,7 +143,7 @@ describe('the screen', () => {
   it('has the two tabs at the top, centered, before everything else', () => {
     const { root } = mount();
     const tabs = root.querySelector('.tabs')!;
-    expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual(['Character', 'Skills (1)']);
+    expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual(['Character', 'Skills (1)', 'Stats']);
     expect(tabs.nextElementSibling).toBe(root.querySelector('header')); // the tabs come first, then the credits and the panels
   });
 

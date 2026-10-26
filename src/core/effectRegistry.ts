@@ -294,6 +294,17 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
       acc.heatCooldownSpeed *= e.factor ** owned;
     },
   },
+  actionXpReductionFromSleeveLevel: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.remainingPerOrder) && e.remainingPerOrder > 0 && e.remainingPerOrder < 1))
+        errors.push(`${where}: actionXpReductionFromSleeveLevel remainingPerOrder must be in (0, 1)`);
+      if (!(Number.isFinite(e.maxReduction) && e.maxReduction >= 0 && e.maxReduction < 1))
+        errors.push(`${where}: actionXpReductionFromSleeveLevel maxReduction must be in [0, 1)`);
+    },
+  },
+  synthSleeves: { traits: sleeveWide, validate: none },
+  placeholder: { traits: sleeveWide, validate: none },
   heatCooldownAmountFromSleeveLevel: {
     traits: sleeveWide,
     validate: (e, { where, actionIds, errors }) => {

@@ -5,6 +5,7 @@
  */
 import type { NumberFactory } from '../numbers';
 import type { DerivedStats } from './stats';
+import type { SynthIncome } from './synthSleeves';
 import type { GameState } from './types';
 
 /**
@@ -19,22 +20,24 @@ export class NetworkSystem {
    * @param state the live game state (mutated)
    * @param stats derived values
    * @param factory number factory
+   * @param synths what the synthetic sleeves earn on top (default: nothing)
    */
   constructor(
     private readonly state: GameState,
     private readonly stats: DerivedStats,
     private readonly factory: NumberFactory,
+    private readonly synths: SynthIncome | null = null,
   ) {}
 
   /**
    * Pays the credits the network produced over `deltaMs`, using the nodes and heat held now (nodes finished during the
-   * slice start producing in the next one).
+   * slice start producing in the next one), plus what the synthetic sleeves earned. The synthetic income is not taxed by heat.
    * @param deltaMs game time in milliseconds
    */
   payPassiveIncome(deltaMs: number): void {
-    if (this.state.network.isZero()) return;
-    const income = this.stats.passiveCreditsPerSecond().mul(this.factory.fromNumber(deltaMs / 1000));
-    this.state.credits = this.state.credits.add(income);
+    const seconds = this.factory.fromNumber(deltaMs / 1000);
+    if (!this.state.network.isZero()) this.state.credits = this.state.credits.add(this.stats.passiveCreditsPerSecond().mul(seconds));
+    if (this.synths) this.state.credits = this.state.credits.add(this.synths.creditsPerSecond().mul(seconds));
   }
 
   /**

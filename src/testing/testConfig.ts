@@ -36,6 +36,7 @@ export const testConfig: GameConfig = {
   },
   criticalSuccess: { xpMultiplier: 2, rewardMultiplier: 3 },
   focus: { speedBonus: 0.25, baseSlots: 1 },
+  resleeve: { pointsPerResleeve: 1, runsShown: 10 },
   progression: {
     runsPerSleeveXp: 100,
     sleeveXpPerGrant: 1,

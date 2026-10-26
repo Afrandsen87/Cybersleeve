@@ -94,7 +94,7 @@ Each stat has a hover tip; hovering the label or the value shows it.
 ## 6. Network and passive income
 
 - Every node produces **0.01 credits per second**, continuously, also while no action runs. Per node: `(0.01 + Push malware bonus) × credit lever × Node payout multiplier × (share kept after the heat tax)`.
-- The Network widget shows, in order: nodes, payout per node (what one node really pays per second now), credits per second, and **Moles** (shown once Back Channel Deals is owned or Moles are held). The payout tip shows the calculation step by step.
+- The Network widget shows, in order: nodes, payout per node (what one node really pays per second now), credits per second, **Moles** (shown once Back Channel Deals is owned or Moles are held), and, once the skill Synthetic Sleeves is owned, two lines: the **number of synthetic sleeves** and the **credits per second they earn together** (see 11). The payout tip shows the calculation step by step.
 - **Nodes are whole numbers:** nodes gained per run round down per run; prices in nodes round up; percentage costs round down and must be at least 1; saves floor the count; Self-replication carries its fractional growth between ticks.
 - Nodes finished during a tick start producing on the next tick (ASSUMPTION, implemented). The network resets by re-sleeving.
 
@@ -210,9 +210,23 @@ Skills are buyables paid in **skill points**, shown as buttons on the Skills tab
 
 ## 11. Re-sleeving (first prestige)
 
-- **Positive list:** only what `CARRIED_OVER_ACTION_FIELDS` names carries over: each action's sleeve XP (so its sleeve level) and the run counter towards the next sleeve XP. Everything else resets, including anything added later; to carry something over, add it to the list.
+- **Positive lists:** only what these name carries over: `CARRIED_OVER_ACTION_FIELDS` (each action's sleeve XP, so its sleeve level, and the run counter towards the next sleeve XP), the record of finished runs and the synthetic sleeves (`runs`, `synths`), and the owned buyables paid in a currency of `CARRIED_OVER_BUYABLE_CURRENCIES` (the **re-sleeve skills**). Everything else resets, including anything added later; to carry something over, add it to a list.
 - The button needs a second click to confirm, with a Cancel button.
-- **OPEN:** the real requirement (for now always allowed, through a replaceable `ResleevePolicy`), and whether purchases should survive.
+- **OPEN:** the real requirement (for now always allowed, through a replaceable `ResleevePolicy`), and whether ordinary purchases should survive (today only re-sleeve skills do).
+
+**Every run is written down.** At each re-sleeve the life that ends is recorded, whatever skills are owned: the **credits per second its own network was producing** (after the heat tax; synthetic income is NOT part of it, so nothing compounds) and the **total of its action levels**. The Stats tab lists the latest ten runs (newest first). The record is kept for good (only a new game clears it).
+
+**Re-sleeve points.** One per re-sleeve (`resleeve.pointsPerResleeve`). Like skill points they are not stored: points available = earned - cost of the re-sleeve skills owned. The first re-sleeve gives the first point, and sleeve XP carrying over is what lets the run be done again faster.
+
+**Re-sleeve skills** are a tree on the Skills tab, in a group of their own (shown after the first re-sleeve): a skill needs the ones above it bought first (`requires`); locked ones are shown dimmed. They are kept through re-sleeving. All cost 1 point for now.
+
+| Skill | Needs | Effect |
+|---|---|---|
+| Sleeve Euphoria | nothing | Every ACTION level of an action needs less XP, by an amount that depends on THAT action's own SLEEVE level `L`: reduction = `1 - 0.5^log10(L)`: nothing at level 1, **50% at level 10, 75% at 100**, 87.5% at 1000; concave and never 100% (ceiling 99.9%). It multiplies with the flat reductions (Quick Study) and is not part of their cap. |
+| Synthetic Sleeves | Sleeve Euphoria | Run extra sleeves beside the main one (below). |
+| Incorporation | Sleeve Euphoria | Placeholder: does nothing for now (its tooltip says so). |
+
+**Synthetic sleeves (base behaviour).** Buying the skill gives **one at once**, copied from the **last finished run**; every re-sleeve after that gives one more, copied from the run that just ended. Runs that finished before the skill was bought are never copied. A synthetic sleeve keeps the numbers of its own run for good (each sleeve slot uses the run it belongs to) and earns `credits per second of that run x min(1, current action levels total / that run's action levels total)`; once the current sleeve has caught up, it stays at the full amount, so the base behaviour is a speed-up and not a source of growth (upgrades will change that). A run with a level total of 0 pays in full at once. **Synthetic income is not taxed by heat** (the synths paid their tax on their end) and is not multiplied by the credit lever again (the recorded value already includes it). Its value is read at the start of each slice, like the network income.
 
 ## 12. Time
 
@@ -228,5 +242,5 @@ Skills are buyables paid in **skill points**, shown as buttons on the Skills tab
 3. The design of the infinity prestige.
 4. Theme text and names for the actions, buyables and currency; story beats and tone.
 5. Offline progress (later; the save needs a timestamp then).
-6. Buyables for the other actions, further automation, the skill tree.
+6. Buyables for the other actions, further automation, the rest of the re-sleeve tree (Incorporation has no effect yet; upgrades for synthetic sleeves).
 7. Later layers: several sleeves, companies, cities, planets (the late-game "derivative" copy scaling).

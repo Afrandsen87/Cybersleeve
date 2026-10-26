@@ -39,6 +39,8 @@ const isWhole = (n: BigNum): boolean => {
  *   more actions are focused than there are Focus slots (the base slots plus the bought ones); the toggles name known actions only;
  * - banked critical successes are whole counts of known actions;
  * - the Zero-day and Admin key toggles are on only while the game has the rule and at least one of the item is held;
+ * - every recorded sleeve-run has a valid income and a whole total of action levels; every synthetic sleeve points at a recorded run, no run has
+ *   two of them, and they exist only while the skill that gives them is owned;
  * - Skill shard counts are whole numbers, and an Overclock chain is a whole count within the most links of the chain buyable, for an action that owns one.
  *
  * @param state the state to check
@@ -124,5 +126,18 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
         problems.push(`inventory ${itemId}/${rarityId} count is invalid: ${count}`);
     }
   }
+  state.runs.forEach((run, i) => {
+    if (!validAmount(run.creditsPerSecond)) problems.push(`run ${i} has an invalid income: ${run.creditsPerSecond.toString()}`);
+    if (!validCount(run.actionLevelsTotal)) problems.push(`run ${i} has an invalid level total: ${run.actionLevelsTotal}`);
+  });
+  const seen = new Set<number>();
+  for (const synth of state.synths) {
+    if (!(Number.isInteger(synth.runIndex) && synth.runIndex >= 0 && synth.runIndex < state.runs.length))
+      problems.push(`a synthetic sleeve points at a run that does not exist: ${synth.runIndex}`);
+    if (seen.has(synth.runIndex)) problems.push(`two synthetic sleeves copy run ${synth.runIndex}`);
+    seen.add(synth.runIndex);
+  }
+  if (state.synths.length > 0 && !config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (state.purchased[b.id] ?? 0) > 0))
+    problems.push('synthetic sleeves exist without the skill that gives them');
   return problems;
 }

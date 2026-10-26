@@ -37,6 +37,8 @@ interface SaveData {
   adminKeysOn: boolean;
   chains: Record<string, number>;
   bankedCriticals: Record<string, number>;
+  runs: { creditsPerSecond: string; actionLevelsTotal: number }[];
+  synths: { runIndex: number }[];
   actions: Record<
     string,
     {
@@ -71,6 +73,8 @@ export function serializeState(state: GameStateView): string {
     adminKeysOn: state.adminKeysOn,
     chains: { ...state.chains },
     bankedCriticals: { ...state.bankedCriticals },
+    runs: state.runs.map((r) => ({ creditsPerSecond: r.creditsPerSecond.toString(), actionLevelsTotal: r.actionLevelsTotal })),
+    synths: state.synths.map((s) => ({ runIndex: s.runIndex })),
     actions: Object.fromEntries(
       Object.entries(state.actions).map(([id, a]) => [
         id,
@@ -147,6 +151,8 @@ export function deserializeState(
       if (count > 0) state.purchased[b.id] = count;
     }
     dropUnmetRequirements(state, config.buyables);
+    state.runs = readRuns(raw['runs'], factory);
+    state.synths = readSynths(raw['synths'], state, config.buyables);
     readToggles(state, raw, config);
     state.inventory = readInventory(raw['inventory'], config.items);
     const savedBank = isRecord(raw['bankedCriticals']) ? raw['bankedCriticals'] : {};
@@ -207,6 +213,39 @@ function readToggles(state: GameState, raw: Record<string, unknown>, config: Pic
       slots--;
     }
   }
+}
+
+/**
+ * Reads the record of finished runs. An entry that cannot be read becomes a run that earned nothing (rather than being dropped), so the
+ * runs keep their positions and the synthetic sleeves that point at them still point at the right run.
+ */
+function readRuns(v: unknown, factory: NumberFactory): GameState['runs'] {
+  if (!Array.isArray(v)) return [];
+  return v.map((entry): GameState['runs'][number] => {
+    if (!isRecord(entry)) return { creditsPerSecond: factory.fromNumber(0), actionLevelsTotal: 0 };
+    let creditsPerSecond: BigNum;
+    try {
+      creditsPerSecond = readAmount(entry['creditsPerSecond'], factory);
+    } catch {
+      creditsPerSecond = factory.fromNumber(0);
+    }
+    return { creditsPerSecond, actionLevelsTotal: readCount(entry['actionLevelsTotal']) };
+  });
+}
+
+/**
+ * Reads the synthetic sleeves: only ones that point at a run that exists, and none at all unless the player owns the skill that gives them
+ * (a save cannot hand out sleeves).
+ */
+function readSynths(v: unknown, state: GameState, buyables: GameConfig['buyables']): GameState['synths'] {
+  const unlocked = buyables.some((b) => b.effect.kind === 'synthSleeves' && (state.purchased[b.id] ?? 0) > 0);
+  if (!unlocked || !Array.isArray(v)) return [];
+  const out: GameState['synths'] = [];
+  for (const entry of v) {
+    const index = isRecord(entry) ? entry['runIndex'] : undefined;
+    if (typeof index === 'number' && Number.isInteger(index) && index >= 0 && index < state.runs.length) out.push({ runIndex: index });
+  }
+  return out;
 }
 
 /** Reads `purchased` as a count per id (anything that is not a whole number >= 0 counts as 0). */

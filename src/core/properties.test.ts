@@ -38,6 +38,14 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
   buyables: [
     ...testConfig.buyables,
     buyable({ id: 'unlock', effect: { kind: 'accessLevel', amount: 1 } }),
+    buyable({
+      id: 'euphoria',
+      currency: 'resleevePoints',
+      cost: num(1),
+      effect: { kind: 'actionXpReductionFromSleeveLevel', remainingPerOrder: 0.5, maxReduction: 0.99 },
+    }),
+    buyable({ id: 'synth', currency: 'resleevePoints', cost: num(1), requires: ['euphoria'], effect: { kind: 'synthSleeves' } }),
+    buyable({ id: 'incorp', currency: 'resleevePoints', cost: num(1), requires: ['euphoria'], effect: { kind: 'placeholder' } }),
     buyable({ id: 'net-auto', actionId: 'net', effect: { kind: 'autoRun' } }),
     buyable({ id: 'net-x2', actionId: 'net', costGrowth: 3, maxPurchases: Infinity, effect: { kind: 'rewardMultiplier', factor: 2 } }),
     buyable({ id: 'grow', actionId: 'net', effect: { kind: 'networkGrowth', ratePerSecond: 0.001 } }),
@@ -124,8 +132,12 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
     maybeBuy(g, config, random, 'focusUnlock');
     g.toggleFocus(pick(random, config.actions).id);
   } else if (roll < 0.57) g.useBurnLead('common');
-  else if (roll < 0.58) g.resleeve();
-  else if (roll < 0.63) state.credits = num(10 ** randomInt(random, 40));
+  else if (roll < 0.6) {
+    // spend the re-sleeve point the last re-sleeve gave on the tree, then re-sleeve again
+    maybeBuy(g, config, random, 'actionXpReductionFromSleeveLevel');
+    maybeBuy(g, config, random, 'synthSleeves');
+    g.resleeve();
+  } else if (roll < 0.63) state.credits = num(10 ** randomInt(random, 40));
   else if (roll < 0.68) state.network = num(randomInt(random, 5_000));
   else if (roll < 0.72)
     state.heat = randomInt(random, 300) / (1 + randomInt(random, 4)); // whole and fractional heat
