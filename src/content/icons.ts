@@ -8,6 +8,7 @@
  * @remarks
  * Names are placeholders like the rest of the content. The icons are display only: nothing in `core` knows about them.
  */
+import { RESLEEVE_SKILL_ICONS } from './resleeveSkillIcons';
 import {
   ACCESS_UPGRADE,
   CORPORATE_ACCESS_UPGRADE,
@@ -1210,4 +1211,5 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   [SKILL_SLEEVE_EUPHORIA]: 'skill-sleeve-euphoria',
   [SKILL_SYNTHETIC_SLEEVES]: 'skill-synthetic-sleeves',
   [SKILL_INCORPORATION]: 'skill-incorporation',
+  ...RESLEEVE_SKILL_ICONS,
 };

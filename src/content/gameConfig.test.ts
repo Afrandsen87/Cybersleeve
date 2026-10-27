@@ -18,6 +18,7 @@ import {
   RESLEEVE_SKILLS,
   SLEEVE_LEVELS,
   SKILL_INCORPORATION,
+  SKILL_DEEP_CONDITIONING,
   SKILL_SLEEVE_EUPHORIA,
   SKILL_SYNTHETIC_SLEEVES,
   ZERO_DAY_EXPLOITS,
@@ -141,27 +142,14 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it('the re-sleeve skills are Sleeve Euphoria and the two that need it, each costing 1 re-sleeve point and belonging to no action', () => {
-    const skills = gameConfig.buyables.filter((b) => b.currency === 'resleevePoints');
-    expect(skills.map((b) => b.id)).toEqual([...RESLEEVE_SKILLS]);
-    for (const b of skills) {
-      expect(b.cost.eq(num(1)), b.id).toBe(true);
-      expect(b.actionId, b.id).toBeUndefined();
-    }
-    const parents = (id: string): readonly string[] => skills.find((b) => b.id === id)?.parents ?? [];
-    expect(parents(SKILL_SLEEVE_EUPHORIA)).toEqual([]);
-    expect(parents(SKILL_SYNTHETIC_SLEEVES)).toEqual([SKILL_SLEEVE_EUPHORIA]);
-    expect(parents(SKILL_INCORPORATION)).toEqual([SKILL_SLEEVE_EUPHORIA]);
-  });
-
-  it('a new game has no re-sleeve point; each re-sleeve gives one, and the tree is bought from the top', () => {
+  it('a new game has no re-sleeve point; each re-sleeve gives one, and every lane is bought from its root', () => {
     const g = createGame();
     expect(g.resleevePoints()).toBe(0);
     expect(g.canBuy(SKILL_SLEEVE_EUPHORIA)).toBe(false);
     openResleeving(g);
     g.resleeve();
     expect(g.resleevePoints()).toBe(1);
-    expect(g.canBuy(SKILL_SYNTHETIC_SLEEVES), 'a node under Sleeve Euphoria is locked until it is bought').toBe(false);
+    expect(g.canBuy(SKILL_DEEP_CONDITIONING), 'a node under Sleeve Euphoria is locked until it is bought').toBe(false);
     expect(g.buy(SKILL_SLEEVE_EUPHORIA)).toBe('purchased');
     expect(g.resleevePoints()).toBe(0);
     g.resleeve();

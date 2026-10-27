@@ -106,16 +106,9 @@ export const SKILL_UNDERCOVER = 'skill-undercover';
 export const SKILL_DEEP_COVER = 'skill-deep-cover';
 /** Id of the end skill that caps the heat tax. */
 export const SKILL_BLACKOUT = 'skill-blackout';
-/** Id of the re-sleeve skill that lowers the XP every action level needs, by the action's own sleeve level. */
-export const SKILL_SLEEVE_EUPHORIA = 'skill-sleeve-euphoria';
-/** Id of the re-sleeve skill that gives synthetic sleeves. */
-export const SKILL_SYNTHETIC_SLEEVES = 'skill-synthetic-sleeves';
 /** Id of the corporation action that may upgrade a random Kompromat file. */
 export const INSIDER_BACKSTABBING = 'insider-backstabbing';
-/** Id of the re-sleeve skill that opens the Corporation tab. */
-export const SKILL_INCORPORATION = 'skill-incorporation';
-/** Every re-sleeve skill id, in the order the tree lists them. */
-export const RESLEEVE_SKILLS = [SKILL_SLEEVE_EUPHORIA, SKILL_SYNTHETIC_SLEEVES, SKILL_INCORPORATION] as const;
+export * from './resleeveSkillIds';
 /** Every skill id, branch by branch (cybernetics, anonymity, leverage), each root first. */
 export const SKILLS = [
   SKILL_OVERCLOCK,

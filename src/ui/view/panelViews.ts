@@ -102,7 +102,7 @@ export function skillsView(
   const resleeveLanes = buildSkillLanes({
     ...common,
     skills: config.buyables.filter((b) => b.currency === 'resleevePoints'),
-    laneTitle: () => '', // the widget's own heading says it
+    laneTitle: branchTitle,
     open: state.runs.length > 0,
   });
   const resleeveVisible = resleeveSkillsShown(state, config);

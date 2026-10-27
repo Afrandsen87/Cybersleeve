@@ -16,6 +16,10 @@
   --branch-autoBurn: #b266ff;
   --branch-autosale: #ffe14d;
   --branch-dispersal: #4dd2ff;
+  --branch-retention: #5ee6c8;
+  --branch-reach: #ffa64d;
+  --branch-synthetics: #7a8cff;
+  --branch-corporation: #ff6fb5;
 }
 * {
   box-sizing: border-box;
@@ -791,6 +795,18 @@ button:not(:disabled):hover {
 }
 .skill-lane[data-branch="dispersal"] {
   --lane: var(--branch-dispersal);
+}
+.skill-lane[data-branch="retention"] {
+  --lane: var(--branch-retention);
+}
+.skill-lane[data-branch="reach"] {
+  --lane: var(--branch-reach);
+}
+.skill-lane[data-branch="synthetics"] {
+  --lane: var(--branch-synthetics);
+}
+.skill-lane[data-branch="corporation"] {
+  --lane: var(--branch-corporation);
 }
 .lane-title {
   margin: 0;
