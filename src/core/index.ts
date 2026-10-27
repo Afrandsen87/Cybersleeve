@@ -70,11 +70,19 @@ export {
   resetForResleeve,
 } from './state';
 export type {
+  ActionCommands,
   ActionQueries,
   ActivateResult,
   GameCommands,
   GameQueries,
+  ItemCommands,
+  ItemQueries,
+  LevelQueries,
+  ShopCommands,
   ShopQueries,
+  SkillQueries,
+  SleeveCommands,
+  TestAidCommands,
   SleeveQueries,
   StateQueries,
 } from './api';

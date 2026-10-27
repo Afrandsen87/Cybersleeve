@@ -70,6 +70,8 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   if (auto.autoBurnOn && !auto.unlocked.autoBurn) problems.push('Auto Burn is on but not unlocked');
   if (Object.keys(auto.autosale).length > 0 && !auto.unlocked.autosale) problems.push('autosale is set but not unlocked');
   if (Object.keys(auto.dispersal).length > 0 && !auto.unlocked.dispersal) problems.push('augment dispersal is set but not unlocked');
+  const shareTotal = Object.values(auto.dispersal).reduce((n, s) => n + s, 0);
+  if (shareTotal > 100 + 1e-9) problems.push(`dispersal shares add up to more than 100: ${shareTotal}`);
   for (const [id, share] of Object.entries(auto.dispersal)) {
     if (!(Number.isFinite(share) && share > 0 && share <= 100)) problems.push(`dispersal of ${id} is not a share in (0, 100]: ${share}`);
     if (!config.actions.some((a) => a.id === id)) problems.push(`dispersal names unknown action ${id}`);

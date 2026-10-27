@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./docs/architecture.html)",
+      "Read(./ARCHITECTURE_DerivativeClicker.html)",
+      "Read(./src/content/icons.ts)",
+      "Read(./package-lock.json)"
+    ]
+  }
+}

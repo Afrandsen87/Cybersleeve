@@ -232,6 +232,28 @@ describe('Augment dispersal', () => {
     expect(Math.abs(applied(g, 'a') - applied(g, 'b'))).toBe(1);
   });
 
+  it('the shares of all actions together never pass 100', () => {
+    const g = dispersalGame({});
+    g.automation().setDispersal('a', 70);
+    g.automation().setDispersal('b', 60);
+    expect(g.automation().dispersal('a')).toBe(70);
+    expect(g.automation().dispersal('b')).toBe(30);
+    g.automation().setDispersal('a', 90);
+    expect(g.automation().dispersal('a')).toBe(70);
+  });
+
+  it('one schematic at a time still reaches every action with a share, in proportion', () => {
+    const g = dispersalGame({});
+    g.automation().setDispersal('a', 50);
+    g.automation().setDispersal('b', 50);
+    for (let i = 0; i < 10; i++) {
+      loose(g).inventory['schem'] = { common: 1 };
+      g.tick(1);
+    }
+    expect(applied(g, 'a')).toBe(5);
+    expect(applied(g, 'b')).toBe(5);
+  });
+
   it('uses the most common rarity first and keeps rarities apart on the action', () => {
     const g = dispersalGame({ common: 2, rare: 1 });
     g.automation().setDispersal('a', 100);

@@ -224,9 +224,12 @@ function readAutomation(state: GameState, raw: unknown, config: Pick<GameConfig,
   const savedShares = isRecord(raw['dispersal']) ? raw['dispersal'] : {};
   if (auto.unlocked.autosale) for (const r of config.items.rarities) if (savedSale[r.id] === true) auto.autosale[r.id] = true;
   if (auto.unlocked.dispersal) {
+    let room = 100;
     for (const a of config.actions) {
       const share = savedShares[a.id];
-      if (typeof share === 'number' && Number.isFinite(share) && share > 0) auto.dispersal[a.id] = Math.min(100, share);
+      if (typeof share !== 'number' || !Number.isFinite(share) || share <= 0 || room <= 0) continue;
+      auto.dispersal[a.id] = Math.min(room, share);
+      room -= auto.dispersal[a.id] ?? 0;
     }
   }
 }

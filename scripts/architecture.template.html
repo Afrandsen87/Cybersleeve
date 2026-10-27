@@ -400,7 +400,7 @@ function drawGraph(svg,spec){
   // main
   box(20,95,920,52,"main.ts  (entry / wiring)",["loads save, builds engine, starts loop, mounts UI, autosave"],COLOR["(entry)"]);
   // ui + app
-  box(20,175,440,100,"ui/",["viewModel.ts: state → display data (pure, tested)","dom.ts: builds DOM once, writes only what changed; commands via GameCommands","style.css"],COLOR.ui);
+  box(20,175,440,100,"ui/",["viewModel.ts + view/: state → display data, one builder per widget (pure, tested)","dom.ts + widgets/: builds DOM once, writes only what changed; commands via GameCommands","style.css"],COLOR.ui);
   box(500,175,440,100,"app/",["createGame (composition root) · GameLoop","SaveGame (keeps a backup of unreadable saves) · SpeedToggle (x10 test aid) · new-game handler"],COLOR.app);
   port(540,285,120,"Scheduler",COLOR.app); port(680,285,140,"KeyValueStore",COLOR.app); port(840,285,100,"Tickable",COLOR.app);
   // core
@@ -422,7 +422,7 @@ function drawGraph(svg,spec){
    ["S – Single responsibility","Progression (XP/levels), Shop (purchases), Economy (reward and tax formulas), effects (buyable effects), speed (multiplier), serialization, GameLoop, SaveGame, SpeedToggle each have one job. GameEngine only orchestrates them."],
    ["O – Open/closed","New speed factor = new SpeedModifier. New content or retuning = data in gameConfig.ts. New reward kind = one entry in REWARDS. New buyable effect = one union member and ONE entry in the effect registry (effectRegistry.ts: traits, validator and the hooks that add it to an action or the sleeve); the compiler demands the entry, and the resolvers in effects.ts have no switch to edit. Only a kind with a dedicated query (growth, level bonus, XP reductions, drop chance, back channel) also needs that query to read it."],
    ["L – Liskov","Anything satisfying BigNum, Scheduler, KeyValueStore, ResleevePolicy or Tickable can be substituted; tests use fakes for the scheduler and storage."],
-   ["I – Interface segregation","Small ports: Scheduler (3 methods), Tickable (1), KeyValueStore (2), ResleevePolicy (1), SpeedControl (3), Diagnostics (1). The read side is split into StateQueries, ActionQueries, SleeveQueries and ShopQueries; consumers see only what they use."],
+   ["I – Interface segregation","Small ports: Scheduler (3 methods), Tickable (1), KeyValueStore (2), ResleevePolicy (1), SpeedControl (3), Diagnostics (1). The read side is split by area into StateQueries, ActionQueries, LevelQueries, SleeveQueries, ItemQueries, ShopQueries and SkillQueries, the write side into ActionCommands, ShopCommands, ItemCommands, SleeveCommands and TestAidCommands; consumers declare only what they use."],
    ["D – Dependency inversion","GameEngine receives Progression, Shop, DerivedStats, ActionRunner, NetworkSystem, the policies and the number factory through its constructor; createGame is the single composition root and builds none of them anywhere else. Game code never imports break_infinity.js."],
    ["Testability","No global mutable state, no hidden clocks: time is an argument, storage and scheduling are injected. See the Tests section."]
   ];

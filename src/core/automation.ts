@@ -24,7 +24,7 @@ export interface AutomationState {
   autoBurnCeiling: number;
   /** Rarities whose sellable items are sold automatically (absent or false: not sold). */
   autosale: Record<RarityId, boolean>;
-  /** Share (percent, 0..100) of the Augment schematics each action gets (absent: 0). The shares are relative to each other. */
+  /** Share (percent, 0..100) of the Augment schematics each action gets (absent: 0). All shares together are at most 100. */
   dispersal: Record<ActionId, number>;
 }
 
@@ -177,7 +177,9 @@ export class Automation implements AutomationControls {
   /** See {@link AutomationControls.setDispersal}. Mutates `state.automation.dispersal`. */
   setDispersal(actionId: ActionId, percent: number): boolean {
     if (!this.isUnlocked('dispersal') || !this.config.actions.some((a) => a.id === actionId) || !Number.isFinite(percent)) return false;
-    const share = Math.min(100, Math.max(0, percent));
+    // The shares of all actions together never pass 100: an action gets at most what the others leave.
+    const others = Object.entries(this.state.automation.dispersal).reduce((n, [id, s]) => (id === actionId ? n : n + s), 0);
+    const share = Math.min(Math.max(0, 100 - others), Math.max(0, percent));
     if (share > 0) this.state.automation.dispersal[actionId] = share;
     else delete this.state.automation.dispersal[actionId];
     return true;
@@ -229,8 +231,14 @@ export class Automation implements AutomationControls {
       .filter((s) => s.share > 0);
     const total = shares.reduce((n, s) => n + s.share, 0);
     if (held <= 0 || total <= 0) return;
-    const parts = shares.map((s) => {
-      const exact = (held * s.share) / total;
+    // Aim at the shares of everything applied so far plus what is held now, so a few schematics per step still end up balanced
+    // (a stateless split would give a single schematic to the first action every time).
+    const appliedTo = (id: ActionId): number => Object.values(this.state.actions[id]?.augments ?? {}).reduce((n, c) => n + c, 0);
+    const appliedTotal = shares.reduce((n, s) => n + appliedTo(s.id), 0);
+    const needs = shares.map((s) => Math.max(0, ((appliedTotal + held) * s.share) / total - appliedTo(s.id)));
+    const needTotal = needs.reduce((n, d) => n + d, 0);
+    const parts = shares.map((s, i) => {
+      const exact = needTotal > 0 ? (held * (needs[i] ?? 0)) / needTotal : (held * s.share) / total;
       return { id: s.id, count: Math.floor(exact), fraction: exact - Math.floor(exact) };
     });
     let left = held - parts.reduce((n, p) => n + p.count, 0);

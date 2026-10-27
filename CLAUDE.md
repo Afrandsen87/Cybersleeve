@@ -20,6 +20,18 @@ Everything built must satisfy **all** of these:
    - Keep a maintained architecture description (modules, data flow, domain model, state lifetimes, tick/loop flow, risks) that maps onto the HTML sections: Summary, Files, Architecture, Domain model, State lifetimes, Tick loop, Call graph, Function reference, Risks.
    - Update the docs in the same change as the code. Undocumented code is unfinished code.
 
+## Context size is a design constraint
+
+Sessions read code into a limited context, so file and doc size is part of the design. Apply to all new work:
+- **Keep files small and single-purpose.** Soft limit about 10 KB per source file and about 12 KB per test file; split by responsibility before a file passes about 15 KB (nothing is above 27 KB today, and `engine.ts` is the one allowed outlier). Stay within one reason to change per file.
+- **Keep import paths stable when splitting.** Leave a thin facade or barrel (`viewModel.ts`, `types.ts`, `uiText.ts`, `gameConfig.ts`) and move the bodies into a folder (`ui/view/`, `ui/widgets/`, `content/buyables/`). Callers and tests should not need editing.
+- **Narrow interfaces by area.** A unit takes only the area interface it uses (`ItemQueries`, `SleeveQueries`, `ShopQueries`, ... in `core/api.ts`), not the whole engine, so reading it never pulls in the facade.
+- **One content file per action** (`content/buyables/<action>.ts`). Content is data; a new action or buyable adds a file or an entry, it does not grow a shared one.
+- **Split tests by feature**, with shared setup in one documented kit file (`modesKit.ts`, `skillsKit.ts`). Do not append a feature's tests to a big existing test file.
+- **Mechanic details live in code comments next to the code** (the effect type, the content entry), where they are read when needed. `CLAUDE.md` holds only standing rules; `docs/DECISIONS.md` is the on-demand history and is not loaded by default. Do not paste long decision entries here.
+- **Keep generated and bulky files out of reads.** `docs/architecture.html`, `src/content/icons.ts`, `package-lock.json` and the reference HTML are denied in `.claude/settings.json`; put any new large generated or data file there, and keep icon/pixel data out of files that logic imports.
+- **Check before finishing:** after adding or growing a file, look at its size. If it crossed the limits above, split it in the same change.
+
 ## Lessons carried over from the reference project
 
 Avoid these (found in the analysis; details in the architecture document):
@@ -42,102 +54,36 @@ The reference game plays at astronomical scales (up to 1e303 and beyond, with an
 - Build incrementally; each step small, tested, documented, and runnable.
 - Before making a significant design or technology choice not covered here, ask the user and then record the decision in the section below.
 - Write outputs into this project folder (`C:\Code\CyberSleeve`).
-- Do not commit or push unless asked. (This folder is a git repository; nothing has been committed yet.)
+- Do not commit or push unless asked. (This folder is a git repository.)
 
-## Decisions log
+## Standing rules (distilled from the decisions log)
 
-Decided 2026-10-24 (by the user):
-- **Platform:** web app delivered as an installable **PWA** (service worker, manifest, offline-capable). **Updated 2026-10-24: the target is desktop browsers for now; mobile is dropped.** The interface will be redesigned for mobile if it is ever needed; the PWA build stays but mobile layout and install flow are not goals. No native wrapper yet.
-- **Language/tooling:** **TypeScript** (strict) + **Vite** + **Vitest**. Node v24 / npm 11 are installed.
-- **UI:** **vanilla TypeScript** with a small own view layer. Core game logic is framework-free and has no DOM access; views are thin and data-driven.
-- **Big numbers:** our own `Decimal`-style **interface**, backed by a proven library (e.g. break_infinity.js / break_eternity.js) behind an adapter so it can be swapped. Game code never imports the library directly.
+Full history, prices and mechanic details: **`docs/DECISIONS.md`** (read the entry for a mechanic before changing it). `DESIGN.md` describes the game as it is now.
 
-Decided 2026-10-24 (by the user, after the first full review):
-- **Offline progress is out of scope for now.** **Balance is not a factor yet** (more mechanics, incl. buyables for every action, are coming): do not "fix" balance oddities.
-- **Tooling:** lint and format with **Biome** (`npm run lint`, `npm run format`); typescript-eslint was not usable because it does not support TypeScript 7 yet. `npm run check` runs typecheck, Biome, tests and build in one go; `npm run test:coverage` gives coverage.
-- A temporary **Reset save** button wipes the game and the save (remove before release).
-- The folder is now a git repository (initialised 2026-10-24, nothing committed yet).
+Platform and tooling: desktop-browser PWA; TypeScript strict + Vite + Vitest + Biome; vanilla TS views; big numbers behind our own Decimal interface (break_infinity adapter), game code never imports the library. Infinity is 1e308 (`core/infinity.ts`). Offline progress is out of scope and balance is not a factor yet: do not "fix" balance oddities. Python on this Windows machine needs `PYTHONUTF8=1`.
 
-Decided 2026-10-25 (by the user, after the second review):
-- **No global reward multiplier.** A lever applies to one named kind of reward and nothing else. Today the only one is `global.creditMultiplier` (credits earned: run rewards paid in credits and passive network income). It never touches nodes, ICE Rating, Legend, or the interface-speed and node-payout bonuses. A lever for another kind is its own named setting, and which kinds a lever scales is stated in `REWARDS` (`core/rewards.ts`).
-- Every reward kind and every buyable effect kind is described once as data (`REWARDS`, `EFFECT_TRAITS`); code asks the descriptor instead of comparing kind names. Resolver `switch`es over effect kinds end in `assertNever` so a new kind cannot be forgotten.
-- All interface wording lives in `src/ui/uiText.ts`; `viewModel.ts` and `dom.ts` hold none. Stat widgets are data-driven rows (`StatRowView`), not hand-written per field.
-- The test aids (Reset save, Speed x10) are shown only in development builds or with `?debug` in the address.
-- Only the current save version is read (nothing has been released). Changing the meaning of a saved field needs a version bump and a migration; adding a scalar does not.
-- `npm run check` also runs `npm run docs:check`, which fails when `docs/architecture.html` is stale: run `npm run docs` after code or doc-comment changes.
+Design rules:
+- No global reward or output multiplier: every lever/multiplier names exactly what it scales (`REWARDS`, `EFFECT_TRAITS`); code asks descriptors, never compares kind names.
+- New buyable effect kind = union member + ONE entry in `core/effectRegistry.ts`; switches over kinds end in `assertNever`.
+- Actions are gated only by access level; no unlock rules.
+- Re-sleeve is a positive list (`CARRIED_OVER_ACTION_FIELDS`, `CARRIED_OVER_BUYABLE_CURRENCIES`); everything else resets. Only the current save version is read; changing a saved field's meaning needs a version bump and migration.
+- Randomness only through an injected `RandomSource`, drawn per batch of runs (closed form), never per run.
+- All interface wording in `src/ui/uiText.ts`; stat widgets are data-driven rows. Test aids (Reset save, Speed x10) only in dev builds or with `?debug`.
+- Rendering: `RenderLoop` on rAF; bars use `transform: scaleX()`; tips are getters built only when shown; no per-frame work that scales with the number of buyables.
+- The engine mutates no state itself; the `GameEngine` delegating facade stays unless it hurts.
+- Hosting: GitHub Pages via `.github/workflows/deploy.yml`; `base: './'` in `vite.config.ts` must stay. One tab plays (Web Lock).
 
-Decided 2026-10-25 (by the user, after testing):
-- **No general output multiplier.** The old `outputMultiplier` also scaled XP and counted runs, and made Practice Hacking's speed grow exponentially; it was removed. A `rewardMultiplier` buyable scales **only the reward its own action pays per run** (e.g. the nodes Grow Network pays). Every future multiplier states exactly what it multiplies; code never applies one multiplier to everything an action does.
-- Interface speed earned by Practice Hacking goes through a concave curve with no ceiling (`sleeve.earnedSpeedScale` / `earnedSpeedExponent`, `core/concaveBonus.ts`). Duplicate processors on Practice Hacking was removed.
-- **Hacking Proficiency flattens past 1 (2026-10-26):** the curve is unchanged below 1 Hacking Proficiency, and past it continues with a flatter exponent (`sleeve.earnedSpeedKnee: 1`, `earnedSpeedExponentBeyond: 0.1`), joined smoothly (same value and slope at the knee). "Scale the harder" was read, after asking, as flatter.
+## Working conventions (in use)
 
-Decided 2026-10-25 (by the user, access ladder):
-- Actions are gated **only by access level** in the real content: Grow network 1, Practice Hacking 2, Push malware 3, Kill servers 4, Build Legend 5. Access upgrade (5 credits, x1000 per copy, unlimited) adds +1 level per copy (`accessLevel` effect is now `{ amount }` and stacks). The Unlock Legend buyable and Kill servers' node-count unlock were removed. The `unlock` rules and the `unlock` effect still exist in the engine (tests use them) but the real content uses none.
-
-Decided 2026-10-25 (by the user, items):
-- **Items are an entity** (`GameConfig.items`: kinds and rarity tiers with sell values). Practice Hacking gets the *Kompromat harvest* buyable (second on its card, 500 credits): 5% of completed runs drop a Kompromat file, rarity weights 90/9/1/0/0 over common, uncommon, rare, legendary, crisis. Items sell from the *Inventory* widget (under Network) for 10 credits at common and x10 per rarity. Drop chance and rarity weights are meant to change later, so they are data on the `itemDrop` effect, never constants in code. Random draws go through an injected `RandomSource` and are made per batch of runs (`core/sampling.ts`), never per run. Selling is not taxed by heat or scaled by the credit lever.
-
-- **Re-sleeve is a positive list:** only what `CARRIED_OVER_ACTION_FIELDS` (`core/state.ts`) names carries over (sleeve XP and its run counter); everything else resets. Paying out Kompromat is blackmail, not a sale, and the tooltip says so.
-
-- **Tabs and skills (2026-10-25):** the game has two tabs, Character (everything so far) and Skills (a box of skill buttons; a whole skill tree comes later). Skill points: none at the start, the first when an action reaches level 1, then one per order of magnitude of the total of all ACTION levels (1 at a total of 1, 2 at 10, 3 at 100), 1 point per skill for now. Skills are buyables paid in the `skillPoints` currency (nothing is stored: points available = earned - cost of the skills owned). Back Channel Deals gives Moles (a Network counter) by giving up common Kompromat; Moles make heat cool faster. Skills reset when re-sleeving (assumption).
-
-- **Augment schematics (2026-10-25):** *Industrial Espionage* (Grow network, 10,000 credits) lets Grow network drop the item *Augment schematic*. Every action card has an *Augment* button (top right) that applies one schematic: +1% to the action XP boost of ITS rarity, additively within a rarity, and the rarities multiply (3 common + 3 uncommon + 3 rare = 1.03 x 1.03 x 1.03); action levels only (not sleeve levels); the most common rarity held is used up first; schematics cannot be sold (`sellable: false`); reset by re-sleeving. The amount is data (`items.augment`).
-
-Decided 2026-10-25 (by the user, after the performance review):
-- **Rendering rules.** The screen is drawn by `RenderLoop` on `requestAnimationFrame` (rate-limited by `runtime.renderMs`); the game steps on its own timer. Bars move with `transform: scaleX()` plus a CSS transition of `--render-ms`, never by `width`. Hover texts are built only when shown: view-model tips are getters, `dom.ts` registers them in a `TipRegistry`, and nothing reads them every frame. `buildViewModel` runs inside `engine.snapshot(...)`. Measure before optimising: the game cost about 1% of a core when measured, so new UI work should keep it that way (no per-frame work that scales with the number of buyables beyond what the view model already does).
-
-Decided 2026-10-25 (by the user, critical success):
-- **Critical success** is a sleeve buyable (50 credits, x1000 per copy): +5% chance per copy that any completed run is critical. A critical run pays 3x its reward and gives 2x action XP, and nothing else changes. The chance is drawn once per batch of runs (`core/critical.ts`, injected `RandomSource`). The multipliers are data (`GameConfig.criticalSuccess`), and an action can replace single fields of the rule or add completion effects for its critical runs (`ActionDefinition.criticalSuccess`), so a critical success can later do something unique per action. No action does yet.
-
-Decided 2026-10-26 (by the user, Overclock, Focus and Burn leads):
-- **Overclock** (changed 2026-10-26: per action, see the square below). An action unlocks its own Overclock toggle for 250 credits, if it has an Overclock effect of its own (`ActionDefinition.overclock`, a mix of gains and costs; each action's effect is meant to be unique). **Grow network:** 50% faster, +2 heat per minute while it runs. **Practice Hacking:** pays 200% more (x3), each completed run costs 5 nodes. **Push malware:** each run also pays the nodes of a Grow network run, and makes 3x the heat. The sleeve **Overclock upgrade** (250,000 credits, x1000 per copy, unlimited) makes the GAINS (speed bonus, reward bonus) of every Overclock 10% of their base stronger per copy; costs and the extra payment stay fixed (my reading of "10% increase to the effect"; confirmed). Heat per minute is charged only for time the action actually ran.
-- **Heat may be a fraction of a point, but it only cools in whole points**: the cooldown bar waits while there is less than 1 heat. Burn leads and Overclock produce the fractions.
-- **Focus** (changed 2026-10-26): an action unlocks its own Focus toggle for 1,000 credits (every action can). A focused action runs 25% faster (`GameConfig.focus.speedBonus`). Focus slots limit how many actions are focused at once: 1 is free (`focus.baseSlots`), and the sleeve **Focus upgrade** (1,000,000 credits, x100,000 per copy, at most 4, so every action can get a slot) adds one per copy. The upgrades cost 1000x what the old sleeve buyables did.
-- **The square (2026-10-26):** on every action card the run bar spans the full width, and under it a square (the same height as the reward line plus the two level bars) sits beside those. Before Auto-run is bought the whole square is the button that buys it; afterwards it is a 2x2 grid of Auto-run, Overclock, Focus and Augment. A cell whose unlock is not bought is a purchase button, a bought one is a toggle, and a feature the action does not have is an empty dashed cell. These buyables (effect kinds `autoRun`, `overclockUnlock`, `focusUnlock`) are not shown in the card's row of purchases (`BuyableView.inSquare`).
-- **Burn leads:** a Grow network buyable (price is a placeholder, 1,000) lets runs drop the item *Burn lead* (5%; it has no rarity: one stack, shown as just "Burn lead", `ItemDefinition.hasRarity: false`). Using one (clicking its tile in the Inventory) takes 5% of the CURRENT heat and uses it up; leads are not sold (`sellable: false`). The share is data (`items.burnLead.heatFraction`).
-- The "nodes are whole" test invariant allows for the number type's precision: `break_infinity` cannot hold every integer above about 1e8 exactly (existing limitation, not yet addressed).
-
-Decided 2026-10-25 (by the user, icons):
-- **Pixel-art icons**, 16x16, drawn as text grids in `content/icons.ts` and assigned to entities by id (`ENTITY_ICONS`); nothing in `core` knows about them. Style: limited neon palette on dark, drawn crisp (`image-rendering: pixelated`). Current set: network (Grow network), terminal (Practice Hacking), bug (Push malware), server rack (Kill servers), grinning skull (Build Legend), redacted file (Kompromat), chip (Augment schematic), flame (Burn lead), a chip with a stylised C (credits: in the universe credits are held on chips). Shown on action titles, inventory rows and the credits line; buyables, skills and Moles have none yet.
-
-- **Inventory layout (2026-10-26):** a grid of tiles, one for every possible item and rarity (icon, count underneath, dimmed when 0). Items that cannot be sold are in a section on the left; sellable ones in their own section on the right, where a tile is selected by clicking and sold with the Sell and Sell all buttons beside the grid. Clicking a Burn lead tile uses one. The Back channel (Kompromat for Moles) is a third button beside Sell and Sell all, for the selected common Kompromat.
-
-Decided 2026-10-25 (by the user, Zero-days): Push malware gets the buyable *Zero-day exploits* (10,000 credits, placeholder), which lets its runs drop the item *Zero-day* (5%; no rarity, like the Burn lead; `sellable: false`). Clicking the Zero-day tile in the Inventory is a **toggle**: while on, every completed Push malware run uses one Zero-day up and is a critical success; the toggle switches itself off when none is left and cannot be switched on with none held. A batch of runs is settled in closed form (`min(runs, held)` guaranteed critical, the rest roll the normal chance). Configured by `items.zeroDay` (`{itemId, actionId}`); unit `core/zeroDays.ts`; the toggle is saved as `zeroDaysOn` and resets on re-sleeve.
-
-Decided 2026-10-25 (by the user, Push malware crits): **Persistence** (Push malware, 500,000 credits, one time) triples what its critical successes do: both the reward and the action XP multipliers of the action's critical runs (effect `criticalBoost`; reading of "triples the critical success effect", confirm if only one was meant). **Ransomware** (Push malware, 100,000 placeholder) makes every critical Push malware run bank one guaranteed critical success for Grow network, spent by Grow network's next completed runs (effect `criticalLink`, state `bankedCriticals`, unit `core/criticalLinks.ts`). **Obfuscation** is a one-point skill that lowers Push malware's Overclock heat per run factor from 3 to 2 (effect `overclockHeatFactor`). Zero-day exploits cost 5,000 credits.
-
-Working conventions (in use):
 - Doc-comment format: **TSDoc**, extracted by `scripts/generate-docs.mjs` into the HTML overview `docs/architecture.html` (in the style of `ARCHITECTURE_DerivativeClicker.html`).
 - Folder layout, build/run/test commands: see `docs/ARCHITECTURE.md` (project scaffolded 2026-10-24; code in `src/{numbers,core,content,app,ui}`, tests next to code as `*.test.ts`).
-- **No hard-coded tuning:** every number that affects progression (durations, rewards, XP, level thresholds, level worth, prices, caps, intervals) must live in `src/content/gameConfig.ts` (`GameConfig`) and be validated in `core/config.ts`. Describe new variables in `docs/CONFIG.md`. Unit tests use `src/testing/testConfig.ts`, never the real tuning.
+- **No hard-coded tuning:** every number that affects progression (durations, rewards, XP, level thresholds, level worth, prices, caps, intervals) must live in `src/content` (`gameConfig.ts` for the tuning, `actions.ts`, `items.ts`, `buyables/<action>.ts` for the content, `ids.ts` for ids; together `GameConfig`) and be validated in `core/config.ts`. Describe new variables in `docs/CONFIG.md`. Unit tests use `src/testing/testConfig.ts`, never the real tuning.
 - Keep `docs/ARCHITECTURE.md`, `docs/CONFIG.md` and `DESIGN.md` updated in the same change as code.
 - Regenerate the HTML overview with `npm run docs` (output: `docs/architecture.html`) after code changes, and update the curated sections in `scripts/architecture.template.html` when the design changes. Doc format is TSDoc with `Called by:` / `Calls:` lines in the description.
 - Before reporting work done: run `npm run check` (typecheck, Biome, tests, docs check, build).
 - Runs are applied in closed-form batches (no per-run iteration); keep it that way when adding mechanics, and extend `batching.test.ts` so one long tick and many short ones give the same run results.
 - Tests for the real content (`content/gameConfig.test.ts`) check invariants, never tuning numbers.
 - New mechanics extend `testing/invariants.ts` when they add state, and are covered by the random play in `core/properties.test.ts` (seeded, so failures reproduce).
-
-Decided 2026-10-26 (by the user, Kill servers buyables): Kill servers gets five buyables and an Overclock. Prices (placeholders) climb in this order, each a few orders of magnitude above the one before: Cascade failure 1e10, Credit Siphon 1e12, Decommission protocol 1e14, Kill chain 1e17, Black box recorder 1e20. The Credit Siphon icon is the stylised credits chip with speed stripes behind it.
-- **Decommission protocol** (effect `startCostReduction`): the share of the nodes a run takes is multiplied by `0.99 ^ plain action level` (the first level is the biggest step, it never reaches zero). While owned, a node cost that rounds down to 0 is raised to 1 node (my reading of "the cost never reaches 0"; the plain rule still needs 100 nodes without it).
-- **Credit Siphon** (effect `creditSiphon`): when a run starts, 10 seconds of the live per-node income (after the payout multiplier and the heat tax) are paid for each node destroyed.
-- **Cascade failure**: the standard `rewardMultiplier` (x2, x100 per copy) on the ICE Rating a run pays.
-- **Kill servers Overclock:** double ICE Rating per run (`rewardBonus: 1`) and heat does not cool at all while the action runs overclocked (`stopsHeatCooling`: the cooldown stands still, Burn leads cannot be used). The **Kill chain** is its own buyable (effect `overclockChain`, state `chains`, only for an action with a start cost; requires the Overclock unlock; it adds the chain to the Overclock): each consecutive overclocked run adds a link (at most 20) that makes the next run pay 10% more ICE Rating (a gain: scaled by the Overclock strength) and take 10% more of the node share (a price: fixed). Stopping the action or switching Overclock off breaks it.
-- **Black box recorder** makes Kill servers runs drop **Admin keys**: a toggle in the Inventory like the Zero-day (own switch `adminKeysOn`; the `ZeroDays` unit is instantiated per item): each completed Practice Hacking run uses one and is a critical success. Each run an Admin key made critical (and no other critical) has a small chance (2%, placeholder) to drop a **Skill shard** (no rarity, not sold). Clicking a Skill shard lands it on a random unlocked action and **delays its action XP scaling by 1 level** (`LevelRule` `delay`: the first level cost repeats once more); action levels only; resets by re-sleeving (assumption).
-
-Decided 2026-10-26 (by the user, heat cooling): the skill **Purge Protocol** (1 skill point, placeholder) makes each heat cooldown cycle remove 1 more heat per SLEEVE level of Build Legend (effect `heatCooldownAmountFromSleeveLevel`, stat `heatCooldownAmount`). Cycles do not get faster: the cooldown stays in discrete steps, so it takes effect at once when unlocked. It is meant as a late-stage skill, part of removing the heat tax. A paid "Launder credits" cooling toggle is wanted later, tied into another system; not built.
-
-Decided 2026-10-26 (by the user, re-sleeve points and synthetic sleeves): a re-sleeve gives one **re-sleeve point** (`resleeve.pointsPerResleeve`), spent on a **tree of re-sleeve skills** in its own group on the Skills tab (`currency: 'resleevePoints'`, `requires` draw the tree). Re-sleeve skills are kept through re-sleeving (`CARRIED_OVER_BUYABLE_CURRENCIES`), ordinary skills still reset. **Every sleeve-run is written down at re-sleeve, whatever skills are owned** (`GameState.runs`: the sleeve's OWN credits per second after the heat tax, never including synthetic income so nothing compounds, and the total of its action levels); a **Stats** tab lists the latest 10. The tree: **Sleeve Euphoria** (every action level needs `1 - 0.5^log10(that action's sleeve level)` less XP: 50% at level 10, 75% at 100; multiplies with flat reductions and is outside their cap), **Synthetic Sleeves** and **Incorporation** (both need Euphoria; Incorporation is a placeholder that does nothing). **Synthetic sleeves:** buying the skill gives one at once, copied from the last finished run, and each later re-sleeve gives one more, copied from the run that just ended; runs before the purchase are never copied; each sleeve keeps its own run's numbers. A sleeve earns `its run's credits per second x min(1, current action level total / that run's total)`, untaxed by heat and not multiplied by the credit lever again. The Network widget shows exactly two lines for them: the number of sleeves and their total credits per second. Upgrades that change the base behaviour (they stop being only a speed-up) are expected later.
-
-Decided 2026-10-26 (by the user, after the full review):
-- **Infinity is 1e308** (`core/infinity.ts`, `INFINITY`). Every amount is clamped to it by the overflow policy after every slice and every multiplier derived from an amount saturates there (`saturate`); reaching it calls the policy's `onInfinity` listener (the hook for the future infinity prestige, whose design is still open). It is a representational limit, not a tuning value.
-- **Buyable effects live in one registry** (`core/effectRegistry.ts`): a new effect kind is a union member plus ONE registry entry (traits, validator, action and sleeve hooks). `effects.ts` has no `switch` over kinds. A kind read only by a dedicated query leaves the hooks out.
-- **Unlock rules were removed** (`ActionDefinition.unlock`, the `unlock` effect, `unlockedActions`, `latchUnlocks`): actions are gated by access level only. Only save version 4 is read (version 3 support was removed).
-- **One tab plays:** the first tab takes a Web Lock (`app/tabGuard.ts`), later tabs are told so before loading the save. The `storage`-event guard remains only as a fallback.
-- **Saves:** the last successfully loaded save is kept as `cybersleeve.save.previous` and used when the main save is unreadable; the player can export the save as text and import it (`app/saveTransfer.ts`). Importing stops autosaving and reloads.
-- **The engine mutates no state itself:** `Shop.toggle` switches auto-runs and `BackChannel` turns items into Moles. The 45-method delegating facade of `GameEngine` was kept on purpose (the UI and tests depend on it); flatten it only if it starts to hurt.
-- `DESIGN.md` describes the game as it is now (no changelog inside); history lives in git. A docs/CI workflow (`.github/workflows/check.yml`) runs `npm run check`.
-- **Hosting (2026-10-26):** the game is deployed to GitHub Pages (`https://afrandsen87.github.io/Cybersleeve/`) by `.github/workflows/deploy.yml` on every push to `main`: it runs `npm run check` and publishes `dist`. Pages source is set to "GitHub Actions" in the repository settings. The relative `base: './'` in `vite.config.ts` must stay so the build works under the sub-path.
-- Python on this Windows machine reads files as cp1252 unless `PYTHONUTF8=1`: use UTF-8 explicitly when scripting edits.
 
 ## Game design (high level; details to be mapped out over time)
 

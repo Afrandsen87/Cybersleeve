@@ -21,6 +21,8 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 ## Layering (dependencies point downwards only)
 ```
 main.ts ── ui/dom.ts ── ui/viewModel.ts
+              │              │
+       ui/widgets/*    ui/view/*   (one file per widget / per view)
    │            │              │
    ▼            ▼              ▼
 app/ (createGame, loop, persistence)  ──►  core/  ──►  numbers/ (BigNum interface)
