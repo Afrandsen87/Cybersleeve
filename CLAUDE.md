@@ -55,7 +55,7 @@ The reference game plays at astronomical scales (up to 1e303 and beyond, with an
 - Before making a significant design or technology choice not covered here, ask the user and then record the decision in the section below.
 - Write outputs into this project folder (`C:\Code\CyberSleeve`).
 - Do not commit or push unless asked. (This folder is a git repository.) Exception: in a session worktree, small commits on its own branch are expected (see below).
-- **Every session works in its own git worktree and branch** (`.claude/worktrees/<slug>`), never directly on `main`, so parallel sessions do not collide. Use the `/agent-task` skill (`.claude/skills/agent-task/SKILL.md`) to start one. Never merge, rebase or push branches you did not create; the user merges.
+- **Every session works in its own git worktree and branch** (`.claude/worktrees/<slug>`), never directly on `main`, so parallel sessions do not collide. Use the `/agent-task` skill (`.claude/skills/agent-task/SKILL.md`) to start one: it fans complicated tasks out to subagents in their own worktrees, merges their branches, runs `npm run check`, serves a preview dev server from the worktree, and only after the user approves merges the task branch into local `main` itself, then cleans up. Never push (the user pushes, which deploys), and never merge, rebase or delete branches you did not create.
 
 ## Standing rules (distilled from the decisions log)
 
