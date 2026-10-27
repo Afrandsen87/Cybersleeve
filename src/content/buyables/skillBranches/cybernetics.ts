@@ -22,8 +22,8 @@ import {
 } from '../../ids';
 
 /**
- * The cybernetics branch: Overclocked Cortex is the root, with three lanes drawn as straight lines. Bandwidth Leech, Fiber Tap, Backbone Parasite;
- * Muscle Memory, Quick Study; Parallel Threads, Neural Accelerant, Signal Amplifier, Overdrive Spike.
+ * The cybernetics branch: Overclocked Cortex is the root, with three lanes drawn as straight lines. Bandwidth Leech, Signal Amplifier, Fiber Tap, Backbone Parasite;
+ * Muscle Memory, Quick Study; Parallel Threads, Neural Accelerant, Overdrive Spike.
  */
 export const cyberneticsSkills: BuyableDefinition[] = [
   {
@@ -105,7 +105,7 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     description: 'Each completed Push malware run has a 25% chance to also pay one full Grow network reward. It cannot be critical.',
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_BANDWIDTH],
+    parents: [SKILL_SIGNAL_AMPLIFIER],
     cost: num(1),
     // A whole reward or nothing (half a node cannot be paid), so the chance is the lever.
     effect: { kind: 'paysActionReward', sourceActionId: PUSH_MALWARE, targetActionId: GROW_NETWORK, chance: 0.25 },
@@ -138,7 +138,7 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     description: 'Every critical success has a 5% chance to bring one extra critical success.',
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_NEURAL_ACCELERANT],
+    parents: [SKILL_BANDWIDTH],
     cost: num(1),
     effect: { kind: 'criticalExtraChance', chance: 0.05 },
   },
@@ -150,7 +150,7 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     description: 'Doubles the reward of every critical success.',
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_SIGNAL_AMPLIFIER],
+    parents: [SKILL_NEURAL_ACCELERANT],
     cost: num(1),
     effect: { kind: 'criticalRewardMultiplier', factor: 2 },
   },

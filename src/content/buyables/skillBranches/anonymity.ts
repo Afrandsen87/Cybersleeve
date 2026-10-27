@@ -3,9 +3,8 @@
  *
  * The skills of the anonymity branch (heat and traces), bought with skill points.
  *
- * Shape: Cold Trail is the root and splits into four lanes, each a straight line. Cooling: Obfuscation, Purge Protocol, Blackout (the end
- * skill). Burn leads: Scorched Earth, Silver Tongue. Idle: Quiet Hours, Undercover. Moles: Deep Cover (readable once Back Channel Deals
- * is owned), a dead end.
+ * Shape: Cold Trail is the root and splits into three lanes, each a straight line. Cooling: Obfuscation, Purge Protocol, Blackout (the end
+ * skill). Burn leads: Scorched Earth, Silver Tongue. Idle: Quiet Hours, Undercover.
  */
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
@@ -16,10 +15,8 @@ import {
   GROW_NETWORK,
   LEGEND,
   PUSH_MALWARE,
-  SKILL_BACK_CHANNEL,
   SKILL_BLACKOUT,
   SKILL_COLD_TRAIL,
-  SKILL_DEEP_COVER,
   SKILL_OBFUSCATION,
   SKILL_PURGE_PROTOCOL,
   SKILL_QUIET_HOURS,
@@ -115,20 +112,6 @@ export const anonymitySkills: BuyableDefinition[] = [
     parents: [SKILL_QUIET_HOURS],
     cost: num(1),
     effect: { kind: 'idleHeatCooldownAction', actionId: GROW_NETWORK },
-  },
-
-  {
-    id: SKILL_DEEP_COVER,
-    name: 'Deep Cover',
-    symbol: 'DC',
-    description:
-      'Moles stay with you instead of being spent. Heat cools 5% faster for every order of magnitude of Moles you hold, in place of the Mole boost.',
-    currency: 'skillPoints',
-    branch: BRANCH_ANONYMITY,
-    parents: [SKILL_COLD_TRAIL],
-    requires: [SKILL_BACK_CHANNEL], // reveal gate: Moles only come from Back Channel Deals
-    cost: num(1),
-    effect: { kind: 'moleAggregation', bonusPerOrder: 0.05 },
   },
 
   {

@@ -10,6 +10,7 @@ import {
   KOMPROMAT,
   KOMPROMAT_HARVEST,
   SKILL_BACK_CHANNEL,
+  SKILL_DEEP_COVER,
   SKILL_DEEP_FILES,
   SKILL_DOSSIER,
   SKILL_DOUBLE_AGENT,
@@ -20,7 +21,7 @@ import {
 
 /**
  * The leverage branch: Nose for Secrets is the root; Deep Files, Exploit Kompromat (then Dossier) and Back Channel Deals (then Tiered
- * Informants, then Double Agent) grow from it. All of them are masked until
+ * Informants, Double Agent, then Deep Cover) grow from it. All of them are masked until
  * Kompromat harvest is owned (the reveal gate `requires`; the children also inherit the root's masking through `parents`).
  */
 export const leverageSkills: BuyableDefinition[] = [
@@ -115,5 +116,19 @@ export const leverageSkills: BuyableDefinition[] = [
     requires: [KOMPROMAT_HARVEST],
     cost: num(1),
     effect: { kind: 'backChannelMultiplier', itemId: KOMPROMAT, factor: 2 },
+  },
+
+  {
+    id: SKILL_DEEP_COVER,
+    name: 'Deep Cover',
+    symbol: 'DC',
+    description:
+      'Moles stay with you instead of being spent. Heat cools 5% faster for every order of magnitude of Moles you hold, in place of the Mole boost.',
+    currency: 'skillPoints',
+    branch: BRANCH_LEVERAGE,
+    parents: [SKILL_DOUBLE_AGENT],
+    requires: [KOMPROMAT_HARVEST],
+    cost: num(1),
+    effect: { kind: 'moleAggregation', bonusPerOrder: 0.05 },
   },
 ];

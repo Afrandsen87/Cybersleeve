@@ -128,7 +128,6 @@ export const SKILLS = [
   SKILL_SILVER_TONGUE,
   SKILL_QUIET_HOURS,
   SKILL_UNDERCOVER,
-  SKILL_DEEP_COVER,
   SKILL_BLACKOUT,
   SKILL_NOSE_FOR_SECRETS,
   SKILL_EXPLOIT_KOMPROMAT,
@@ -137,6 +136,7 @@ export const SKILLS = [
   SKILL_DOSSIER,
   SKILL_TIERED_INFORMANTS,
   SKILL_DOUBLE_AGENT,
+  SKILL_DEEP_COVER,
 ] as const;
 /** Branch id of the skill tree's cybernetics lane (its title is in `ui/uiText.ts`, its colour in `ui/style.css`). */
 export const BRANCH_CYBERNETICS = 'cybernetics';
