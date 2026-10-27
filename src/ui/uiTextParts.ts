@@ -193,6 +193,10 @@ export interface FocusTipParts {
   readonly slots: string;
   /** Another action cannot be focused: every slot is taken (and this one is not focused). */
   readonly full: boolean;
+  /** Several slots may sit on one action (the Overdrive Cap skill), so the cell has an add and a remove half. */
+  readonly stacking: boolean;
+  /** Focus slots on this action now. */
+  readonly count: string;
 }
 
 /** Pre-formatted pieces of the hover text of the Zero-day tile. */

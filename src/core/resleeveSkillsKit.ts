@@ -64,3 +64,28 @@ export const tryBuy = (g: ReturnType<typeof createGame>, id: string): string => 
 export const resleeveTimes = (g: ReturnType<typeof createGame>, times: number): void => {
   for (let i = 0; i < times; i++) g.resleeve();
 };
+
+const actionB = { id: 'b', name: 'B', baseDurationMs: 10_000, reward: num(1), xpPerRun: num(1) };
+
+/** Two actions ('a' and 'b') with Focus unlocked by a purchase each, up to two extra Focus slots, and the focus stacking skill 'stack'. */
+export const focusStackConfig: GameConfig = withBuyables(
+  [
+    plainBuyable('fo-a', { kind: 'focusUnlock' }, { actionId: 'a' }),
+    plainBuyable('fo-b', { kind: 'focusUnlock' }, { actionId: 'b' }),
+    plainBuyable('slot', { kind: 'focusSlots', perCopy: 1 }, { maxPurchases: 2 }),
+    resleeveSkill('stack', { kind: 'focusStacking' }),
+  ],
+  { actions: [...testConfig.actions, actionB] },
+);
+
+/** A game on {@link focusStackConfig} with Focus unlocked on both actions and `slots` extra slots (1 + `slots` in all), with or without the stacking skill. */
+export function focusStackGame(slots: number, stacking: boolean): ReturnType<typeof newGame> {
+  const g = newGame(focusStackConfig);
+  if (stacking) {
+    resleeveTimes(g, 1);
+    if (tryBuy(g, 'stack') !== 'purchased') throw new Error('the stacking skill could not be bought');
+  }
+  for (const id of ['fo-a', 'fo-b']) tryBuy(g, id);
+  for (let i = 0; i < slots; i++) tryBuy(g, 'slot');
+  return g;
+}

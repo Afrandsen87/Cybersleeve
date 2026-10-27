@@ -36,6 +36,20 @@ export interface AugmentButtonView {
   readonly tip: string;
 }
 
+/** The add and remove halves a Focus cell is split into once several slots may sit on one action (the Overdrive Cap skill). */
+export interface SplitButtonView {
+  /** Focus slots on this action now. */
+  readonly count: number;
+  /** A slot is free and may be added to this action. */
+  readonly canAdd: boolean;
+  /** This action has a slot to take off. */
+  readonly canRemove: boolean;
+  /** Hover text of the add half (built when read). */
+  readonly addTip: string;
+  /** Hover text of the remove half (built when read). */
+  readonly removeTip: string;
+}
+
 /** A square toggle on an action card (Overclock or Focus). */
 export interface ModeButtonView {
   /** Short text on the square button. */
@@ -48,6 +62,8 @@ export interface ModeButtonView {
   readonly clickable: boolean;
   /** Hover text. Built when read (a getter): only the tip under the pointer is ever shown. */
   readonly tip: string;
+  /** Present when the button is split into add and remove halves (Focus with the Overdrive Cap skill). */
+  readonly split?: SplitButtonView;
 }
 
 /** One cell of the square on an action card. */
@@ -70,6 +86,8 @@ export interface SquareCellView {
   readonly ready: boolean;
   /** The buyable behind a `buy` cell or the Auto-run toggle; `null` for the others. */
   readonly buyableId: string | null;
+  /** Present on an owned Focus cell that is split into add and remove halves. */
+  readonly split?: SplitButtonView;
   /** Hover text. Built when read (a getter): only the tip under the pointer is ever shown. */
   readonly tip: string;
 }

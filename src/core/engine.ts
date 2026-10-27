@@ -349,6 +349,16 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.toggles.toggleFocus(id);
   }
 
+  /** Puts one more Focus slot on an action; several slots on one action need the Overdrive Cap skill. @returns true when one was added */
+  addFocus(id: ActionId): boolean {
+    return this.toggles.addFocus(id);
+  }
+
+  /** Takes one Focus slot off an action. @returns true when one was removed */
+  removeFocus(id: ActionId): boolean {
+    return this.toggles.removeFocus(id);
+  }
+
   /**
    * Re-sleeves if the policy allows it.
    * @returns true when the reset was applied

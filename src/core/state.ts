@@ -15,6 +15,7 @@ type ScalarKey = Exclude<
   | 'autoRunOff'
   | 'overclocked'
   | 'focused'
+  | 'focusStacks'
   | 'zeroDaysOn'
   | 'adminKeysOn'
   | 'chains'
@@ -87,6 +88,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
     autoRunOff: {},
     overclocked: {},
     focused: {},
+    focusStacks: {},
     zeroDaysOn: false,
     adminKeysOn: false,
     chains: {},

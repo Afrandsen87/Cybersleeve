@@ -49,6 +49,8 @@ interface SquareHandle {
   readonly grid: HTMLElement;
   /** The four cell buttons, by cell id. */
   readonly cells: ReadonlyMap<SquareCellId, HTMLButtonElement>;
+  /** The add and remove halves laid over the Focus cell (shown only while several slots may sit on one action). */
+  readonly halves: { readonly add: HTMLButtonElement; readonly remove: HTMLButtonElement };
   /** The square as the last refresh drew it (a press acts on what the player saw). */
   latest: ActionSquareView;
 }
@@ -67,6 +69,7 @@ function buildSquare(
   view: ActionSquareView,
   icons: IconSource,
   press: (cell: SquareCellView) => void,
+  pressHalf: (half: 'add' | 'remove') => void,
 ): { root: HTMLElement; handle: SquareHandle } {
   const root = h('div', 'square');
   const unlock = h('button', 'upgrade square-unlock', view.cells[0]?.symbol ?? '') as HTMLButtonElement;
@@ -74,7 +77,15 @@ function buildSquare(
   unlock.setAttribute('aria-label', view.cells[0]?.name ?? '');
   const grid = h('div', 'square-grid');
   const cells = new Map<SquareCellId, HTMLButtonElement>();
-  const handle: SquareHandle = { unlock, grid, cells, latest: view };
+  const half = (kind: 'add' | 'remove', label: string, name: string): HTMLButtonElement => {
+    const button = h('button', `upgrade cell-half cell-half-${kind}`, label) as HTMLButtonElement;
+    button.setAttribute('aria-label', name);
+    button.hidden = true;
+    button.addEventListener('click', () => pressHalf(kind));
+    return button;
+  };
+  const halves = { add: half('add', '+', 'Add a Focus slot'), remove: half('remove', '−', 'Remove a Focus slot') };
+  const handle: SquareHandle = { unlock, grid, cells, halves, latest: view };
   unlock.addEventListener('click', () => {
     const cell = handle.latest.cells[0];
     if (cell) press(cell);
@@ -91,7 +102,7 @@ function buildSquare(
     grid.append(button);
     cells.set(cell.id, button);
   }
-  root.append(unlock, grid);
+  root.append(unlock, grid, halves.add, halves.remove);
   return { root, handle };
 }
 
@@ -123,6 +134,19 @@ function renderSquare(square: SquareHandle, view: ActionSquareView, tips: TipReg
     button.classList.toggle('purchasable', cell.mode === 'buy' && cell.clickable);
     button.classList.toggle('applied', cell.id === 'augment' && cell.on);
     tips.set(button, cell.mode === 'empty' ? null : () => cell.tip);
+    // an owned Focus cell with several slots per action is split into an add and a remove half laid over it
+    if (cell.id === 'focus') {
+      const split = cell.split;
+      square.halves.add.hidden = !split;
+      square.halves.remove.hidden = !split;
+      button.classList.toggle('split', split !== undefined);
+      if (split) {
+        square.halves.add.disabled = !split.canAdd;
+        square.halves.remove.disabled = !split.canRemove;
+        tips.set(square.halves.add, () => split.addTip);
+        tips.set(square.halves.remove, () => split.removeTip);
+      }
+    }
   }
 }
 
@@ -172,14 +196,23 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
     );
 
     // The square beside the bars: one button that buys Auto-run, then a grid of Auto-run, Overclock, Focus and Augment.
-    const { root: squareEl, handle: square } = buildSquare(a.square, icons, (cell) => {
-      if (cell.mode === 'buy' || (cell.mode === 'toggle' && cell.id === 'autoRun')) {
-        if (cell.buyableId !== null) engine.activateBuyable(cell.buyableId);
-      } else if (cell.mode === 'toggle' && cell.id === 'overclock') engine.toggleOverclock(a.id);
-      else if (cell.mode === 'toggle' && cell.id === 'focus') engine.toggleFocus(a.id);
-      else if (cell.mode === 'press' && ctx.selection.augmentRarityId !== null) engine.augmentAction(a.id, ctx.selection.augmentRarityId);
-      ctx.refresh();
-    });
+    const { root: squareEl, handle: square } = buildSquare(
+      a.square,
+      icons,
+      (cell) => {
+        if (cell.mode === 'buy' || (cell.mode === 'toggle' && cell.id === 'autoRun')) {
+          if (cell.buyableId !== null) engine.activateBuyable(cell.buyableId);
+        } else if (cell.mode === 'toggle' && cell.id === 'overclock') engine.toggleOverclock(a.id);
+        else if (cell.mode === 'toggle' && cell.id === 'focus' && !cell.split) engine.toggleFocus(a.id);
+        else if (cell.mode === 'press' && ctx.selection.augmentRarityId !== null) engine.augmentAction(a.id, ctx.selection.augmentRarityId);
+        ctx.refresh();
+      },
+      (kind) => {
+        if (kind === 'add') engine.addFocus(a.id);
+        else engine.removeFocus(a.id);
+        ctx.refresh();
+      },
+    );
 
     // The start button floats in the top right corner (absolutely positioned, so it takes no room in the card's grid).
     const startBtn = h('button', 'start-run') as HTMLButtonElement;

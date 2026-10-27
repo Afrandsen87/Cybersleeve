@@ -83,6 +83,8 @@ export interface SleeveStats {
   readonly overclockStrength: number;
   /** Focus slots bought on top of `focus.baseSlots` (>= 0). */
   readonly extraFocusSlots: number;
+  /** Several Focus slots may sit on one action. */
+  readonly focusStacking: boolean;
   /** The heat factor `overclockHeatFactor` buyables set for an action's Overclock (lowest wins); an action without an entry keeps its rule's own factor. */
   readonly overclockHeatFactors: Readonly<Record<ActionId, number>>;
 }
@@ -227,6 +229,7 @@ export function resolveSleeveStats(
     criticalRewardFactor: 1,
     overclockStrength: 1,
     extraFocusSlots: 0,
+    focusStacking: false,
     overclockHeatFactors: {},
   };
   const nodePayoutTerms: FactorTerm[] = [];
@@ -299,6 +302,7 @@ export function resolveSleeveStats(
     criticalRewardFactor: saturate(acc.criticalRewardFactor),
     overclockStrength: acc.overclockStrength,
     extraFocusSlots: acc.extraFocusSlots,
+    focusStacking: acc.focusStacking,
     overclockHeatFactors: acc.overclockHeatFactors,
   };
 }

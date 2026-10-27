@@ -81,6 +81,7 @@ describe('scalar field registry', () => {
       'autoRunOff',
       'overclocked',
       'focused',
+      'focusStacks',
       'zeroDaysOn',
       'adminKeysOn',
       'chains',

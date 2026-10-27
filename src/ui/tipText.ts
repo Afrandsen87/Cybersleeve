@@ -242,15 +242,21 @@ export const tipText: UiText['tips'] = {
       '',
       `Click to switch ${on ? 'off' : 'on'}`,
     ].join('\n'),
-  focus: ({ on, bonusPercent, used, slots, full }) =>
+  focus: ({ on, bonusPercent, used, slots, full, stacking, count }) =>
     [
-      `Focus (${on ? 'on' : 'off'})`,
-      'Action Speed = Action Speed x (1 + Focus Bonus)',
+      stacking ? `Focus (${count} slots on this action)` : `Focus (${on ? 'on' : 'off'})`,
+      stacking
+        ? 'Action Speed = Action Speed x (1 + Focus Bonus per slot) ^ Slots on this action'
+        : 'Action Speed = Action Speed x (1 + Focus Bonus)',
       '',
       `Focus Bonus = ${bonusPercent}%`,
       `Focus Slots in use = ${used} / ${slots}`,
       '',
-      full ? 'Every slot is in use: switch another action off first' : `Click to switch ${on ? 'off' : 'on'}`,
+      stacking
+        ? 'Left half: put a slot on this action. Right half: take one off'
+        : full
+          ? 'Every slot is in use: switch another action off first'
+          : `Click to switch ${on ? 'off' : 'on'}`,
     ].join('\n'),
   burnLead: ({ label, sharePercent, drops, heat, heatAfter, count, canUse }) =>
     [

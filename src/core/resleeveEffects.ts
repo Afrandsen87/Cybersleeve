@@ -24,4 +24,11 @@ export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<
       if (!buyableIds.has(e.targetId)) errors.push(`${where}: buyableCapBonus refers to unknown buyable "${e.targetId}"`);
     },
   },
+  focusStacking: {
+    traits: sleeveWide,
+    validate: () => {},
+    sleeve: (acc) => {
+      acc.focusStacking = true;
+    },
+  },
 };

@@ -45,14 +45,22 @@ export interface OverclockStatus {
 export interface FocusStatus {
   /** The action is focused. */
   readonly on: boolean;
-  /** The speed bonus a focused action gets (0.25 = 25 percent faster). */
+  /** The speed bonus the action gets from Focus (0.25 = 25 percent faster): that of its slots when focused, of one slot while it is off. */
   readonly speedBonus: number;
-  /** How many actions can be focused at once. */
+  /** How many Focus slots there are. */
   readonly slots: number;
-  /** How many actions are focused now. */
+  /** How many Focus slots are taken, by all actions together. */
   readonly used: number;
   /** The toggle can be switched on (a slot is free) or off (it is on). False for an action that is off while every slot is taken. */
   readonly canSwitchOn: boolean;
+  /** Focus slots on this action (0 while off; more than 1 only with focus stacking). */
+  readonly count: number;
+  /** Several slots may sit on one action (the add and remove buttons replace the toggle). */
+  readonly stacking: boolean;
+  /** A slot is free and may be put on this action (not yet focused, or stacking allows another). */
+  readonly canAdd: boolean;
+  /** This action has a slot to take off. */
+  readonly canRemove: boolean;
 }
 
 /** Where the statuses come from (satisfied by `DerivedStats`). */
@@ -108,8 +116,40 @@ export class ActionToggles {
   toggleFocus(id: ActionId): boolean {
     const status = this.modes.focusStatus(id);
     if (!status?.canSwitchOn || !this.state.actions[id]) return false;
-    if (status.on) delete this.state.focused[id];
-    else this.state.focused[id] = true;
+    if (status.on) {
+      delete this.state.focused[id];
+      delete this.state.focusStacks[id];
+    } else this.state.focused[id] = true;
     return !status.on;
+  }
+
+  /**
+   * Puts one more Focus slot on an action: the first focuses it, further ones (only with focus stacking) stack on it.
+   *
+   * @param id the action
+   * @returns true when a slot was added; false when nothing changed (no free slot, no stacking, not unlocked, unknown action)
+   */
+  addFocus(id: ActionId): boolean {
+    const status = this.modes.focusStatus(id);
+    if (!status?.canAdd || !this.state.actions[id]) return false;
+    if (status.on) this.state.focusStacks[id] = (this.state.focusStacks[id] ?? 0) + 1;
+    else this.state.focused[id] = true;
+    return true;
+  }
+
+  /**
+   * Takes one Focus slot off an action: stacked slots first, then the focus itself.
+   *
+   * @param id the action
+   * @returns true when a slot was removed; false when the action had none
+   */
+  removeFocus(id: ActionId): boolean {
+    const status = this.modes.focusStatus(id);
+    if (!status?.canRemove || !this.state.actions[id]) return false;
+    const stacks = this.state.focusStacks[id] ?? 0;
+    if (stacks > 1) this.state.focusStacks[id] = stacks - 1;
+    else if (stacks === 1) delete this.state.focusStacks[id];
+    else delete this.state.focused[id];
+    return true;
   }
 }

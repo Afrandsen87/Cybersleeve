@@ -1013,6 +1013,34 @@ button:not(:disabled):hover {
   color: var(--cyan);
   box-shadow: 0 0 8px var(--cyan);
 }
+/* Focus with several slots per action: an add and a remove half lie over the Focus cell (bottom left of the square) and the cell itself only shows. */
+.square {
+  position: relative;
+}
+.square > .cell-half {
+  position: absolute;
+  top: calc(var(--cell) + var(--square-gap));
+  width: calc(var(--cell) / 2);
+  height: var(--cell);
+  padding: 0;
+  font-size: 16px;
+  line-height: calc(var(--cell) - 2px);
+  z-index: 1;
+}
+.square > .cell-half-add {
+  left: 0;
+  border-radius: 4px 0 0 4px;
+}
+.square > .cell-half-remove {
+  left: calc(var(--cell) / 2);
+  border-radius: 0 4px 4px 0;
+}
+.square > .cell-half[hidden] {
+  display: none;
+}
+.cell-focus.split {
+  pointer-events: none;
+}
 /* A feature this action does not have yet: an empty placeholder. */
 .cell.empty {
   border-style: dashed;

@@ -87,6 +87,8 @@ export interface SleeveAccumulator {
   overclockStrength: number;
   /** Focus slots bought on top of the base slots. */
   extraFocusSlots: number;
+  /** Several Focus slots may sit on one action (the player owns a `focusStacking` buyable). */
+  focusStacking: boolean;
   /** The lowest heat factor of Overclock set by `overclockHeatFactor` buyables, by action. */
   overclockHeatFactors: Record<ActionId, number>;
 }

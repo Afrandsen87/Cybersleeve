@@ -329,10 +329,24 @@ export class DerivedStats implements ModeStatuses {
     this.definition(id);
     if (!resolveEffects(this.config.buyables, this.state, id, this.factory).focusUnlocked) return null;
     const { speedBonus, baseSlots } = this.config.focus;
-    const slots = baseSlots + this.sleeveStats().extraFocusSlots;
-    const on = this.state.focused[id] === true;
-    const used = this.config.actions.reduce((n, a) => n + (this.state.focused[a.id] === true ? 1 : 0), 0);
-    return { on, speedBonus, slots, used, canSwitchOn: on || used < slots };
+    const { extraFocusSlots, focusStacking } = this.sleeveStats();
+    const slots = baseSlots + extraFocusSlots;
+    const slotsOn = (actionId: ActionId): number =>
+      this.state.focused[actionId] === true ? 1 + (focusStacking ? (this.state.focusStacks[actionId] ?? 0) : 0) : 0;
+    const count = slotsOn(id);
+    const used = this.config.actions.reduce((n, a) => n + slotsOn(a.id), 0);
+    // every slot on the action multiplies its speed by the bonus again
+    return {
+      on: count > 0,
+      speedBonus: (1 + speedBonus) ** Math.max(1, count) - 1,
+      slots,
+      used,
+      canSwitchOn: count > 0 || used < slots,
+      count,
+      stacking: focusStacking,
+      canAdd: used < slots && (count === 0 || focusStacking),
+      canRemove: count > 0,
+    };
   }
 
   /** Everything the speed factors of an action read: its levels (action level including the level bonus), the interface speed and the toggles. */

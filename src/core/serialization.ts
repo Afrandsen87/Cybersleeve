@@ -39,6 +39,7 @@ interface SaveData {
   autoRunOff: Record<string, boolean>;
   overclocked: Record<string, boolean>;
   focused: Record<string, boolean>;
+  focusStacks: Record<string, number>;
   zeroDaysOn: boolean;
   adminKeysOn: boolean;
   chains: Record<string, number>;
@@ -82,6 +83,7 @@ export function serializeState(state: GameStateView): string {
     autoRunOff: { ...state.autoRunOff },
     overclocked: { ...state.overclocked },
     focused: { ...state.focused },
+    focusStacks: { ...state.focusStacks },
     zeroDaysOn: state.zeroDaysOn,
     adminKeysOn: state.adminKeysOn,
     chains: { ...state.chains },
@@ -273,6 +275,8 @@ function readToggles(state: GameState, raw: Record<string, unknown>, config: Pic
   const savedFocus = isRecord(raw['focused']) ? raw['focused'] : {};
   const unlocked = (kind: string, actionId: string): boolean =>
     config.buyables.some((b) => b.effect.kind === kind && b.actionId === actionId && (state.purchased[b.id] ?? 0) > 0);
+  const savedStacks = isRecord(raw['focusStacks']) ? raw['focusStacks'] : {};
+  const stacking = config.buyables.some((b) => b.effect.kind === 'focusStacking' && (state.purchased[b.id] ?? 0) > 0);
   let slots =
     config.focus.baseSlots +
     config.buyables.reduce((n, b) => (b.effect.kind === 'focusSlots' ? n + b.effect.perCopy * (state.purchased[b.id] ?? 0) : n), 0);
@@ -281,6 +285,10 @@ function readToggles(state: GameState, raw: Record<string, unknown>, config: Pic
     if (slots > 0 && unlocked('focusUnlock', def.id) && savedFocus[def.id] === true) {
       state.focused[def.id] = true;
       slots--;
+      // extra slots on the same action only with the stacking skill, and never more than the slots that are left
+      const stacks = stacking ? Math.min(readCount(savedStacks[def.id]), slots) : 0;
+      if (stacks > 0) state.focusStacks[def.id] = stacks;
+      slots -= stacks;
     }
   }
 }

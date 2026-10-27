@@ -63,6 +63,6 @@ export const reachSkills: BuyableDefinition[] = [
     branch: BRANCH_REACH,
     cost: num(3),
     parents: [SKILL_CLEARANCE_ESCALATION],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'focusStacking' },
   },
 ];

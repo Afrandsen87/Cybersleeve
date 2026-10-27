@@ -227,6 +227,10 @@ export interface ActionCommands {
   toggleOverclock(id: ActionId): boolean;
   /** Switches Focus on or off for an action (switching on needs a free slot). @returns true when it is now on */
   toggleFocus(id: ActionId): boolean;
+  /** Puts one more Focus slot on an action (several only with the Overdrive Cap skill). @returns true when one was added */
+  addFocus(id: ActionId): boolean;
+  /** Takes one Focus slot off an action. @returns true when one was removed */
+  removeFocus(id: ActionId): boolean;
 }
 
 /** Commands on the corporation. Called by: `ui/widgets/corporationCards.ts`. */

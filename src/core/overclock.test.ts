@@ -287,7 +287,17 @@ describe('Focus', () => {
   it('the unlock gives that action the toggle, off at first, with one free slot and a bonus of 25%; other actions stay locked', () => {
     const g = game();
     buyTimes(g, 'fo-a');
-    expect(g.focusStatus('a')).toEqual({ on: false, speedBonus: 0.25, slots: 1, used: 0, canSwitchOn: true });
+    expect(g.focusStatus('a')).toEqual({
+      on: false,
+      speedBonus: 0.25,
+      slots: 1,
+      used: 0,
+      canSwitchOn: true,
+      count: 0,
+      stacking: false,
+      canAdd: true,
+      canRemove: false,
+    });
     expect(g.focusStatus('net')).toBeNull();
   });
 

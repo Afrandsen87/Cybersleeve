@@ -127,8 +127,14 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   for (const id of Object.keys(state.focused)) {
     if (!known.has(id) || !unlocked('focusUnlock', id)) problems.push(`focused.${id} is switched on without its unlock`);
   }
-  if (Object.keys(state.focused).length > slots)
-    problems.push(`${Object.keys(state.focused).length} actions are focused with ${slots} Focus slots`);
+  const stacking = config.buyables.some((b) => b.effect.kind === 'focusStacking' && (state.purchased[b.id] ?? 0) > 0);
+  for (const [id, count] of Object.entries(state.focusStacks)) {
+    if (!validCount(count) || count < 1) problems.push(`focusStacks.${id} is invalid: ${count}`);
+    if (state.focused[id] !== true) problems.push(`focusStacks.${id} has stacked slots on an action that is not focused`);
+    if (!stacking) problems.push(`focusStacks.${id} is set without a focus stacking skill`);
+  }
+  const taken = Object.keys(state.focused).length + Object.values(state.focusStacks).reduce((n, c) => n + c, 0);
+  if (taken > slots) problems.push(`${taken} Focus slots are taken with ${slots} slots`);
   for (const [id, count] of Object.entries(state.bankedCriticals)) {
     if (!known.has(id) || !validCount(count)) problems.push(`bankedCriticals.${id} is invalid: ${count}`);
   }

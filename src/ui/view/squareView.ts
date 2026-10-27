@@ -52,6 +52,7 @@ function unlockCell(id: SquareCellId, buyable: BuyableView | undefined, toggle: 
     clickable: toggle ? toggle.clickable : true,
     ready: false,
     buyableId: buyable.id,
+    ...(toggle?.split ? { split: toggle.split } : {}),
     get tip() {
       return source.tip;
     },

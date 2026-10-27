@@ -120,18 +120,37 @@ export function overclockView(engine: ActionQueries & StateQueries, actionId: st
 export function focusView(engine: ActionQueries & StateQueries, actionId: string, text: UiText): ModeButtonView | null {
   const status = engine.focusStatus(actionId);
   if (!status) return null;
+  const tip = (): string =>
+    text.tips.focus({
+      on: status.on,
+      bonusPercent: formatPlain(status.speedBonus * 100),
+      used: String(status.used),
+      slots: String(status.slots),
+      full: !status.canSwitchOn,
+      stacking: status.stacking,
+      count: String(status.count),
+    });
   return {
     ...text.action.modes.focus,
     on: status.on,
     clickable: status.canSwitchOn,
+    ...(status.stacking
+      ? {
+          split: {
+            count: status.count,
+            canAdd: status.canAdd,
+            canRemove: status.canRemove,
+            get addTip() {
+              return tip();
+            },
+            get removeTip() {
+              return tip();
+            },
+          },
+        }
+      : {}),
     get tip() {
-      return text.tips.focus({
-        on: status.on,
-        bonusPercent: formatPlain(status.speedBonus * 100),
-        used: String(status.used),
-        slots: String(status.slots),
-        full: !status.canSwitchOn,
-      });
+      return tip();
     },
   };
 }
