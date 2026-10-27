@@ -197,7 +197,7 @@ export interface BuyableDefinition {
    */
   readonly requires?: readonly BuyableId[];
   /**
-   * Skill-tree edges: the skills that must be owned before this one can be bought (the skill is drawn after them in its branch). A skill
+   * Skill-tree edges: the skills that must be owned before this one can be bought (the skill is drawn after them in its branch, with a line from each parent). Every parent is in the same `branch` (validated). A skill
    * is readable only when its `requires` are owned and all its parents are readable. Default: none (a root of its branch).
    */
   readonly parents?: readonly BuyableId[];

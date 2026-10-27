@@ -16,7 +16,7 @@ export interface SkillNodeView {
   readonly col: number;
   /** Row within the lane (a child starts on its parent's row when it is free). Top to bottom on screen. */
   readonly row: number;
-  /** Ids of the parents drawn in the same lane (the tree edges that are drawn). */
+  /** Ids of the parents (always in the same lane, so every one has a line drawn to this node). */
   readonly parents: readonly string[];
   /** True while the skill's text is hidden: its gate is not met, or a parent is itself masked. */
   readonly masked: boolean;

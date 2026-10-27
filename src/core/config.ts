@@ -314,6 +314,10 @@ export function validateConfig(config: GameConfig): string[] {
     for (const p of b.parents ?? []) {
       if (!buyableIds.has(p)) errors.push(`buyable "${b.id}": has unknown parent "${p}"`);
       if (p === b.id) errors.push(`buyable "${b.id}": cannot be its own parent`);
+      const parent = config.buyables.find((x) => x.id === p);
+      if (parent && parent.branch !== b.branch) {
+        errors.push(`buyable "${b.id}": its parent "${p}" is in another branch (a parent must be in the same branch)`);
+      }
     }
     if ((b.parents?.length ?? 0) > 0 && b.currency !== 'skillPoints' && b.currency !== 'resleevePoints') {
       errors.push(`buyable "${b.id}": only skills (paid in points) have parents`);

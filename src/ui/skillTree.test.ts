@@ -115,11 +115,9 @@ describe('skill tree lanes', () => {
     expect(lane!.nodes[0]!.masked).toBe(true);
   });
 
-  it('a parent in another lane is not drawn as an edge, but still has to be readable', () => {
-    const skills = [def('a', { branch: 'red' }), def('b', { branch: 'blue', parents: ['a'] })];
-    const result = lanes(skills, ['a']);
-    expect(result[1]!.nodes[0]!.parents).toEqual([]);
-    expect(result[1]!.nodes[0]!.masked).toBe(false);
+  it('every parent of a node is listed on it, so a line is drawn from each', () => {
+    const skills = [def('a', { branch: 'red' }), def('b', { branch: 'red' }), def('c', { branch: 'red', parents: ['a', 'b'] })];
+    expect(lanes(skills)[0]!.nodes.map((n) => n.parents)).toEqual([[], [], ['a', 'b']]);
   });
 });
 

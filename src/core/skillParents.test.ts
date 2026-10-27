@@ -106,6 +106,12 @@ describe('skill parents: saves and configuration', () => {
     expect(problems(skill('x', { parents: ['y'] }), skill('y', { requires: ['x'] }))).toContain('form a cycle');
   });
 
+  it('a parent must be in the same branch as its child', () => {
+    expect(problems(skill('r', { branch: 'red' }), skill('c', { branch: 'red', parents: ['r'] }))).toBe('');
+    expect(problems(skill('r', { branch: 'red' }), skill('c', { branch: 'blue', parents: ['r'] }))).toContain('is in another branch');
+    expect(problems(skill('r', { branch: 'red' }), skill('c', { parents: ['r'] }))).toContain('is in another branch');
+  });
+
   it('only skills (paid in points) can have parents', () => {
     const credits: BuyableDefinition = {
       id: 'plain',
