@@ -56,7 +56,7 @@ describe('Heat, ICE Rating and Legend tooltips', () => {
       '',
       'Heat Tax = 7% of all credits earned from nodes',
       'Node credits stop at 100 heat',
-      'Heat falls by 1 every 60s, in whole points only: it waits until there is at least 1',
+      'Heat falls by 1 every 60s, once at least 1 heat is held',
     ]);
   });
 
@@ -319,7 +319,7 @@ describe('Critical success tooltip', () => {
       '',
       'Each critical success gives 2x action XP and pays 3x the reward',
       'Above 100% a run can have several critical successes: 150% is one for sure and a 50% chance of a second',
-      'Some actions may do something different',
+      'Some actions may have other effects as well',
     ]);
   });
 });

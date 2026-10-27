@@ -142,8 +142,8 @@ describe('the heat bar with fractions of a point', () => {
     expect(statRow(buildViewModel(g).sleeve.stats, 'heat').text).toBe('0.5');
   });
 
-  it('the heat tip says the cooldown removes whole points only', () => {
+  it('the heat tip says when the cooldown removes heat', () => {
     const g = createGame({ config });
-    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').tip).toContain('in whole points only');
+    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').tip).toContain('once at least 1 heat is held');
   });
 });

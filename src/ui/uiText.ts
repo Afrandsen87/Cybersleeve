@@ -268,8 +268,7 @@ export const uiText: UiText = {
   },
   corporation: {
     info: (duration) => `Run time ${duration}`,
-    tip: ({ name, duration, effects }) =>
-      [name, `Run Time = ${duration}`, 'Interface speed does not change it: the corporation scales on its own', '', ...effects].join('\n'),
+    tip: ({ name, duration, effects }) => [name, `Run Time = ${duration}`, '', ...effects].join('\n'),
     effects: {
       upgradeRandomItem: (effect, itemName, percent) =>
         `Each run has a ${percent}% chance to upgrade one random ${itemName(effect.itemId)} you hold to the next rarity`,
@@ -289,7 +288,7 @@ export const uiText: UiText = {
       },
       dispersal: {
         name: 'Augment dispersal',
-        description: 'Applies the Augment schematics you hold to the actions by the shares you set. Actions with 0% get none.',
+        description: 'Applies the Augment schematics you hold to the actions by the shares you set.',
       },
     },
     autoBurnSwitch: (on) => (on ? 'Auto Burn: on' : 'Auto Burn: off'),
@@ -384,7 +383,7 @@ export const uiText: UiText = {
     exportFailed: 'Could not copy the save. Your browser blocked the clipboard.',
     importPrompt: 'Paste your save here. It replaces the game you are playing now.',
     imported: 'Save imported. The page reloads now.',
-    importInvalid: 'That text is not a valid save of this version. Nothing was changed.',
+    importInvalid: 'That text is not a valid save of this version. Your current game is kept.',
   },
   changelog: {
     button: 'Changelog',
@@ -396,8 +395,8 @@ export const uiText: UiText = {
   controls: {
     resetSave: 'Reset save',
     resetSaveTip: 'Wipes the game and the save, and starts over',
-    revealLocked: 'Show locked',
-    revealLockedTip: 'Shows the full card of actions that are still locked instead of the access level poster (test aid)',
+    revealLocked: 'Show all',
+    revealLockedTip: 'Shows everything that is still hidden: locked actions, tabs, stats, purchases and items (test aid)',
     testDrop: 'Test drop',
     testDropTip: 'Drops one item now by the current rarity ratios (test aid)',
     doubleCredits: 'Double credits',

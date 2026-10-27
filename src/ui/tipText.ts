@@ -136,7 +136,7 @@ export const tipText: UiText['tips'] = {
       '',
       `Heat Tax = ${taxPercent}% of all credits earned from nodes`,
       ...(stopsAt === null ? [] : [`Node credits stop at ${stopsAt}`]),
-      `Heat falls by ${amount} every ${cycleSeconds}s, in whole points only: it waits until there is at least ${amount}`,
+      `Heat falls by ${amount} every ${cycleSeconds}s, once at least ${amount} heat is held`,
       ...(moles === null ? [] : [`${moles.moles} Moles make it ${moles.boostPercent}% faster`]),
     ].join('\n'),
   iceRating: ({ earned, levelBonus, levelBonusSource, multipliers, total, orders, perOrderPercent, reductionPercent, fullAt }) =>
@@ -162,7 +162,7 @@ export const tipText: UiText['tips'] = {
       '',
       `Each critical success gives ${xpMultiplier}x action XP and pays ${rewardMultiplier}x the reward`,
       'Above 100% a run can have several critical successes: 150% is one for sure and a 50% chance of a second',
-      'Some actions may do something different',
+      'Some actions may have other effects as well',
     ].join('\n'),
   legend: ({ legend, baseSeconds, speedupPercent, cycleSeconds, decayMinutes }) =>
     [
@@ -207,7 +207,7 @@ export const tipText: UiText['tips'] = {
       `XP per Run = ${[baseXp, ...applied.map((a) => `(1 + ${bonus} x ${a.count})`)].join(' x ')} = ${xpPerRun}`,
       '',
       selected === null ? `Select a rarity of ${item} in the Inventory first` : `Selected = ${selected} (${held} held)`,
-      'Click to apply one of the selected rarity to this action: its action levels come sooner (sleeve levels are unaffected)',
+      'Click to apply one of the selected rarity to this action: its action levels come sooner',
     ].join('\n'),
   overclock: ({ on, strength, speed, reward, heatPerMinute, heatPerRunFactor, nodesLost, alsoPays, holdsHeat, chain }) =>
     [
@@ -223,14 +223,14 @@ export const tipText: UiText['tips'] = {
       ...(heatPerMinute === null ? [] : [`Costs ${heatPerMinute} heat per minute while this action runs`]),
       ...(heatPerRunFactor === null ? [] : [`Each run makes ${heatPerRunFactor}x as much heat`]),
       ...(nodesLost === null ? [] : [`Each completed run costs ${nodesLost} nodes`]),
-      ...(holdsHeat ? ['Heat is held in place while this action runs: it cannot cool and Burn leads cannot be used'] : []),
+      ...(holdsHeat ? ['Heat stays in place while this action runs'] : []),
       ...(chain === null
         ? []
         : [
             '',
             `Kill chain = ${chain.links} / ${chain.maxLinks} links`,
             `Each link adds ${chain.rewardPercent}% to the Reward Bonus and ${chain.nodesPercent}% to the share of the balance a run takes`,
-            'Stopping the action or switching Overclock off breaks the chain',
+            'Stopping the action or switching Overclock off resets the chain',
           ]),
       '',
       `Click to switch ${on ? 'off' : 'on'}`,
@@ -285,7 +285,6 @@ export const tipText: UiText['tips'] = {
     [
       label,
       `Delays the XP scaling of a random unlocked action by ${levels} level${levels === '1' ? '' : 's'}: its next level costs stay at the first level's cost for longer`,
-      'Action levels only; sleeve levels are unaffected',
       '',
       ...dropChanceLines(drops),
       canUse ? 'Click to use one; it leaves the Inventory' : 'Needs a shard and an unlocked action',
@@ -307,7 +306,6 @@ export const tipText: UiText['tips'] = {
       '',
       'Each synthetic sleeve copies a finished sleeve-run: Then is the end of that run, Now is this sleeve',
       'A synthetic sleeve keeps its full amount once this sleeve has caught up with it',
-      'Heat takes none of it',
       '',
       `Synthetic Sleeves = ${count}`,
       `Credits per Second = ${perSecond}`,

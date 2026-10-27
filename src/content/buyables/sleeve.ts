@@ -94,8 +94,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: OVERCLOCK_UPGRADE,
     name: 'Overclock upgrade',
     symbol: 'OU',
-    description:
-      'Makes the gains of every Overclock 10% stronger (the speed and reward bonuses; the costs stay). Each copy costs 1000x more.',
+    description: 'Makes the gains of every Overclock 10% stronger (the speed and reward bonuses). Each copy costs 1000x more.',
     cost: num(250_000), // 1000x what unlocking Overclock cost before it became per action
     costGrowth: 1_000, // every 3rd order of magnitude
     maxPurchases: Infinity,
@@ -144,8 +143,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: SLEEVE_LEVELS,
     name: 'Unlock resleeving',
     symbol: 'SL',
-    description:
-      'Unlocks sleeve levels and the option to re-sleeve, and with it the re-sleeve skills. Sleeve XP is tracked before this, but does nothing until you buy it. Kept when you re-sleeve.',
+    description: 'Unlocks sleeve levels and the option to re-sleeve, and with it the re-sleeve skills. Kept when you re-sleeve.',
     cost: num(100e9),
     effect: { kind: 'unlockSleeveLevels' },
   },

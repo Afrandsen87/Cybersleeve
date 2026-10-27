@@ -125,8 +125,9 @@ const sortedCache = new WeakMap<GameConfig, readonly BuyableDefinition[]>();
  * @param engine the engine to read from
  * @param config game configuration
  * @param text the display text
+ * @param revealAll test aid: every purchase is `available`, whatever its requirements and reveal rules say
  */
-export function buildBuyableViews(engine: LevelQueries & ShopQueries, config: GameConfig, text: UiText): BuyableView[] {
+export function buildBuyableViews(engine: LevelQueries & ShopQueries, config: GameConfig, text: UiText, revealAll = false): BuyableView[] {
   let sorted = sortedCache.get(config);
   if (!sorted) {
     sorted = sortByBasePrice(config.buyables);
@@ -152,7 +153,8 @@ export function buildBuyableViews(engine: LevelQueries & ShopQueries, config: Ga
       owned,
       repeatable,
       maxed,
-      available: engine.isBuyableAvailable(b.id) && (SQUARE_EFFECTS.includes(b.effect.kind) || engine.isBuyableRevealed(b.id)),
+      available:
+        revealAll || (engine.isBuyableAvailable(b.id) && (SQUARE_EFFECTS.includes(b.effect.kind) || engine.isBuyableRevealed(b.id))),
       affordable,
       toggleable,
       enabled,

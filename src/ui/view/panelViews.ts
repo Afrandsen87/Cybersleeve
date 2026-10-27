@@ -83,6 +83,7 @@ export function tabsView(engine: SkillQueries & CorporationQueries, state: GameS
  * @param buyableViews the view of every buyable
  * @param viewById the same views by id
  * @param text the display text
+ * @param revealAll test aid: the re-sleeve skills are not masked before the first re-sleeve
  */
 export function skillsView(
   engine: SkillQueries,
@@ -91,6 +92,7 @@ export function skillsView(
   buyableViews: readonly BuyableView[],
   viewById: ReadonlyMap<string, BuyableView>,
   text: UiText,
+  revealAll = false,
 ): SkillsView {
   return {
     title: text.titles.skills,
@@ -104,7 +106,7 @@ export function skillsView(
       pointsText: text.skills.resleevePoints(formatPlain(engine.resleevePoints())),
       // until the first re-sleeve the player has not seen what the skills do: only their places in the tree show
       tiers:
-        state.runs.length > 0
+        state.runs.length > 0 || revealAll
           ? resleeveTiers(config, viewById)
           : resleeveTiers(config, viewById).map((tier) => tier.map((v) => maskedSkill(v, text))),
     },

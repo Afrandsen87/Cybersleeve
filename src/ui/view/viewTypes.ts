@@ -274,6 +274,8 @@ export interface InventoryRowView {
 export interface ViewSelection {
   /** The rarity of Augment schematic selected in the Inventory, or `null`. The Augment buttons of the action cards use this rarity. */
   readonly augmentRarityId: string | null;
+  /** Test aid: show everything the rules of the game hide (tabs, stats, purchases, items). Default: off. */
+  readonly revealAll?: boolean;
 }
 
 /** Nothing selected. */

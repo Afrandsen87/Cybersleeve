@@ -35,7 +35,7 @@ export const killServersBuyables: BuyableDefinition[] = [
     name: 'Decommission protocol',
     symbol: 'DP',
     description:
-      'Every action level lowers the share of your nodes a run takes by 1% of its current value. The first level is worth the most, and the cost keeps shrinking without ever reaching zero.',
+      'Every action level lowers the share of your nodes a run takes by 1% of its current value. The first level is worth the most.',
     formula: 'Share of nodes = base share x 0.99 ^ action level',
     actionId: KILL_SERVERS,
     // Placeholder price (balance is not tuned yet). The Kill servers prices climb in this order: Cascade failure, Credit Siphon,
@@ -73,7 +73,7 @@ export const killServersBuyables: BuyableDefinition[] = [
     name: 'Kill chain',
     symbol: 'KC',
     description:
-      'Adds a chain to the Overclock of this action: every consecutive overclocked run adds a link (up to 20) that makes the next run pay 10% more ICE Rating and take 10% more of the share of nodes. Stopping the action or switching Overclock off breaks the chain.',
+      'Adds a chain to the Overclock of this action: every consecutive overclocked run adds a link (up to 20) that makes the next run pay 10% more ICE Rating and take 10% more of the share of nodes. Stopping the action or switching Overclock off resets the chain.',
     actionId: KILL_SERVERS,
     requires: [overclockUnlockId(KILL_SERVERS)],
     // Placeholder price (balance is not tuned yet).

@@ -60,13 +60,12 @@ describe('the Corporation tab in the view model', () => {
     });
   });
 
-  it('the hover text says what the action does and that interface speed does not change the run time', () => {
+  it('the hover text says what the action does and its run time', () => {
     const g = createGame({ config });
     own(g);
     const tip = buildViewModel(g).corporation.actions[0]!.tip;
     expect(tip.split('\n')[0]).toBe('Backstab');
     expect(tip).toContain('Run Time = 30s');
-    expect(tip).toContain('Interface speed does not change it');
     expect(tip).toContain('Each run has a 1% chance to upgrade one random File you hold to the next rarity');
   });
 
@@ -140,9 +139,7 @@ describe('the Corporation tab on the screen', () => {
 
   it('shows the hover text of the action', () => {
     const { panel } = mount();
-    expect(hoverText(panel().querySelector<HTMLElement>('.corporation-action .action-info')!)).toContain(
-      'Interface speed does not change it',
-    );
+    expect(hoverText(panel().querySelector<HTMLElement>('.corporation-action .action-info')!)).toContain('Run Time =');
   });
 
   it('gives way to the Character tab when the corporation closes again (a new game)', () => {

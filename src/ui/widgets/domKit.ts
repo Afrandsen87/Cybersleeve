@@ -16,6 +16,8 @@ import type { UiText } from '../uiText';
 export interface UiSelection {
   /** The rarity of Augment schematic selected in the Inventory, or `null`. */
   augmentRarityId: string | null;
+  /** Test aid: show everything the rules of the game hide (the "Show all" button). */
+  revealAll: boolean;
 }
 
 /** Everything a widget needs from the screen it is part of. */

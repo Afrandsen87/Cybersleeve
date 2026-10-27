@@ -87,7 +87,7 @@ export interface DebugControls {
 }
 
 /**
- * Builds the test aids: reveal locked actions, test drop, double credits, reset save and the fast-forward toggle.
+ * Builds the test aids: show everything, test drop, double credits, reset save and the fast-forward toggle.
  *
  * Called by: {@link mountUi}. Calls: `GameCommands.dropTestItem`, `doubleCredits`, the reset callback.
  *
@@ -102,11 +102,14 @@ export function buildDebugControls(ctx: UiContext, page: HTMLElement, speed: Spe
   speedBtn.title = text.controls.speedToggleTip;
   speedBtn.addEventListener('click', () => speed.toggle());
 
-  // Test aid: shows locked actions in full instead of the access level poster (a class on the root; no game state changes).
+  // Test aid: shows everything the rules hide. Locked actions show in full through a class on the root; the rest through the
+  // selection the view model reads (no game state changes).
   const revealBtn = h('button', 'reveal-locked-toggle', text.controls.revealLocked) as HTMLButtonElement;
   revealBtn.title = text.controls.revealLockedTip;
   revealBtn.addEventListener('click', () => {
-    revealBtn.classList.toggle('on', page.classList.toggle('reveal-locked'));
+    ctx.selection.revealAll = page.classList.toggle('reveal-locked');
+    revealBtn.classList.toggle('on', ctx.selection.revealAll);
+    ctx.refresh();
   });
 
   const dropBtn = h('button', 'test-drop', text.controls.testDrop) as HTMLButtonElement;

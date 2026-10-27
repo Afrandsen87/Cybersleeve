@@ -16,6 +16,7 @@ import { corporationView } from './view/corporationView';
 import { inventoryView } from './view/inventoryView';
 import { networkView } from './view/networkView';
 import { automationView, runsView, skillsView, tabsView } from './view/panelViews';
+import { revealEverything } from './view/revealAll';
 import { resleeveBuyView, sleeveLevelsOpen } from './view/sleeveGate';
 import { sleeveView } from './view/sleeveView';
 import { NO_SELECTION, type ViewModel, type ViewSelection } from './view/viewTypes';
@@ -51,15 +52,16 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
 
   const stats = engine.sleeveStats();
 
-  const buyableViews = buildBuyableViews(engine, config, text);
+  const revealAll = selection.revealAll === true;
+  const buyableViews = buildBuyableViews(engine, config, text, revealAll);
   const viewById = new Map(buyableViews.map((v) => [v.id, v]));
 
-  return {
+  const vm: ViewModel = {
     creditsText: formatBigNum(state.credits),
     creditsLine: text.credits(formatBigNum(state.credits)),
     network: networkView(engine, config, state, stats, text),
     tabs: tabsView(engine, state, config, text),
-    skills: skillsView(engine, state, config, buyableViews, viewById, text),
+    skills: skillsView(engine, state, config, buyableViews, viewById, text, revealAll),
     runs: runsView(state.runs, config, text),
     automation: automationView(engine, config, text),
     corporation: corporationView(engine, text),
@@ -70,4 +72,5 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
     resleeveShown: sleeveLevelsOpen(state, config),
     resleeveBuy: resleeveBuyView(state, config, viewById),
   };
+  return revealAll ? revealEverything(vm) : vm;
 }

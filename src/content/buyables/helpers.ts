@@ -40,8 +40,7 @@ export const focusUnlock = (actionId: string): BuyableDefinition => ({
   id: focusUnlockId(actionId),
   name: 'Focus',
   symbol: 'FO',
-  description:
-    'Unlocks Focus for this action: while focused it runs 25% faster. Only a few actions can be focused at once (Focus upgrades add slots).',
+  description: 'Unlocks Focus for this action: while focused it runs 25% faster. Focus upgrades add more focus slots.',
   actionId,
   cost: num(autoRunCost(actionId) * FOCUS_UNLOCK_COST_RATIO),
   effect: { kind: 'focusUnlock' },

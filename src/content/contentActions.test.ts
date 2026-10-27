@@ -174,7 +174,7 @@ describe('Kill servers, Admin keys and Skill shards (real content)', () => {
 });
 
 describe('the Kill servers Overclock tip (real content)', () => {
-  it('shows the chain, what each link adds, and that heat is held in place', () => {
+  it('shows the chain, what each link adds, and that heat stays in place', () => {
     const g = createGame();
     setCredits(g, num(1e300));
     expect(g.buy(overclockUnlockId(KILL_SERVERS))).toBe('purchased');
@@ -182,7 +182,7 @@ describe('the Kill servers Overclock tip (real content)', () => {
     const tip = buildViewModel(g).actions.find((a) => a.id === KILL_SERVERS)!.overclock!.tip;
     expect(tip).toContain('Kill chain = 0 / 20 links');
     expect(tip).toContain('Each link adds 10% to the Reward Bonus and 10% to the share of the balance a run takes');
-    expect(tip).toContain('Heat is held in place while this action runs');
+    expect(tip).toContain('Heat stays in place while this action runs');
     expect(tip).toContain('Reward Bonus = 100% (100% x Strength)');
     expect(tip).not.toMatch(/\b(not|never|no)\b/i);
   });

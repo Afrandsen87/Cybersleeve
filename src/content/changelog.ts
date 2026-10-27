@@ -19,6 +19,13 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-10-27 Show all',
+    changes: [
+      'The test aid "Show locked" is now "Show all": it also reveals hidden tabs, stats, purchases, re-sleeve skills and inventory items.',
+      'Shortened some tooltips and the failed-import message.',
+    ],
+  },
+  {
     version: '2026-10-27 Corporation',
     changes: [
       'New Corporation tab, opened by the Incorporation re-sleeve skill. It is laid out like the Character tab; its widgets are empty for now. Corporation actions have their own run time that interface speed does not change, and the corporation is kept when you re-sleeve.',

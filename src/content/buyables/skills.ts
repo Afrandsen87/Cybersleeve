@@ -70,7 +70,7 @@ export const skillsBuyables: BuyableDefinition[] = [
     id: SKILL_QUICK_STUDY,
     name: 'Quick Study',
     symbol: 'QS',
-    description: 'Every action level needs 1% less XP. Sleeve levels stay as they are.',
+    description: 'Every action level needs 1% less XP.',
     currency: 'skillPoints',
     cost: num(1),
     effect: { kind: 'actionXpReduction', amount: 0.01 },
@@ -114,7 +114,7 @@ export const skillsBuyables: BuyableDefinition[] = [
     id: SKILL_OBFUSCATION,
     name: 'Obfuscation',
     symbol: 'OB',
-    description: 'Push malware makes only 2x as much heat per run while overclocked, instead of 3x.',
+    description: 'Lowers the heat Push malware makes per overclocked run from 3x to 2x.',
     currency: 'skillPoints',
     requires: [overclockUnlockId(PUSH_MALWARE)], // only offered once the purchase that makes it useful is owned
     cost: num(1),

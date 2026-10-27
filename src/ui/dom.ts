@@ -83,7 +83,7 @@ export function mountUi(
 ): () => void {
   const text = options.text ?? defaultText;
   const icons = options.icons ?? noIcons;
-  const selection: UiSelection = { augmentRarityId: null };
+  const selection: UiSelection = { augmentRarityId: null, revealAll: false };
   const initial = buildViewModel(engine, undefined, text, selection);
   root.innerHTML = '';
   const tips = new TipRegistry();
