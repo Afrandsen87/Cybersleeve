@@ -9,7 +9,8 @@
  *
  * A skill is READABLE when its own gate (`requires`, the purchase that makes it useful) is owned and every parent is readable, so
  * the masking runs down the tree. A skill that is not readable is MASKED: its name, text, price and tip are replaced by the hidden text.
- * The tree itself (every node and its place, the branch titles) is always shown.
+ * The tree itself (every node and its place, the branch titles) is always shown, except a branch with a reveal rule (`branchGates.ts`):
+ * its lane is marked `hidden` until the rule is met.
  */
 import type { BuyableDefinition } from '../../core';
 import type { SkillLaneView, SkillNodeView } from './skillTreeTypes';
@@ -32,6 +33,8 @@ export interface SkillTreeInput {
   readonly hiddenText: string;
   /** False masks the whole tree (the re-sleeve skills before the first re-sleeve). */
   readonly open: boolean;
+  /** Whether a branch is hidden altogether (default: none). Ignored with `revealAll`. */
+  readonly branchHidden?: (branchId: string) => boolean;
   /** Test aid ("Show all"): nothing is masked, whatever the gates and `open` say. */
   readonly revealAll: boolean;
 }
@@ -85,6 +88,7 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
     return {
       id: laneId,
       title: input.laneTitle(laneId),
+      hidden: !input.revealAll && (input.branchHidden?.(laneId) ?? false),
       cols: Math.max(0, ...nodes.map((n) => n.col)) + 1,
       rows: Math.ceil(Math.max(0, ...nodes.map((n) => n.row))) + 1,
       nodes,
@@ -154,7 +158,7 @@ function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: numb
 }
 
 /**
- * A skill's view with its text replaced by the hidden text, and no way to buy it. The tip stays a placeholder: the real tip getter is
+ * A skill's view with its text replaced by the hidden text, and no way to buy it (not clickable, not affordable, so it never lights up as purchasable). The tip stays a placeholder: the real tip getter is
  * left out so it is never built for a masked skill.
  *
  * Called by: {@link buildSkillLanes}.
@@ -162,6 +166,15 @@ function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: numb
 function maskedView(view: BuyableView, hidden: string): BuyableView {
   const { tip: _tip, ...rest } = Object.getOwnPropertyDescriptors(view);
   const copy: Record<string, unknown> = Object.defineProperties({}, rest);
-  Object.assign(copy, { name: hidden, description: hidden, symbol: '?', costText: hidden, tip: hidden, clickable: false, ready: false });
+  Object.assign(copy, {
+    name: hidden,
+    description: hidden,
+    symbol: '?',
+    costText: hidden,
+    tip: hidden,
+    clickable: false,
+    ready: false,
+    affordable: false,
+  });
   return copy as unknown as BuyableView;
 }

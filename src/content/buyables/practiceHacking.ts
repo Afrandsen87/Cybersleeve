@@ -14,6 +14,7 @@ import {
   KOMPROMAT_HARVEST,
   KOMPROMAT,
   RARITY_REFINEMENT,
+  SLEEVE_LEVELS,
 } from '../ids';
 import { autoRunCost, overclockUnlock, focusUnlock } from './helpers';
 
@@ -67,6 +68,7 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     description: "Adds Practice Hacking's sleeve level to Grow network's level, which raises its speed.",
     actionId: PRACTICE_HACKING,
     cost: num(1_000_000),
+    revealAfterResleeves: 1, // from the second sleeve run on
     effect: { kind: 'levelBonusFromSleeveLevel', sourceActionId: PRACTICE_HACKING, targetActionId: GROW_NETWORK },
   },
 
@@ -77,6 +79,7 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     description: 'Every sleeve level of the other actions needs 0.01% less XP for each sleeve level of Practice Hacking, up to 25% less.',
     actionId: PRACTICE_HACKING,
     cost: num(1e15),
+    requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once re-sleeving is unlocked
     // perLevel 0.0001 = 0.01 percent per sleeve level (the cap is reached at level 2500); maxReduction 0.25 = at most 25 percent
     effect: { kind: 'sleeveXpReduction', sourceActionId: PRACTICE_HACKING, perLevel: 0.0001, maxReduction: 0.25 },
   },

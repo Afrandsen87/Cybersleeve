@@ -16,7 +16,9 @@ import {
   gameConfig,
   KOMPROMAT,
   KOMPROMAT_HARVEST,
+  overclockUnlockId,
   PRACTICE_HACKING,
+  PUSH_MALWARE,
   SKILL_BACK_CHANNEL,
   SKILL_MUSCLE_MEMORY,
   SKILL_NOSE_FOR_SECRETS,
@@ -204,6 +206,7 @@ describe('Back Channel Deals (real content)', () => {
     (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
     (g.getState().purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
     (g.getState().purchased as Record<string, number>)[SKILL_NOSE_FOR_SECRETS] = 1; // Back Channel Deals grows from it
+    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // Moles are heat: it waits for that Overclock
     expect(g.buy(SKILL_BACK_CHANNEL)).toBe('purchased');
     (g.getState() as unknown as { heat: number; moles: number }).heat = 20;
     (g.getState() as unknown as { heat: number; moles: number }).moles = 5;

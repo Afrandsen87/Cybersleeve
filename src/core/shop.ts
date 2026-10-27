@@ -79,10 +79,14 @@ export class Shop {
     return !state.autoRunOff[id];
   }
 
-  /** True when every buyable listed in `requires` and in `parents` is owned (always true without either). */
+  /**
+   * True when every buyable listed in `requires` and in `parents` is owned and `revealAfterResleeves` re-sleeves have happened
+   * (always true without either).
+   */
   isAvailable(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
     if (!b) return false;
+    if (state.runs.length < (b.revealAfterResleeves ?? 0)) return false;
     return [...(b.requires ?? []), ...(b.parents ?? [])].every((r) => this.owned(state, r) > 0);
   }
 

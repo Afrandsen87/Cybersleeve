@@ -7,7 +7,7 @@
  * Used by the tests of `content/` that re-sleeve the real game. The unit-test config has no such unlock and needs none of this.
  */
 import { SLEEVE_LEVELS } from '../content/ids';
-import type { GameEngine } from '../core';
+import type { GameEngine, SleeveRunRecord } from '../core';
 import { num } from '../numbers';
 import { setCredits } from './testConfig';
 
@@ -24,4 +24,14 @@ export function openResleeving(g: GameEngine, lockoutMs = 5_000): void {
   setCredits(g, PLENTY);
   g.buy(SLEEVE_LEVELS);
   g.tick(lockoutMs);
+}
+
+/**
+ * Writes one finished sleeve-run into the state without playing it, so content that waits for the second sleeve run
+ * (`revealAfterResleeves`) is available. Does not touch anything else.
+ *
+ * @param g an engine built on any config
+ */
+export function markResleeved(g: GameEngine): void {
+  (g.getState().runs as SleeveRunRecord[]).push({ creditsPerSecond: num(0), actionLevelsTotal: 0 });
 }

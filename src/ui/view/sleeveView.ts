@@ -19,7 +19,7 @@ import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
 import { isCorporate, isPointCurrency, sectionLayout } from './buyableViews';
 import { aggregatedMoleText } from './moleBonus';
-import { isStatHidden } from './statReveal';
+import { heatOrIceMoved, isStatHidden } from './statReveal';
 import { MULTIPLIER_DECIMALS, PROFICIENCY_DECIMALS, SPEED_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
 import type { BuyableView, SleeveView, StatRowView } from './viewTypes';
 
@@ -61,6 +61,8 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
   const ownedCount = (id: string): number => state.purchased[id] ?? 0;
   const { sleeve } = config;
   const reveal = { config, accessLevel: stats.accessLevel, owned: ownedCount };
+  // heat and ICE Rating appear together, so either having moved keeps both on show
+  const heatOrIceShown = heatOrIceMoved(stats, config);
   const keep = 1 - stats.heatReduction;
   const capped = stats.heatTaxCap < 1; // Blackout: the tax stops short of taking everything, so node credits never stop
   const stopsAt =
@@ -141,7 +143,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
           fullAt: sleeve.iceRatingReductionPerOrder > 0 ? text.format.powerOfTen(formatPlain(1 / sleeve.iceRatingReductionPerOrder)) : null,
         }),
       null,
-      isStatHidden('iceRating', reveal, stats.iceRatingEarned.gt(numberFactory.fromNumber(sleeve.baseIceRating))),
+      isStatHidden('iceRating', reveal, heatOrIceShown),
     ),
     row(
       'heat',
@@ -153,7 +155,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
         percent: Math.min(100, (state.heatCooldownMs / cycleMs) * 100),
         running: coolsNow,
       },
-      isStatHidden('heat', reveal, stats.heat > 0),
+      isStatHidden('heat', reveal, heatOrIceShown),
     ),
     row(
       'legend',

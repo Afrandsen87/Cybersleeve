@@ -288,6 +288,7 @@ describe('the Action Speed tooltip adds up on its own numbers', () => {
     set(g, { credits: num('1e100'), hackingProficiency: num(0.031) });
     for (let i = 0; i < 2; i++) g.buy('access-upgrade');
     g.buy('interface-boost');
+    g.buy('sleeve-levels'); // the Sleeve Level line only shows once sleeve levels are unlocked
     const tip = buildViewModel(g).actions.find((a) => a.id === 'practice-hacking')!.speedTip;
     const value = (label: string): number => Number(new RegExp(`^${label} = ([0-9.]+)`, 'm').exec(tip)![1]);
     const speed = value('Action Level') * value('Sleeve Level') * value('Interface Speed');

@@ -121,6 +121,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     symbol: 'FC',
     description: 'Every action needs 1 run fewer for each batch of sleeve XP, down to 10 runs. Each copy costs 100x more.',
     cost: num(1_000),
+    revealAfterResleeves: 1, // from the second sleeve run on
     costGrowth: 100, // every 2nd order of magnitude
     // 90 copies take the 100 runs per batch down to the floor of 10 (the content test checks the cap matches)
     maxPurchases: 90,

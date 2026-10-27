@@ -336,6 +336,8 @@ export function validateConfig(config: GameConfig): string[] {
     ) {
       errors.push(`buyable "${b.id}": only skills (paid in points) have parents`);
     }
+    const resleeves = b.revealAfterResleeves ?? 0;
+    if (!(Number.isInteger(resleeves) && resleeves >= 0)) errors.push(`buyable "${b.id}": revealAfterResleeves must be an integer >= 0`);
     const max = b.maxPurchases ?? 1;
     if (!(Number.isInteger(max) && max >= 1) && max !== Infinity)
       errors.push(`buyable "${b.id}": maxPurchases must be an integer >= 1 or Infinity`);

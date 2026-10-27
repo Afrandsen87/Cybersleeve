@@ -77,6 +77,7 @@ export const tipText: UiText['tips'] = {
     levelBonus,
     actionFactor,
     actionScaling,
+    sleeveShown,
     sleeveLevel,
     sleeveFactor,
     sleeveScaling,
@@ -90,11 +91,11 @@ export const tipText: UiText['tips'] = {
     const perLevel = (s: LevelScaling): string =>
       s.kind === 'linear' ? `+${formatPlain(s.perLevel * 100)}% per level` : `x${formatPlain(s.base)} per level`;
     return [
-      `Action Speed = Action Level x Sleeve Level x Interface Speed${globalFactor === null ? '' : ' x Global Speed'}${overclockFactor === null ? '' : ' x Overclock'}${focusFactor === null ? '' : ' x Focus'}`,
+      `Action Speed = Action Level${sleeveShown ? ' x Sleeve Level' : ''} x Interface Speed${globalFactor === null ? '' : ' x Global Speed'}${overclockFactor === null ? '' : ' x Overclock'}${focusFactor === null ? '' : ' x Focus'}`,
       'Run Time = Base Time / Action Speed',
       '',
       `Action Level = ${actionFactor} (level ${actionLevel}${levelBonus > 0 ? ` + ${levelBonus} from purchases` : ''}, ${perLevel(actionScaling)})`,
-      `Sleeve Level = ${sleeveFactor} (level ${sleeveLevel}, ${perLevel(sleeveScaling)})`,
+      ...(sleeveShown ? [`Sleeve Level = ${sleeveFactor} (level ${sleeveLevel}, ${perLevel(sleeveScaling)})`] : []),
       `Interface Speed = ${interfaceFactor}`,
       ...(globalFactor === null ? [] : [`Global Speed = ${globalFactor}`]),
       ...(overclockFactor === null ? [] : [`Overclock = ${overclockFactor}`]),

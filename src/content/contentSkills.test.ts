@@ -50,8 +50,9 @@ describe('skills are offered by their unlocking purchase (real content)', () => 
   const needs = (id: string): readonly string[] => gameConfig.buyables.find((b) => b.id === id)?.requires ?? [];
 
   it('the Kompromat skills need Kompromat harvest, and Obfuscation needs the Push malware Overclock', () => {
-    for (const id of [SKILL_NOSE_FOR_SECRETS, SKILL_EXPLOIT_KOMPROMAT, SKILL_BACK_CHANNEL])
-      expect(needs(id), id).toEqual([KOMPROMAT_HARVEST]);
+    for (const id of [SKILL_NOSE_FOR_SECRETS, SKILL_EXPLOIT_KOMPROMAT]) expect(needs(id), id).toEqual([KOMPROMAT_HARVEST]);
+    // Moles are heat, so Back channel also waits for the Overclock that makes heat
+    expect(needs(SKILL_BACK_CHANNEL)).toEqual([KOMPROMAT_HARVEST, overclockUnlockId(PUSH_MALWARE)]);
     expect(needs(SKILL_OBFUSCATION)).toEqual([overclockUnlockId(PUSH_MALWARE)]);
   });
 

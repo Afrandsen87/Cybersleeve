@@ -94,6 +94,8 @@ export interface ActionSpeedTipParts {
   readonly actionFactor: string;
   /** How much each action level is worth. */
   readonly actionScaling: LevelScaling;
+  /** False until sleeve levels are unlocked: the tip then does not mention the sleeve level at all. */
+  readonly sleeveShown: boolean;
   /** Sleeve level of the action. */
   readonly sleeveLevel: number;
   /** Speed factor of the sleeve level. */

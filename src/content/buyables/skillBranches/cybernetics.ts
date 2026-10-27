@@ -7,6 +7,7 @@ import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import {
   BRANCH_CYBERNETICS,
+  CRITICAL_SUCCESS,
   GROW_NETWORK,
   PUSH_MALWARE,
   SKILL_BACKBONE_PARASITE,
@@ -106,6 +107,7 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
     parents: [SKILL_BANDWIDTH],
+    requires: [CRITICAL_SUCCESS], // reveal gate: critical successes exist once they are bought
     cost: num(1),
     effect: { kind: 'criticalExtraChance', chance: 0.05 },
   },
