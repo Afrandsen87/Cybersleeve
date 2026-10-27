@@ -76,11 +76,11 @@ export class Shop {
     return !state.autoRunOff[id];
   }
 
-  /** True when every buyable listed in `requires` is owned (always true without requirements). */
+  /** True when every buyable listed in `requires` and in `parents` is owned (always true without either). */
   isAvailable(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
     if (!b) return false;
-    return (b.requires ?? []).every((r) => this.owned(state, r) > 0);
+    return [...(b.requires ?? []), ...(b.parents ?? [])].every((r) => this.owned(state, r) > 0);
   }
 
   /**

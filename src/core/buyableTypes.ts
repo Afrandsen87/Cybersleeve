@@ -191,8 +191,21 @@ export interface BuyableDefinition {
   /** What the price is paid in. Default: credits. Paying in network nodes removes those nodes. */
   readonly currency?: Currency;
   readonly effect: BuyableEffect;
-  /** Buyables that must be owned before this one becomes available. Default: none. */
+  /**
+   * Buyables that must be owned before this one becomes available. Default: none. For a skill this is the REVEAL GATE: the purchase that
+   * makes it useful (until it is owned the skill's text is hidden). Tree edges are `parents`, not `requires`.
+   */
   readonly requires?: readonly BuyableId[];
+  /**
+   * Skill-tree edges: the skills that must be owned before this one can be bought (the skill is drawn after them in its branch). A skill
+   * is readable only when its `requires` are owned and all its parents are readable. Default: none (a root of its branch).
+   */
+  readonly parents?: readonly BuyableId[];
+  /**
+   * The skill-tree branch this skill is drawn in (a lane of the Skills tab; its title is in the text table, its colour in the style
+   * sheet). Skills without a branch share one general lane. Only meaningful for skills.
+   */
+  readonly branch?: string;
   /** How many copies can be bought; `Infinity` for unlimited. Default: 1. */
   readonly maxPurchases?: number;
   /** Price multiplier per copy already owned (>= 1). Default: 1 (constant price). */

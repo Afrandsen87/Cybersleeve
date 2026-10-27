@@ -120,8 +120,12 @@ export interface UiText {
   readonly skills: {
     points(points: string): string;
     resleevePoints(points: string): string;
-    /** Stands in for the name, description, price and tip of a re-sleeve skill until the first re-sleeve. */
+    /** Stands in for the name, description, price and tip of a skill while it is masked (its gate is not met, or until the first re-sleeve). */
     readonly hidden: string;
+    /** The titles of the skill-tree branches by branch id (`content/ids.ts`); a branch without a title shows its id. */
+    readonly branches: Readonly<Record<string, string>>;
+    /** The title of the lane that holds the skills without a branch. */
+    readonly generalBranch: string;
   };
   /** The Stats tab: the list of the latest finished sleeve-runs. */
   readonly runs: {
@@ -295,7 +299,13 @@ export const uiText: UiText = {
     autoBurnCeiling: 'Use leads above this heat',
     dispersalShare: 'Share (%)',
   },
-  skills: { points: (points) => `Skill points: ${points}`, resleevePoints: (points) => `Re-sleeve points: ${points}`, hidden: '???' },
+  skills: {
+    points: (points) => `Skill points: ${points}`,
+    resleevePoints: (points) => `Re-sleeve points: ${points}`,
+    hidden: '???',
+    branches: { cybernetics: 'Cybernetics', anonymity: 'Anonymity', leverage: 'Leverage' },
+    generalBranch: 'General',
+  },
   runs: {
     empty: 'No finished sleeve-runs yet. Re-sleeve to write the first one down.',
     headers: { run: 'Run', income: 'Credits per second at the end', levels: 'Action levels in total' },

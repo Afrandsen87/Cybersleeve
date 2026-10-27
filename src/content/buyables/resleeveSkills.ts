@@ -9,7 +9,7 @@ import { SKILL_SLEEVE_EUPHORIA, SKILL_SYNTHETIC_SLEEVES, SKILL_INCORPORATION } f
 
 /** The buyables of re-sleeve skills (bought with re-sleeve points). */
 export const resleeveSkillsBuyables: BuyableDefinition[] = [
-  // Re-sleeve skills: bought with re-sleeve points (one per re-sleeve), kept through re-sleeving, laid out as a tree through `requires`.
+  // Re-sleeve skills: bought with re-sleeve points (one per re-sleeve), kept through re-sleeving, laid out as a tree through `parents`.
   {
     id: SKILL_SLEEVE_EUPHORIA,
     name: 'Sleeve Euphoria',
@@ -31,7 +31,7 @@ export const resleeveSkillsBuyables: BuyableDefinition[] = [
       'Run extra sleeves beside this one. You get one now, copied from your last sleeve-run, and one more with every re-sleeve. Each earns the credits per second its run ended with, scaled by how many action levels you have compared to then, until you catch up.',
     currency: 'resleevePoints',
     cost: num(1),
-    requires: [SKILL_SLEEVE_EUPHORIA],
+    parents: [SKILL_SLEEVE_EUPHORIA],
     effect: { kind: 'synthSleeves' },
   },
 
@@ -42,7 +42,7 @@ export const resleeveSkillsBuyables: BuyableDefinition[] = [
     description: 'Founds a corporation: opens the Corporation tab.',
     currency: 'resleevePoints',
     cost: num(1),
-    requires: [SKILL_SLEEVE_EUPHORIA],
+    parents: [SKILL_SLEEVE_EUPHORIA],
     effect: { kind: 'unlocksCorporation' },
   },
 ];

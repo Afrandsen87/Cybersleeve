@@ -222,7 +222,7 @@ function checkItems(
  * @returns one message per buyable that lies on a requirement cycle
  */
 function findRequirementCycles(buyables: GameConfig['buyables']): string[] {
-  const requires = new Map(buyables.map((b) => [b.id, (b.requires ?? []).filter((r) => r !== b.id)]));
+  const requires = new Map(buyables.map((b) => [b.id, [...(b.requires ?? []), ...(b.parents ?? [])].filter((r) => r !== b.id)]));
   const reaches = (from: string, target: string, seen: Set<string>): boolean => {
     for (const next of requires.get(from) ?? []) {
       if (next === target) return true;
@@ -310,6 +310,13 @@ export function validateConfig(config: GameConfig): string[] {
     for (const r of b.requires ?? []) {
       if (!buyableIds.has(r)) errors.push(`buyable "${b.id}": requires unknown buyable "${r}"`);
       if (r === b.id) errors.push(`buyable "${b.id}": cannot require itself`);
+    }
+    for (const p of b.parents ?? []) {
+      if (!buyableIds.has(p)) errors.push(`buyable "${b.id}": has unknown parent "${p}"`);
+      if (p === b.id) errors.push(`buyable "${b.id}": cannot be its own parent`);
+    }
+    if ((b.parents?.length ?? 0) > 0 && b.currency !== 'skillPoints' && b.currency !== 'resleevePoints') {
+      errors.push(`buyable "${b.id}": only skills (paid in points) have parents`);
     }
     const max = b.maxPurchases ?? 1;
     if (!(Number.isInteger(max) && max >= 1) && max !== Infinity)

@@ -9,7 +9,7 @@
  * missing parts fall back to a fresh game, corrupt input yields `null`.
  *
  * Loaded values are sanitised, not trusted: negative amounts become 0, non-finite times are dropped, the run counter is
- * kept below `runsPerSleeveXp`, copy counts are capped, and a buyable whose `requires` are not owned is discarded.
+ * kept below `runsPerSleeveXp`, copy counts are capped, and a buyable whose `requires` or `parents` are not owned is discarded.
  *
  * Only the current version is read (the game has not been released). A scalar that a save lacks (a field added later) keeps its fresh-game value, so adding a scalar needs no new
  * version; changing the meaning of an existing field does, together with a migration.
@@ -348,7 +348,7 @@ function dropUnmetRequirements(state: GameState, buyables: GameConfig['buyables'
   while (changed) {
     changed = false;
     for (const b of buyables) {
-      if ((state.purchased[b.id] ?? 0) > 0 && !(b.requires ?? []).every((r) => (state.purchased[r] ?? 0) > 0)) {
+      if ((state.purchased[b.id] ?? 0) > 0 && ![...(b.requires ?? []), ...(b.parents ?? [])].every((r) => (state.purchased[r] ?? 0) > 0)) {
         delete state.purchased[b.id];
         changed = true;
       }

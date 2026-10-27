@@ -95,6 +95,12 @@ export const SKILLS = [
   SKILL_OBFUSCATION,
   SKILL_PURGE_PROTOCOL,
 ] as const;
+/** Branch id of the skill tree's cybernetics lane (its title is in `ui/uiText.ts`, its colour in `ui/style.css`). */
+export const BRANCH_CYBERNETICS = 'cybernetics';
+/** Branch id of the skill tree's anonymity lane (heat and traces). */
+export const BRANCH_ANONYMITY = 'anonymity';
+/** Branch id of the skill tree's leverage lane (Kompromat). */
+export const BRANCH_LEVERAGE = 'leverage';
 /** Id of the Kill servers auto-run buyable. */
 export const KILL_AUTO_RUN = 'kill-auto-run';
 /** Id of the Build Legend auto-run buyable. */

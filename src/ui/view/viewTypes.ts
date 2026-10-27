@@ -9,6 +9,9 @@
  */
 import type { AutomationFeature } from '../../core';
 import type { SleeveSectionId, SquareCellId, StatId } from '../uiText';
+import type { SkillLaneView } from './skillTreeTypes';
+
+export type { SkillLaneView, SkillNodeView } from './skillTreeTypes';
 
 /** Display data of an experience track (action level or sleeve level) shown as a small bar. */
 export interface XpTrackView {
@@ -335,8 +338,8 @@ export interface ResleeveSkillsView {
   /** Re-sleeve points that can still be spent. */
   readonly points: number;
   readonly pointsText: string;
-  /** The skills in rows by depth in the tree: the skills that need nothing first, then the ones that need those, and so on. */
-  readonly tiers: readonly (readonly BuyableView[])[];
+  /** The tree: one lane, grown sideways from the skills that need nothing. */
+  readonly lanes: readonly SkillLaneView[];
 }
 
 /** One finished sleeve-run in the Stats tab. */
@@ -362,8 +365,8 @@ export interface SkillsView {
   /** Skill points that can still be spent. */
   readonly points: number;
   readonly pointsText: string;
-  /** The skills, in configuration order. */
-  readonly buyables: readonly BuyableView[];
+  /** The skill tree: one lane per branch, in configuration order. */
+  readonly lanes: readonly SkillLaneView[];
   /** The group of skills bought with re-sleeve points. */
   readonly resleeve: ResleeveSkillsView;
 }

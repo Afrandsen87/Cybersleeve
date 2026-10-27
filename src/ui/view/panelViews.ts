@@ -9,7 +9,8 @@
 import { AUTOMATION_FEATURES, type CorporationQueries, type GameConfig, type SkillQueries, type GameStateView } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
-import { resleeveTiers } from './buyableViews';
+import { isPointCurrency } from './buyableViews';
+import { buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
 import type { AutomationView, BuyableView, RunRowView, RunsView, SkillsView, TabView } from './viewTypes';
 
@@ -29,12 +30,6 @@ export function runsView(runs: GameStateView['runs'], config: GameConfig, text: 
       )
       .reverse(),
   };
-}
-
-/** A re-sleeve skill with all its text replaced by `text.skills.hidden`. Called by: {@link skillsView}. */
-function maskedSkill(view: BuyableView, text: UiText): BuyableView {
-  const hidden = text.skills.hidden;
-  return { ...view, name: hidden, description: hidden, symbol: '?', costText: hidden, tip: hidden };
 }
 
 /**
