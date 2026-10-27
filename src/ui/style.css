@@ -84,9 +84,6 @@ body {
 .corporation-widget,
 .network-widget,
 .upgrades-widget,
-.corporation-empty[hidden] {
-  display: none;
-}
 .exploitation-widget,
 .inventory-widget {
   display: grid;
@@ -96,6 +93,9 @@ body {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 12px;
+}
+.corporation-empty[hidden] {
+  display: none;
 }
 .sleeve-widget h2,
 .corporation-widget h2,
