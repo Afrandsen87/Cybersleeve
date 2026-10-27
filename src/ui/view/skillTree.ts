@@ -86,20 +86,22 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
       id: laneId,
       title: input.laneTitle(laneId),
       cols: Math.max(0, ...nodes.map((n) => n.col)) + 1,
-      rows: Math.max(0, ...nodes.map((n) => n.row)) + 1,
+      rows: Math.ceil(Math.max(0, ...nodes.map((n) => n.row))) + 1,
       nodes,
     };
   });
 }
 
 /**
- * Gives each skill of one lane its column (depth) and row. The column is one more than the deepest parent in the lane. The row is the
- * parent's row when that row is free in the column, otherwise the next free one, so a chain stays on one line.
+ * Gives each skill of one lane its column (depth) and row. The column is one more than the deepest parent in the lane. The rows come
+ * from the tree of first parents: every skill without children takes the next free row, in configuration order, so each path is its own
+ * line; a skill with children sits in the middle of its first and last child, so the root is centred on the lane and no two lines overlap.
+ * Extra parents (a skill with several) only add a drawn line; they do not move the skill.
  *
  * Called by: {@link buildSkillLanes}.
  *
  * @param defs the skills of one lane, in configuration order
- * @returns each skill's column, row and the parents that are in the same lane
+ * @returns each skill's column, row (may be a half row) and the parents that are in the same lane
  */
 function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: number; row: number; parents: string[] }> {
   const byId = new Map(defs.map((b) => [b.id, b]));
@@ -115,17 +117,28 @@ function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: numb
     depths.set(id, depth);
     return depth;
   };
-  const placed = new Map<string, { col: number; row: number; parents: string[] }>();
-  const taken = new Set<string>(); // "col:row"
-  const order = [...defs].sort((a, b) => depthOf(a.id) - depthOf(b.id)); // stable: configuration order within a column
-  for (const b of order) {
-    const col = depthOf(b.id);
-    const parents = parentsIn(b);
-    let row = parents.length === 0 ? 0 : Math.min(...parents.map((p) => placed.get(p)?.row ?? 0));
-    while (taken.has(`${col}:${row}`)) row += 1;
-    taken.add(`${col}:${row}`);
-    placed.set(b.id, { col, row, parents });
+
+  const childrenOf = new Map<string, BuyableDefinition[]>();
+  for (const b of defs) {
+    const first = parentsIn(b)[0];
+    if (first !== undefined) childrenOf.set(first, [...(childrenOf.get(first) ?? []), b]);
   }
+  const rows = new Map<string, number>();
+  let nextLeafRow = 0;
+  const rowOf = (b: BuyableDefinition): number => {
+    const known = rows.get(b.id);
+    if (known !== undefined) return known;
+    rows.set(b.id, nextLeafRow); // loop guard: a bad config gets some row instead of recursing forever
+    const kids = (childrenOf.get(b.id) ?? []).map(rowOf);
+    const row = kids.length === 0 ? nextLeafRow++ : (Math.min(...kids) + Math.max(...kids)) / 2;
+    rows.set(b.id, row);
+    return row;
+  };
+  const roots = defs.filter((b) => parentsIn(b).length === 0);
+  for (const b of [...roots, ...defs]) rowOf(b); // `defs` again only reaches skills in a parent loop
+
+  const placed = new Map<string, { col: number; row: number; parents: string[] }>();
+  for (const b of defs) placed.set(b.id, { col: depthOf(b.id), row: rows.get(b.id) ?? 0, parents: parentsIn(b) });
   return placed;
 }
 

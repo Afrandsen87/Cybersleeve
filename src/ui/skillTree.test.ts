@@ -59,19 +59,19 @@ describe('skill tree layout: where a skill sits', () => {
     ]);
   });
 
-  it('children of one parent share a column and go below one another; a child of the lower one stays on its row', () => {
+  it('children of one parent share a column, each path gets its own row, and the parent is centred on them', () => {
     expect(place([def('a'), def('b', { parents: ['a'] }), def('c', { parents: ['a'] }), def('d', { parents: ['c'] })])).toEqual([
-      ['a', 0, 0],
+      ['a', 0, 0.5],
       ['b', 1, 0],
       ['c', 1, 1],
       ['d', 2, 1],
     ]);
   });
 
-  it('a skill with two parents sits one column right of the deeper one, on the higher parent row', () => {
+  it('a skill with two parents sits one column right of the deeper one, on its first parent path', () => {
     const skills = [def('a'), def('b', { parents: ['a'] }), def('c', { parents: ['a'] }), def('d', { parents: ['b', 'c'] })];
     expect(place(skills)).toEqual([
-      ['a', 0, 0],
+      ['a', 0, 0.5],
       ['b', 1, 0],
       ['c', 1, 1],
       ['d', 2, 0],

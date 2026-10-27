@@ -3,9 +3,9 @@
  *
  * The skills of the anonymity branch (heat and traces), bought with skill points.
  *
- * Shape: Cold Trail is the root and splits into three paths. Cooling: Obfuscation, Purge Protocol. Burn leads: Scorched Earth, Silver
- * Tongue. Idle: Quiet Hours, Undercover. Moles: Deep Cover (readable once Back Channel Deals is owned). Blackout is the end skill and
- * needs Purge Protocol, Undercover and Deep Cover, so the tree has to be invested in first.
+ * Shape: Cold Trail is the root and splits into four lanes, each a straight line. Cooling: Obfuscation, Purge Protocol, Blackout (the end
+ * skill). Burn leads: Scorched Earth, Silver Tongue. Idle: Quiet Hours, Undercover. Moles: Deep Cover (readable once Back Channel Deals
+ * is owned), a dead end.
  */
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
@@ -138,7 +138,7 @@ export const anonymitySkills: BuyableDefinition[] = [
     description: 'The heat tax takes at most half of your node income, however hot you are.',
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
-    parents: [SKILL_PURGE_PROTOCOL, SKILL_UNDERCOVER, SKILL_DEEP_COVER],
+    parents: [SKILL_PURGE_PROTOCOL],
     cost: num(1),
     effect: { kind: 'heatTaxCap', maxShare: 0.5 },
   },

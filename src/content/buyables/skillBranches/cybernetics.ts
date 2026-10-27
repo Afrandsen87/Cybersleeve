@@ -22,8 +22,8 @@ import {
 } from '../../ids';
 
 /**
- * The cybernetics branch: Overclocked Cortex is the root, with three arms. Bandwidth Leech leads to Fiber Tap (then Backbone Parasite) and to
- * Signal Amplifier (then Overdrive Spike); Muscle Memory leads to Quick Study; Parallel Threads leads to Neural Accelerant.
+ * The cybernetics branch: Overclocked Cortex is the root, with three lanes drawn as straight lines. Bandwidth Leech, Fiber Tap, Backbone Parasite;
+ * Muscle Memory, Quick Study; Parallel Threads, Neural Accelerant, Signal Amplifier, Overdrive Spike.
  */
 export const cyberneticsSkills: BuyableDefinition[] = [
   {
@@ -138,7 +138,7 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     description: 'Every critical success has a 5% chance to bring one extra critical success.',
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_BANDWIDTH],
+    parents: [SKILL_NEURAL_ACCELERANT],
     cost: num(1),
     effect: { kind: 'criticalExtraChance', chance: 0.05 },
   },
