@@ -112,7 +112,7 @@ describe('item tooltips show the drop chance of the stack (real content)', () =>
   it('the Burn lead has no rarity: its whole chance, per Grow network run', () => {
     const g = createGame();
     own(g, BURN_LEADS);
-    expect(tip(g, BURN_LEAD, 'common')).toContain('Drop Chance = 0.5% per Grow network run');
+    expect(tip(g, BURN_LEAD, 'common')).toContain('Drop Chance = 0.75% per Grow network run');
   });
 
   it('follows the skills that change the chance and the ratios: Nose for Secrets doubles the Kompromat chance', () => {

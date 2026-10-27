@@ -132,6 +132,7 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
     parents: [SKILL_BANDWIDTH],
+    requires: [CRITICAL_SUCCESS], // reveal gate: its text speaks of critical runs
     cost: num(1),
     // A whole reward or nothing (half a node cannot be paid), so the chance is the lever.
     effect: { kind: 'paysActionReward', sourceActionId: PUSH_MALWARE, targetActionId: GROW_NETWORK, chance: 0.25 },

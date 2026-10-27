@@ -11,6 +11,7 @@ import {
   ACCESS_UPGRADE,
   ADMIN_KEY,
   BLACK_BOX_RECORDER,
+  CRITICAL_SUCCESS,
   CASCADE_FAILURE,
   CREDIT_SIPHON,
   DECOMMISSION_PROTOCOL,
@@ -165,6 +166,7 @@ describe('Kill servers, Admin keys and Skill shards (real content)', () => {
     g.buy(ACCESS_UPGRADE);
     g.buy(ACCESS_UPGRADE);
     g.buy(ACCESS_UPGRADE);
+    (g.getState().purchased as Record<string, number>)[CRITICAL_SUCCESS] = 1; // the reveal gate of the Black box recorder
     expect(g.buy(BLACK_BOX_RECORDER)).toBe('purchased');
     state.network = num(100_000);
     expect(g.isUnlocked(KILL_SERVERS)).toBe(true);

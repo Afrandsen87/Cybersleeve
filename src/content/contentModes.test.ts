@@ -194,6 +194,7 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === GROW_NETWORK)!;
     expect(card.buyables.map((b) => b.id)).toContain(BURN_LEADS);
     const g = rich();
+    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
     expect(g.buy(BURN_LEADS)).toBe('purchased');
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
@@ -203,6 +204,7 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
 
   it('using a Burn lead takes part of the heat away and uses the lead up, end to end', () => {
     const g = rich();
+    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
     g.buy(BURN_LEADS);
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
