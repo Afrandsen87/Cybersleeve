@@ -14,7 +14,7 @@ import {
 
 const config = testConfig;
 const load = (data: object) =>
-  deserializeState(JSON.stringify({ version: 4, credits: '0', network: '0', actions: {}, purchased: {}, ...data }), config, numberFactory);
+  deserializeState(JSON.stringify({ version: 6, credits: '0', network: '0', actions: {}, purchased: {}, ...data }), config, numberFactory);
 
 describe('loading a save sanitises it', () => {
   it('turns negative amounts into 0', () => {

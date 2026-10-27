@@ -219,7 +219,7 @@ describe('serialization', () => {
     expect(restored.purchased).toEqual({ auto: 1, dual: 1, dup: 7 });
   });
 
-  it.each([0, 1, 2, 6, 99, '5', null])(
+  it.each([0, 1, 2, 7, 99, '5', null])(
     'refuses a save of another format version (%j): the game starts over instead of guessing',
     (version) => {
       const json = JSON.parse(serializeState(createInitialState(config, numberFactory)));
@@ -263,7 +263,7 @@ describe('serialization', () => {
 
   it('caps stored copy counts at maxPurchases for one-time buyables', () => {
     const json = JSON.stringify({
-      version: 4,
+      version: 6,
       credits: '0',
       network: '0',
       actions: {},
@@ -275,12 +275,12 @@ describe('serialization', () => {
   it('returns null for corrupt or incompatible input', () => {
     expect(deserializeState('not json', config, numberFactory)).toBeNull();
     expect(deserializeState('{"version":999}', config, numberFactory)).toBeNull();
-    expect(deserializeState('{"version":4,"credits":5}', config, numberFactory)).toBeNull();
+    expect(deserializeState('{"version":6,"credits":5}', config, numberFactory)).toBeNull();
   });
 
   it('ignores unknown ids and fills in missing ones', () => {
     const json = JSON.stringify({
-      version: 4,
+      version: 6,
       credits: '5',
       network: '0',
       actions: { ghost: { xp: '9', sleeveXp: '0', runsTowardSleeveXp: 0, running: true, progress: 0.5 } },
