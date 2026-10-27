@@ -90,6 +90,7 @@ export function overclockView(engine: ActionQueries & StateQueries, actionId: st
         reward: bonus(status.rewardBonus),
         heatPerMinute: status.heatPerMinute > 0 ? formatPlain(status.heatPerMinute, MODE_DECIMALS) : null,
         heatPerRunFactor: status.heatPerRunFactor > 1 ? formatPlain(status.heatPerRunFactor, MODE_DECIMALS) : null,
+        heatChanceFactor: status.heatChanceFactor > 1 ? formatPlain(status.heatChanceFactor, MODE_DECIMALS) : null,
         nodesLost: nodesLost > 0 ? formatPlain(nodesLost) : null,
         holdsHeat: status.blocksHeatCooling,
         chain: status.chain

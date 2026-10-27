@@ -119,6 +119,7 @@ export function buildActionViews(
     const rewardMultiplierText = formatBigNum(engine.rewardMultiplier(def.id));
     const heatPerRun = def.heatPerRun ?? 0;
     const heatPerSecond = def.heatPerSecond ?? 0;
+    const heatChance = def.heatChance ?? 1;
     const xpText = formatBigNum(engine.actionXpIntoLevel(def.id));
     const nextLevelXpText = formatBigNum(engine.actionXpForLevel(def.id));
     const sleeveLevel = engine.sleeveLevel(def.id);
@@ -174,6 +175,7 @@ export function buildActionViews(
         unit: rewardUnit,
         multiplier: rewardMultiplierText === '1' ? null : rewardMultiplierText,
         heatPerRun,
+        heatChancePercent: heatChance < 1 ? formatPlain(heatChance * 100) : null,
         heatPerSecond,
       }),
       buyables: buyableViews.filter((b) => b.actionId === def.id),

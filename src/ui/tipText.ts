@@ -217,7 +217,7 @@ export const tipText: UiText['tips'] = {
       selected === null ? `Select a rarity of ${item} in the Inventory first` : `Selected = ${selected} (${held} held)`,
       'Click to apply one of the selected rarity to this action: its action levels come sooner',
     ].join('\n'),
-  overclock: ({ on, strength, speed, reward, heatPerMinute, heatPerRunFactor, nodesLost, alsoPays, holdsHeat, chain }) =>
+  overclock: ({ on, strength, speed, reward, heatPerMinute, heatPerRunFactor, heatChanceFactor, nodesLost, alsoPays, holdsHeat, chain }) =>
     [
       `Overclock (${on ? 'on' : 'off'})`,
       ...(speed === null ? [] : ['Action Speed = Action Speed x (1 + Speed Bonus)']),
@@ -230,6 +230,7 @@ export const tipText: UiText['tips'] = {
       ...(speed === null && reward === null && alsoPays === null ? [] : ['']),
       ...(heatPerMinute === null ? [] : [`Costs ${heatPerMinute} heat per minute while this action runs`]),
       ...(heatPerRunFactor === null ? [] : [`Each run makes ${heatPerRunFactor}x as much heat`]),
+      ...(heatChanceFactor === null ? [] : [`Each run is ${heatChanceFactor}x as likely to make heat`]),
       ...(nodesLost === null ? [] : [`Each completed run costs ${nodesLost} nodes`]),
       ...(holdsHeat ? ['Heat stays in place while this action runs'] : []),
       ...(chain === null

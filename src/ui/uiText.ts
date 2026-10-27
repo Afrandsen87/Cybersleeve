@@ -398,8 +398,8 @@ export const uiText: UiText = {
       `Action speed ${speed} | ${duration}${startCost ? ` | costs ${startCost}` : ''}${auto ? ' | auto' : ''}`,
     levelBar: (level, xp, next) => `Lv ${level} - ${xp}/${next} XP`,
     sleeveBar: (level, xp, next, runsToNext) => `Sleeve Lv ${level} - ${xp}/${next} XP | ${runsToNext} runs`,
-    reward: ({ amount, unit, multiplier, heatPerRun, heatPerSecond }) =>
-      `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}${heatPerRun > 0 ? ` | +${heatPerRun} heat` : ''}${heatPerSecond > 0 ? ` | +${heatPerSecond} heat/s` : ''}`,
+    reward: ({ amount, unit, multiplier, heatPerRun, heatChancePercent, heatPerSecond }) =>
+      `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}${heatPerRun > 0 ? ` | ${heatChancePercent === null ? '' : `${heatChancePercent}% chance of `}+${heatPerRun} heat` : ''}${heatPerSecond > 0 ? ` | +${heatPerSecond} heat/s` : ''}`,
     augment: 'Augment',
     critFlash: (count, perSecond) => (count > 1 ? `${perSecond} crits/s` : 'CRITICAL!'),
     modes: {
