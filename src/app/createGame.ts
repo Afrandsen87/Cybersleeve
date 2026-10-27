@@ -13,6 +13,7 @@ import {
   BurnLeads,
   CriticalLinks,
   Automation,
+  automationPointsEarned,
   Corporation,
   CorporationLevels,
   CritFeed,
@@ -84,7 +85,11 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     (currency, s) =>
       currency === 'skillPoints'
         ? earnedSkillPoints(config.actions.map((a) => progression.actionLevel(s, a.id)))
-        : s.runs.length * config.resleeve.pointsPerResleeve,
+        : currency === 'automationPoints'
+          ? config.automation === undefined
+            ? 0
+            : automationPointsEarned(config.buyables, s.purchased)
+          : s.runs.length * config.resleeve.pointsPerResleeve,
     snapshot,
     config.reveal?.buyableOrders ?? Infinity,
     (buyable) => {
@@ -150,7 +155,10 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     drops,
     augments,
     corporation,
-    automation: new Automation(config, state, inventory, burnLeads, augments),
+    automation: new Automation(config, state, inventory, burnLeads, augments, {
+      pointsAvailable: () => shop.pointsAvailable(state, 'automationPoints'),
+      buy: (id) => shop.buy(state, id) === 'purchased',
+    }),
     network: new NetworkSystem(state, stats, factory, synths),
     synths,
     resleever: new Resleever(config, state, stats, progression, synths, factory),

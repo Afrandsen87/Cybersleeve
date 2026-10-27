@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { gameConfig } from '../content/gameConfig';
 import { num, numberFactory } from '../numbers';
+import { automationLaneBuyables } from '../testing/automationKit';
 import { findInvariantViolations } from '../testing/invariants';
 import { pick, randomInt, seededRandom, type Random } from '../testing/random';
 import {
@@ -45,6 +46,7 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
   ],
   buyables: [
     ...testConfig.buyables,
+    ...automationLaneBuyables(),
     buyable({ id: 'unlock', effect: { kind: 'accessLevel', amount: 1 } }),
     buyable({
       id: 'euphoria',

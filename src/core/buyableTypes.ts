@@ -3,6 +3,7 @@
  *
  * Shapes of purchases: the effect kinds, currencies and the buyable definition.
  */
+import type { AutomationFeature } from './automation';
 import type { BigNum } from '../numbers';
 import type { ActionId, ChainRule } from './actionTypes';
 import type { CorporationActionId, CorporationEffect } from './corporationTypes';
@@ -39,7 +40,7 @@ export type BuyableEffect =
   | { readonly kind: 'overclockStrength'; readonly perCopy: number }
   /** Each copy owned adds `perCopy` Focus slots (a whole number >= 1) on top of `focus.baseSlots`: that many actions can be focused at once. */
   | { readonly kind: 'focusSlots'; readonly perCopy: number }
-  /** Each copy owned gives `perCopy` automation points (a whole number >= 1), each of which unlocks one automation feature. Sleeve-wide. */
+  /** Each copy owned gives `perCopy` automation points (a whole number >= 1), which pay for the skills of the automation lanes. Sleeve-wide. */
   | { readonly kind: 'automationPoints'; readonly perCopy: number }
   /** Every completed run of any action has `chance` (0..1) per copy owned to be a critical success (see {@link CriticalSuccessRule}); the total is capped at 1. */
   | { readonly kind: 'criticalChance'; readonly chance: number }
@@ -147,7 +148,9 @@ export type BuyableEffect =
    * owned. Applies once, whatever the number of copies. Like the corporation, the buyable survives re-sleeving.
    */
   | { readonly kind: 'addsCorporationEffect'; readonly effect: CorporationEffect }
-  /** Does nothing (yet): a node of the re-sleeve tree whose effect is not designed. */
+  /** Owning this skill (the root of an automation lane) unlocks the automation `feature`: its settings and its work. Sleeve-wide. */
+  | { readonly kind: 'unlocksAutomation'; readonly feature: AutomationFeature }
+  /** Does nothing (yet): a node of a tree whose effect is not designed. */
   | { readonly kind: 'placeholder' }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */
   | { readonly kind: 'hackingProficiencyMultiplier'; readonly factor: number }
@@ -178,13 +181,14 @@ export type BuyableEffect =
  * What a buyable is paid with. `skillPoints` are not held: the points available are what the action levels have earned minus what the
  * owned skills cost (see `skills.ts`), so paying them spends nothing from the state.
  */
-export type Currency = 'credits' | 'networkNodes' | 'skillPoints' | 'resleevePoints';
+export type Currency = 'credits' | 'networkNodes' | 'skillPoints' | 'resleevePoints' | 'automationPoints';
 
 /**
  * The currencies that are points, not held amounts: what the player can spend is what has been earned minus the cost of the buyables
- * owned. Skill points come from action levels; re-sleeve points come from re-sleeving (`resleeve.pointsPerResleeve` each).
+ * owned. Skill points come from action levels; re-sleeve points come from re-sleeving (`resleeve.pointsPerResleeve` each); automation
+ * points come from the `automationPoints` buyables and pay for the skills of the automation lanes.
  */
-export type PointCurrency = 'skillPoints' | 'resleevePoints';
+export type PointCurrency = 'skillPoints' | 'resleevePoints' | 'automationPoints';
 
 /** Static description of a purchase (one-time or repeatable). It is shown on its action's card, or in the Sleeve widget when it has no action. */
 export interface BuyableDefinition {

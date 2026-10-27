@@ -75,7 +75,7 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
   };
 }
 
-const CURRENCIES: readonly string[] = ['credits', 'networkNodes', 'skillPoints', 'resleevePoints'];
+const CURRENCIES: readonly string[] = ['credits', 'networkNodes', 'skillPoints', 'resleevePoints', 'automationPoints'];
 
 const positive = (v: number): boolean => Number.isFinite(v) && v > 0;
 const positiveInt = (v: number): boolean => Number.isInteger(v) && v >= 1;
@@ -328,7 +328,12 @@ export function validateConfig(config: GameConfig): string[] {
         errors.push(`buyable "${b.id}": its parent "${p}" is in another branch (a parent must be in the same branch)`);
       }
     }
-    if ((b.parents?.length ?? 0) > 0 && b.currency !== 'skillPoints' && b.currency !== 'resleevePoints') {
+    if (
+      (b.parents?.length ?? 0) > 0 &&
+      b.currency !== 'skillPoints' &&
+      b.currency !== 'resleevePoints' &&
+      b.currency !== 'automationPoints'
+    ) {
       errors.push(`buyable "${b.id}": only skills (paid in points) have parents`);
     }
     const max = b.maxPurchases ?? 1;

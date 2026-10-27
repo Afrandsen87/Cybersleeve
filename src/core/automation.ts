@@ -6,7 +6,7 @@
 import type { Augments } from './augments';
 import type { BurnLeads } from './burnLeads';
 import type { Inventory } from './inventory';
-import type { ActionId, GameConfig, GameState, RarityId } from './types';
+import type { ActionId, BuyableDefinition, BuyableId, GameConfig, GameState, RarityId } from './types';
 
 /** Something that can be automated. Each costs one automation point to unlock. */
 export type AutomationFeature = 'autoBurn' | 'autosale' | 'dispersal';
@@ -14,10 +14,58 @@ export type AutomationFeature = 'autoBurn' | 'autosale' | 'dispersal';
 /** Every feature, in the order the Automation tab lists them. */
 export const AUTOMATION_FEATURES: readonly AutomationFeature[] = ['autoBurn', 'autosale', 'dispersal'];
 
-/** What the player has set up in the Automation tab. Part of the saved state; reset by re-sleeving. */
+/**
+ * The automation points earned in total: `perCopy` of every owned `automationPoints` buyable. Spent or not.
+ *
+ * Called by: `createGame.ts` (what the Shop pays automation skills from), {@link Automation.pointsEarned}, `serialization.ts`, `testing/invariants.ts`.
+ *
+ * @param buyables all buyable definitions
+ * @param purchased copies owned, by id
+ */
+export function automationPointsEarned(buyables: readonly BuyableDefinition[], purchased: Readonly<Record<BuyableId, number>>): number {
+  let points = 0;
+  for (const b of buyables) if (b.effect.kind === 'automationPoints') points += b.effect.perCopy * (purchased[b.id] ?? 0);
+  return Math.min(points, Number.MAX_SAFE_INTEGER);
+}
+
+/**
+ * The skill that unlocks an automation feature: the buyable with the effect `unlocksAutomation` for it (the root of its lane).
+ *
+ * Called by: {@link isFeatureUnlocked}, {@link Automation.unlock}, `serialization.ts` (the migration of old saves).
+ *
+ * @returns the id, or `undefined` when the content has no such skill
+ */
+export function unlockingBuyable(buyables: readonly BuyableDefinition[], feature: AutomationFeature): BuyableId | undefined {
+  return buyables.find((b) => b.effect.kind === 'unlocksAutomation' && b.effect.feature === feature)?.id;
+}
+
+/**
+ * True when the skill that unlocks the feature is owned.
+ *
+ * Called by: {@link Automation.isUnlocked}, `serialization.ts`, `testing/invariants.ts`.
+ */
+export function isFeatureUnlocked(
+  buyables: readonly BuyableDefinition[],
+  purchased: Readonly<Record<BuyableId, number>>,
+  feature: AutomationFeature,
+): boolean {
+  const id = unlockingBuyable(buyables, feature);
+  return id !== undefined && (purchased[id] ?? 0) > 0;
+}
+
+/** What {@link Automation} needs from the shop: the automation points still to spend, and buying a skill. */
+export interface AutomationShop {
+  /** Automation points still to spend: earned minus the price of the owned lane skills. */
+  pointsAvailable(): number;
+  /** Buys one copy of the buyable; true when it was bought. */
+  buy(id: BuyableId): boolean;
+}
+
+/**
+ * What the player has set up in the Automation tab. Part of the saved state; reset by re-sleeving.
+ * Whether a feature is unlocked is not stored: it is owning the skill that unlocks it (see {@link isFeatureUnlocked}).
+ */
 export interface AutomationState {
-  /** Features unlocked with automation points (absent or false: locked). */
-  unlocked: Partial<Record<AutomationFeature, boolean>>;
   /** Auto Burn is switched on (only possible once unlocked). */
   autoBurnOn: boolean;
   /** Auto Burn uses Burn leads whenever heat is above this many points (>= 0). */
@@ -36,7 +84,7 @@ export interface AutomationState {
  * @param config reads `automation.autoBurnCeiling`
  */
 export function createAutomationState(config: Pick<GameConfig, 'automation'>): AutomationState {
-  return { unlocked: {}, autoBurnOn: false, autoBurnCeiling: config.automation?.autoBurnCeiling ?? 0, autosale: {}, dispersal: {} };
+  return { autoBurnOn: false, autoBurnCeiling: config.automation?.autoBurnCeiling ?? 0, autosale: {}, dispersal: {} };
 }
 
 /** What the screen and the commands use (satisfied by {@link Automation}). */
@@ -45,11 +93,11 @@ export interface AutomationControls {
   available(): boolean;
   /** Automation points earned in total (spent or not): 0 until a point is bought. */
   pointsEarned(): number;
-  /** Automation points still to spend: earned minus one per unlocked feature. */
+  /** Automation points still to spend: earned minus the price of the lane skills owned. */
   pointsAvailable(): number;
   /** True when the feature has been unlocked. */
   isUnlocked(feature: AutomationFeature): boolean;
-  /** Spends a point to unlock a feature; false when there is none to spend, it is unlocked already, or the game has no automation. */
+  /** Buys the first skill of the feature's lane (one point); false when there is none to spend, it is unlocked already, or the game has no automation. */
   unlock(feature: AutomationFeature): boolean;
   /** Auto Burn: on or off. */
   isAutoBurnOn(): boolean;
@@ -70,28 +118,30 @@ export interface AutomationControls {
 }
 
 /**
- * The automation features and the points that pay for them.
+ * The automation features, the points that pay for them and the skill lanes that unlock them.
  *
  * @remarks
  * Points are not stored: earned points are `perCopy` of every owned `automationPoints` buyable, and the points available are those
- * minus one per unlocked feature. All three features work in closed form, so a slice of any length costs the same:
+ * minus the price of the owned skills paid in automation points (the Shop works that out). Each feature has a lane of skills in the
+ * Automation tab; owning the first one (`unlocksAutomation`) is what unlocks it, so "unlock" buys that skill. All three features work in closed form, so a slice of any length costs the same:
  * - **Auto Burn** uses `k` Burn leads at once, where `k` is the smallest number that brings heat to the ceiling
  *   (`heat x (1 - fraction)^k <= ceiling`), at most what is held.
  * - **Autosale** sells whole stacks of the switched-on rarities of every sellable item.
  * - **Augment dispersal** hands the schematics held to the actions in proportion to their shares (largest remainder, so none is lost).
  *
  * Called by: `engine.ts` (`GameEngine.advance` calls {@link Automation.step}; the screen uses {@link AutomationControls}).
- * Calls: {@link BurnLeads}, {@link Augments}, {@link Inventory}.
+ * Calls: {@link BurnLeads}, {@link Augments}, {@link Inventory}, {@link AutomationShop}.
  */
 export class Automation implements AutomationControls {
   /**
    * Creates the unit.
    *
-   * @param config reads `automation`, the buyables (the point sources), the items (rarities, what is sellable, the leads and schematics) and the actions
+   * @param config reads `automation`, the buyables (the point sources and the unlocking skills), the items (rarities, what is sellable, the leads and schematics) and the actions
    * @param state the live game state (mutated: `automation`, and through the other units heat, the inventory and augments)
    * @param inventory where autosale sells from
    * @param burnLeads uses the leads for Auto Burn
    * @param augments applies the schematics for dispersal
+   * @param shop the automation points still to spend, and buying the unlocking skill
    */
   constructor(
     private readonly config: Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>,
@@ -99,6 +149,7 @@ export class Automation implements AutomationControls {
     private readonly inventory: Inventory,
     private readonly burnLeads: BurnLeads,
     private readonly augments: Augments,
+    private readonly shop: AutomationShop,
   ) {}
 
   /** See {@link AutomationControls.available}. */
@@ -106,31 +157,26 @@ export class Automation implements AutomationControls {
     return this.config.automation !== undefined;
   }
 
-  /** See {@link AutomationControls.pointsEarned}: the sum of `perCopy x copies` over the owned `automationPoints` buyables. */
+  /** See {@link AutomationControls.pointsEarned}: see {@link automationPointsEarned}. */
   pointsEarned(): number {
-    if (!this.available()) return 0;
-    let points = 0;
-    for (const b of this.config.buyables) {
-      if (b.effect.kind === 'automationPoints') points += b.effect.perCopy * (this.state.purchased[b.id] ?? 0);
-    }
-    return Math.min(points, Number.MAX_SAFE_INTEGER);
+    return this.available() ? automationPointsEarned(this.config.buyables, this.state.purchased) : 0;
   }
 
-  /** See {@link AutomationControls.pointsAvailable}: earned points minus one per unlocked feature. */
+  /** See {@link AutomationControls.pointsAvailable}: asks the shop (earned points minus the price of the lane skills owned). */
   pointsAvailable(): number {
-    return Math.max(0, this.pointsEarned() - AUTOMATION_FEATURES.filter((f) => this.isUnlocked(f)).length);
+    return this.available() ? this.shop.pointsAvailable() : 0;
   }
 
-  /** See {@link AutomationControls.isUnlocked}. */
+  /** See {@link AutomationControls.isUnlocked}: the feature's first skill is owned. */
   isUnlocked(feature: AutomationFeature): boolean {
-    return this.state.automation.unlocked[feature] === true;
+    return isFeatureUnlocked(this.config.buyables, this.state.purchased, feature);
   }
 
-  /** See {@link AutomationControls.unlock}. Mutates `state.automation.unlocked`. */
+  /** See {@link AutomationControls.unlock}. Buys the lane's first skill, which mutates `state.purchased`. */
   unlock(feature: AutomationFeature): boolean {
-    if (!this.available() || this.isUnlocked(feature) || this.pointsAvailable() < 1) return false;
-    this.state.automation.unlocked[feature] = true;
-    return true;
+    const skill = unlockingBuyable(this.config.buyables, feature);
+    if (!this.available() || skill === undefined || this.isUnlocked(feature)) return false;
+    return this.shop.buy(skill);
   }
 
   /** See {@link AutomationControls.isAutoBurnOn}. */

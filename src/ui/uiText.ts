@@ -112,8 +112,6 @@ export interface UiText {
   /** The Automation tab: the points, each feature and its controls. */
   readonly automation: {
     points(points: string): string;
-    /** The unlock button of a feature that is not unlocked yet (it costs one point). */
-    readonly unlock: string;
     /** The name and what each feature does. */
     readonly features: Readonly<Record<AutomationFeature, { readonly name: string; readonly description: string }>>;
     /** Auto Burn's switch (shows the state) and the label of its heat ceiling. */
@@ -293,7 +291,6 @@ export const uiText: UiText = {
   },
   automation: {
     points: (points) => `Automation points: ${points}`,
-    unlock: 'Unlock (1 point)',
     features: {
       autoBurn: {
         name: 'Auto Burn',
@@ -364,7 +361,13 @@ export const uiText: UiText = {
     iceRating: 'iceRating',
     legend: 'legend',
   },
-  costUnits: { credits: 'credits', networkNodes: 'nodes', skillPoints: 'skill points', resleevePoints: 're-sleeve points' },
+  costUnits: {
+    credits: 'credits',
+    networkNodes: 'nodes',
+    skillPoints: 'skill points',
+    resleevePoints: 're-sleeve points',
+    automationPoints: 'automation points',
+  },
   lock: {
     access: (level) => `Needs access level ${level}`,
     poster: (level) => `Increase Access level to ${level} to unlock`,

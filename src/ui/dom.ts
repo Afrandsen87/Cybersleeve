@@ -132,7 +132,7 @@ export function mountUi(
   const characterPanel = h('div', 'tab-panel character-panel');
   characterPanel.append(layout, saveRow.row);
   sleeve.stats.root.append(resleeveRow.root); // the bottom of the Sleeve widget
-  const automationWidget = buildAutomationWidget(initial.automation, engine.automation(), text, () => render());
+  const automationWidget = buildAutomationWidget(ctx, initial.automation, engine.automation(), () => render());
   const automationPanel = h('div', 'tab-panel automation-panel');
   automationPanel.append(automationWidget.root);
   header.append(tabBar.root);

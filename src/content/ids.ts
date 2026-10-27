@@ -103,6 +103,20 @@ export const BRANCH_CYBERNETICS = 'cybernetics';
 export const BRANCH_ANONYMITY = 'anonymity';
 /** Branch id of the skill tree's leverage lane (Kompromat). */
 export const BRANCH_LEVERAGE = 'leverage';
+/** Branch id of the Auto Burn lane in the Automation tab (progressively better versions of that automation); also the feature's id. */
+export const BRANCH_AUTO_BURN = 'autoBurn' as const;
+/** Branch id of the Compromat Autosale lane in the Automation tab; also the feature's id. */
+export const BRANCH_AUTOSALE = 'autosale' as const;
+/** Branch id of the Augment Dispersal lane in the Automation tab; also the feature's id. */
+export const BRANCH_DISPERSAL = 'dispersal' as const;
+/** Number of skills in each automation lane (placeholders for now). */
+export const AUTOMATION_LINE_LENGTH = 10;
+/** Id of the `step`-th skill (1-based) of an automation lane. */
+export const automationSkillId = (branch: string, step: number): string => `skill-${branch}-${step}`;
+/** Every automation-lane skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first. */
+export const AUTOMATION_SKILLS: readonly string[] = [BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL].flatMap((branch) =>
+  Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => automationSkillId(branch, i + 1)),
+);
 /** Id of the Kill servers auto-run buyable. */
 export const KILL_AUTO_RUN = 'kill-auto-run';
 /** Id of the Build Legend auto-run buyable. */

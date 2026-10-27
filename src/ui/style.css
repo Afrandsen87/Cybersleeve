@@ -13,6 +13,9 @@
   --branch-cybernetics: #39ff88;
   --branch-anonymity: #ff3b5c;
   --branch-leverage: #d98a3d;
+  --branch-autoBurn: #b266ff;
+  --branch-autosale: #ffe14d;
+  --branch-dispersal: #4dd2ff;
 }
 * {
   box-sizing: border-box;
@@ -780,6 +783,15 @@ button:not(:disabled):hover {
 .skill-lane[data-branch="leverage"] {
   --lane: var(--branch-leverage);
 }
+.skill-lane[data-branch="autoBurn"] {
+  --lane: var(--branch-autoBurn);
+}
+.skill-lane[data-branch="autosale"] {
+  --lane: var(--branch-autosale);
+}
+.skill-lane[data-branch="dispersal"] {
+  --lane: var(--branch-dispersal);
+}
 .lane-title {
   margin: 0;
   font-size: 13px;
@@ -1035,8 +1047,7 @@ button:not(:disabled):hover {
   align-items: center;
   gap: 8px 16px;
 }
-.automation-controls[hidden],
-.automation-unlock[hidden] {
+.automation-controls[hidden] {
   display: none;
 }
 .automation-switch.on {

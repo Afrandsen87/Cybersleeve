@@ -309,8 +309,8 @@ export interface AutomationFeatureView {
   readonly name: string;
   readonly description: string;
   readonly unlocked: boolean;
-  /** The unlock button works: a point is left. */
-  readonly canUnlock: boolean;
+  /** The feature's skill lane, drawn in its box: the first skill is the unlock, the rest are what the automation can grow into. */
+  readonly lanes: readonly SkillLaneView[];
 }
 
 /** Display data of the Automation tab. */
