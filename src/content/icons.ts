@@ -10,6 +10,8 @@
  */
 import {
   ACCESS_UPGRADE,
+  CORPORATE_ACCESS_UPGRADE,
+  STOCK_ACQUISITION,
   AUTOMATION_CORE,
   AUTOMATION_SKILLS,
   AUGMENT_SCHEMATIC,
@@ -1028,6 +1030,8 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   [NODE_UPLINK]: 'node-uplink',
   [INTERFACE_BOOST]: 'interface-boost',
   [ACCESS_UPGRADE]: 'access-upgrade',
+  [CORPORATE_ACCESS_UPGRADE]: 'access-upgrade', // shares the access upgrade picture until it gets its own
+  [STOCK_ACQUISITION]: 'credit-chip', // shares the credit chip picture until it gets its own
   // Overclock and Focus: the cells in the square of an action card ask for `overclock` and `focus` (`dom.ts`); the unlock of each
   // action and the sleeve upgrades show the same pictures.
   overclock: 'overclock',
