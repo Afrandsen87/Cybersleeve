@@ -15,7 +15,7 @@
  * version; changing the meaning of an existing field does, together with a migration.
  */
 import type { BigNum, NumberFactory } from '../numbers';
-import { AUTOMATION_FEATURES, isFeatureUnlocked, unlockingBuyable } from './automation';
+import { AUTOMATION_FEATURES, isFeatureUnlocked } from './automation';
 import { BuyableCaps } from './buyableCaps';
 import { readCorporationState, writeCorporationState } from './corporationState';
 import { traitsOf } from './effectTraits';
@@ -26,10 +26,7 @@ import { createInitialState } from './state';
 import type { GameConfig, GameState, GameStateView } from './types';
 
 /** Current save format version. */
-export const SAVE_VERSION = 5;
-
-/** The previous save format, still read: its unlocked automation features are turned into owned automation skills (see {@link migrateV4}). */
-const PREVIOUS_SAVE_VERSION = 4;
+export const SAVE_VERSION = 6;
 
 /**
  * Shape of the stored JSON (current version): `version`, one entry per scalar field of `fields.ts` (amounts as strings, plain
@@ -148,7 +145,7 @@ export function deserializeState(
     return null;
   }
   if (!isRecord(parsed)) return null;
-  const raw = parsed['version'] === PREVIOUS_SAVE_VERSION ? migrateV4(parsed, config) : parsed;
+  const raw = parsed;
   if (raw['version'] !== SAVE_VERSION) return null;
 
   try {
@@ -223,23 +220,6 @@ export function deserializeState(
   } catch {
     return null;
   }
-}
-
-/**
- * Turns a version 4 save into a version 5 one: a feature that was unlocked (a flag in `automation.unlocked`, paid with one automation
- * point) becomes an owned copy of the skill that unlocks it, which costs the same one point. Everything else is read as it is.
- *
- * Called by: {@link deserializeState}. Calls: {@link unlockingBuyable}.
- */
-function migrateV4(raw: Record<string, unknown>, config: Pick<GameConfig, 'buyables'>): Record<string, unknown> {
-  const automation = isRecord(raw['automation']) ? raw['automation'] : {};
-  const unlocked = isRecord(automation['unlocked']) ? automation['unlocked'] : {};
-  const purchased: Record<string, unknown> = isRecord(raw['purchased']) ? { ...raw['purchased'] } : {};
-  for (const feature of AUTOMATION_FEATURES) {
-    const skill = unlockingBuyable(config.buyables, feature);
-    if (unlocked[feature] === true && skill !== undefined) purchased[skill] = Math.max(1, readCount(purchased[skill]));
-  }
-  return { ...raw, version: SAVE_VERSION, purchased };
 }
 
 /**
