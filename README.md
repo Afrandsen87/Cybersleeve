@@ -6,9 +6,9 @@ A cyberpunk idle/incremental game about re-sleeving your consciousness. Web app 
 ```
 npm install
 npm run dev        # dev server (test aids are shown)
-npm run check      # typecheck, Biome, tests, docs check, production build: run before finishing any change
+npm run check      # typecheck, Biome, tests, production build: run before finishing any change
 npm test           # unit tests only
-npm run docs       # regenerate docs/architecture.html after code or doc-comment changes
+npm run docs       # regenerate docs/architecture.html (only when asked; the file is not in git)
 ```
 
 ## Where things are
@@ -17,7 +17,7 @@ npm run docs       # regenerate docs/architecture.html after code or doc-comment
 | [DESIGN.md](DESIGN.md) | The game design: the source of truth for mechanics |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Modules, layering, tick loop, persistence |
 | [docs/CONFIG.md](docs/CONFIG.md) | Every tuning variable in `src/content/gameConfig.ts` |
-| `docs/architecture.html` | Generated overview (functions, call graph, risks); open it in a browser |
+| `docs/architecture.html` | Generated overview (git-ignored, built on request) (functions, call graph, risks); open it in a browser |
 | [CLAUDE.md](CLAUDE.md) | Standing engineering rules and the decisions log |
 
 Add content and retune in `src/content/gameConfig.ts` only. Test aids (Reset save, Speed x10, Test drop) show in development builds or with `?debug` in the address.

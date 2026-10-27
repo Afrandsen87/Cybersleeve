@@ -54,7 +54,8 @@ The reference game plays at astronomical scales (up to 1e303 and beyond, with an
 - Build incrementally; each step small, tested, documented, and runnable.
 - Before making a significant design or technology choice not covered here, ask the user and then record the decision in the section below.
 - Write outputs into this project folder (`C:\Code\CyberSleeve`).
-- Do not commit or push unless asked. (This folder is a git repository.)
+- Do not commit or push unless asked. (This folder is a git repository.) Exception: in a session worktree, small commits on its own branch are expected (see below).
+- **Every session works in its own git worktree and branch** (`.claude/worktrees/<slug>`), never directly on `main`, so parallel sessions do not collide. Use the `/agent-task` skill (`.claude/skills/agent-task/SKILL.md`) to start one. Never merge, rebase or push branches you did not create; the user merges.
 
 ## Standing rules (distilled from the decisions log)
 
@@ -82,8 +83,8 @@ Design rules:
 - Folder layout, build/run/test commands: see `docs/ARCHITECTURE.md` (project scaffolded 2026-10-24; code in `src/{numbers,core,content,app,ui}`, tests next to code as `*.test.ts`).
 - **No hard-coded tuning:** every number that affects progression (durations, rewards, XP, level thresholds, level worth, prices, caps, intervals) must live in `src/content` (`gameConfig.ts` for the tuning, `actions.ts`, `items.ts`, `buyables/<action>.ts` for the content, `ids.ts` for ids; together `GameConfig`) and be validated in `core/config.ts`. Describe new variables in `docs/CONFIG.md`. Unit tests use `src/testing/testConfig.ts`, never the real tuning.
 - Keep `docs/ARCHITECTURE.md`, `docs/CONFIG.md` and `DESIGN.md` updated in the same change as code.
-- Regenerate the HTML overview with `npm run docs` (output: `docs/architecture.html`) after code changes, and update the curated sections in `scripts/architecture.template.html` when the design changes. Doc format is TSDoc with `Called by:` / `Calls:` lines in the description.
-- Before reporting work done: run `npm run check` (typecheck, Biome, tests, docs check, build).
+- Regenerate the HTML overview with `npm run docs` (output: `docs/architecture.html`) **only when the user explicitly asks**. The file is git-ignored; never generate, edit or stage it otherwise, and `npm run check` does not check it. Still keep the TSDoc and `scripts/architecture.template.html` curated sections correct in the same change as code. Doc format is TSDoc with `Called by:` / `Calls:` lines in the description.
+- Before reporting work done: run `npm run check` (typecheck, Biome, tests, build).
 - Runs are applied in closed-form batches (no per-run iteration); keep it that way when adding mechanics, and extend `batching.test.ts` so one long tick and many short ones give the same run results.
 - Tests for the real content (`content/gameConfig.test.ts`) check invariants, never tuning numbers.
 - New mechanics extend `testing/invariants.ts` when they add state, and are covered by the random play in `core/properties.test.ts` (seeded, so failures reproduce).
@@ -98,10 +99,3 @@ Detailed mechanics live in `DESIGN.md` (source of truth; read it before implemen
 - **Later layers:** multiple sleeves at once, each living a full life as a copy of your most recent lifetime. Further prestige layers produce companies/organisations that sleeve ever more copies: cities, interstellar outposts, planets. This copy scaling is the "derivative" scaling factor of the reference game.
 - **Main resource:** **credits**, used to buy things.
 - **First milestone:** implemented (three actions, buyables, passive network income, heat, re-sleeving); see `DESIGN.md`. Further mechanics are mapped out with the user before building.
-
-## Open questions for the user
-
-- The real re-sleeve requirement, and whether purchases should survive re-sleeving (see `DESIGN.md` section 4).
-- Buyables for the other actions; further automation.
-- Story beats and tone.
-- The design of the "infinity" prestige (reaching 1e308 only clamps and calls the `onInfinity` hook for now).

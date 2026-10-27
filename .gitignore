@@ -5,3 +5,4 @@ dev-dist
 tmp-vitest*.json
 .vitest
 coverage
+docs/architecture.html

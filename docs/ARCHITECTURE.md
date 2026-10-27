@@ -11,11 +11,11 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 | `npm run test:coverage` | unit tests with a v8 coverage report |
 | `npm run typecheck` | strict TypeScript check |
 | `npm run lint` / `npm run format` | Biome lint / Biome formatter (writes) |
-| `npm run check` | everything in one go: typecheck, Biome check, tests, docs check, build. Run before reporting work done |
+| `npm run check` | everything in one go: typecheck, Biome check, tests, build. Run before reporting work done |
 | `npm run build` | typecheck + production build incl. PWA service worker/manifest into `dist/` |
 | `npm run preview` | serve the production build (production build served locally) |
-| `npm run docs` | regenerate `docs/architecture.html` (reads TSDoc + imports, runs the tests) |
-| `npm run docs:check` | fail when `docs/architecture.html` no longer matches the sources (part of `npm run check`) |
+| `npm run docs` | regenerate `docs/architecture.html` (reads TSDoc + imports, runs the tests); only when the user asks; the file is not in git |
+| `npm run docs:check` | fail when `docs/architecture.html` no longer matches the sources (on request only; not part of `npm run check`) |
 | `node scripts/generate-icons.mjs` | regenerate PWA PNG icons in `public/` |
 
 ## Layering (dependencies point downwards only)

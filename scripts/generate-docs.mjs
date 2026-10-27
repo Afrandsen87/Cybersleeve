@@ -1,6 +1,6 @@
 // Generates docs/architecture.html from the source code (TSDoc comments, imports) and a real test run.
 // Usage: npm run docs          (writes docs/architecture.html, runs the tests)
-//        npm run docs:check    (writes nothing: fails when docs/architecture.html no longer matches the sources; part of `npm run check`)
+//        npm run docs:check    (writes nothing: fails when docs/architecture.html no longer matches the sources; not part of `npm run check`, run on request only)
 //
 // Extracted automatically: files, @module descriptions, import graph, exported symbols + class
 // members with their TSDoc (summary, @param, @returns, @throws, "Called by:", "Calls:"), documentation

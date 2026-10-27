@@ -20,7 +20,7 @@ Decided 2026-10-25 (by the user, after the second review):
 - All interface wording lives in `src/ui/uiText.ts`; `viewModel.ts` and `dom.ts` hold none. Stat widgets are data-driven rows (`StatRowView`), not hand-written per field.
 - The test aids (Reset save, Speed x10) are shown only in development builds or with `?debug` in the address.
 - Only the current save version is read (nothing has been released). Changing the meaning of a saved field needs a version bump and a migration; adding a scalar does not.
-- `npm run check` also runs `npm run docs:check`, which fails when `docs/architecture.html` is stale: run `npm run docs` after code or doc-comment changes.
+- `docs/architecture.html` is generated, git-ignored and never regenerated unless the user asks (`npm run docs`); `npm run check` no longer runs `docs:check`. Reason: parallel worktree branches kept conflicting on it.
 
 Decided 2026-10-25 (by the user, after testing):
 - **No general output multiplier.** The old `outputMultiplier` also scaled XP and counted runs, and made Practice Hacking's speed grow exponentially; it was removed. A `rewardMultiplier` buyable scales **only the reward its own action pays per run** (e.g. the nodes Grow Network pays). Every future multiplier states exactly what it multiplies; code never applies one multiplier to everything an action does.
@@ -68,7 +68,7 @@ Working conventions (in use):
 - **No hard-coded tuning:** every number that affects progression (durations, rewards, XP, level thresholds, level worth, prices, caps, intervals) must live in `src/content/gameConfig.ts` (`GameConfig`) and be validated in `core/config.ts`. Describe new variables in `docs/CONFIG.md`. Unit tests use `src/testing/testConfig.ts`, never the real tuning.
 - Keep `docs/ARCHITECTURE.md`, `docs/CONFIG.md` and `DESIGN.md` updated in the same change as code.
 - Regenerate the HTML overview with `npm run docs` (output: `docs/architecture.html`) after code changes, and update the curated sections in `scripts/architecture.template.html` when the design changes. Doc format is TSDoc with `Called by:` / `Calls:` lines in the description.
-- Before reporting work done: run `npm run check` (typecheck, Biome, tests, docs check, build).
+- Before reporting work done: run `npm run check` (typecheck, Biome, tests, build).
 - Runs are applied in closed-form batches (no per-run iteration); keep it that way when adding mechanics, and extend `batching.test.ts` so one long tick and many short ones give the same run results.
 - Tests for the real content (`content/gameConfig.test.ts`) check invariants, never tuning numbers.
 - New mechanics extend `testing/invariants.ts` when they add state, and are covered by the random play in `core/properties.test.ts` (seeded, so failures reproduce).

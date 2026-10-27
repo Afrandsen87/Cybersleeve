@@ -15,5 +15,5 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # typecheck, Biome, tests, docs freshness and the production build
+      # typecheck, Biome, tests and the production build
       - run: npm run check
