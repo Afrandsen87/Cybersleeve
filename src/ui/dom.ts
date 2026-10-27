@@ -36,7 +36,7 @@ export interface SpeedControl {
 export interface MountOptions {
   /** The display text (default: the placeholder text of the game). */
   readonly text?: UiText;
-  /** Show the test aids in the corner (Test drop, Reset save and the fast-forward toggle). Default: true. */
+  /** Show the test aids bar at the top (Test drop, Reset save and the fast-forward toggle). Default: true. */
   readonly debugControls?: boolean;
   /** The icons shown beside actions, items and the credits (default: none). */
   readonly icons?: IconSource;
@@ -69,7 +69,7 @@ export function showNotice(root: HTMLElement, message: string): void {
  *
  * @param root container element
  * @param engine the engine to display and command
- * @param speed the test fast-forward switch shown in the corner
+ * @param speed the test fast-forward switch shown in the test aids bar
  * @param onResetSave called when the temporary "Reset save" button is pressed; must wipe the game and the stored save
  * @param options display text and whether the test aids are shown
  * @returns `render`, to be called after every tick
@@ -119,6 +119,7 @@ export function mountUi(
   dashboard.append(sleeve.stats.root, right);
   const layout = h('div', 'layout');
   layout.append(dashboard, h('hr', 'divider'), actions.root);
+  // The test aids bar is appended before the header, so it is the first thing in the page and sits above the tabs.
   const debug = (options.debugControls ?? true) ? buildDebugControls(ctx, root, speed, onResetSave) : null;
   if (debug) root.append(debug.root);
 

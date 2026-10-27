@@ -260,7 +260,7 @@ describe('inventory widget', () => {
 
   it('the Test drop button in the corner drops an item and shows the Inventory', () => {
     const { root, game, widget, tiles } = mount();
-    const button = root.querySelector<HTMLButtonElement>('.corner-controls .test-drop')!;
+    const button = root.querySelector<HTMLButtonElement>('.debug-bar .test-drop')!;
     expect(button.textContent).toBe('Test drop');
     expect(widget.hidden).toBe(true);
     button.click();

@@ -182,7 +182,7 @@ Current sleeve buyables (placeholder prices): **Interface boost** (10 credits, +
 | `renderMs` | Shortest interval between screen refreshes (default 100). The game still steps every `stepMs`; only the drawing is limited. Drawing happens on the display's frame clock (`app/renderLoop.ts`), so refreshes land on the first frame at or after this interval (about 100–117 ms on a 60 Hz screen). It also sets the length of the bars' glide (`--render-ms`) |
 | `maxDeltaMs` | Largest real-time gap simulated per step (no offline progress beyond this) |
 | `autosaveMs` | Autosave interval |
-| `fastForwardFactor` | Time multiplier of the corner test toggle (> 1) |
+| `fastForwardFactor` | Time multiplier of the test-aids bar toggle (> 1) |
 
 ## What is deliberately not in the configuration
 **Infinity** (`core/infinity.ts`, `INFINITY = 1e308`): the one number at which an amount stops growing. Every amount (credits, nodes, XP, ICE Rating, ...) is clamped to it by the overflow policy after every slice, and every multiplier derived from an amount saturates there; reaching it calls the policy's `onInfinity` listener (the hook for the future infinity prestige). It is a representational limit (it sits just under the largest double), not a progression setting. Numerical limits of the number maths, not progression: `EXACT_RUN_LIMIT` (`progression.ts`, above 1e15 runs the exact remainder toward the next sleeve XP is meaningless) and `SEQUENTIAL_RUN_LIMIT` (`completion.ts`, runs that remove nodes one by one before the closed form takes over). Display wording is not configuration either: it lives in `src/ui/uiText.ts`.

@@ -253,7 +253,7 @@ export interface SleeveCommands {
   newGame(): void;
 }
 
-/** Test aids shown in the corner of development builds. */
+/** Test aids shown in the bar at the top of development builds. */
 export interface TestAidCommands {
   /** Test aid: drops one item now by the current drop weights, whatever the chance. */
   dropTestItem(): void;
