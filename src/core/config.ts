@@ -124,7 +124,8 @@ function checkCompletionEffects(where: string, effects: GameConfig['actions'][nu
 
 /** Checks the numbers of an action's Overclock rule: every field that is given must make sense, and at least one must be given. */
 function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions'][number]['overclock']>, errors: string[]): void {
-  const { speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, heatChanceFactor, alsoPays, completionEffects, stopsHeatCooling } = rule;
+  const { speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, heatChanceFactor, alsoPays, completionEffects, stopsHeatCooling } =
+    rule;
   if (speedBonus !== undefined && !(Number.isFinite(speedBonus) && speedBonus > 0))
     errors.push(`${where}: overclock speedBonus must be > 0`);
   if (rewardBonus !== undefined && !(Number.isFinite(rewardBonus) && rewardBonus > 0))

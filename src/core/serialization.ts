@@ -15,7 +15,7 @@
  * version; changing the meaning of an existing field does, together with a migration.
  */
 import type { BigNum, NumberFactory } from '../numbers';
-import { AUTOMATION_FEATURES, isFeatureUnlocked } from './automation';
+import { type AUTOMATION_FEATURES, isFeatureUnlocked } from './automation';
 import { BuyableCaps } from './buyableCaps';
 import { readCorporationState, writeCorporationState } from './corporationState';
 import { traitsOf } from './effectTraits';
