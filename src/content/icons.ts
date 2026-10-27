@@ -8,13 +8,15 @@
  * @remarks
  * Names are placeholders like the rest of the content. The icons are display only: nothing in `core` knows about them.
  */
+import { AUTOMATION_ART_GRIDS, AUTOMATION_ART_ICONS } from './automationSkillIcons';
+import { RESLEEVE_ART_GRIDS, RESLEEVE_ART_ICONS } from './resleeveSkillArt';
 import { RESLEEVE_SKILL_ICONS } from './resleeveSkillIcons';
+import { SKILL_ART_GRIDS, SKILL_ART_ICONS } from './skillIcons';
 import {
   ACCESS_UPGRADE,
   CORPORATE_ACCESS_UPGRADE,
   STOCK_ACQUISITION,
   AUTOMATION_CORE,
-  AUTOMATION_SKILLS,
   AUGMENT_SCHEMATIC,
   AUTO_RUN,
   BURN_LEAD,
@@ -30,12 +32,6 @@ import {
   SKILL_OBFUSCATION,
   SKILL_INCORPORATION,
   SKILL_PURGE_PROTOCOL,
-  SKILL_SCORCHED_EARTH,
-  SKILL_SILVER_TONGUE,
-  SKILL_QUIET_HOURS,
-  SKILL_UNDERCOVER,
-  SKILL_DEEP_COVER,
-  SKILL_BLACKOUT,
   SKILL_SLEEVE_EUPHORIA,
   SKILL_SYNTHETIC_SLEEVES,
   ZERO_DAY,
@@ -68,10 +64,6 @@ import {
   RARITY_REFINEMENT,
   SELF_REPLICATION,
   SKILL_BACK_CHANNEL,
-  SKILL_DEEP_FILES,
-  SKILL_DOSSIER,
-  SKILL_TIERED_INFORMANTS,
-  SKILL_DOUBLE_AGENT,
   SKILL_BANDWIDTH,
   SKILL_COLD_TRAIL,
   SKILL_EXPLOIT_KOMPROMAT,
@@ -1109,6 +1101,10 @@ export const ICON_GRIDS: Readonly<Record<string, readonly string[]>> = {
     '................',
     '................',
   ],
+  // Skill art kept in its own files to keep this one small.
+  ...SKILL_ART_GRIDS,
+  ...RESLEEVE_ART_GRIDS,
+  ...AUTOMATION_ART_GRIDS,
 };
 
 /**
@@ -1149,8 +1145,6 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   [NETWORK_SYNERGY]: 'network-synergy',
   [ICE_RATING_BOOST]: 'ice-rating-boost',
   [AUTOMATION_CORE]: 'automation-core',
-  // the automation skills share the Automation core picture until each gets its own
-  ...Object.fromEntries(AUTOMATION_SKILLS.map((id) => [id, 'automation-core'])),
   [NODE_PAYOUT]: 'node-payout',
   [NODE_UPLINK]: 'node-uplink',
   [INTERFACE_BOOST]: 'interface-boost',
@@ -1195,21 +1189,14 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   [SKILL_NOSE_FOR_SECRETS]: 'skill-nose-for-secrets',
   [SKILL_EXPLOIT_KOMPROMAT]: 'skill-exploit-kompromat',
   [SKILL_BACK_CHANNEL]: 'skill-back-channel',
-  [SKILL_DEEP_FILES]: 'skill-nose-for-secrets', // stand-in icons until these skills get their own
-  [SKILL_DOSSIER]: 'skill-exploit-kompromat',
-  [SKILL_TIERED_INFORMANTS]: 'skill-back-channel',
-  [SKILL_DOUBLE_AGENT]: 'skill-back-channel',
   [SKILL_OBFUSCATION]: 'skill-obfuscation',
   [SKILL_PURGE_PROTOCOL]: 'skill-purge-protocol',
-  // Placeholders: these skills borrow the art of a related skill until they get their own.
-  [SKILL_SCORCHED_EARTH]: 'flame',
-  [SKILL_SILVER_TONGUE]: 'skill-nose-for-secrets',
-  [SKILL_QUIET_HOURS]: 'skill-cold-trail',
-  [SKILL_UNDERCOVER]: 'skill-obfuscation',
-  [SKILL_DEEP_COVER]: 'skill-back-channel',
-  [SKILL_BLACKOUT]: 'skill-purge-protocol',
   [SKILL_SLEEVE_EUPHORIA]: 'skill-sleeve-euphoria',
   [SKILL_SYNTHETIC_SLEEVES]: 'skill-synthetic-sleeves',
   [SKILL_INCORPORATION]: 'skill-incorporation',
   ...RESLEEVE_SKILL_ICONS,
+  // Own art for the skills above that used to borrow a picture; these override the stand-ins.
+  ...SKILL_ART_ICONS,
+  ...RESLEEVE_ART_ICONS,
+  ...AUTOMATION_ART_ICONS,
 };
