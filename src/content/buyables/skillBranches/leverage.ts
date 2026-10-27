@@ -9,6 +9,7 @@ import {
   BRANCH_LEVERAGE,
   KOMPROMAT,
   KOMPROMAT_HARVEST,
+  PUSH_MALWARE,
   SKILL_BACK_CHANNEL,
   SKILL_BLACK_LEDGER,
   SKILL_DEEP_COVER,
@@ -19,6 +20,7 @@ import {
   SKILL_NOSE_FOR_SECRETS,
   SKILL_SEALED_ARCHIVES,
   SKILL_TIERED_INFORMANTS,
+  overclockUnlockId,
 } from '../../ids';
 
 /**
@@ -60,7 +62,7 @@ export const leverageSkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_LEVERAGE,
     parents: [SKILL_NOSE_FOR_SECRETS],
-    requires: [KOMPROMAT_HARVEST],
+    requires: [KOMPROMAT_HARVEST, overclockUnlockId(PUSH_MALWARE)], // Moles are heat: wait for the Overclock that makes heat
     cost: num(1),
     // 5 Moles per file given up; while Moles remain the heat cools 200% faster
     effect: { kind: 'backChannel', itemId: KOMPROMAT, rarityId: 'common', molesPerItem: 5, cooldownBoost: 2 },

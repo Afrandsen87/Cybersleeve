@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
+import { markResleeved } from '../testing/sleeveLevelsKit';
 import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
@@ -76,6 +77,7 @@ describe('Faster conditioning (real content)', () => {
     expect(b.actionId).toBeUndefined();
     if (b.effect.kind !== 'runsPerSleeveXpReduction') throw new Error('wrong effect kind');
     const g = createGame();
+    markResleeved(g); // Faster conditioning waits for the second sleeve run
     const rich = () => setCredits(g, num(1e300));
     for (let i = 0; i < (b.maxPurchases as number); i++) {
       rich();

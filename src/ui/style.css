@@ -757,6 +757,9 @@ button:not(:disabled):hover {
   gap: 14px;
   overflow-x: auto;
 }
+.skill-lane[hidden] {
+  display: none;
+}
 .skill-lane {
   --lane: var(--cyan);
   display: grid;
@@ -865,7 +868,8 @@ button:not(:disabled):hover {
   opacity: 0.35;
 }
 /* A masked skill keeps its place and its lane colour, but nothing glows: it is not lit yet. */
-.skill-node.masked {
+.skill-lane .skill-node.masked,
+.skill-lane .skill-node.masked.purchasable {
   color: var(--muted);
   border-color: var(--line);
   box-shadow: none;

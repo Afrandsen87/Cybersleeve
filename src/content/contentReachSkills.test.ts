@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
-import { openResleeving } from '../testing/sleeveLevelsKit';
+import { markResleeved, openResleeving } from '../testing/sleeveLevelsKit';
 import { setCredits } from '../testing/testConfig';
 import {
   ACCESS_UPGRADE,
@@ -21,6 +21,7 @@ function gameWith(skills: string[], points: number): ReturnType<typeof createGam
   openResleeving(g);
   for (let i = 0; i < points; i++) g.resleeve();
   for (const id of skills) expect(g.buy(id), id).toBe('purchased');
+  markResleeved(g); // Faster conditioning waits for the second sleeve run
   setCredits(g, num('1e300'));
   return g;
 }

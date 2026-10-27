@@ -16,6 +16,7 @@ import {
   LEGEND,
   PUSH_MALWARE,
   SKILL_BLACKOUT,
+  SLEEVE_LEVELS,
   SKILL_COLD_TRAIL,
   SKILL_OBFUSCATION,
   SKILL_PURGE_PROTOCOL,
@@ -60,6 +61,7 @@ export const anonymitySkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_OBFUSCATION],
+    requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once re-sleeving is unlocked
     cost: num(1), // placeholder; a late-stage skill, since sleeve levels of Build Legend come slowly
     effect: { kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: LEGEND, perLevel: 1 },
   },

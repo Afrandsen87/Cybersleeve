@@ -10,6 +10,7 @@ import {
   ACCESS_UPGRADE,
   BURN_LEAD,
   BURN_LEADS,
+  CRITICAL_SUCCESS,
   PERSISTENCE,
   RANSOMWARE,
   SKILL_COLD_TRAIL,
@@ -261,6 +262,7 @@ describe('Zero-days (real content)', () => {
 
   it('Ransomware, end to end: a Zero-day critical Push malware run banks a guaranteed critical for Grow network, which then spends it', () => {
     const g = rich();
+    g.buy(CRITICAL_SUCCESS); // Ransomware waits for critical successes to exist
     g.buy(RANSOMWARE);
     (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[ZERO_DAY] = { common: 1 };
     g.toggleZeroDays();
