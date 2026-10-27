@@ -1,5 +1,5 @@
 /**
- * Deploy-time changelog collation (build-time only: nothing is committed).
+ * Deploy-time changelog collation (this script only rewrites the CI checkout; the workflow's last step commits the result back).
  *
  * Usage: node scripts/collate-changelog.mjs <previous-deploy-sha>
  *

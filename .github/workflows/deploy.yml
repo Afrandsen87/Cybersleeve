@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  # write: the last step commits the collated changelog back to main
+  contents: write
   pages: write
   id-token: write
 
@@ -31,7 +32,7 @@ jobs:
           cache: npm
       - run: npm ci
       # build the changelog entry for this push: merge the entries added since the last push to main, or make one from the
-      # commit subjects (build-time only, nothing is committed)
+      # commit subjects (committed back to main in the last step, so the next push sees it as part of the baseline)
       - run: node scripts/collate-changelog.mjs "${{ github.event.before }}"
       - run: npx biome format --write src/content/changelog.ts
       # typecheck, Biome, tests and the production build
@@ -41,3 +42,16 @@ jobs:
           path: dist
       - id: deployment
         uses: actions/deploy-pages@v4
+      # keep the generated entry: without this the next push starts from a changelog.ts that lacks it and drops it. Pushes made
+      # with GITHUB_TOKEN do not start another run. The "chore:" subject keeps this commit out of the next entry.
+      - name: Commit the changelog back
+        run: |
+          if git diff --quiet -- src/content/changelog.ts; then
+            echo "changelog unchanged, nothing to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/content/changelog.ts
+          git commit -m "chore: changelog for ${{ github.sha }}"
+          git push origin HEAD:main
