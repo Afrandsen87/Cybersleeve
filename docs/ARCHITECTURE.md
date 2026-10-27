@@ -17,6 +17,13 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 | `npm run docs` | regenerate `docs/architecture.html` (reads TSDoc + imports, runs the tests) |
 | `npm run docs:check` | fail when `docs/architecture.html` no longer matches the sources (part of `npm run check`) |
 | `node scripts/generate-icons.mjs` | regenerate PWA PNG icons in `public/` |
+| `node scripts/collate-changelog.mjs <sha>` | merge the changelog entries added since commit `<sha>` into one (see Deploy changelog). Rewrites `src/content/changelog.ts` in place |
+
+## Deploy changelog
+`.github/workflows/deploy.yml` runs `scripts/collate-changelog.mjs ${{ github.event.before }}` before the checks, then `biome format` on the result. The script reads `changelog.ts` as it was at the previous push to `main` (`git show`) and the commit subjects since (`git log --no-merges <sha>..HEAD`), and calls the pure `deployChangelog` (`src/build/collateChangelog.ts`):
+- If entries were added by hand since then (a `version` label not in the old file), `collateChangelog` replaces them by ONE entry: the newest new label, the changes of all new entries oldest first, exact duplicate lines dropped. The commit subjects are then ignored (hand-written text is curated; mixing both would list a change twice).
+- Otherwise `commitLines` turns the commit subjects into changelog lines (oldest first, duplicates dropped; subjects starting `chore:`, `docs:`, `test:`, `refactor:`, `ci:`, `build:`, `wip:`, `internal:` and merge commits are skipped) and they become ONE new entry on top, labelled with the deploy time (UTC, `YYYY-MM-DD HH:MM`, supplied by the script).
+- `renderChangelogSource` writes the array back. The commit-subject convention is a standing rule in `CLAUDE.md`. This is build-time only: the deployed game shows one entry, nothing is committed and the repository keeps the individual entries. With fewer than two new entries, no baseline (manual run, first push, force push) or an unknown sha, the file is left alone and the step succeeds. If a deploy is cancelled by a newer push, the next run's baseline is that cancelled push, so its entries stay separate. The rewrite is deterministic text merging; an LLM rewrite could be added behind the same function shape but is not built. Needs Node 22.18+ (runs the `.ts` files directly).
 
 ## Layering (dependencies point downwards only)
 ```
