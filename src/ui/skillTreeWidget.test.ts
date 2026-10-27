@@ -65,7 +65,7 @@ describe('the skill tree on the screen', () => {
       b.style.getPropertyValue('--row'),
     ]);
     expect(places).toEqual([
-      ['G1', '0', '0'],
+      ['G1', '0', '0.5'],
       ['G2', '1', '0'],
       ['G3', '1', '1'],
       ['?', '0', '0'],
@@ -89,8 +89,8 @@ describe('the skill tree on the screen', () => {
     const out = 0.5 + HALF_TILE; // the right edge of the parent in column 0
     const into = 1.5 - HALF_TILE; // the left edge of a child in column 1
     expect(HALF_TILE).toBeCloseTo(TILE_PX / STEP_PX / 2, 10);
-    expect(toG2).toBe(`M ${out} 0.5 H 1 V 0.5 H ${into}`); // same row: a straight line
-    expect(toG3).toBe(`M ${out} 0.5 H 1 V 1.5 H ${into}`); // one row down: a step in the middle of the gap
+    expect(toG2).toBe(`M ${out} 1 H 1 V 0.5 H ${into}`); // the parent is centred between its children, so the line steps up
+    expect(toG3).toBe(`M ${out} 1 H 1 V 1.5 H ${into}`); // and down to the other child
   });
 
   it('hands the size of a cell and of a button to the style sheet, so the lines and the buttons agree', () => {

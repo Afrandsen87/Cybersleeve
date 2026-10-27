@@ -7,7 +7,6 @@ import {
   BURN_LEAD,
   BURN_LEADS,
   GROW_NETWORK,
-  SKILL_BACK_CHANNEL,
   SKILL_BLACKOUT,
   SKILL_COLD_TRAIL,
   SKILL_DEEP_COVER,
@@ -26,8 +25,8 @@ const nodeOf = (g: ReturnType<typeof createGame>, id: string) =>
     .find((n) => n.view.id === id)!;
 
 describe('the anonymity skill tree: shape', () => {
-  it('Cold Trail splits into the cooling, Burn lead, idle and Mole paths', () => {
-    for (const id of [SKILL_OBFUSCATION, SKILL_SCORCHED_EARTH, SKILL_QUIET_HOURS, SKILL_DEEP_COVER]) {
+  it('Cold Trail splits into the cooling, Burn lead and idle paths', () => {
+    for (const id of [SKILL_OBFUSCATION, SKILL_SCORCHED_EARTH, SKILL_QUIET_HOURS]) {
       expect(skill(id).parents, id).toEqual([SKILL_COLD_TRAIL]);
     }
     expect(skill(SKILL_PURGE_PROTOCOL).parents).toEqual([SKILL_OBFUSCATION]);
@@ -35,24 +34,27 @@ describe('the anonymity skill tree: shape', () => {
     expect(skill(SKILL_UNDERCOVER).parents).toEqual([SKILL_QUIET_HOURS]);
   });
 
-  it('Blackout is the end skill: it needs the end of the cooling, idle and Mole paths, and nothing needs it', () => {
-    expect([...skill(SKILL_BLACKOUT).parents!].sort()).toEqual([SKILL_PURGE_PROTOCOL, SKILL_UNDERCOVER, SKILL_DEEP_COVER].sort());
-    const needsIt = gameConfig.buyables.filter((b) => b.parents?.includes(SKILL_BLACKOUT));
-    expect(needsIt).toEqual([]);
+  it('Blackout is the end of the cooling lane, and nothing needs it; Deep Cover is not an anonymity skill', () => {
+    expect(skill(SKILL_BLACKOUT).parents).toEqual([SKILL_PURGE_PROTOCOL]);
+    expect(gameConfig.buyables.filter((b) => b.parents?.includes(SKILL_BLACKOUT))).toEqual([]);
+    expect(skill(SKILL_DEEP_COVER).branch).not.toBe(skill(SKILL_COLD_TRAIL).branch);
   });
 
-  it('the paths are laid out sideways: Blackout is one column right of the deepest skill it needs', () => {
+  it('three straight lanes on their own rows, with the root centred on them', () => {
     const g = createGame();
-    const col = (id: string): number => nodeOf(g, id).col;
-    expect(col(SKILL_BLACKOUT)).toBe(Math.max(col(SKILL_PURGE_PROTOCOL), col(SKILL_UNDERCOVER), col(SKILL_DEEP_COVER)) + 1);
-    expect(col(SKILL_SILVER_TONGUE)).toBe(col(SKILL_SCORCHED_EARTH) + 1);
+    const at = (id: string): [number, number] => [nodeOf(g, id).col, nodeOf(g, id).row];
+    expect(at(SKILL_OBFUSCATION)).toEqual([1, 0]);
+    expect(at(SKILL_PURGE_PROTOCOL)).toEqual([2, 0]);
+    expect(at(SKILL_BLACKOUT)).toEqual([3, 0]);
+    expect(at(SKILL_SCORCHED_EARTH)).toEqual([1, 1]);
+    expect(at(SKILL_SILVER_TONGUE)).toEqual([2, 1]);
+    expect(at(SKILL_QUIET_HOURS)).toEqual([1, 2]);
+    expect(at(SKILL_UNDERCOVER)).toEqual([2, 2]);
+    expect(at(SKILL_COLD_TRAIL)).toEqual([0, 1]);
   });
 
-  it('every parent-child pair is a line, and every anonymity skill still costs one point', () => {
-    const g = createGame();
-    const blackout = nodeOf(g, SKILL_BLACKOUT);
-    expect([...blackout.parents].sort()).toEqual([SKILL_PURGE_PROTOCOL, SKILL_UNDERCOVER, SKILL_DEEP_COVER].sort());
-    for (const id of [SKILL_SCORCHED_EARTH, SKILL_SILVER_TONGUE, SKILL_QUIET_HOURS, SKILL_UNDERCOVER, SKILL_DEEP_COVER, SKILL_BLACKOUT]) {
+  it('every anonymity skill still costs one point', () => {
+    for (const id of [SKILL_SCORCHED_EARTH, SKILL_SILVER_TONGUE, SKILL_QUIET_HOURS, SKILL_UNDERCOVER, SKILL_BLACKOUT]) {
       expect(skill(id).cost.eq(skill(SKILL_COLD_TRAIL).cost), id).toBe(true);
     }
   });
@@ -65,9 +67,8 @@ describe('the anonymity skill tree: effects name what they scale', () => {
     expect(skill(SKILL_UNDERCOVER).effect).toEqual({ kind: 'idleHeatCooldownAction', actionId: GROW_NETWORK });
   });
 
-  it('Quiet Hours, Deep Cover and Blackout have their own effect kinds', () => {
+  it('Quiet Hours and Blackout have their own effect kinds', () => {
     expect(skill(SKILL_QUIET_HOURS).effect.kind).toBe('idleHeatCooldown');
-    expect(skill(SKILL_DEEP_COVER).effect.kind).toBe('moleAggregation');
     expect(skill(SKILL_BLACKOUT).effect.kind).toBe('heatTaxCap');
   });
 });
@@ -88,14 +89,7 @@ describe('the anonymity skill tree: what a new game shows', () => {
     expect(nodeOf(g, SKILL_SILVER_TONGUE).masked).toBe(false);
   });
 
-  it('Deep Cover waits for Back Channel Deals, the only source of Moles', () => {
-    const g = createGame();
-    expect(nodeOf(g, SKILL_DEEP_COVER).masked).toBe(true);
-    (g.getState().purchased as Record<string, number>)[SKILL_BACK_CHANNEL] = 1;
-    expect(nodeOf(g, SKILL_DEEP_COVER).masked).toBe(false);
-  });
-
-  it('Blackout stays hidden until every skill it needs is readable', () => {
+  it('Blackout stays hidden until Purge Protocol is readable', () => {
     const g = createGame();
     expect(nodeOf(g, SKILL_BLACKOUT).masked).toBe(true);
     const views = skillViews(buildViewModel(g).skills.lanes);

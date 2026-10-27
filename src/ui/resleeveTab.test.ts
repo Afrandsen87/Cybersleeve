@@ -84,9 +84,9 @@ describe('the re-sleeve skills in the view model', () => {
     expect(buildViewModel(createGame({ config })).skills.resleeve.visible).toBe(false);
     const vm = buildViewModel(resleeved(1)).skills.resleeve;
     expect(vm.visible).toBe(true);
-    // grown sideways: the root in column 0, what needs it in column 1, one below the other
+    // grown sideways: the root in column 0 centred on what needs it in column 1, one below the other
     expect(vm.lanes.flatMap((lane) => lane.nodes.map((n) => [n.view.id, n.col, n.row]))).toEqual([
-      ['eu', 0, 0],
+      ['eu', 0, 0.5],
       ['syn', 1, 0],
       ['inc', 1, 1],
     ]);
@@ -184,7 +184,7 @@ describe('the screen', () => {
       b.style.getPropertyValue('--row'),
     ]);
     expect(places).toEqual([
-      ['EU', '0', '0'],
+      ['EU', '0', '0.5'],
       ['SYN', '1', '0'],
       ['INC', '1', '1'],
     ]);

@@ -22,8 +22,8 @@ import {
 } from '../../ids';
 
 /**
- * The cybernetics branch: Overclocked Cortex is the root, with three arms. Bandwidth Leech leads to Fiber Tap (then Backbone Parasite) and to
- * Signal Amplifier (then Overdrive Spike); Muscle Memory leads to Quick Study; Parallel Threads leads to Neural Accelerant.
+ * The cybernetics branch: Overclocked Cortex is the root, with three arms drawn as straight lanes. Bandwidth Leech, which splits into two lanes (Signal Amplifier, Overdrive Spike; and Fiber Tap, Backbone Parasite);
+ * Muscle Memory, Quick Study; Parallel Threads, Neural Accelerant.
  */
 export const cyberneticsSkills: BuyableDefinition[] = [
   {
@@ -99,6 +99,30 @@ export const cyberneticsSkills: BuyableDefinition[] = [
   },
 
   {
+    id: SKILL_SIGNAL_AMPLIFIER,
+    name: 'Signal Amplifier',
+    symbol: 'SG',
+    description: 'Every critical success has a 5% chance to bring one extra critical success.',
+    currency: 'skillPoints',
+    branch: BRANCH_CYBERNETICS,
+    parents: [SKILL_BANDWIDTH],
+    cost: num(1),
+    effect: { kind: 'criticalExtraChance', chance: 0.05 },
+  },
+
+  {
+    id: SKILL_OVERDRIVE_SPIKE,
+    name: 'Overdrive Spike',
+    symbol: 'OS',
+    description: 'Doubles the reward of every critical success.',
+    currency: 'skillPoints',
+    branch: BRANCH_CYBERNETICS,
+    parents: [SKILL_SIGNAL_AMPLIFIER],
+    cost: num(1),
+    effect: { kind: 'criticalRewardMultiplier', factor: 2 },
+  },
+
+  {
     id: SKILL_FIBER_TAP,
     name: 'Fiber Tap',
     symbol: 'FT',
@@ -129,29 +153,5 @@ export const cyberneticsSkills: BuyableDefinition[] = [
       coefficient: 2.263,
       scale: 18,
     },
-  },
-
-  {
-    id: SKILL_SIGNAL_AMPLIFIER,
-    name: 'Signal Amplifier',
-    symbol: 'SG',
-    description: 'Every critical success has a 5% chance to bring one extra critical success.',
-    currency: 'skillPoints',
-    branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_BANDWIDTH],
-    cost: num(1),
-    effect: { kind: 'criticalExtraChance', chance: 0.05 },
-  },
-
-  {
-    id: SKILL_OVERDRIVE_SPIKE,
-    name: 'Overdrive Spike',
-    symbol: 'OS',
-    description: 'Doubles the reward of every critical success.',
-    currency: 'skillPoints',
-    branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_SIGNAL_AMPLIFIER],
-    cost: num(1),
-    effect: { kind: 'criticalRewardMultiplier', factor: 2 },
   },
 ];
