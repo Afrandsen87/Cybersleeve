@@ -406,6 +406,8 @@ export interface CorporationView {
   readonly title: string;
   /** The rows of the corporation widget: corporate rank, owned corporations and employees. */
   readonly stats: readonly StatRowView[];
+  /** The corporation's purchases (Asset Acquisition widget), cheapest base price first. */
+  readonly buyables: readonly BuyableView[];
   /** The corporation's actions, in order. */
   readonly actions: readonly CorporationActionView[];
 }

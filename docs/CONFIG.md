@@ -83,6 +83,8 @@ Current buyables (the newest additions are listed in DESIGN.md section 7). **Ove
 | `actions[]` | `{id, name, baseDurationMs, effects[]}` | The actions of the Corporation tab, in order. `id` must be unique; `baseDurationMs` (> 0) is the whole run time: **nothing speeds a corporation action up** (no interface speed, level speed, Focus or Overclock). `effects[]` are applied once for each completed run, in order |
 | effect `{kind: 'upgradeRandomItem', itemId, chance}` | `itemId` an item that has rarities, `chance` in (0, 1] | Each completed run has `chance` to upgrade ONE random stack-member of the item one rarity up: the stack is drawn weighted by how many are held, the highest rarity is never upgraded, nothing held does nothing. Real content: Insider backstabbing, `kompromat`, 0.01 (placeholder) |
 
+`baseRank` (optional integer >= 1, default 1) is the corporate rank before any `corporateRank` purchase; an action's optional `requiredRank` (integer >= 1, default 1) is the rank needed to start it. The buyable effect `{kind: 'corporateRank', amount}` (integer >= 1 per copy) adds to the rank; such a buyable is listed in the Asset Acquisition widget and kept through re-sleeving (`content/buyables/corporation.ts`).
+
 The tab is opened by a buyable with the effect `{kind: 'unlocksCorporation'}` (real content: the re-sleeve skill Incorporation). Leave `corporation` out for a game without a Corporation tab. A new kind of effect is one union member in `core/corporationTypes.ts` plus one entry in `core/corporationEffects.ts`.
 
 ## `criticalSuccess` – what a critical success does

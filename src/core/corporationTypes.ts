@@ -30,12 +30,16 @@ export interface CorporationActionDefinition {
   readonly name: string;
   /** Duration of one run, in milliseconds (> 0). Nothing speeds it up or slows it down: interface speed does not apply here. */
   readonly baseDurationMs: number;
+  /** The corporate rank needed to start the action (an integer >= 1). Default: 1. */
+  readonly requiredRank?: number;
   /** Applied once for each completed run, in order. */
   readonly effects: readonly CorporationEffect[];
 }
 
 /** The content of the Corporation tab. */
 export interface CorporationConfig {
+  /** The corporate rank before any `corporateRank` purchase (an integer >= 1). Default: 1. */
+  readonly baseRank?: number;
   /** The actions of the corporation, in the order the tab lists them. */
   readonly actions: readonly CorporationActionDefinition[];
 }

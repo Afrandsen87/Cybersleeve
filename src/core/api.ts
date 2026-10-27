@@ -172,6 +172,8 @@ export interface SkillQueries {
 export interface CorporationQueries {
   /** True while the Corporation tab is open (a purchase with the `unlocksCorporation` effect is owned). */
   isCorporationUnlocked(): boolean;
+  /** The corporate rank (what gates the corporation's actions). */
+  corporateRank(): number;
   /** The corporation's actions, in the order the tab lists them. */
   corporationActions(): readonly CorporationActionDefinition[];
   /** True when starting the corporation action now would work. */

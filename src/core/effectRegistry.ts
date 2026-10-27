@@ -21,6 +21,8 @@ export interface EffectTraits {
   readonly needsAction: boolean;
   /** Once owned, clicking the buyable switches the effect on or off instead of buying another copy. */
   readonly toggleable: boolean;
+  /** The buyable belongs to the corporation: it is shown in the Asset Acquisition widget, not in the Sleeve widgets. Default: false. */
+  readonly corporate?: boolean;
 }
 
 /** What owned effects add up to for one action (the running result of the action hooks). */
@@ -115,6 +117,7 @@ export interface EffectDefinition<E extends BuyableEffect> {
 }
 
 const sleeveWide: EffectTraits = { needsAction: false, toggleable: false };
+const corporate: EffectTraits = { needsAction: false, toggleable: false, corporate: true };
 const perAction: EffectTraits = { needsAction: true, toggleable: false };
 
 /** `ln(n)`, but never below 0 (so a network of 0 or 1 nodes adds nothing). */
@@ -313,6 +316,12 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
   synthSleeves: { traits: sleeveWide, validate: none },
   unlockSleeveLevels: { traits: sleeveWide, validate: none },
   unlocksCorporation: { traits: sleeveWide, validate: none },
+  corporateRank: {
+    traits: corporate,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isInteger(e.amount) && e.amount >= 1)) errors.push(`${where}: corporate rank amount must be an integer >= 1`);
+    },
+  },
   placeholder: { traits: sleeveWide, validate: none },
   heatCooldownAmountFromSleeveLevel: {
     traits: sleeveWide,

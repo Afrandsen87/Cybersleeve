@@ -6,17 +6,17 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries` (the corporation queries), the text table.
  */
-import type { CorporationEffect, CorporationQueries, StateQueries } from '../../core';
+import type { CorporationEffect, CorporationQueries, GameConfig, StateQueries } from '../../core';
 import { formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
+import { isCorporate } from './buyableViews';
 import { DROP_CHANCE_DECIMALS, buildStatRow as row, formatSeconds } from './viewFormat';
-import type { CorporationActionView, CorporationView } from './viewTypes';
+import type { BuyableView, CorporationActionView, CorporationView } from './viewTypes';
 
 /**
- * What the corporation widget shows until the corporation has state of its own (the mechanics behind the figures come later): the
- * rank is a plain integer for now, and no corporation has been bought and nobody is employed yet.
+ * What the corporation widget shows until the corporation has state of its own (the mechanics behind the figures come later): no
+ * corporation has been bought and nobody is employed yet. (The rank is real: it comes from the purchases.)
  */
-const STARTING_CORPORATE_RANK = 1;
 const STARTING_OWNED_CORPORATIONS = 0;
 const STARTING_EMPLOYEES = 0;
 
@@ -45,19 +45,28 @@ function describeEffect(effect: CorporationEffect, itemNames: (id: string) => st
  * Called by: {@link buildViewModel}. Calls: `GameQueries.corporationActions`, `canStartCorporationAction`.
  *
  * @param engine the engine to read from
+ * @param config game configuration (decides which purchases belong to the corporation)
+ * @param buyableViews the view of every buyable
  * @param text the display text
  */
-export function corporationView(engine: CorporationQueries & StateQueries, text: UiText): CorporationView {
+export function corporationView(
+  engine: CorporationQueries & StateQueries,
+  config: GameConfig,
+  buyableViews: readonly BuyableView[],
+  text: UiText,
+): CorporationView {
   const state = engine.getState();
+  const rank = engine.corporateRank();
   const items = engine.getConfig().items.definitions;
   const itemNames = (id: string): string => items.find((d) => d.id === id)?.name ?? id;
   return {
     title: text.titles.corporation,
     stats: [
-      row('corporateRank', text, formatPlain(STARTING_CORPORATE_RANK)),
+      row('corporateRank', text, formatPlain(engine.corporateRank())),
       row('ownedCorporations', text, formatPlain(STARTING_OWNED_CORPORATIONS)),
       row('employees', text, formatPlain(STARTING_EMPLOYEES)),
     ],
+    buyables: buyableViews.filter((b) => isCorporate(config, b.id)),
     actions: engine.corporationActions().map((def): CorporationActionView => {
       const progress = state.corporation.actions[def.id];
       const running = progress?.running ?? false;
@@ -69,7 +78,7 @@ export function corporationView(engine: CorporationQueries & StateQueries, text:
         running,
         progressPercent: (progress?.progress ?? 0) * 100,
         startable: engine.canStartCorporationAction(def.id),
-        infoText: text.corporation.info(duration),
+        infoText: rank >= (def.requiredRank ?? 1) ? text.corporation.info(duration) : text.corporation.locked(def.requiredRank ?? 1),
         get tip() {
           return text.corporation.tip({ name: def.name, duration, effects });
         },

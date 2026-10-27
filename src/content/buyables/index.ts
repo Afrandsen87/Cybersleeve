@@ -9,6 +9,7 @@ import { practiceHackingBuyables } from './practiceHacking';
 import { pushMalwareBuyables } from './pushMalware';
 import { killServersBuyables } from './killServers';
 import { buildLegendBuyables } from './buildLegend';
+import { corporationBuyables } from './corporation';
 import { sleeveBuyables } from './sleeve';
 import { skillsBuyables } from './skills';
 import { resleeveSkillsBuyables } from './resleeveSkills';
@@ -23,4 +24,5 @@ export const buyablesConfig: BuyableDefinition[] = [
   ...skillsBuyables,
   ...resleeveSkillsBuyables,
   ...sleeveBuyables,
+  ...corporationBuyables,
 ];

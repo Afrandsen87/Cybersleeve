@@ -35,7 +35,9 @@ export function sectionLayout(config: GameConfig): readonly { id: SleeveSectionI
     b.currency === 'networkNodes' ? 'nodes' : (b.maxPurchases ?? 1) > 1 ? 'rebuyable' : 'oneTime';
   // the sleeve-levels unlock is not listed: it is the Re-sleeve button until bought
   const gateId = sleeveLevelsGateId(config.buyables);
-  const defs = config.buyables.filter((b) => b.actionId === undefined && !isPointCurrency(b.currency) && b.id !== gateId);
+  const defs = config.buyables.filter(
+    (b) => b.actionId === undefined && !isPointCurrency(b.currency) && !traitsOf(b).corporate && b.id !== gateId,
+  );
   const layout = (['rebuyable', 'oneTime', 'nodes'] as const)
     .map((id) => ({
       id,
@@ -44,6 +46,12 @@ export function sectionLayout(config: GameConfig): readonly { id: SleeveSectionI
     .filter((section) => section.ids.length > 0);
   layoutCache.set(config, layout);
   return layout;
+}
+
+/** True for a buyable of the corporation (shown in the Asset Acquisition widget of the Corporation tab, not in the Sleeve widgets). */
+export function isCorporate(config: GameConfig, id: string): boolean {
+  const def = config.buyables.find((d) => d.id === id);
+  return def !== undefined && traitsOf(def).corporate === true;
 }
 
 /** True for the currencies that are points (skill points, re-sleeve points): their buyables live in the Skills tab, not in the Sleeve widget. */

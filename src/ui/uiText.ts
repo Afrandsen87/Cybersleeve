@@ -96,6 +96,8 @@ export interface UiText {
   readonly corporation: {
     /** The line under an action's title. */
     info(duration: string): string;
+    /** The line under the title of an action the rank does not reach yet. */
+    locked(rank: number): string;
     /** The hover text of an action: its name, its run time and what it does (one line per effect). */
     tip(parts: { readonly name: string; readonly duration: string; readonly effects: readonly string[] }): string;
     /** One sentence per kind of effect; a kind without one does not compile. */
@@ -281,6 +283,7 @@ export const uiText: UiText = {
   },
   corporation: {
     info: (duration) => `Run time ${duration}`,
+    locked: (rank) => `Needs corporate rank ${rank}`,
     tip: ({ name, duration, effects }) => [name, `Run Time = ${duration}`, '', ...effects].join('\n'),
     effects: {
       upgradeRandomItem: (effect, itemName, percent) =>

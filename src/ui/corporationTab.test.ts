@@ -4,7 +4,7 @@ import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
 import { hoverText } from '../testing/hover';
-import { testConfig } from '../testing/testConfig';
+import { setCredits, testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel } from './viewModel';
 
@@ -12,7 +12,11 @@ const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 
 /** Test content: a purchase that opens the corporation and one corporation action of 30 seconds that upgrades files. */
 const config = createConfig(testConfig, {
-  buyables: [...testConfig.buyables, { id: 'inc', name: 'Inc', description: '', cost: num(1), effect: { kind: 'unlocksCorporation' } }],
+  buyables: [
+    ...testConfig.buyables,
+    { id: 'inc', name: 'Inc', description: '', cost: num(1), effect: { kind: 'unlocksCorporation' } },
+    { id: 'rank', name: 'Rank', description: '', cost: num(1), maxPurchases: Infinity, effect: { kind: 'corporateRank', amount: 1 } },
+  ],
   corporation: {
     actions: [
       {
@@ -73,6 +77,22 @@ describe('the Corporation tab in the view model', () => {
     expect(tip).toContain('Each run has a 1% chance to upgrade one random File you hold to the next rarity');
   });
 
+  it('shows the rank purchase in the corporation view only, and buying it raises the rank and unlocks a locked action', () => {
+    const g = createGame({
+      config: createConfig(config, { corporation: { actions: [{ ...config.corporation!.actions[0]!, requiredRank: 2 }] } }),
+    });
+    own(g);
+    const view = () => buildViewModel(g).corporation;
+    expect(view().buyables.map((b) => b.id)).toEqual(['rank']);
+    expect(buildViewModel(g).sleeve.buyables.map((b) => b.id)).not.toContain('rank');
+    expect(view().actions[0]).toMatchObject({ startable: false, infoText: 'Needs corporate rank 2' });
+    expect(view().stats[0]!.text).toBe('1');
+    setCredits(g, num(1));
+    g.buy('rank');
+    expect(view().stats[0]!.text).toBe('2');
+    expect(view().actions[0]).toMatchObject({ startable: true, infoText: 'Run time 30s' });
+  });
+
   it('an action cannot be started while the corporation is closed', () => {
     const g = createGame({ config });
     expect(buildViewModel(g).corporation.actions[0]!.startable).toBe(false);
@@ -110,7 +130,8 @@ describe('the Corporation tab on the screen', () => {
     expect(rows.map((r) => r.textContent)).toEqual(['Corporate rank1', 'Owned corporations0', 'Employees0']);
     const empty = [...panel().querySelectorAll('.dashboard-right > aside')];
     expect(empty.map((w) => w.querySelector('h2')!.textContent)).toEqual(['Holdings', 'Asset Acquisition', 'Hostile Negotiation']);
-    for (const widget of empty) expect(widget.children).toHaveLength(1); // the heading and nothing else
+    for (const widget of empty.filter((w) => !w.classList.contains('upgrades-widget'))) expect(widget.children).toHaveLength(1); // the heading and nothing else
+    expect(empty[1]!.querySelectorAll('.upgrade')).toHaveLength(1); // Asset Acquisition holds the corporate access upgrade
     expect(panel().querySelector('.divider')).not.toBeNull();
     // the action grid has the same number of cells as the Character tab: the action and empty ones
     expect(panel().querySelectorAll('.actions > .action')).toHaveLength(6);

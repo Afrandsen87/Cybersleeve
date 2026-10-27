@@ -399,12 +399,15 @@ export function validateConfig(config: GameConfig): string[] {
   if (!positiveInt(config.engine.maxSlicesPerTick)) errors.push('engine.maxSlicesPerTick must be an integer >= 1');
   if (!positive(config.engine.minRunDurationMs)) errors.push('engine.minRunDurationMs must be > 0');
 
+  const baseRank = config.corporation?.baseRank;
+  if (baseRank !== undefined && !positiveInt(baseRank)) errors.push('corporation.baseRank must be an integer >= 1');
   const corporationIds = new Set<string>();
   for (const a of config.corporation?.actions ?? []) {
     const where = `corporation action "${a.id}"`;
     if (corporationIds.has(a.id)) errors.push(`duplicate corporation action id "${a.id}"`);
     corporationIds.add(a.id);
     if (!positive(a.baseDurationMs)) errors.push(`${where}: baseDurationMs must be > 0`);
+    if (a.requiredRank !== undefined && !positiveInt(a.requiredRank)) errors.push(`${where}: requiredRank must be an integer >= 1`);
     for (const effect of a.effects) validateCorporationEffect(effect, where, config.items, errors);
   }
 

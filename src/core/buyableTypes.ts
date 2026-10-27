@@ -135,6 +135,12 @@ export type BuyableEffect =
   | { readonly kind: 'unlockSleeveLevels' }
   /** Opens the Corporation tab (and lets its actions be started) while owned. See `corporation.ts`. */
   | { readonly kind: 'unlocksCorporation' }
+  /**
+   * Raises the corporation's rank by `amount` per copy (an integer >= 1), on top of `corporation.baseRank`. The rank gates the
+   * corporation's actions (`CorporationActionDefinition.requiredRank`), like the access level gates the character's. The buyable is
+   * shown in the Asset Acquisition widget, and it survives re-sleeving because the corporation does.
+   */
+  | { readonly kind: 'corporateRank'; readonly amount: number }
   /** Does nothing (yet): a node of the re-sleeve tree whose effect is not designed. */
   | { readonly kind: 'placeholder' }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */

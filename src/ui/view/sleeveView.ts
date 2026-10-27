@@ -17,7 +17,7 @@ import {
 } from '../../core';
 import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
-import { isPointCurrency, sectionLayout } from './buyableViews';
+import { isCorporate, isPointCurrency, sectionLayout } from './buyableViews';
 import { isStatHidden } from './statReveal';
 import { MULTIPLIER_DECIMALS, PROFICIENCY_DECIMALS, SPEED_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
 import type { BuyableView, SleeveView, StatRowView } from './viewTypes';
@@ -206,6 +206,7 @@ export function sleeveView(
       (b) =>
         b.actionId === undefined &&
         !isPointCurrency(config.buyables.find((d) => d.id === b.id)?.currency) &&
+        !isCorporate(config, b.id) &&
         b.id !== sleeveLevelsGateId(config.buyables),
     ),
     sections: sectionLayout(config).map((section) => ({

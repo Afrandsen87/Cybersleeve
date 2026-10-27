@@ -1,8 +1,8 @@
 /**
  * @module ui
  *
- * The Corporation tab: laid out like the Character tab, with the corporation widget where the Sleeve is, the other three widgets in their
- * places (empty for now) and the corporation's actions where the character's actions are.
+ * The Corporation tab: laid out like the Character tab, with the corporation widget where the Sleeve is, Asset Acquisition (the corporation's
+ * purchases) and the other two widgets in their places (empty for now) and the corporation's actions where the character's actions are.
  *
  * @remarks
  * Called by: `ui/dom.ts`. Calls: `domKit.ts`, `statWidget.ts`, `GameCommands.startCorporationAction`.
@@ -11,6 +11,7 @@ import type { CorporationActionView, CorporationView } from '../viewModel';
 import { ACTION_GRID_SLOTS } from './actionCards';
 import { applyIcon, h, setFill, setText, type UiContext } from './domKit';
 import { buildStatWidget, renderStats } from './statWidget';
+import { upgradeRow, renderUpgrades } from './upgradeButtons';
 import { START_RUN_ICON_ID } from '../pixelIcon';
 
 /** The Corporation tab. */
@@ -78,12 +79,13 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
     el.append(h('h2', undefined, title));
     return el;
   };
+  // Asset Acquisition holds the corporation's purchases (the row of square buttons the Sleeve Improvements widget has).
+  const acquisition = h('aside', 'upgrades-widget');
+  acquisition.append(h('h2', undefined, text.titles.assetAcquisition));
+  const purchases = upgradeRow(initial.buyables, ctx.activate, ctx.icons);
+  acquisition.append(purchases.element);
   const right = h('div', 'dashboard-right');
-  right.append(
-    empty('network-widget', text.titles.holdings),
-    empty('upgrades-widget', text.titles.assetAcquisition),
-    empty('exploitation-widget', text.titles.hostileNegotiation),
-  );
+  right.append(empty('network-widget', text.titles.holdings), acquisition, empty('exploitation-widget', text.titles.hostileNegotiation));
   const dashboard = h('div', 'dashboard');
   dashboard.append(widget.root, right);
 
@@ -105,6 +107,7 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
     root,
     render(view) {
       renderStats(widget, view.stats, tips);
+      renderUpgrades(purchases.buttons, view.buyables, tips);
       for (const a of view.actions) {
         const card = cards.get(a.id);
         if (!card) continue;

@@ -37,8 +37,11 @@ type StateConfig = Pick<GameConfig, 'actions' | 'automation' | 'corporation' | '
  */
 export const CARRIED_OVER_BUYABLE_CURRENCIES = ['resleevePoints'] as const satisfies readonly Currency[];
 
-/** The buyable effect kinds whose buyables survive a re-sleeve: the sleeve-levels unlock is bought once, for good. */
-export const CARRIED_OVER_BUYABLE_EFFECTS = ['unlockSleeveLevels'] as const satisfies readonly BuyableDefinition['effect']['kind'][];
+/** The buyable effect kinds whose buyables survive a re-sleeve: the sleeve-levels unlock is bought once, for good, and the corporate rank belongs to the corporation. */
+export const CARRIED_OVER_BUYABLE_EFFECTS = [
+  'unlockSleeveLevels',
+  'corporateRank',
+] as const satisfies readonly BuyableDefinition['effect']['kind'][];
 
 /**
  * THE positive list of what survives a re-sleeve: these per-action fields. Nothing else carries over; everything not

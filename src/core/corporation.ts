@@ -19,7 +19,7 @@ const PROGRESS_EPSILON = 1e-9;
  * Unlike a character action, a corporation run always takes its `baseDurationMs`: there is no interface speed, no level speed, no
  * Focus and no Overclock here, because the corporation scales differently from the character. A run is started by the player and
  * stops when it completes (there is no auto-run yet). Time left over after a run is discarded, as for a manual character action.
- * The corporation can be used only while a purchase with the `unlocksCorporation` effect is owned.
+ * The corporation can be used only while a purchase with the `unlocksCorporation` effect is owned, and an action needs its `requiredRank`.
  *
  * Called by: `engine.ts`. Calls: `applyCorporationEffect`.
  */
@@ -46,23 +46,33 @@ export class Corporation {
     return this.config.buyables.some((b) => b.effect.kind === 'unlocksCorporation' && (this.state.purchased[b.id] ?? 0) > 0);
   }
 
+  /** The corporate rank: `corporation.baseRank` (default 1) plus what the owned `corporateRank` purchases add. */
+  rank(): number {
+    let rank = this.config.corporation?.baseRank ?? 1;
+    for (const b of this.config.buyables) {
+      if (b.effect.kind === 'corporateRank') rank += b.effect.amount * (this.state.purchased[b.id] ?? 0);
+    }
+    return rank;
+  }
+
   /** The corporation's actions, in the order the tab lists them. */
   actions(): readonly CorporationActionDefinition[] {
     return this.config.corporation?.actions ?? [];
   }
 
   /**
-   * True when starting the action now would work: the corporation is open and the action exists. A running action counts (starting it
+   * True when starting the action now would work: the corporation is open, the action exists and the rank is high enough. A running action counts (starting it
    * again does nothing).
    *
    * @param id the action
    */
   canStart(id: CorporationActionId): boolean {
-    return this.isUnlocked() && this.definitions.has(id);
+    const def = this.definitions.get(id);
+    return def !== undefined && this.isUnlocked() && this.rank() >= (def.requiredRank ?? 1);
   }
 
   /**
-   * Starts an action. Does nothing when the corporation is not open, the action is unknown, or it is already running.
+   * Starts an action. Does nothing when {@link canStart} says no, or it is already running.
    *
    * @param id the action
    * @returns true when the action is now running

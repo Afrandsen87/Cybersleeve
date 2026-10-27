@@ -569,6 +569,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.corporationUnit.isUnlocked();
   }
 
+  /** The corporate rank (what gates the corporation's actions). */
+  corporateRank(): number {
+    return this.corporationUnit.rank();
+  }
+
   /** The corporation's actions, in the order the tab lists them. */
   corporationActions(): readonly CorporationActionDefinition[] {
     return this.corporationUnit.actions();
