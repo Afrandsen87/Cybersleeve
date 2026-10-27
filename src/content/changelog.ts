@@ -27,6 +27,13 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
     ],
   },
   {
+    version: '2026-10-27 Corporation widgets',
+    changes: [
+      'On the Corporation tab the widgets beside the corporation are now Holdings, Asset Acquisition and Hostile Negotiation, and the Inventory is gone from it.',
+      'The corporation widget shows Corporate rank (1), Owned corporations and Employees.',
+    ],
+  },
+  {
     version: '2026-10-27 Show all',
     changes: [
       'The test aid "Show locked" is now "Show all": it also reveals hidden tabs, stats, purchases, re-sleeve skills and inventory items.',

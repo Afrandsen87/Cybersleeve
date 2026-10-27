@@ -29,7 +29,10 @@ export type StatId =
   | 'moles'
   | 'synths'
   | 'synthIncome'
-  | 'criticalChance';
+  | 'criticalChance'
+  | 'corporateRank'
+  | 'ownedCorporations'
+  | 'employees';
 
 /** The curve that turns Hacking Proficiency into the hacking multiplier (see `sleeve.earnedSpeedScale` and `earnedSpeedExponent`). */
 export interface HackingCurve {

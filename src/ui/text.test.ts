@@ -123,7 +123,7 @@ describe('the screen renders stat rows from data', () => {
     render();
     const vm = buildViewModel(game);
     const labels = [...root.querySelectorAll('.stat-label')].map((e) => e.textContent);
-    expect(labels).toEqual([...vm.sleeve.stats, ...vm.network.stats].map((s) => s.label));
+    expect(labels).toEqual([...vm.sleeve.stats, ...vm.network.stats, ...vm.corporation.stats].map((s) => s.label));
     const heatRow = [...root.querySelectorAll<HTMLElement>('.stat')].find((r) => r.textContent?.startsWith('Heat'))!;
     expect(heatRow.textContent).toBe('Heat7');
     expect(hoverText(heatRow)).toContain('Heat Tax = 7% of all credits earned from nodes');

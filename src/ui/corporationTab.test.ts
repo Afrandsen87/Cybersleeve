@@ -43,12 +43,16 @@ describe('the Corporation tab in the view model', () => {
     expect(buildViewModel(g).tabs.find((t) => t.id === 'character')!.visible).toBe(true); // the tabs show once there is a second one
   });
 
-  it('lists the corporation actions with their run time, and has no figures of its own yet', () => {
+  it('lists the corporation actions with their run time, and shows the corporation widget figures', () => {
     const g = createGame({ config });
     own(g);
     const view = buildViewModel(g).corporation;
     expect(view.title).toBe('Corporation');
-    expect(view.stats).toEqual([]);
+    expect(view.stats.map((s) => [s.id, s.label, s.text, s.hidden])).toEqual([
+      ['corporateRank', 'Corporate rank', '1', false],
+      ['ownedCorporations', 'Owned corporations', '0', false],
+      ['employees', 'Employees', '0', false],
+    ]);
     expect(view.actions).toHaveLength(1);
     expect(view.actions[0]).toMatchObject({
       id: 'c1',
@@ -99,17 +103,13 @@ describe('the Corporation tab on the screen', () => {
     expect(tabButton().classList.contains('active')).toBe(true);
   });
 
-  it('is laid out like the Character tab: the corporation widget, the other four widgets (empty), and the action grid', () => {
+  it('is laid out like the Character tab: the corporation widget, the other three widgets (empty), and the action grid', () => {
     const { panel } = mount();
     expect(panel().querySelector('.corporation-widget h2')!.textContent).toBe('Corporation');
-    expect(panel().querySelectorAll('.corporation-widget .stat')).toHaveLength(0);
+    const rows = [...panel().querySelectorAll('.corporation-widget .stat')];
+    expect(rows.map((r) => r.textContent)).toEqual(['Corporate rank1', 'Owned corporations0', 'Employees0']);
     const empty = [...panel().querySelectorAll('.dashboard-right > aside')];
-    expect(empty.map((w) => w.querySelector('h2')!.textContent)).toEqual([
-      'Network',
-      'Sleeve Improvements',
-      'Network Exploitation',
-      'Inventory',
-    ]);
+    expect(empty.map((w) => w.querySelector('h2')!.textContent)).toEqual(['Holdings', 'Asset Acquisition', 'Hostile Negotiation']);
     for (const widget of empty) expect(widget.children).toHaveLength(1); // the heading and nothing else
     expect(panel().querySelector('.divider')).not.toBeNull();
     // the action grid has the same number of cells as the Character tab: the action and empty ones

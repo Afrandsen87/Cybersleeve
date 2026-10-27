@@ -79,6 +79,10 @@ export interface UiText {
     readonly stats: string;
     readonly automation: string;
     readonly corporation: string;
+    /** The three widgets beside the corporation widget on the Corporation tab. */
+    readonly holdings: string;
+    readonly assetAcquisition: string;
+    readonly hostileNegotiation: string;
   };
   /** The tabs at the top. The Skills tab shows the points available, unless there are none. */
   readonly tabs: {
@@ -264,6 +268,9 @@ export const uiText: UiText = {
     stats: 'Stats',
     automation: 'Automation',
     corporation: 'Corporation',
+    holdings: 'Holdings',
+    assetAcquisition: 'Asset Acquisition',
+    hostileNegotiation: 'Hostile Negotiation',
   },
   tabs: {
     character: 'Character',
@@ -336,6 +343,9 @@ export const uiText: UiText = {
     synths: 'Synthetic sleeves',
     synthIncome: 'Synthetic credits per second',
     criticalChance: 'Critical success',
+    corporateRank: 'Corporate rank',
+    ownedCorporations: 'Owned corporations',
+    employees: 'Employees',
   },
   bars: {
     heat: (running) => (running ? 'Heat cooldown' : 'Heat cooldown (paused: needs a whole point of heat)'),

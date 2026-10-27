@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * The Corporation tab: laid out like the Character tab, with the corporation widget where the Sleeve is, the other widgets in their
+ * The Corporation tab: laid out like the Character tab, with the corporation widget where the Sleeve is, the other three widgets in their
  * places (empty for now) and the corporation's actions where the character's actions are.
  *
  * @remarks
@@ -80,10 +80,9 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
   };
   const right = h('div', 'dashboard-right');
   right.append(
-    empty('network-widget', text.titles.network),
-    empty('upgrades-widget', text.titles.upgrades),
-    empty('exploitation-widget', text.titles.exploitation),
-    empty('inventory-widget', text.titles.inventory),
+    empty('network-widget', text.titles.holdings),
+    empty('upgrades-widget', text.titles.assetAcquisition),
+    empty('exploitation-widget', text.titles.hostileNegotiation),
   );
   const dashboard = h('div', 'dashboard');
   dashboard.append(widget.root, right);

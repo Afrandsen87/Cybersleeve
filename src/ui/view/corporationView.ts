@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * The Corporation tab: the corporation widget (empty for now) and the corporation's actions.
+ * The Corporation tab: the corporation widget (rank, owned corporations, employees) and the corporation's actions.
  *
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries` (the corporation queries), the text table.
@@ -9,8 +9,16 @@
 import type { CorporationEffect, CorporationQueries, StateQueries } from '../../core';
 import { formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
-import { DROP_CHANCE_DECIMALS, formatSeconds } from './viewFormat';
+import { DROP_CHANCE_DECIMALS, buildStatRow as row, formatSeconds } from './viewFormat';
 import type { CorporationActionView, CorporationView } from './viewTypes';
+
+/**
+ * What the corporation widget shows until the corporation has state of its own (the mechanics behind the figures come later): the
+ * rank is a plain integer for now, and no corporation has been bought and nobody is employed yet.
+ */
+const STARTING_CORPORATE_RANK = 1;
+const STARTING_OWNED_CORPORATIONS = 0;
+const STARTING_EMPLOYEES = 0;
 
 /**
  * Says in words what one effect of a corporation action does.
@@ -45,8 +53,11 @@ export function corporationView(engine: CorporationQueries & StateQueries, text:
   const itemNames = (id: string): string => items.find((d) => d.id === id)?.name ?? id;
   return {
     title: text.titles.corporation,
-    // The corporation has no figures of its own yet, so its widget and the widgets beside it stay empty.
-    stats: [],
+    stats: [
+      row('corporateRank', text, formatPlain(STARTING_CORPORATE_RANK)),
+      row('ownedCorporations', text, formatPlain(STARTING_OWNED_CORPORATIONS)),
+      row('employees', text, formatPlain(STARTING_EMPLOYEES)),
+    ],
     actions: engine.corporationActions().map((def): CorporationActionView => {
       const progress = state.corporation.actions[def.id];
       const running = progress?.running ?? false;
