@@ -56,24 +56,31 @@ export function resolveBackChannel(
 }
 
 /**
- * The flat amount added to the drop weight of EVERY rarity of an item (owned `rarityWeightBonus` buyables, per copy).
+ * The flat amount added to the drop weight of each rarity of an item (owned `rarityWeightBonus` buyables, per copy): a buyable with a
+ * `rarityId` adds to that rarity only, one without adds to every rarity.
  *
  * Called by: `stats.ts` (`DerivedStats.itemDrops`).
  *
  * @param buyables all buyable definitions
  * @param state current state (reads `purchased`)
  * @param itemId the item
- * @returns the weight to add to each rarity (0 without such a buyable)
+ * @param rarityIds the rarity ids of the configuration
+ * @returns the weight to add to each rarity, aligned with `rarityIds` (0 without such a buyable)
  */
 export function resolveRarityWeightBonus(
   buyables: readonly BuyableDefinition[],
   state: Pick<GameState, 'purchased'>,
   itemId: string,
-): number {
-  let bonus = 0;
+  rarityIds: readonly string[],
+): number[] {
+  const bonus = rarityIds.map(() => 0);
   for (const b of buyables) {
     const copies = state.purchased[b.id] ?? 0;
-    if (copies > 0 && b.effect.kind === 'rarityWeightBonus' && b.effect.itemId === itemId) bonus += b.effect.amount * copies;
+    const e = b.effect;
+    if (copies === 0 || e.kind !== 'rarityWeightBonus' || e.itemId !== itemId) continue;
+    rarityIds.forEach((id, i) => {
+      if (e.rarityId === undefined || e.rarityId === id) bonus[i]! += e.amount * copies;
+    });
   }
   return bonus;
 }

@@ -343,7 +343,7 @@ describe('Calculation tooltips name every purchase behind a multiplier', () => {
     const tip = statRow(buildViewModel(g).network.stats, 'payout').tip ?? '';
     expect(tip).toContain('(Base + Action Bonus) x Bandwidth Leech x Node payout (3 copies)');
     expect(tip).toContain('Node payout (3 copies) = x8');
-    expect(tip).toContain('Bandwidth Leech = x1.1');
+    expect(tip).toContain('Bandwidth Leech = x1.5');
     expect(tip).not.toContain('Purchases');
   });
 

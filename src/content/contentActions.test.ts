@@ -51,9 +51,9 @@ describe('Malware payload (real content)', () => {
     expect(g.xpPerRun(PUSH_MALWARE).toNumber()).toBe(xp);
   });
 
-  it('does not change the heat a run adds, only the node payout it adds', () => {
+  it('does not change the heat a run adds (when it makes any), only the node payout it adds', () => {
     const run = (copies: number) => {
-      const g = createGame();
+      const g = createGame({ random: () => 0 }); // 0 always falls under the heat chance, so the run makes its heat
       setCredits(g, num('1e100'));
       while (!g.isUnlocked(PUSH_MALWARE)) g.buy(ACCESS_UPGRADE);
       for (let i = 0; i < copies; i++) g.buy(MALWARE_OUTPUT);

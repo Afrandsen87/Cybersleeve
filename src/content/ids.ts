@@ -84,6 +84,8 @@ export const SKILL_EXPLOIT_KOMPROMAT = 'skill-exploit-kompromat';
 export const SKILL_BACK_CHANNEL = 'skill-back-channel';
 /** Id of the skill that adds a flat bonus to every Kompromat rarity's drop weight. */
 export const SKILL_DEEP_FILES = 'skill-deep-files';
+export const SKILL_SEALED_ARCHIVES = 'skill-sealed-archives';
+export const SKILL_BLACK_LEDGER = 'skill-black-ledger';
 /** Id of the skill that raises node payout for each legendary Kompromat file held. */
 export const SKILL_DOSSIER = 'skill-dossier';
 /** Id of the skill that opens the back channel to every rarity, worth more Moles the rarer the file. */
@@ -133,6 +135,8 @@ export const SKILLS = [
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_BACK_CHANNEL,
   SKILL_DEEP_FILES,
+  SKILL_SEALED_ARCHIVES,
+  SKILL_BLACK_LEDGER,
   SKILL_DOSSIER,
   SKILL_TIERED_INFORMANTS,
   SKILL_DOUBLE_AGENT,
