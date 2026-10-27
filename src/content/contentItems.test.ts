@@ -16,7 +16,9 @@ import {
   gameConfig,
   KOMPROMAT,
   KOMPROMAT_HARVEST,
+  overclockUnlockId,
   PRACTICE_HACKING,
+  PUSH_MALWARE,
   SKILL_BACK_CHANNEL,
   SKILL_MUSCLE_MEMORY,
   SKILL_NOSE_FOR_SECRETS,
@@ -37,13 +39,13 @@ describe('Rarity refinement (real content)', () => {
     expect(def.cost.eq(num(10_000))).toBe(true);
   });
 
-  it('first order of magnitude leaves the last rarity at 0, the second lets it drop', () => {
+  it('the first two orders of magnitude leave the last rarity at 0, the third lets it drop', () => {
     const rule = gameConfig.buyables.find((b) => b.id === KOMPROMAT_HARVEST)!.effect;
     if (rule.kind !== 'itemDrop') throw new Error('not a drop');
     const ids = gameConfig.items.rarities.map((r) => r.id);
     const weights = ids.map((id) => rule.drop.rarityWeights?.[id] ?? 0);
-    expect(shiftWeights(weights, 1, 0.01).at(-1)).toBe(0);
-    expect(shiftWeights(weights, 2, 0.01).at(-1)).toBeGreaterThan(0);
+    expect(shiftWeights(weights, 2, 0.01).at(-1)).toBe(0);
+    expect(shiftWeights(weights, 3, 0.01).at(-1)).toBeGreaterThan(0);
   });
 
   it('the tooltip just says that it raises the rarity of Kompromat drops with Hacking Proficiency', () => {
@@ -74,8 +76,8 @@ describe('Rarity refinement counts Hacking Proficiency the way the drops do (rea
   };
 
   it('the proficiency raised by Muscle Memory moves the drop ratios, as the Sleeve row shows it', () => {
-    expect(uncommonChance(false)).toBeCloseTo(0.05 * 0.09, 12); // no shift: 9 of 100
-    expect(uncommonChance(true)).toBeCloseTo(0.05 * 0.0981, 12); // one shift: 9.81 of 100
+    expect(uncommonChance(false)).toBeCloseTo(0.05 * 0.1, 12); // no shift: 10 of 100
+    expect(uncommonChance(true)).toBeCloseTo(0.05 * 0.108, 12); // one shift: 10 - 0.1 + 0.9 = 10.8 of 100
   });
 });
 
@@ -95,8 +97,8 @@ describe('item tooltips show the drop chance of the stack (real content)', () =>
     const g = createGame();
     own(g, KOMPROMAT_HARVEST);
     expect(tip(g, KOMPROMAT, 'common')).toContain('Drop Chance = 4.5% per Practice Hacking run');
-    expect(tip(g, KOMPROMAT, 'uncommon')).toContain('Drop Chance = 0.45% per Practice Hacking run');
-    expect(tip(g, KOMPROMAT, 'rare')).toContain('Drop Chance = 0.05% per Practice Hacking run');
+    expect(tip(g, KOMPROMAT, 'uncommon')).toContain('Drop Chance = 0.5% per Practice Hacking run');
+    expect(tip(g, KOMPROMAT, 'rare')).toContain('Drop Chance = 0%');
     expect(tip(g, KOMPROMAT, 'legendary')).toContain('Drop Chance = 0%');
   });
 
@@ -110,7 +112,7 @@ describe('item tooltips show the drop chance of the stack (real content)', () =>
   it('the Burn lead has no rarity: its whole chance, per Grow network run', () => {
     const g = createGame();
     own(g, BURN_LEADS);
-    expect(tip(g, BURN_LEAD, 'common')).toContain('Drop Chance = 0.5% per Grow network run');
+    expect(tip(g, BURN_LEAD, 'common')).toContain('Drop Chance = 0.75% per Grow network run');
   });
 
   it('follows the skills that change the chance and the ratios: Nose for Secrets doubles the Kompromat chance', () => {
@@ -204,6 +206,7 @@ describe('Back Channel Deals (real content)', () => {
     (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
     (g.getState().purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
     (g.getState().purchased as Record<string, number>)[SKILL_NOSE_FOR_SECRETS] = 1; // Back Channel Deals grows from it
+    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // Moles are heat: it waits for that Overclock
     expect(g.buy(SKILL_BACK_CHANNEL)).toBe('purchased');
     (g.getState() as unknown as { heat: number; moles: number }).heat = 20;
     (g.getState() as unknown as { heat: number; moles: number }).moles = 5;

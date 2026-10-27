@@ -15,6 +15,8 @@ import {
   INDUSTRIAL_ESPIONAGE,
   BURN_LEAD,
   BURN_LEADS,
+  PUSH_MALWARE,
+  overclockUnlockId,
 } from '../ids';
 import { autoRunCost, overclockUnlock, focusUnlock } from './helpers';
 
@@ -48,14 +50,15 @@ export const growNetworkBuyables: BuyableDefinition[] = [
     symbol: 'BN',
     description: 'Each completed run has a chance to drop a Burn lead. Using one from the Inventory takes 5% of your current heat away.',
     actionId: GROW_NETWORK,
+    requires: [overclockUnlockId(PUSH_MALWARE)], // reveal gate: heat is not known before the first Overclock
     // Placeholder price (balance is not tuned yet).
     cost: num(1_000),
     effect: {
       kind: 'itemDrop',
       drop: {
         itemId: BURN_LEAD,
-        /** Chance that one completed run drops a lead at all: 0.5%. */
-        chance: 0.005,
+        /** Chance that one completed run drops a lead at all: 0.75% (0.5% raised by half). */
+        chance: 0.0075,
       },
     },
   },

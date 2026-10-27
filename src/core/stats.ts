@@ -107,12 +107,13 @@ export class DerivedStats implements ModeStatuses {
       if (base === undefined) return { ...rule, chance: Math.min(1, rule.chance * factor) }; // an item without rarity has no ratios to shift
       let weights = rarityIds.map((r) => base[r] ?? 0);
       for (const fraction of rarityShifts) weights = shiftWeights(weights, steps, fraction);
-      const bonus = resolveRarityWeightBonus(this.config.buyables, this.state, rule.itemId); // added after the shift, to every rarity
-      if (bonus > 0) weights = weights.map((w) => w + bonus);
+      const bonus = resolveRarityWeightBonus(this.config.buyables, this.state, rule.itemId, rarityIds); // added after the shift, per rarity
+      const bonused = bonus.some((b) => b > 0);
+      if (bonused) weights = weights.map((w, i) => w + bonus[i]!);
       return {
         ...rule,
         chance: Math.min(1, rule.chance * factor),
-        rarityWeights: rarityShifts.length === 0 && bonus === 0 ? base : Object.fromEntries(rarityIds.map((r, i) => [r, weights[i]!])),
+        rarityWeights: rarityShifts.length === 0 && !bonused ? base : Object.fromEntries(rarityIds.map((r, i) => [r, weights[i]!])),
       };
     });
   }
@@ -308,6 +309,7 @@ export class DerivedStats implements ModeStatuses {
       rewardBonus: (rule.rewardBonus ?? 0) * strength,
       heatPerMinute: rule.heatPerMinute ?? 0,
       heatPerRunFactor: Math.min(rule.heatPerRunFactor ?? 1, this.sleeveStats().overclockHeatFactors[id] ?? Infinity),
+      heatChanceFactor: rule.heatChanceFactor ?? 1,
       completionEffects: rule.completionEffects ?? [],
       alsoPays: rule.alsoPays ?? null,
       strength,

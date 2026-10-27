@@ -148,6 +148,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     links,
     critFeed,
     linked,
+    random,
     diagnostics,
   );
   return new GameEngine(config, state, {

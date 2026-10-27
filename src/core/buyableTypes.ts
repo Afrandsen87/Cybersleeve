@@ -237,10 +237,11 @@ export type BuyableEffect =
   /** Multiplies the Moles every item of `itemId` is worth in the back channel by `factor` per copy. */
   | { readonly kind: 'backChannelMultiplier'; readonly itemId: ItemId; readonly factor: number }
   /**
-   * Adds `amount` to the drop weight of EVERY rarity of `itemId` per copy, after the Hacking Proficiency shifts. With weights that
-   * add up to 100, an `amount` of 0.01 is 0.01 percentage points, so even rarities that weigh 0 can drop.
+   * Adds `amount` to the drop weight of the rarity `rarityId` of `itemId` per copy (of EVERY rarity when `rarityId` is left out), after
+   * the Hacking Proficiency shifts. With weights that add up to 100, an `amount` of 0.1 is 0.1 percentage points, so even a rarity
+   * that weighs 0 can drop.
    */
-  | { readonly kind: 'rarityWeightBonus'; readonly itemId: ItemId; readonly amount: number };
+  | { readonly kind: 'rarityWeightBonus'; readonly itemId: ItemId; readonly amount: number; readonly rarityId?: string };
 
 /**
  * What a buyable is paid with. `skillPoints` are not held: the points available are what the action levels have earned minus what the
@@ -279,6 +280,11 @@ export interface BuyableDefinition {
    * makes it useful (until it is owned the skill's text is hidden). Tree edges are `parents`, not `requires`.
    */
   readonly requires?: readonly BuyableId[];
+  /**
+   * Re-sleeves that must have happened (finished sleeve-runs, `GameState.runs.length`) before this is available. Default: 0 (no
+   * rule). 1 means "from the player's second sleeve run on". Checked by `Shop.isAvailable`, so it hides the buyable and blocks buying it.
+   */
+  readonly revealAfterResleeves?: number;
   /**
    * Skill-tree edges: the skills that must be owned before this one can be bought (the skill is drawn after them in its branch, with a line from each parent). Every parent is in the same `branch` (validated). A skill
    * is readable only when its `requires` are owned and all its parents are readable. Default: none (a root of its branch).

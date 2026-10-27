@@ -6,9 +6,17 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the text table.
  */
-import { AUTOMATION_FEATURES, type CorporationQueries, type GameConfig, type SkillQueries, type GameStateView } from '../../core';
+import {
+  AUTOMATION_FEATURES,
+  type CorporationQueries,
+  type GameConfig,
+  type SkillQueries,
+  type SleeveStats,
+  type GameStateView,
+} from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
+import { branchHiddenFn } from './branchGates';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
 import type { AutomationView, BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
@@ -81,6 +89,7 @@ export function tabsView(engine: SkillQueries & CorporationQueries, state: GameS
  * @param state the game state
  * @param config game configuration
  * @param viewById the view of every buyable, by id
+ * @param stats the sleeve stats (for the branches that wait for a stat to be revealed)
  * @param text the display text
  * @param revealAll test aid: no skill is masked
  */
@@ -89,6 +98,7 @@ export function skillsView(
   state: GameStateView,
   config: GameConfig,
   viewById: ReadonlyMap<string, BuyableView>,
+  stats: SleeveStats,
   text: UiText,
   revealAll = false,
 ): SkillsView {
@@ -99,6 +109,7 @@ export function skillsView(
     ...common,
     skills: config.buyables.filter((b) => b.currency === 'skillPoints'),
     laneTitle: branchTitle,
+    branchHidden: branchHiddenFn(config, state, stats),
     open: true,
   });
   // until the first re-sleeve the player has not seen what the skills do: only their places in the tree show
@@ -109,7 +120,7 @@ export function skillsView(
     open: state.runs.length > 0,
   });
   const resleeveVisible = resleeveSkillsShown(state, config);
-  const anyMasked = (l: readonly SkillLaneView[]): boolean => l.some((lane) => lane.nodes.some((n) => n.masked));
+  const anyMasked = (l: readonly SkillLaneView[]): boolean => l.some((lane) => !lane.hidden && lane.nodes.some((n) => n.masked));
   return {
     title: text.titles.skills,
     points: engine.skillPoints(),

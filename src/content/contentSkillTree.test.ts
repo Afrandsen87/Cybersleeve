@@ -19,6 +19,10 @@ import {
   SKILL_DEEP_COVER,
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_DEEP_FILES,
+  SKILL_FIBER_TAP,
+  SKILL_BACKBONE_PARASITE,
+  SKILL_SEALED_ARCHIVES,
+  SKILL_BLACK_LEDGER,
   SKILL_DOSSIER,
   SKILL_TIERED_INFORMANTS,
   SKILL_DOUBLE_AGENT,
@@ -26,6 +30,9 @@ import {
   SKILL_NOSE_FOR_SECRETS,
   SKILL_OBFUSCATION,
   SKILL_OVERCLOCK,
+  SKILL_OVERDRIVE_SPIKE,
+  SKILL_SIGNAL_AMPLIFIER,
+  SLEEVE_LEVELS,
   SKILL_PURGE_PROTOCOL,
   SKILL_QUICK_STUDY,
   SKILL_SCORCHED_EARTH,
@@ -87,6 +94,10 @@ describe('what a new game shows of the skill tree', () => {
   it('the Cybernetics branch, Cold Trail, Quiet Hours and Undercover read from the start; the rest waits for what makes it useful', () => {
     expect(masked(createGame()).sort()).toEqual(
       [
+        SKILL_SIGNAL_AMPLIFIER,
+        SKILL_OVERDRIVE_SPIKE,
+        SKILL_FIBER_TAP,
+        SKILL_BACKBONE_PARASITE,
         SKILL_OBFUSCATION,
         SKILL_PURGE_PROTOCOL,
         SKILL_SCORCHED_EARTH,
@@ -97,6 +108,8 @@ describe('what a new game shows of the skill tree', () => {
         SKILL_EXPLOIT_KOMPROMAT,
         SKILL_BACK_CHANNEL,
         SKILL_DEEP_FILES,
+        SKILL_SEALED_ARCHIVES,
+        SKILL_BLACK_LEDGER,
         SKILL_DOSSIER,
         SKILL_TIERED_INFORMANTS,
         SKILL_DOUBLE_AGENT,
@@ -110,12 +123,12 @@ describe('what a new game shows of the skill tree', () => {
     expect(view.clickable).toBe(false);
   });
 
-  it('owning Kompromat harvest reveals the whole Leverage branch at once', () => {
+  it('owning Kompromat harvest reveals the Leverage branch, except Back channel which also waits for heat', () => {
     const g = createGame();
     (g.getState().purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
     expect(masked(g)).not.toContain(SKILL_NOSE_FOR_SECRETS);
     expect(masked(g)).not.toContain(SKILL_EXPLOIT_KOMPROMAT);
-    expect(masked(g)).not.toContain(SKILL_BACK_CHANNEL);
+    expect(masked(g)).toContain(SKILL_BACK_CHANNEL); // Moles are heat: it also waits for the Push malware Overclock
     const nose = skillViews(buildViewModel(g).skills.lanes).find((v) => v.id === SKILL_NOSE_FOR_SECRETS)!;
     expect(nose.name).toBe('Nose for Secrets');
   });
@@ -124,6 +137,8 @@ describe('what a new game shows of the skill tree', () => {
     const g = createGame();
     (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1;
     expect(masked(g)).not.toContain(SKILL_OBFUSCATION);
+    expect(masked(g)).toContain(SKILL_PURGE_PROTOCOL); // it talks about sleeve levels: it waits for re-sleeving to be unlocked
+    (g.getState().purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
     expect(masked(g)).not.toContain(SKILL_PURGE_PROTOCOL);
   });
 

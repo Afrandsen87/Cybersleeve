@@ -94,6 +94,8 @@ export interface ActionSpeedTipParts {
   readonly actionFactor: string;
   /** How much each action level is worth. */
   readonly actionScaling: LevelScaling;
+  /** False until sleeve levels are unlocked: the tip then does not mention the sleeve level at all. */
+  readonly sleeveShown: boolean;
   /** Sleeve level of the action. */
   readonly sleeveLevel: number;
   /** Speed factor of the sleeve level. */
@@ -166,6 +168,8 @@ export interface OverclockTipParts {
   readonly heatPerMinute: string | null;
   /** What the heat of each run is multiplied by, or `null` when it is not. */
   readonly heatPerRunFactor: string | null;
+  /** What the chance that a run makes heat is multiplied by, or `null` when it is not. */
+  readonly heatChanceFactor: string | null;
   /** Nodes each completed run costs, or `null` when it costs none. */
   readonly nodesLost: string | null;
   /** Name of the other action whose reward each run also pays, or `null`. */
@@ -398,6 +402,8 @@ export interface RewardLineParts {
   /** The reward multiplier, or `null` when it is 1. */
   readonly multiplier: string | null;
   readonly heatPerRun: number;
+  /** The chance in percent that a run makes its heat, or `null` when every run does. */
+  readonly heatChancePercent: string | null;
   /** Heat added per second while the action runs. */
   readonly heatPerSecond: number;
 }

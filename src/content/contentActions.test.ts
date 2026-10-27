@@ -4,12 +4,14 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
+import { markResleeved } from '../testing/sleeveLevelsKit';
 import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
   ACCESS_UPGRADE,
   ADMIN_KEY,
   BLACK_BOX_RECORDER,
+  CRITICAL_SUCCESS,
   CASCADE_FAILURE,
   CREDIT_SIPHON,
   DECOMMISSION_PROTOCOL,
@@ -51,9 +53,9 @@ describe('Malware payload (real content)', () => {
     expect(g.xpPerRun(PUSH_MALWARE).toNumber()).toBe(xp);
   });
 
-  it('does not change the heat a run adds, only the node payout it adds', () => {
+  it('does not change the heat a run adds (when it makes any), only the node payout it adds', () => {
     const run = (copies: number) => {
-      const g = createGame();
+      const g = createGame({ random: () => 0 }); // 0 always falls under the heat chance, so the run makes its heat
       setCredits(g, num('1e100'));
       while (!g.isUnlocked(PUSH_MALWARE)) g.buy(ACCESS_UPGRADE);
       for (let i = 0; i < copies; i++) g.buy(MALWARE_OUTPUT);
@@ -76,6 +78,7 @@ describe('Faster conditioning (real content)', () => {
     expect(b.actionId).toBeUndefined();
     if (b.effect.kind !== 'runsPerSleeveXpReduction') throw new Error('wrong effect kind');
     const g = createGame();
+    markResleeved(g); // Faster conditioning waits for the second sleeve run
     const rich = () => setCredits(g, num(1e300));
     for (let i = 0; i < (b.maxPurchases as number); i++) {
       rich();
@@ -163,6 +166,7 @@ describe('Kill servers, Admin keys and Skill shards (real content)', () => {
     g.buy(ACCESS_UPGRADE);
     g.buy(ACCESS_UPGRADE);
     g.buy(ACCESS_UPGRADE);
+    (g.getState().purchased as Record<string, number>)[CRITICAL_SUCCESS] = 1; // the reveal gate of the Black box recorder
     expect(g.buy(BLACK_BOX_RECORDER)).toBe('purchased');
     state.network = num(100_000);
     expect(g.isUnlocked(KILL_SERVERS)).toBe(true);

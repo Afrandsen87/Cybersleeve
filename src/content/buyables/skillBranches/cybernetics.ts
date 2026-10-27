@@ -7,6 +7,7 @@ import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import {
   BRANCH_CYBERNETICS,
+  CRITICAL_SUCCESS,
   GROW_NETWORK,
   PUSH_MALWARE,
   SKILL_BACKBONE_PARASITE,
@@ -30,35 +31,35 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     id: SKILL_OVERCLOCK,
     name: 'Overclocked Cortex',
     symbol: 'OC',
-    description: 'Raises interface speed by 5%.',
+    description: 'Raises interface speed by 25%.',
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
     cost: num(1),
-    effect: { kind: 'interfaceSpeedMultiplier', factor: 1.05 },
+    effect: { kind: 'interfaceSpeedMultiplier', factor: 1.25 },
   },
 
   {
     id: SKILL_BANDWIDTH,
     name: 'Bandwidth Leech',
     symbol: 'BL',
-    description: 'Raises node payout by 10%.',
+    description: 'Raises node payout by 50%.',
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
     parents: [SKILL_OVERCLOCK],
     cost: num(1),
-    effect: { kind: 'nodePayoutMultiplier', factor: 1.1 },
+    effect: { kind: 'nodePayoutMultiplier', factor: 1.5 },
   },
 
   {
     id: SKILL_MUSCLE_MEMORY,
     name: 'Muscle Memory',
     symbol: 'MM',
-    description: 'Raises Hacking Proficiency by 5%.',
+    description: 'Raises Hacking Proficiency by 25%.',
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
     parents: [SKILL_OVERCLOCK],
     cost: num(1),
-    effect: { kind: 'hackingProficiencyMultiplier', factor: 1.05 },
+    effect: { kind: 'hackingProficiencyMultiplier', factor: 1.25 },
   },
 
   {
@@ -106,6 +107,7 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
     parents: [SKILL_BANDWIDTH],
+    requires: [CRITICAL_SUCCESS], // reveal gate: critical successes exist once they are bought
     cost: num(1),
     effect: { kind: 'criticalExtraChance', chance: 0.05 },
   },
@@ -130,6 +132,7 @@ export const cyberneticsSkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
     parents: [SKILL_BANDWIDTH],
+    requires: [CRITICAL_SUCCESS], // reveal gate: its text speaks of critical runs
     cost: num(1),
     // A whole reward or nothing (half a node cannot be paid), so the chance is the lever.
     effect: { kind: 'paysActionReward', sourceActionId: PUSH_MALWARE, targetActionId: GROW_NETWORK, chance: 0.25 },

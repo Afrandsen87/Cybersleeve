@@ -43,9 +43,19 @@ describe('resolveBackChannel', () => {
 describe('resolveRarityWeightBonus', () => {
   it('adds the amount of every owned copy for the item, and nothing for another item', () => {
     const bonus = skill('b', { kind: 'rarityWeightBonus', itemId: 'file', amount: 0.01 });
-    expect(resolveRarityWeightBonus([bonus], { purchased: {} }, 'file')).toBe(0);
-    expect(resolveRarityWeightBonus([bonus], { purchased: { b: 1 } }, 'file')).toBeCloseTo(0.01, 12);
-    expect(resolveRarityWeightBonus([bonus], { purchased: { b: 1 } }, 'other')).toBe(0);
+    expect(resolveRarityWeightBonus([bonus], { purchased: {} }, 'file', RARITIES)).toEqual([0, 0, 0, 0, 0]);
+    expect(resolveRarityWeightBonus([bonus], { purchased: { b: 1 } }, 'file', RARITIES)).toEqual([0.01, 0.01, 0.01, 0.01, 0.01]);
+    expect(resolveRarityWeightBonus([bonus], { purchased: { b: 1 } }, 'other', RARITIES)).toEqual([0, 0, 0, 0, 0]);
+  });
+
+  it('with a rarityId it adds to that rarity only', () => {
+    const bonus = skill('b', { kind: 'rarityWeightBonus', itemId: 'file', amount: 0.1, rarityId: 'rare' });
+    expect(resolveRarityWeightBonus([bonus], { purchased: { b: 1 } }, 'file', RARITIES)).toEqual([0, 0, 0.1, 0, 0]);
+  });
+
+  it('a rarityId must be a known rarity', () => {
+    const bad = withSkills([skill('x', { kind: 'rarityWeightBonus', itemId: 'file', amount: 0.1, rarityId: 'nope' })]);
+    expect(validateConfig(bad).join()).toContain('unknown rarity "nope"');
   });
 });
 

@@ -9,18 +9,22 @@ import {
   BRANCH_LEVERAGE,
   KOMPROMAT,
   KOMPROMAT_HARVEST,
+  PUSH_MALWARE,
   SKILL_BACK_CHANNEL,
+  SKILL_BLACK_LEDGER,
   SKILL_DEEP_COVER,
   SKILL_DEEP_FILES,
   SKILL_DOSSIER,
   SKILL_DOUBLE_AGENT,
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_NOSE_FOR_SECRETS,
+  SKILL_SEALED_ARCHIVES,
   SKILL_TIERED_INFORMANTS,
+  overclockUnlockId,
 } from '../../ids';
 
 /**
- * The leverage branch: Nose for Secrets is the root; Deep Files, Exploit Kompromat (then Dossier) and Back Channel Deals (then Tiered
+ * The leverage branch: Nose for Secrets is the root; Deep Files (then Sealed Archives, then Black Ledger), Exploit Kompromat (then Dossier) and Back Channel Deals (then Tiered
  * Informants, Double Agent, then Deep Cover) grow from it. All of them are masked until
  * Kompromat harvest is owned (the reveal gate `requires`; the children also inherit the root's masking through `parents`).
  */
@@ -58,7 +62,7 @@ export const leverageSkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_LEVERAGE,
     parents: [SKILL_NOSE_FOR_SECRETS],
-    requires: [KOMPROMAT_HARVEST],
+    requires: [KOMPROMAT_HARVEST, overclockUnlockId(PUSH_MALWARE)], // Moles are heat: wait for the Overclock that makes heat
     cost: num(1),
     // 5 Moles per file given up; while Moles remain the heat cools 200% faster
     effect: { kind: 'backChannel', itemId: KOMPROMAT, rarityId: 'common', molesPerItem: 5, cooldownBoost: 2 },
@@ -68,14 +72,40 @@ export const leverageSkills: BuyableDefinition[] = [
     id: SKILL_DEEP_FILES,
     name: 'Deep Files',
     symbol: 'DF',
-    description: 'Adds 0.01% to the drop chance of every Kompromat rarity, the rarest ones included.',
+    description: 'Adds 0.1% to the drop chance of rare Kompromat files, which cannot drop without it.',
     currency: 'skillPoints',
     branch: BRANCH_LEVERAGE,
     parents: [SKILL_NOSE_FOR_SECRETS],
     requires: [KOMPROMAT_HARVEST],
     cost: num(1),
-    // weights add up to 100, so 0.01 is 0.01 percentage points, also for the rarities that weigh 0
-    effect: { kind: 'rarityWeightBonus', itemId: KOMPROMAT, amount: 0.01 },
+    // weights add up to 100, so 0.1 is 0.1 percentage points, also for a rarity that weighs 0
+    effect: { kind: 'rarityWeightBonus', itemId: KOMPROMAT, rarityId: 'rare', amount: 0.1 },
+  },
+
+  {
+    id: SKILL_SEALED_ARCHIVES,
+    name: 'Sealed Archives',
+    symbol: 'AR',
+    description: 'Adds 0.1% to the drop chance of legendary Kompromat files, which cannot drop without it.',
+    currency: 'skillPoints',
+    branch: BRANCH_LEVERAGE,
+    parents: [SKILL_DEEP_FILES],
+    requires: [KOMPROMAT_HARVEST],
+    cost: num(1),
+    effect: { kind: 'rarityWeightBonus', itemId: KOMPROMAT, rarityId: 'legendary', amount: 0.1 },
+  },
+
+  {
+    id: SKILL_BLACK_LEDGER,
+    name: 'Black Ledger',
+    symbol: 'LE',
+    description: 'Adds 0.1% to the drop chance of crisis Kompromat files, which cannot drop without it.',
+    currency: 'skillPoints',
+    branch: BRANCH_LEVERAGE,
+    parents: [SKILL_SEALED_ARCHIVES],
+    requires: [KOMPROMAT_HARVEST],
+    cost: num(1),
+    effect: { kind: 'rarityWeightBonus', itemId: KOMPROMAT, rarityId: 'crisis', amount: 0.1 },
   },
 
   {

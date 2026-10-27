@@ -10,6 +10,7 @@ import {
   ACCESS_UPGRADE,
   BURN_LEAD,
   BURN_LEADS,
+  CRITICAL_SUCCESS,
   PERSISTENCE,
   RANSOMWARE,
   SKILL_COLD_TRAIL,
@@ -193,6 +194,7 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === GROW_NETWORK)!;
     expect(card.buyables.map((b) => b.id)).toContain(BURN_LEADS);
     const g = rich();
+    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
     expect(g.buy(BURN_LEADS)).toBe('purchased');
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
@@ -202,6 +204,7 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
 
   it('using a Burn lead takes part of the heat away and uses the lead up, end to end', () => {
     const g = rich();
+    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
     g.buy(BURN_LEADS);
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
@@ -261,6 +264,7 @@ describe('Zero-days (real content)', () => {
 
   it('Ransomware, end to end: a Zero-day critical Push malware run banks a guaranteed critical for Grow network, which then spends it', () => {
     const g = rich();
+    g.buy(CRITICAL_SUCCESS); // Ransomware waits for critical successes to exist
     g.buy(RANSOMWARE);
     (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[ZERO_DAY] = { common: 1 };
     g.toggleZeroDays();

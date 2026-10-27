@@ -16,6 +16,7 @@ import {
   LEGEND,
   PUSH_MALWARE,
   SKILL_BLACKOUT,
+  SLEEVE_LEVELS,
   SKILL_COLD_TRAIL,
   SKILL_OBFUSCATION,
   SKILL_PURGE_PROTOCOL,
@@ -32,18 +33,18 @@ export const anonymitySkills: BuyableDefinition[] = [
     id: SKILL_COLD_TRAIL,
     name: 'Cold Trail',
     symbol: 'CT',
-    description: 'Heat cools down 5% faster.',
+    description: 'Heat cools down 25% faster.',
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     cost: num(1),
-    effect: { kind: 'heatCooldownSpeed', factor: 1.05 },
+    effect: { kind: 'heatCooldownSpeed', factor: 1.25 },
   },
 
   {
     id: SKILL_OBFUSCATION,
     name: 'Obfuscation',
     symbol: 'OB',
-    description: 'Lowers the heat Push malware makes per overclocked run from 3x to 2x.',
+    description: 'Lowers the heat Push malware makes per overclocked run that makes heat from 3x to 2x.',
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_COLD_TRAIL],
@@ -60,6 +61,7 @@ export const anonymitySkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_OBFUSCATION],
+    requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once re-sleeving is unlocked
     cost: num(1), // placeholder; a late-stage skill, since sleeve levels of Build Legend come slowly
     effect: { kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: LEGEND, perLevel: 1 },
   },

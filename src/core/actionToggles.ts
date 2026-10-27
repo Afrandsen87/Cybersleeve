@@ -33,6 +33,8 @@ export interface OverclockStatus {
   readonly heatPerMinute: number;
   /** What the heat of each completed run is multiplied by while it is on (1 when the rule has no such cost). */
   readonly heatPerRunFactor: number;
+  /** What the chance that a completed run makes heat is multiplied by while it is on (1 when the rule has no such cost). */
+  readonly heatChanceFactor: number;
   /** Effects applied for each completed run while it is on, after the ordinary completion effects. */
   readonly completionEffects: readonly CompletionEffect[];
   /** The other action whose reward each completed run also pays while it is on, or `null`. */

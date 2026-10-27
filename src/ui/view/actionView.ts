@@ -37,7 +37,8 @@ function startCostText(def: ActionDefinition, current: BigNum | null, text: UiTe
 }
 
 /**
- * Explains an action's speed: the factors it is the product of, with the levels behind them.
+ * Explains an action's speed: the factors it is the product of, with the levels behind them. The sleeve level is left out until
+ * sleeve levels are unlocked (`sleeveShown`).
  *
  * Called by: {@link buildViewModel}. Calls: `GameQueries.speedFactors`, `actionLevel`, `sleeveLevel`, `levelBonus`.
  */
@@ -47,6 +48,7 @@ function speedTip(
   def: ActionDefinition,
   durationText: string,
   speed: string,
+  sleeveShown: boolean,
   text: UiText,
 ): string {
   const factors = engine.speedFactors(def.id);
@@ -60,6 +62,7 @@ function speedTip(
     levelBonus: engine.levelBonus(def.id),
     actionFactor: formatPlain(factorOf(SPEED_FACTOR_IDS.actionLevel), SPEED_DECIMALS),
     actionScaling: def.speedScaling ?? config.speed.actionLevel,
+    sleeveShown,
     sleeveLevel: engine.sleeveLevel(def.id),
     sleeveFactor: formatPlain(factorOf(SPEED_FACTOR_IDS.sleeveLevel), SPEED_DECIMALS),
     sleeveScaling: config.speed.sleeveLevel,
@@ -116,6 +119,7 @@ export function buildActionViews(
     const rewardMultiplierText = formatBigNum(engine.rewardMultiplier(def.id));
     const heatPerRun = def.heatPerRun ?? 0;
     const heatPerSecond = def.heatPerSecond ?? 0;
+    const heatChance = def.heatChance ?? 1;
     const xpText = formatBigNum(engine.actionXpIntoLevel(def.id));
     const nextLevelXpText = formatBigNum(engine.actionXpForLevel(def.id));
     const sleeveLevel = engine.sleeveLevel(def.id);
@@ -159,7 +163,9 @@ export function buildActionViews(
       startCostText: cost,
       heatPerRun,
       get speedTip() {
-        return unlocked ? speedTip(engine, config, def, durationText, formatPlain(engine.currentSpeed(def.id), SPEED_DECIMALS), text) : '';
+        return unlocked
+          ? speedTip(engine, config, def, durationText, formatPlain(engine.currentSpeed(def.id), SPEED_DECIMALS), sleeveShown, text)
+          : '';
       },
       infoText: reason ? text.action.locked(reason) : text.action.info({ speed: speedText, duration: durationText, startCost: cost, auto }),
       levelBarText: text.action.levelBar(level, xpText, nextLevelXpText),
@@ -169,6 +175,7 @@ export function buildActionViews(
         unit: rewardUnit,
         multiplier: rewardMultiplierText === '1' ? null : rewardMultiplierText,
         heatPerRun,
+        heatChancePercent: heatChance < 1 ? formatPlain(heatChance * 100) : null,
         heatPerSecond,
       }),
       buyables: buyableViews.filter((b) => b.actionId === def.id),

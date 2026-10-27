@@ -34,6 +34,8 @@ export interface SkillLaneView {
   readonly cols: number;
   /** Number of rows (the lowest node's `row` plus one). */
   readonly rows: number;
+  /** True while the whole lane (title and nodes) is not shown, because its branch's reveal condition is not met. The lane is still built so the widget's shape never changes. */
+  readonly hidden: boolean;
   /** The nodes, in configuration order. */
   readonly nodes: readonly SkillNodeView[];
 }

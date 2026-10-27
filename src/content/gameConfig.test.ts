@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { validateConfig } from '../core';
 import { num } from '../numbers';
-import { openResleeving } from '../testing/sleeveLevelsKit';
+import { markResleeved, openResleeving } from '../testing/sleeveLevelsKit';
 import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
@@ -108,6 +108,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     (g.getState() as { network: unknown }).network = num('1e100'); // some buyables are paid in network nodes
     // Buy in config order, repeating until nothing more can be bought once (a gate may be listed after what it unlocks).
     // Skills are paid in skill points or re-sleeve points, not credits: they have their own tests below.
+    markResleeved(g); // Skill transfer and Faster conditioning wait for the second sleeve run
     const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints' && b.currency !== 'resleevePoints');
     for (let pass = 0; pass < bought.length; pass++) {
       for (const b of bought) if (g.canBuy(b.id)) expect(g.buy(b.id)).toBe('purchased');
@@ -132,10 +133,10 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it('there is one skill for each of the twenty-six in the design, all costing 1 point and none belonging to an action', () => {
+  it('there is one skill for each of the twenty-eight in the design, all costing 1 point and none belonging to an action', () => {
     const skills = gameConfig.buyables.filter((b) => b.currency === 'skillPoints');
     expect(skills.map((b) => b.id)).toEqual([...SKILLS]);
-    expect(skills).toHaveLength(26);
+    expect(skills).toHaveLength(28);
     for (const b of skills) {
       expect(b.cost.eq(num(1)), b.id).toBe(true);
       expect(b.actionId, b.id).toBeUndefined();

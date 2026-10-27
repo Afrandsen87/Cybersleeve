@@ -489,8 +489,9 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
   },
   rarityWeightBonus: {
     traits: sleeveWide,
-    validate: (e, { where, itemIds, errors }) => {
+    validate: (e, { where, itemIds, rarityIds, errors }) => {
       if (!itemIds.has(e.itemId)) errors.push(`${where}: refers to unknown item "${e.itemId}"`);
+      if (e.rarityId !== undefined && !rarityIds.has(e.rarityId)) errors.push(`${where}: refers to unknown rarity "${e.rarityId}"`);
       if (!(Number.isFinite(e.amount) && e.amount > 0)) errors.push(`${where}: amount must be > 0`);
     },
   },

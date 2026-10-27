@@ -48,14 +48,16 @@ export const actionsConfig: GameConfig['actions'] = [
     /** Added to the BASE credits per second of every node per completed run (no credits of its own): 0.0001, i.e. 1% of the starting base of 0.01. */
     reward: num(1e-4),
     rewardKind: 'nodePayout',
-    /** Heat added per completed run. */
+    /** Heat added by a run that makes heat. */
     heatPerRun: 1,
+    /** Chance that a completed run makes heat: 10%. */
+    heatChance: 0.1,
     /** Access level the sleeve needs to perform this action. */
     requiredAccessLevel: 3,
     /** Action XP per completed run. */
     xpPerRun: num(1),
-    /** Overclock: each run also pays the nodes of a Grow network run, but makes three times as much heat. */
-    overclock: { alsoPays: GROW_NETWORK, heatPerRunFactor: 3 },
+    /** Overclock: each run also pays the nodes of a Grow network run, but makes three times as much heat, and twice as often (20%). */
+    overclock: { alsoPays: GROW_NETWORK, heatPerRunFactor: 3, heatChanceFactor: 2 },
   },
   {
     id: KILL_SERVERS,

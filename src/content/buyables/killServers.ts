@@ -15,6 +15,7 @@ import {
   DECOMMISSION_PROTOCOL,
   CREDIT_SIPHON,
   CASCADE_FAILURE,
+  CRITICAL_SUCCESS,
 } from '../ids';
 import { autoRunCost, overclockUnlock, focusUnlock } from './helpers';
 
@@ -89,6 +90,7 @@ export const killServersBuyables: BuyableDefinition[] = [
     description:
       'Each completed run has a chance to drop an Admin key. Switch Admin keys on in the Inventory: each completed Practice Hacking run then uses one up and gets +100% critical chance, and may drop a Skill shard.',
     actionId: KILL_SERVERS,
+    requires: [CRITICAL_SUCCESS], // reveal gate: its text speaks of critical chance
     // Placeholder price (balance is not tuned yet).
     cost: num(1e20),
     effect: {

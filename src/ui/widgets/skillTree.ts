@@ -51,10 +51,12 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
   element.style.setProperty('--tile', `${TILE_PX}px`);
   const buttons = new Map<string, HTMLButtonElement>();
   const edges: Edge[] = [];
+  const laneEls = new Map<string, HTMLElement>();
 
   for (const lane of initial) {
     const laneEl = h('section', 'skill-lane');
     laneEl.dataset['branch'] = lane.id;
+    laneEls.set(lane.id, laneEl);
     if (lane.title) laneEl.append(h('h3', 'lane-title', lane.title));
     const grid = h('div', 'lane-grid');
     grid.style.setProperty('--cols', String(lane.cols));
@@ -95,6 +97,10 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
   return {
     element,
     render(lanes) {
+      for (const lane of lanes) {
+        const laneEl = laneEls.get(lane.id);
+        if (laneEl) laneEl.hidden = lane.hidden;
+      }
       const nodes = lanes.flatMap((lane) => lane.nodes);
       const owned = new Map(nodes.map((n) => [n.view.id, n.view.owned > 0]));
       // every node is always shown: only its text and looks change
