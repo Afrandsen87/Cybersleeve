@@ -138,7 +138,7 @@ function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: numb
       spans.set(b.id, [nextLeafRow, nextLeafRow]);
       return nextLeafRow++;
     }
-    const spanOf = kids.map((kid) => spans.get(kid.id) ?? [0, 0]);
+    const spanOf = kids.map((kid): [number, number] => spans.get(kid.id) ?? [0, 0]);
     const first = Math.min(...spanOf.map(([lo]) => lo));
     const last = Math.max(...spanOf.map(([, hi]) => hi));
     spans.set(b.id, [first, last]);
