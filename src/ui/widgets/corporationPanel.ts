@@ -91,7 +91,9 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
   acquisition.append(purchases.element);
   const holdings = buildStatWidget('network-widget', initial.holdings.title, initial.holdings.stats);
   const right = h('div', 'dashboard-right');
-  right.append(holdings.root, acquisition, empty('exploitation-widget', text.titles.hostileNegotiation));
+  const synthPurchase = empty('exploitation-widget', initial.synthPurchase.title);
+  synthPurchase.hidden = !initial.synthPurchase.visible;
+  right.append(holdings.root, acquisition, empty('exploitation-widget', text.titles.hostileNegotiation), synthPurchase);
   const dashboard = h('div', 'dashboard');
   dashboard.append(widget.root, right);
 
@@ -115,6 +117,7 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
       renderStats(widget, view.stats, tips);
       renderStats(holdings, view.holdings.stats, tips);
       renderUpgrades(purchases.buttons, view.buyables, tips);
+      synthPurchase.hidden = !view.synthPurchase.visible;
       for (const a of view.actions) {
         const card = cards.get(a.id);
         if (!card) continue;

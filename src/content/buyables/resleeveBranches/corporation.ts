@@ -29,7 +29,7 @@ export const corporationSkills: BuyableDefinition[] = [
     branch: BRANCH_CORPORATION,
     cost: num(2),
     parents: [SKILL_INCORPORATION],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'corporationSpeedPerLnSynths', perLn: 0.1 },
   },
   {
     id: SKILL_SYNTHETIC_PROCUREMENT,
@@ -40,6 +40,6 @@ export const corporationSkills: BuyableDefinition[] = [
     branch: BRANCH_CORPORATION,
     cost: num(3),
     parents: [SKILL_SYNTHETIC_WORKERS],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'unlocksSynthPurchase' },
   },
 ];

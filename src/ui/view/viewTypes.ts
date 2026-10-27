@@ -440,6 +440,8 @@ export interface CorporationView {
   readonly buyables: readonly BuyableView[];
   /** The corporation's actions, in order. */
   readonly actions: readonly CorporationActionView[];
+  /** The Synthetic Sleeves widget (the option to buy synthetic sleeves; empty for now): its title, and whether the Synthetic Procurement skill has opened it. */
+  readonly synthPurchase: { readonly title: string; readonly visible: boolean };
 }
 
 /** Display data of the whole screen. */

@@ -74,6 +74,7 @@ export function corporationView(
       // the row appears once the purchase that makes stocks is owned, or a stock is held
       stats: [row('stocksOwned', text, formatPlain(engine.corporationStocks()), null, null, !stocksShown)],
     },
+    synthPurchase: { title: text.titles.syntheticSleeves, visible: engine.synthPurchaseUnlocked() },
     buyables: buyableViews.filter((b) => isCorporate(config, b.id) && corporationActionOf(config, b.id) === undefined),
     actions: engine.corporationActions().map((def): CorporationActionView => {
       const progress = state.corporation.actions[def.id];

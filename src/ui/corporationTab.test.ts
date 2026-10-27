@@ -159,9 +159,12 @@ describe('the Corporation tab on the screen', () => {
     expect(panel().querySelector('.corporation-widget h2')!.textContent).toBe('Corporation');
     const rows = [...panel().querySelectorAll('.corporation-widget .stat')];
     expect(rows.map((r) => r.textContent)).toEqual(['Corporate rank1', 'Owned corporations0', 'Employees0']);
-    const empty = [...panel().querySelectorAll('.dashboard-right > aside')];
+    const empty = [...panel().querySelectorAll('.dashboard-right > aside:not([hidden])')];
     expect(empty.map((w) => w.querySelector('h2')!.textContent)).toEqual(['Holdings', 'Asset Acquisition', 'Hostile Negotiation']);
     for (const widget of empty.filter((w) => w.classList.contains('exploitation-widget'))) expect(widget.children).toHaveLength(1); // the heading and nothing else
+    // the Synthetic Sleeves widget is there but hidden until the Synthetic Procurement skill opens it
+    const hidden = [...panel().querySelectorAll('.dashboard-right > aside[hidden]')];
+    expect(hidden.map((w) => w.querySelector('h2')!.textContent)).toEqual(['Synthetic Sleeves']);
     expect(empty[1]!.querySelectorAll('.upgrade')).toHaveLength(1); // Asset Acquisition holds the corporate access upgrade
     expect(panel().querySelector('.divider')).not.toBeNull();
     // the action grid has the same number of cells as the Character tab: the action and empty ones

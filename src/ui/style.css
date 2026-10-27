@@ -84,6 +84,9 @@ body {
 .corporation-widget,
 .network-widget,
 .upgrades-widget,
+.corporation-empty[hidden] {
+  display: none;
+}
 .exploitation-widget,
 .inventory-widget {
   display: grid;

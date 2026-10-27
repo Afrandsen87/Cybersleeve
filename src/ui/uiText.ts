@@ -83,6 +83,8 @@ export interface UiText {
     readonly holdings: string;
     readonly assetAcquisition: string;
     readonly hostileNegotiation: string;
+    /** The widget the Synthetic Procurement skill opens on the Corporation tab. */
+    readonly syntheticSleeves: string;
   };
   /** The tabs at the top. The Skills tab shows the points available, unless there are none. */
   readonly tabs: {
@@ -273,6 +275,7 @@ export const uiText: UiText = {
     holdings: 'Holdings',
     assetAcquisition: 'Asset Acquisition',
     hostileNegotiation: 'Hostile Negotiation',
+    syntheticSleeves: 'Synthetic Sleeves',
   },
   tabs: {
     character: 'Character',

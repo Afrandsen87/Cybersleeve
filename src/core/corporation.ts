@@ -39,7 +39,7 @@ export class Corporation {
    */
   constructor(
     private readonly config: Pick<GameConfig, 'corporation' | 'buyables' | 'speed' | 'engine'>,
-    private readonly state: Pick<GameState, 'corporation' | 'purchased'>,
+    private readonly state: Pick<GameState, 'corporation' | 'purchased' | 'synths'>,
     private readonly effects: CorporationEffectContext,
     readonly levels: CorporationLevels,
   ) {
@@ -62,7 +62,8 @@ export class Corporation {
 
   /**
    * How long one run of an action takes now: its `baseDurationMs` divided by the speed of its action level (`speed.actionLevel`, the
-   * same rule as the character's actions). Nothing else speeds it up: no interface speed, sleeve level, Focus or Overclock.
+   * same rule as the character's actions), and by the Synthetic Workers skill with the number of synthetic sleeves. Nothing else speeds it
+   * up: no interface speed, sleeve level, Focus or Overclock.
    *
    * @param id the action
    * @returns milliseconds (never below `engine.minRunDurationMs`); 0 for an unknown action
@@ -70,8 +71,25 @@ export class Corporation {
   durationMs(id: CorporationActionId): number {
     const def = this.definitions.get(id);
     if (!def) return 0;
-    const speed = levelFactor(this.config.speed.actionLevel, this.levels.level(id));
+    const speed = levelFactor(this.config.speed.actionLevel, this.levels.level(id)) * this.workersFactor();
     return effectiveDurationMs(def.baseDurationMs, speed, this.config.engine.minRunDurationMs);
+  }
+
+  /** The speed factor the owned `corporationSpeedPerLnSynths` skills give: `1 + perLn x ln(1 + synthetic sleeves)` for each copy (1 without). */
+  workersFactor(): number {
+    let factor = 1;
+    for (const b of this.config.buyables) {
+      const copies = this.state.purchased[b.id] ?? 0;
+      if (b.effect.kind === 'corporationSpeedPerLnSynths' && copies > 0) {
+        factor *= (1 + b.effect.perLn * Math.log1p(this.state.synths.length)) ** copies;
+      }
+    }
+    return factor;
+  }
+
+  /** True while the player owns a purchase with the `unlocksSynthPurchase` effect (the option to buy synthetic sleeves is open). */
+  synthPurchaseUnlocked(): boolean {
+    return this.config.buyables.some((b) => b.effect.kind === 'unlocksSynthPurchase' && (this.state.purchased[b.id] ?? 0) > 0);
   }
 
   /** The corporation's actions, in the order the tab lists them. */

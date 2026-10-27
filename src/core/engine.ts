@@ -586,6 +586,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.corporationUnit.rank();
   }
 
+  /** True once the option to buy synthetic sleeves on the Corporation tab is open (the Synthetic Procurement skill). */
+  synthPurchaseUnlocked(): boolean {
+    return this.corporationUnit.synthPurchaseUnlocked();
+  }
+
   /** How long one run of a corporation action takes now, in milliseconds (its action level speeds it up). */
   corporationRunMs(id: CorporationActionId): number {
     return this.corporationUnit.durationMs(id);

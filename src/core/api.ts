@@ -175,6 +175,8 @@ export interface CorporationQueries {
   isCorporationUnlocked(): boolean;
   /** The corporate rank (what gates the corporation's actions). */
   corporateRank(): number;
+  /** True once the option to buy synthetic sleeves on the Corporation tab is open (the Synthetic Procurement skill). */
+  synthPurchaseUnlocked(): boolean;
   /** How long one run of a corporation action takes now, in milliseconds (its action level speeds it up). */
   corporationRunMs(id: CorporationActionId): number;
   /** Stocks of competitors the corporation holds. */

@@ -58,4 +58,12 @@ export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<
   },
   // read only by SynthSleeves
   perfectCopies: { traits: sleeveWide, validate: () => {} },
+  // read only by Corporation
+  corporationSpeedPerLnSynths: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.perLn) && e.perLn > 0)) errors.push(`${where}: corporationSpeedPerLnSynths perLn must be > 0`);
+    },
+  },
+  unlocksSynthPurchase: { traits: sleeveWide, validate: () => {} },
 };

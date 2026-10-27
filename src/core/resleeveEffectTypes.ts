@@ -29,4 +29,8 @@ export type ResleeveEffect =
    */
   | { readonly kind: 'synthXpBoost'; readonly factor: number }
   /** Every synthetic sleeve earns at least what the sleeve's own network earns right now (see `SynthSleeves.creditsPerSecond`). Read by `SynthSleeves`. */
-  | { readonly kind: 'perfectCopies' };
+  | { readonly kind: 'perfectCopies' }
+  /** Corporation actions run faster by `1 + perLn x ln(1 + number of synthetic sleeves)`, per copy, on top of their action level. Read by `Corporation.durationMs`. */
+  | { readonly kind: 'corporationSpeedPerLnSynths'; readonly perLn: number }
+  /** Opens the option to buy synthetic sleeves on the Corporation tab (what it does is not designed yet; this is only the unlock). Read by `Corporation`. */
+  | { readonly kind: 'unlocksSynthPurchase' };
