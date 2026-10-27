@@ -20,6 +20,7 @@ import { BuyableCaps } from './buyableCaps';
 import { readCorporationState, writeCorporationState } from './corporationState';
 import { traitsOf } from './effectTraits';
 import { SCALAR_FIELDS, readScalar, writeScalars } from './fields';
+import { INFINITY } from './infinity';
 import { createInitialState } from './state';
 import type { GameConfig, GameState, GameStateView } from './types';
 
@@ -44,7 +45,7 @@ interface SaveData {
   adminKeysOn: boolean;
   chains: Record<string, number>;
   bankedCriticals: Record<string, number>;
-  runs: { creditsPerSecond: string; actionLevelsTotal: number }[];
+  runs: { creditsPerSecond: string; actionLevelsTotal: number; actionLevels?: Record<string, number> }[];
   synths: { runIndex: number }[];
   corporation: ReturnType<typeof writeCorporationState>;
   automation: {
@@ -88,7 +89,11 @@ export function serializeState(state: GameStateView): string {
     adminKeysOn: state.adminKeysOn,
     chains: { ...state.chains },
     bankedCriticals: { ...state.bankedCriticals },
-    runs: state.runs.map((r) => ({ creditsPerSecond: r.creditsPerSecond.toString(), actionLevelsTotal: r.actionLevelsTotal })),
+    runs: state.runs.map((r) => ({
+      creditsPerSecond: r.creditsPerSecond.toString(),
+      actionLevelsTotal: r.actionLevelsTotal,
+      ...(r.actionLevels ? { actionLevels: { ...r.actionLevels } } : {}),
+    })),
     synths: state.synths.map((s) => ({ runIndex: s.runIndex })),
     corporation: writeCorporationState(state.corporation),
     automation: {
@@ -307,7 +312,14 @@ function readRuns(v: unknown, factory: NumberFactory): GameState['runs'] {
     } catch {
       creditsPerSecond = factory.fromNumber(0);
     }
-    return { creditsPerSecond, actionLevelsTotal: readCount(entry['actionLevelsTotal']) };
+    const saved = entry['actionLevels'];
+    const actionLevels: Record<string, number> = {};
+    if (isRecord(saved)) for (const [id, level] of Object.entries(saved)) actionLevels[id] = Math.min(readCount(level), INFINITY);
+    return {
+      creditsPerSecond,
+      actionLevelsTotal: readCount(entry['actionLevelsTotal']),
+      ...(isRecord(saved) ? { actionLevels } : {}),
+    };
   });
 }
 

@@ -37,7 +37,7 @@ export function mountStatsPanel(ctx: UiContext, initial: RunsView): StatsPanel {
   return {
     root,
     render(rows) {
-      const signature = rows.map((r) => `${r.label}|${r.incomeText}|${r.levelsText}`).join('|');
+      const signature = rows.map((r) => `${r.label}|${r.incomeText}|${r.levelsText}|${r.actionLevelTexts.join(',')}`).join('|');
       if (signature === runsShown) return;
       runsShown = signature;
       runsEmpty.hidden = rows.length > 0;
@@ -50,6 +50,7 @@ export function mountStatsPanel(ctx: UiContext, initial: RunsView): StatsPanel {
       const lines = rows.map((r) => {
         const line = h('div', 'run-row');
         line.append(h('span', undefined, r.label), h('span', undefined, r.incomeText), h('span', undefined, r.levelsText));
+        if (r.actionLevelTexts.length > 0) line.append(h('div', 'run-levels', r.actionLevelTexts.join(' · ')));
         return line;
       });
       runsTable.replaceChildren(...(rows.length > 0 ? [header, ...lines] : []));

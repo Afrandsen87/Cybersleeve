@@ -18,4 +18,15 @@ export type ResleeveEffect =
    * Several Focus slots may sit on the same action (add and remove buttons instead of one toggle). Each slot on an action multiplies its
    * speed by `1 + focus.speedBonus` again. Sleeve-wide; applies once, whatever the number of copies.
    */
-  | { readonly kind: 'focusStacking' };
+  | { readonly kind: 'focusStacking' }
+  /** Every re-sleeve gives `count` synthetic sleeves (a whole number >= 2) instead of one. The one bought with the skill stays single. Read by `SynthSleeves`. */
+  | { readonly kind: 'synthsPerResleeve'; readonly count: number }
+  /** Interface speed is multiplied by `1 + perLn x ln(1 + number of synthetic sleeves)`, per copy, before the hacking multiplier. Sleeve-wide. */
+  | { readonly kind: 'interfaceSpeedPerLnSynths'; readonly perLn: number }
+  /**
+   * An action whose action level is below the highest level a synthetic sleeve reached on it earns `factor` (> 1) times the action XP per
+   * run. Needs the levels of finished runs (`SleeveRunRecord.actionLevels`). Sleeve-wide; applies once.
+   */
+  | { readonly kind: 'synthXpBoost'; readonly factor: number }
+  /** Every synthetic sleeve earns at least what the sleeve's own network earns right now (see `SynthSleeves.creditsPerSecond`). Read by `SynthSleeves`. */
+  | { readonly kind: 'perfectCopies' };

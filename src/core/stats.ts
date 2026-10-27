@@ -21,6 +21,7 @@ import { levelRewardFactor } from './levelRewardFactor';
 import { type BackChannelRule, resolveBackChannel, resolveRarityWeightBonus } from './leverageEffects';
 import type { Progression } from './progression';
 import { Snapshot } from './snapshot';
+import { bestSynthActionLevel } from './synthSleeves';
 import { shiftWeights, wholeOrders } from './rarityShift';
 import { effectiveDurationMs, type SpeedContext, type SpeedFactor, speedFactors, speedMultiplier, type SpeedModifier } from './speed';
 import type { ActionId, CriticalSuccessRule, GameConfig, GameState, ItemDropRule, PaysActionRule } from './types';
@@ -392,8 +393,19 @@ export class DerivedStats implements ModeStatuses {
   xpPerRun(id: ActionId): BigNum {
     const base = this.economy.xpPerRun(this.definition(id));
     const bonus = this.config.items.augment?.xpBonusPerItem ?? 0;
-    const factor = bonus > 0 ? augmentXpFactor(this.state.actions[id]?.augments ?? {}, bonus) : 1;
+    const augments = bonus > 0 ? augmentXpFactor(this.state.actions[id]?.augments ?? {}, bonus) : 1;
+    const factor = augments * this.synthMirrorFactor(id);
     return factor === 1 ? base : base.mul(this.factory.fromNumber(factor));
+  }
+
+  /**
+   * What Neural Mirror multiplies an action's XP per run by: its `factor` while the action's level is below the highest level a
+   * synthetic sleeve reached on it, otherwise 1.
+   */
+  private synthMirrorFactor(id: ActionId): number {
+    const factor = this.sleeveStats().synthXpFactor;
+    if (factor === 1) return 1;
+    return this.progression.actionLevel(this.state, id) < bestSynthActionLevel(this.state, id) ? factor : 1;
   }
 
   /**

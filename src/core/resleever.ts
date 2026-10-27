@@ -51,9 +51,10 @@ export class Resleever {
     const record: SleeveRunRecord = {
       creditsPerSecond: repairBig(income, this.factory) ?? income,
       actionLevelsTotal: Math.min(this.progression.totalActionLevels(this.state), INFINITY),
+      actionLevels: Object.fromEntries(this.config.actions.map((a) => [a.id, this.progression.actionLevel(this.state, a.id)])),
     };
     resetForResleeve(this.state, this.config, this.factory);
     this.state.runs.push(record);
-    if (this.synths.isUnlocked()) this.synths.addForLatestRun();
+    if (this.synths.isUnlocked()) this.synths.addForResleeve();
   }
 }

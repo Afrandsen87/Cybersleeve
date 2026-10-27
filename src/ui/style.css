@@ -891,6 +891,11 @@ button:not(:disabled):hover {
   gap: 12px;
   font-size: 14px;
 }
+.run-row .run-levels {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--muted, #8a93b5);
+}
 .run-row.run-head {
   color: var(--cyan);
   border-bottom: 1px solid var(--line);

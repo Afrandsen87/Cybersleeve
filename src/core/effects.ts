@@ -85,6 +85,8 @@ export interface SleeveStats {
   readonly extraFocusSlots: number;
   /** Several Focus slots may sit on one action. */
   readonly focusStacking: boolean;
+  /** What an action's XP per run is multiplied by while its level is below the best synthetic sleeve's level on it (1 without Neural Mirror). */
+  readonly synthXpFactor: number;
   /** The heat factor `overclockHeatFactor` buyables set for an action's Overclock (lowest wins); an action without an entry keeps its rule's own factor. */
   readonly overclockHeatFactors: Readonly<Record<ActionId, number>>;
 }
@@ -198,7 +200,7 @@ export function resolveSleeveStats(
   buyables: readonly BuyableDefinition[],
   state: Pick<
     GameState,
-    'purchased' | 'heat' | 'hackingProficiency' | 'network' | 'iceRating' | 'legend' | 'nodePayoutBonus' | 'inventory'
+    'purchased' | 'heat' | 'hackingProficiency' | 'network' | 'iceRating' | 'legend' | 'nodePayoutBonus' | 'inventory' | 'synths'
   >,
   sleeve: SleeveConfig,
   factory: NumberFactory,
@@ -230,6 +232,7 @@ export function resolveSleeveStats(
     overclockStrength: 1,
     extraFocusSlots: 0,
     focusStacking: false,
+    synthXpFactor: 1,
     overclockHeatFactors: {},
   };
   const nodePayoutTerms: FactorTerm[] = [];
@@ -303,6 +306,7 @@ export function resolveSleeveStats(
     overclockStrength: acc.overclockStrength,
     extraFocusSlots: acc.extraFocusSlots,
     focusStacking: acc.focusStacking,
+    synthXpFactor: acc.synthXpFactor,
     overclockHeatFactors: acc.overclockHeatFactors,
   };
 }

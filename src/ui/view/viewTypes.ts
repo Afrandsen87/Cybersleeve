@@ -368,6 +368,8 @@ export interface RunRowView {
   readonly incomeText: string;
   /** The total of its action levels. */
   readonly levelsText: string;
+  /** The level of each action in that run, in the order of the actions; empty for a run written down before levels were kept. */
+  readonly actionLevelTexts: readonly string[];
 }
 
 /** Display data of the Stats tab. */

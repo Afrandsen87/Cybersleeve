@@ -31,4 +31,31 @@ export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<
       acc.focusStacking = true;
     },
   },
+  // read only by SynthSleeves, which looks at the content directly
+  synthsPerResleeve: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isInteger(e.count) && e.count >= 2)) errors.push(`${where}: synthsPerResleeve count must be an integer >= 2`);
+    },
+  },
+  interfaceSpeedPerLnSynths: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.perLn) && e.perLn > 0)) errors.push(`${where}: interfaceSpeedPerLnSynths perLn must be > 0`);
+    },
+    sleeve: (acc, e, { owned, state }) => {
+      acc.interfaceSkillFactor *= (1 + e.perLn * Math.log1p(state.synths.length)) ** owned;
+    },
+  },
+  synthXpBoost: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.factor) && e.factor > 1)) errors.push(`${where}: synthXpBoost factor must be > 1`);
+    },
+    sleeve: (acc, e) => {
+      acc.synthXpFactor = Math.max(acc.synthXpFactor, e.factor);
+    },
+  },
+  // read only by SynthSleeves
+  perfectCopies: { traits: sleeveWide, validate: () => {} },
 };

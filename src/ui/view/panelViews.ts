@@ -25,6 +25,9 @@ export function runsView(runs: GameStateView['runs'], config: GameConfig, text: 
           label: text.runs.label(firstNumber + i),
           incomeText: text.format.income(formatBigNum(run.creditsPerSecond)),
           levelsText: formatPlain(run.actionLevelsTotal),
+          actionLevelTexts: config.actions.flatMap((a) =>
+            run.actionLevels?.[a.id] === undefined ? [] : [text.runs.actionLevel(a.name, formatPlain(run.actionLevels[a.id] ?? 0))],
+          ),
         }),
       )
       .reverse(),

@@ -36,7 +36,7 @@ export const syntheticsSkills: BuyableDefinition[] = [
     branch: BRANCH_SYNTHETICS,
     cost: num(2),
     parents: [SKILL_SYNTHETIC_SLEEVES],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'synthsPerResleeve', count: 2 },
   },
   {
     id: SKILL_HIVE_INTERFACE,
@@ -48,7 +48,8 @@ export const syntheticsSkills: BuyableDefinition[] = [
     branch: BRANCH_SYNTHETICS,
     cost: num(2),
     parents: [SKILL_CLONING_VATS],
-    effect: { kind: 'placeholder' },
+    // one tenth of ln(1 + synthetic sleeves): 24% faster at 10 synthetic sleeves, 35% at 30
+    effect: { kind: 'interfaceSpeedPerLnSynths', perLn: 0.1 },
   },
   {
     id: SKILL_NEURAL_MIRROR,
@@ -60,18 +61,18 @@ export const syntheticsSkills: BuyableDefinition[] = [
     branch: BRANCH_SYNTHETICS,
     cost: num(3),
     parents: [SKILL_HIVE_INTERFACE],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'synthXpBoost', factor: 1.25 },
   },
   {
     id: SKILL_PERFECT_COPIES,
     name: 'Perfect Copies',
     symbol: 'PC',
     description:
-      'Every synthetic sleeve earns what your own network earns right now, however far you have come: your credits per second are multiplied by one plus the number of synthetic sleeves.',
+      'Every synthetic sleeve earns at least what your own network earns right now, however far you have come: with enough of them your credits per second are multiplied by one plus the number of synthetic sleeves.',
     currency: 'resleevePoints',
     branch: BRANCH_SYNTHETICS,
     cost: num(5),
     parents: [SKILL_NEURAL_MIRROR],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'perfectCopies' },
   },
 ];

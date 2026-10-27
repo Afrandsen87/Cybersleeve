@@ -77,7 +77,8 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const state = options.state ?? createInitialState(config, factory);
   const progression = new Progression(config, factory);
   const snapshot = new Snapshot();
-  const synths = new SynthSleeves(config, state, progression, factory);
+  // the network income of Perfect Copies is read from the stats, which are built just below (only called later, in a tick)
+  const synths = new SynthSleeves(config, state, progression, factory, () => stats.passiveCreditsPerSecond());
   const resleeveGate = new ResleeveGate(config, state);
   const shop = new Shop(
     config.buyables,

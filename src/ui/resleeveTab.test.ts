@@ -132,7 +132,7 @@ describe('the Stats tab in the view model', () => {
     g.resleeve();
     const rows = buildViewModel(g).runs.rows;
     expect(rows.map((r) => r.label)).toEqual(['Run 2', 'Run 1']);
-    expect(rows[1]).toEqual({ label: 'Run 1', incomeText: '+50', levelsText: '2' });
+    expect(rows[1]).toEqual({ label: 'Run 1', incomeText: '+50', levelsText: '2', actionLevelTexts: ['A 2', 'Net 0'] });
     expect(rows[0]!.incomeText).toBe('+0');
     expect(rows[0]!.levelsText).toBe('0');
   });

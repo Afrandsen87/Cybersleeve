@@ -5,7 +5,7 @@
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import type { Progression } from './progression';
-import type { BuyableDefinition, GameConfig, GameState, SleeveRunRecord } from './types';
+import type { ActionId, BuyableDefinition, GameConfig, GameState, SleeveRunRecord } from './types';
 
 /** Something that earns credits per second on top of the network (what {@link NetworkSystem} adds to its income). */
 export interface SynthIncome {
@@ -37,6 +37,21 @@ export function synthCreditsPerSecond(record: SleeveRunRecord, currentLevels: nu
 }
 
 /**
+ * The highest action level any synthetic sleeve reached on an action: the best of the levels written down in the runs the sleeves copy.
+ *
+ * Called by: `stats.ts` (Neural Mirror), `ui/view/` (tips). Calls: nothing.
+ *
+ * @param state the runs and the synthetic sleeves (reads `runs`, `synths`)
+ * @param actionId the action
+ * @returns the level, or 0 when there is no synthetic sleeve or no run kept that action's level
+ */
+export function bestSynthActionLevel(state: Pick<GameState, 'runs' | 'synths'>, actionId: ActionId): number {
+  let best = 0;
+  for (const synth of state.synths) best = Math.max(best, state.runs[synth.runIndex]?.actionLevels?.[actionId] ?? 0);
+  return best;
+}
+
+/**
  * The synthetic sleeves of the player: how many there are, what they earn, and when one is gained.
  *
  * @remarks
@@ -44,6 +59,9 @@ export function synthCreditsPerSecond(record: SleeveRunRecord, currentLevels: nu
  * two ways: buying the skill with the `synthSleeves` effect gives one at once, copied from the last finished run, and every re-sleeve
  * after that gives one more, copied from the run that just ended (see `Resleever`). Runs that finished before the skill was bought are
  * never copied.
+ *
+ * Two skills of the synthetics lane change them: Cloning Vats makes every re-sleeve give more than one ({@link SynthSleeves.perResleeve}),
+ * and Perfect Copies makes each earn at least what the sleeve's own network earns right now.
  *
  * Called by: `network.ts` (income), `resleever.ts`, `shop.ts` (purchase listener), `engine.ts` (queries).
  * Calls: {@link synthCreditsPerSecond}, {@link Progression.totalActionLevels}.
@@ -56,13 +74,35 @@ export class SynthSleeves implements SynthIncome {
    * @param state the live game state (mutated when a sleeve is gained)
    * @param progression gives the total of the current action levels
    * @param factory number factory
+   * @param networkIncome the credits per second the sleeve's own network earns now, after the heat tax and without synthetic income
+   *   (read only while Perfect Copies is owned; default: nothing)
    */
   constructor(
     private readonly config: Pick<GameConfig, 'buyables'>,
     private readonly state: GameState,
     private readonly progression: Progression,
     private readonly factory: NumberFactory,
+    private readonly networkIncome: () => BigNum = () => factory.fromNumber(0),
   ) {}
+
+  /** True when the player owns a buyable with the given effect kind. */
+  private owns(kind: BuyableDefinition['effect']['kind']): boolean {
+    return this.config.buyables.some((b) => b.effect.kind === kind && (this.state.purchased[b.id] ?? 0) > 0);
+  }
+
+  /** True when the player owns a buyable with the `perfectCopies` effect. */
+  isPerfect(): boolean {
+    return this.owns('perfectCopies');
+  }
+
+  /** How many synthetic sleeves one re-sleeve gives: 1, or the `count` of the owned `synthsPerResleeve` buyable (the largest, if several). */
+  perResleeve(): number {
+    let count = 1;
+    for (const b of this.config.buyables) {
+      if (b.effect.kind === 'synthsPerResleeve' && (this.state.purchased[b.id] ?? 0) > 0) count = Math.max(count, b.effect.count);
+    }
+    return count;
+  }
 
   /** True when the player owns a buyable with the `synthSleeves` effect. */
   isUnlocked(): boolean {
@@ -79,9 +119,12 @@ export class SynthSleeves implements SynthIncome {
     let total = this.factory.fromNumber(0);
     if (this.state.synths.length === 0) return total;
     const levels = this.progression.totalActionLevels(this.state);
+    const live = this.isPerfect() ? this.networkIncome() : null;
     for (const synth of this.state.synths) {
       const record = this.state.runs[synth.runIndex];
-      if (record) total = total.add(synthCreditsPerSecond(record, levels, this.factory));
+      if (!record) continue;
+      const own = synthCreditsPerSecond(record, levels, this.factory);
+      total = total.add(live?.gt(own) ? live : own);
     }
     return total;
   }
@@ -93,6 +136,15 @@ export class SynthSleeves implements SynthIncome {
    */
   addForLatestRun(): void {
     if (this.state.runs.length > 0) this.state.synths.push({ runIndex: this.state.runs.length - 1 });
+  }
+
+  /**
+   * Gains the synthetic sleeves a re-sleeve gives ({@link SynthSleeves.perResleeve} of them), all copies of the run that just ended.
+   *
+   * Called by: `resleever.ts`.
+   */
+  addForResleeve(): void {
+    for (let i = 0; i < this.perResleeve(); i++) this.addForLatestRun();
   }
 
   /**

@@ -89,6 +89,8 @@ export interface SleeveAccumulator {
   extraFocusSlots: number;
   /** Several Focus slots may sit on one action (the player owns a `focusStacking` buyable). */
   focusStacking: boolean;
+  /** What action XP is multiplied by while an action is behind the best synthetic sleeve's level on it (1 without Neural Mirror). */
+  synthXpFactor: number;
   /** The lowest heat factor of Overclock set by `overclockHeatFactor` buyables, by action. */
   overclockHeatFactors: Record<ActionId, number>;
 }
@@ -106,7 +108,7 @@ export interface ActionHookContext {
 export interface SleeveHookContext {
   /** Copies of the buyable owned (>= 1). */
   readonly owned: number;
-  readonly state: Pick<GameState, 'network' | 'inventory'>;
+  readonly state: Pick<GameState, 'network' | 'inventory' | 'synths'>;
   readonly factory: NumberFactory;
   /** Plain action level of an action (without level bonuses). */
   readonly actionLevelOf: (actionId: ActionId) => number;

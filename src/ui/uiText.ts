@@ -139,6 +139,8 @@ export interface UiText {
     readonly headers: { readonly run: string; readonly income: string; readonly levels: string };
     /** The number of a run, e.g. `"Run 3"`. */
     label(number: number): string;
+    /** The level one action had reached in a run, e.g. `"Grow network 12"`. */
+    actionLevel(name: string, level: string): string;
   };
   /** The Inventory widget. */
   readonly inventory: {
@@ -329,6 +331,7 @@ export const uiText: UiText = {
     empty: 'No finished sleeve-runs yet. Re-sleeve to write the first one down.',
     headers: { run: 'Run', income: 'Credits per second at the end', levels: 'Action levels in total' },
     label: (number) => `Run ${number}`,
+    actionLevel: (name, level) => `${name} ${level}`,
   },
   inventory: {
     label: (rarity, item) => `${rarity} ${item}`,
