@@ -96,7 +96,8 @@ export const anonymitySkills: BuyableDefinition[] = [
     id: SKILL_QUIET_HOURS,
     name: 'Quiet Hours',
     symbol: 'QH',
-    description: 'While nothing is running, heat cools 5 times as fast.',
+    description:
+      'While nothing is running, heat cools 5 times as fast. An action counts as running from its start until its run completes; a manual action that has finished and waits counts as idle.',
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_COLD_TRAIL],
@@ -108,7 +109,7 @@ export const anonymitySkills: BuyableDefinition[] = [
     id: SKILL_UNDERCOVER,
     name: 'Undercover',
     symbol: 'UC',
-    description: 'Quiet Hours also counts while Grow network runs without Overclock.',
+    description: 'Quiet Hours also counts while Grow network runs without Overclock, as if nothing were running.',
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_QUIET_HOURS],
