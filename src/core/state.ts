@@ -41,6 +41,7 @@ export const CARRIED_OVER_BUYABLE_CURRENCIES = ['resleevePoints'] as const satis
 export const CARRIED_OVER_BUYABLE_EFFECTS = [
   'unlockSleeveLevels',
   'corporateRank',
+  'addsCorporationEffect',
 ] as const satisfies readonly BuyableDefinition['effect']['kind'][];
 
 /**

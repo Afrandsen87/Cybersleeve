@@ -286,6 +286,7 @@ export const uiText: UiText = {
     locked: (rank) => `Needs corporate rank ${rank}`,
     tip: ({ name, duration, effects }) => [name, `Run Time = ${duration}`, '', ...effects].join('\n'),
     effects: {
+      acquireStock: (_effect, _itemName, percent) => `Each run has a ${percent}% chance to acquire a stock of a competitor`,
       upgradeRandomItem: (effect, itemName, percent) =>
         `Each run has a ${percent}% chance to upgrade one random ${itemName(effect.itemId)} you hold to the next rarity`,
     },
@@ -349,6 +350,7 @@ export const uiText: UiText = {
     corporateRank: 'Corporate rank',
     ownedCorporations: 'Owned corporations',
     employees: 'Employees',
+    stocksOwned: 'Stocks owned',
   },
   bars: {
     heat: (running) => (running ? 'Heat cooldown' : 'Heat cooldown (paused: needs a whole point of heat)'),

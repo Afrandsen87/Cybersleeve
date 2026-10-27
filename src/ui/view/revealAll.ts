@@ -29,7 +29,11 @@ export function revealEverything(vm: ViewModel): ViewModel {
     tabs: vm.tabs.map((t) => ({ ...t, visible: true })),
     skills: { ...vm.skills, resleeve: { ...vm.skills.resleeve, visible: true } },
     network: { ...vm.network, stats: vm.network.stats.map(shown) },
-    corporation: { ...vm.corporation, stats: vm.corporation.stats.map(shown) },
+    corporation: {
+      ...vm.corporation,
+      stats: vm.corporation.stats.map(shown),
+      holdings: { ...vm.corporation.holdings, stats: vm.corporation.holdings.stats.map(shown) },
+    },
     sleeve: { ...vm.sleeve, stats: vm.sleeve.stats.map(shown) },
     inventory: { ...vm.inventory, visible: true, rows: vm.inventory.rows.map((r) => ({ ...r, unlocked: true })) },
     actions: vm.actions.map((a) => ({ ...a, sleeveShown: true })),

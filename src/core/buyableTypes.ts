@@ -5,6 +5,7 @@
  */
 import type { BigNum } from '../numbers';
 import type { ActionId, ChainRule } from './actionTypes';
+import type { CorporationActionId, CorporationEffect } from './corporationTypes';
 import type { ItemDropRule, ItemId, RarityId } from './itemTypes';
 
 /** Identifier of a buyable (e.g. `"auto-run"`). Never shown to the player. */
@@ -141,6 +142,11 @@ export type BuyableEffect =
    * shown in the Asset Acquisition widget, and it survives re-sleeving because the corporation does.
    */
   | { readonly kind: 'corporateRank'; readonly amount: number }
+  /**
+   * Adds `effect` to what every completed run of the buyable's corporation action does (`BuyableDefinition.corporationActionId`), once
+   * owned. Applies once, whatever the number of copies. Like the corporation, the buyable survives re-sleeving.
+   */
+  | { readonly kind: 'addsCorporationEffect'; readonly effect: CorporationEffect }
   /** Does nothing (yet): a node of the re-sleeve tree whose effect is not designed. */
   | { readonly kind: 'placeholder' }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */
@@ -183,6 +189,8 @@ export type PointCurrency = 'skillPoints' | 'resleevePoints';
 /** Static description of a purchase (one-time or repeatable). It is shown on its action's card, or in the Sleeve widget when it has no action. */
 export interface BuyableDefinition {
   readonly id: BuyableId;
+  /** The corporation action whose card shows this purchase (and whose runs an `addsCorporationEffect` effect changes). Not used together with `actionId`. */
+  readonly corporationActionId?: CorporationActionId;
   /** The action whose card shows this purchase (and whose behaviour an action effect changes). Absent: shown in the Sleeve widget. */
   readonly actionId?: ActionId;
   readonly name: string;

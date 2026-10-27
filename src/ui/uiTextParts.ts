@@ -32,7 +32,8 @@ export type StatId =
   | 'criticalChance'
   | 'corporateRank'
   | 'ownedCorporations'
-  | 'employees';
+  | 'employees'
+  | 'stocksOwned';
 
 /** The curve that turns Hacking Proficiency into the hacking multiplier (see `sleeve.earnedSpeedScale` and `earnedSpeedExponent`). */
 export interface HackingCurve {

@@ -297,6 +297,15 @@ export function validateConfig(config: GameConfig): string[] {
     if (b.currency !== undefined && !CURRENCIES.includes(b.currency)) {
       errors.push(`buyable "${b.id}": unknown currency`);
     }
+    if (b.effect.kind === 'addsCorporationEffect') {
+      if (b.corporationActionId === undefined) errors.push(`buyable "${b.id}": addsCorporationEffect needs a corporationActionId`);
+      validateCorporationEffect(b.effect.effect, `buyable "${b.id}"`, config.items, errors);
+    }
+    if (b.corporationActionId !== undefined) {
+      if (!(config.corporation?.actions ?? []).some((a) => a.id === b.corporationActionId))
+        errors.push(`buyable "${b.id}": belongs to unknown corporation action "${b.corporationActionId}"`);
+      if (b.actionId !== undefined) errors.push(`buyable "${b.id}": cannot belong to both a character action and a corporation action`);
+    }
     checkEffect(b, { actionIds, itemIds, rarityIds, raritylessItemIds, errors });
     if (b.effect.kind === 'overclockChain') {
       const action = config.actions.find((a) => a.id === b.actionId);

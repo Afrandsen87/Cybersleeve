@@ -31,6 +31,7 @@ interface CorporationCard {
   readonly info: HTMLElement;
   readonly bar: HTMLElement;
   readonly levelXp: XpBar;
+  readonly upgrades: Map<string, HTMLButtonElement>;
 }
 
 /**
@@ -61,8 +62,9 @@ function buildCard(ctx: UiContext, view: CorporationActionView): CorporationCard
   applyIcon(start, icons.urlFor(START_RUN_ICON_ID));
   if (!start.classList.contains('has-icon')) start.textContent = '▶';
   start.addEventListener('click', () => engine.startCorporationAction(view.id));
-  root.append(button, levelXp.root, start);
-  return { root, button, start, title, info, bar, levelXp };
+  const purchases = upgradeRow(view.buyables, ctx.activate, icons);
+  root.append(button, levelXp.root, purchases.element, start);
+  return { root, button, start, title, info, bar, levelXp, upgrades: purchases.buttons };
 }
 
 /**
@@ -87,8 +89,9 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
   acquisition.append(h('h2', undefined, text.titles.assetAcquisition));
   const purchases = upgradeRow(initial.buyables, ctx.activate, ctx.icons);
   acquisition.append(purchases.element);
+  const holdings = buildStatWidget('network-widget', initial.holdings.title, initial.holdings.stats);
   const right = h('div', 'dashboard-right');
-  right.append(empty('network-widget', text.titles.holdings), acquisition, empty('exploitation-widget', text.titles.hostileNegotiation));
+  right.append(holdings.root, acquisition, empty('exploitation-widget', text.titles.hostileNegotiation));
   const dashboard = h('div', 'dashboard');
   dashboard.append(widget.root, right);
 
@@ -110,6 +113,7 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
     root,
     render(view) {
       renderStats(widget, view.stats, tips);
+      renderStats(holdings, view.holdings.stats, tips);
       renderUpgrades(purchases.buttons, view.buyables, tips);
       for (const a of view.actions) {
         const card = cards.get(a.id);
@@ -121,6 +125,7 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
         card.start.disabled = !a.startable || a.running; // greyed out until the run is over
         setFill(card.bar, a.progressPercent);
         setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
+        renderUpgrades(card.upgrades, a.buyables, tips);
         card.root.classList.toggle('running', a.running);
       }
     },

@@ -316,6 +316,7 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
   synthSleeves: { traits: sleeveWide, validate: none },
   unlockSleeveLevels: { traits: sleeveWide, validate: none },
   unlocksCorporation: { traits: sleeveWide, validate: none },
+  addsCorporationEffect: { traits: corporate, validate: none },
   corporateRank: {
     traits: corporate,
     validate: (e, { where, errors }) => {

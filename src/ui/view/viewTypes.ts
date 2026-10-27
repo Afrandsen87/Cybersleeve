@@ -386,6 +386,8 @@ export interface ResleeveBuyView {
 
 /** Display data of one action of the corporation. */
 export interface CorporationActionView {
+  /** The purchases of this action, cheapest base price first (the row under its card). */
+  readonly buyables: readonly BuyableView[];
   /** The action level. */
   readonly level: number;
   /** The label above the level bar, e.g. `"Lv 2 - 5/20 XP"`. */
@@ -412,7 +414,9 @@ export interface CorporationView {
   readonly title: string;
   /** The rows of the corporation widget: corporate rank, owned corporations and employees. */
   readonly stats: readonly StatRowView[];
-  /** The corporation's purchases (Asset Acquisition widget), cheapest base price first. */
+  /** The Holdings widget: its title and rows (stocks owned). */
+  readonly holdings: { readonly title: string; readonly stats: readonly StatRowView[] };
+  /** The corporation's own purchases (Asset Acquisition widget), cheapest base price first. */
   readonly buyables: readonly BuyableView[];
   /** The corporation's actions, in order. */
   readonly actions: readonly CorporationActionView[];

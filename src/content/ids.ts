@@ -19,6 +19,7 @@ export const INTERFACE_BOOST = 'interface-boost';
 /** Id of the global access-level buyable. */
 export const ACCESS_UPGRADE = 'access-upgrade';
 export const CORPORATE_ACCESS_UPGRADE = 'corporate-access-upgrade';
+export const STOCK_ACQUISITION = 'stock-acquisition';
 /** Id of the Push malware buyable that adds base ICE Rating per action level. */
 export const MALWARE_ICE = 'malware-ice';
 /** Id of the Faster conditioning buyable (fewer runs per batch of sleeve XP). */

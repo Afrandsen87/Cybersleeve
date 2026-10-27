@@ -51,12 +51,17 @@ describe('corporation action levels', () => {
     expect(g.corporationXpIntoLevel('c1').toNumber()).toBeCloseTo(0);
   });
 
-  it('does not change the run time and gives no sleeve XP', () => {
+  it('speed the action up like a character action level does (the test rule: +100% of the base speed per level), and give no sleeve XP', () => {
     const g = open();
-    run(g, 5);
+    expect(g.corporationRunMs('c1')).toBe(1000);
+    run(g, 3); // 12 XP: level 1 at 10 XP
+    expect(g.corporationLevel('c1')).toBe(1);
+    expect(g.corporationRunMs('c1')).toBe(500);
     g.startCorporationAction('c1');
-    g.tick(999);
+    g.tick(499);
     expect(g.getState().corporation.actions['c1']!.running).toBe(true);
+    g.tick(1);
+    expect(g.getState().corporation.actions['c1']!.running).toBe(false);
     expect(Object.values(g.getState().actions).every((a) => a.sleeveXp.toNumber() === 0)).toBe(true);
   });
 

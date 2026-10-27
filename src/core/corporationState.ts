@@ -18,7 +18,7 @@ import type { CorporationConfig, CorporationState } from './corporationTypes';
 export function createCorporationState(config: CorporationConfig | undefined, factory: NumberFactory): CorporationState {
   const actions: CorporationState['actions'] = {};
   for (const a of config?.actions ?? []) actions[a.id] = { running: false, progress: 0, xp: factory.fromNumber(0) };
-  return { actions };
+  return { actions, stocks: 0 };
 }
 
 /**
@@ -29,9 +29,11 @@ export function createCorporationState(config: CorporationConfig | undefined, fa
  * @param state the corporation state
  */
 export function writeCorporationState(state: CorporationState): {
+  stocks: number;
   actions: Record<string, { running: boolean; progress: number; xp: string }>;
 } {
   return {
+    stocks: state.stocks,
     actions: Object.fromEntries(
       Object.entries(state.actions).map(([id, a]) => [id, { running: a.running, progress: a.progress, xp: a.xp.toString() }]),
     ),
@@ -51,6 +53,8 @@ export function writeCorporationState(state: CorporationState): {
  */
 export function readCorporationState(saved: unknown, config: CorporationConfig | undefined, factory: NumberFactory): CorporationState {
   const state = createCorporationState(config, factory);
+  const stocks = isRecord(saved) ? Number(saved['stocks']) : 0;
+  state.stocks = Number.isSafeInteger(stocks) && stocks > 0 ? stocks : 0;
   const savedActions = isRecord(saved) && isRecord(saved['actions']) ? saved['actions'] : {};
   for (const def of config?.actions ?? []) {
     const entry = savedActions[def.id];

@@ -174,6 +174,10 @@ export interface CorporationQueries {
   isCorporationUnlocked(): boolean;
   /** The corporate rank (what gates the corporation's actions). */
   corporateRank(): number;
+  /** How long one run of a corporation action takes now, in milliseconds (its action level speeds it up). */
+  corporationRunMs(id: CorporationActionId): number;
+  /** Stocks of competitors the corporation holds. */
+  corporationStocks(): number;
   /** The action level of a corporation action (0 at the start). */
   corporationLevel(id: CorporationActionId): number;
   /** Action XP gathered inside the current level of a corporation action. */

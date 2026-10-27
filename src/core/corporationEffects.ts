@@ -13,8 +13,8 @@ import type { CorporationEffect, GameConfig, GameState } from './types';
 
 /** What an effect handler may read and change. */
 export interface CorporationEffectContext {
-  /** The live game state (read-only for an effect, which changes things through the units below). */
-  readonly state: Pick<GameState, 'inventory'>;
+  /** The live game state (an effect changes items through the units below, and the corporation's own figures directly). */
+  readonly state: Pick<GameState, 'inventory' | 'corporation'>;
   /** Moves items in and out of the inventory. */
   readonly inventory: Inventory;
   /** Randomness (inject a seeded one in tests). */
@@ -86,8 +86,20 @@ const upgradeRandomItem: CorporationEffectHandler<Extract<CorporationEffect, { k
   },
 };
 
+/** `acquireStock`: the number of runs that acquire a stock is drawn from the binomial distribution, one stock each. */
+const acquireStock: CorporationEffectHandler<Extract<CorporationEffect, { kind: 'acquireStock' }>> = {
+  apply(effect, runs, { state, random }) {
+    state.corporation.stocks += binomial(runs, effect.chance, random);
+  },
+  validate(effect, where, _items, errors) {
+    if (!(Number.isFinite(effect.chance) && effect.chance > 0 && effect.chance <= 1)) {
+      errors.push(`${where}: acquireStock chance must be in (0, 1]`);
+    }
+  },
+};
+
 /** The handlers of every kind of corporation effect. */
-export const CORPORATION_EFFECTS: Registry = { upgradeRandomItem };
+export const CORPORATION_EFFECTS: Registry = { upgradeRandomItem, acquireStock };
 
 /**
  * Applies one effect for a batch of completed runs.

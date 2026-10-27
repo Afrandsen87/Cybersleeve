@@ -7,6 +7,7 @@ import { setCredits, testConfig } from '../testing/testConfig';
 import {
   applyCorporationEffect,
   type CorporationActionDefinition,
+  type CorporationEffectContext,
   createConfig,
   deserializeState,
   type GameConfig,
@@ -191,7 +192,7 @@ describe('Insider backstabbing style effect: upgradeRandomItem', () => {
     stock(g, { common: 900, uncommon: 100 });
     const state = g.getState() as unknown as Loose;
     const ctx = {
-      state,
+      state: g.getState() as unknown as CorporationEffectContext['state'],
       inventory: (g as unknown as { inventory: never }).inventory,
       random: seededRandom(3),
       rarityIds: ['common', 'uncommon', 'rare'],

@@ -30,7 +30,8 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
     version: '2026-10-27 Corporation widgets',
     changes: [
       'On the Corporation tab the widgets beside the corporation are now Holdings, Asset Acquisition and Hostile Negotiation, and the Inventory is gone from it.',
-      'Corporation actions now have action levels (no sleeve levels): each completed run gives action XP, and the card shows the level bar.',
+      'Corporation actions now have action levels (no sleeve levels): each completed run gives action XP, the card shows the level bar, and every level makes the run 5% faster, like a character action.',
+      'Corporation action cards have a row for purchases. First one: Stock acquisition on Insider backstabbing, a 0.5% chance per run to acquire a stock of a competitor. Stocks owned shows in the new Holdings widget.',
       'The corporation widget shows Corporate rank, Owned corporations and Employees.',
       'New purchase in Asset Acquisition, the Corporate access upgrade (5,000,000 credits, 100000x more per copy): raises Corporate rank by 1, which unlocks the next corporation action. It is kept when you re-sleeve.',
     ],

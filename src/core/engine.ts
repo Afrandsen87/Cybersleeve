@@ -574,6 +574,16 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.corporationUnit.rank();
   }
 
+  /** How long one run of a corporation action takes now, in milliseconds (its action level speeds it up). */
+  corporationRunMs(id: CorporationActionId): number {
+    return this.corporationUnit.durationMs(id);
+  }
+
+  /** Stocks of competitors the corporation holds. */
+  corporationStocks(): number {
+    return this.state.corporation.stocks;
+  }
+
   /** The action level of a corporation action. */
   corporationLevel(id: CorporationActionId): number {
     return this.corporationUnit.levels.level(id);

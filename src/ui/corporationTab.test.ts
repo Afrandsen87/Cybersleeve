@@ -93,6 +93,37 @@ describe('the Corporation tab in the view model', () => {
     expect(view().actions[0]).toMatchObject({ startable: true, infoText: 'Run time 30s' });
   });
 
+  it('the Holdings row for stocks appears with the purchase that makes them, and a purchase of an action is on its card only', () => {
+    const cfg = createConfig(config, {
+      buyables: [
+        ...config.buyables,
+        {
+          id: 'stock',
+          name: 'Stock',
+          description: '',
+          corporationActionId: 'c1',
+          cost: num(1),
+          effect: { kind: 'addsCorporationEffect', effect: { kind: 'acquireStock', chance: 1 } },
+        },
+      ],
+    });
+    const g = createGame({ config: cfg });
+    own(g);
+    const view = () => buildViewModel(g).corporation;
+    expect(view().holdings.title).toBe('Holdings');
+    expect(view().holdings.stats.map((s) => [s.label, s.text, s.hidden])).toEqual([['Stocks owned', '0', true]]);
+    expect(view().actions[0]!.buyables.map((b) => b.id)).toEqual(['stock']);
+    expect(view().buyables.map((b) => b.id)).toEqual(['rank']); // Asset Acquisition does not list it
+    expect(buildViewModel(g).sleeve.buyables.map((b) => b.id)).not.toContain('stock');
+    setCredits(g, num(1));
+    g.buy('stock');
+    expect(view().holdings.stats[0]!.hidden).toBe(false);
+    expect(view().actions[0]!.tip).toContain('chance to acquire a stock of a competitor');
+    g.startCorporationAction('c1');
+    g.tick(30_000);
+    expect(view().holdings.stats[0]!.text).toBe('1');
+  });
+
   it('an action cannot be started while the corporation is closed', () => {
     const g = createGame({ config });
     expect(buildViewModel(g).corporation.actions[0]!.startable).toBe(false);
@@ -130,7 +161,7 @@ describe('the Corporation tab on the screen', () => {
     expect(rows.map((r) => r.textContent)).toEqual(['Corporate rank1', 'Owned corporations0', 'Employees0']);
     const empty = [...panel().querySelectorAll('.dashboard-right > aside')];
     expect(empty.map((w) => w.querySelector('h2')!.textContent)).toEqual(['Holdings', 'Asset Acquisition', 'Hostile Negotiation']);
-    for (const widget of empty.filter((w) => !w.classList.contains('upgrades-widget'))) expect(widget.children).toHaveLength(1); // the heading and nothing else
+    for (const widget of empty.filter((w) => w.classList.contains('exploitation-widget'))) expect(widget.children).toHaveLength(1); // the heading and nothing else
     expect(empty[1]!.querySelectorAll('.upgrade')).toHaveLength(1); // Asset Acquisition holds the corporate access upgrade
     expect(panel().querySelector('.divider')).not.toBeNull();
     // the action grid has the same number of cells as the Character tab: the action and empty ones
@@ -145,6 +176,7 @@ describe('the Corporation tab on the screen', () => {
     expect(card.querySelector('.action-info')!.textContent).toBe('Run time 30s');
     expect(card.querySelector('.xp-level .xp-label')!.textContent).toMatch(/^Lv 0 - /); // the action level bar, like a character action's
     expect(card.querySelector('.xp-sleeve')).toBeNull(); // and no sleeve level
+    expect(card.querySelector('.upgrades')).not.toBeNull(); // the row for the action's purchases
     card.querySelector<HTMLButtonElement>('.action-main')!.click();
     expect(game.getState().corporation.actions['c1']!.running).toBe(true);
     game.tick(15_000);

@@ -6,10 +6,10 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries` (the corporation queries), the text table.
  */
-import type { CorporationEffect, CorporationQueries, GameConfig, StateQueries } from '../../core';
+import type { CorporationEffect, CorporationQueries, GameConfig, ShopQueries, StateQueries } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
-import { isCorporate } from './buyableViews';
+import { corporationActionOf, isCorporate } from './buyableViews';
 import { DROP_CHANCE_DECIMALS, buildStatRow as row, formatSeconds } from './viewFormat';
 import type { BuyableView, CorporationActionView, CorporationView } from './viewTypes';
 
@@ -50,7 +50,7 @@ function describeEffect(effect: CorporationEffect, itemNames: (id: string) => st
  * @param text the display text
  */
 export function corporationView(
-  engine: CorporationQueries & StateQueries,
+  engine: CorporationQueries & ShopQueries & StateQueries,
   config: GameConfig,
   buyableViews: readonly BuyableView[],
   text: UiText,
@@ -58,6 +58,9 @@ export function corporationView(
   const state = engine.getState();
   const rank = engine.corporateRank();
   const items = engine.getConfig().items.definitions;
+  const ownsEffect = (kind: string): boolean =>
+    config.buyables.some((b) => b.effect.kind === 'addsCorporationEffect' && b.effect.effect.kind === kind && engine.ownedCount(b.id) > 0);
+  const stocksShown = engine.corporationStocks() > 0 || ownsEffect('acquireStock');
   const itemNames = (id: string): string => items.find((d) => d.id === id)?.name ?? id;
   return {
     title: text.titles.corporation,
@@ -66,16 +69,27 @@ export function corporationView(
       row('ownedCorporations', text, formatPlain(STARTING_OWNED_CORPORATIONS)),
       row('employees', text, formatPlain(STARTING_EMPLOYEES)),
     ],
-    buyables: buyableViews.filter((b) => isCorporate(config, b.id)),
+    holdings: {
+      title: text.titles.holdings,
+      // the row appears once the purchase that makes stocks is owned, or a stock is held
+      stats: [row('stocksOwned', text, formatPlain(engine.corporationStocks()), null, null, !stocksShown)],
+    },
+    buyables: buyableViews.filter((b) => isCorporate(config, b.id) && corporationActionOf(config, b.id) === undefined),
     actions: engine.corporationActions().map((def): CorporationActionView => {
       const progress = state.corporation.actions[def.id];
       const running = progress?.running ?? false;
       const level = engine.corporationLevel(def.id);
-      const duration = formatSeconds(def.baseDurationMs, text);
-      const effects = def.effects.map((e) => describeEffect(e, itemNames, text));
+      const duration = formatSeconds(engine.corporationRunMs(def.id), text);
+      const added = config.buyables.flatMap((b) =>
+        b.corporationActionId === def.id && b.effect.kind === 'addsCorporationEffect' && engine.ownedCount(b.id) > 0
+          ? [b.effect.effect]
+          : [],
+      );
+      const effects = [...def.effects, ...added].map((e) => describeEffect(e, itemNames, text));
       return {
         id: def.id,
         name: def.name,
+        buyables: buyableViews.filter((b) => corporationActionOf(config, b.id) === def.id),
         level,
         levelBarText: text.action.levelBar(
           level,

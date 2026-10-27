@@ -22,14 +22,16 @@ export type CorporationEffect =
    * are held in it, and one item moves from that rarity to the next. Items of the highest rarity stay as they are; with nothing
    * to upgrade the run does nothing. The item must exist in several rarities.
    */
-  { readonly kind: 'upgradeRandomItem'; readonly itemId: ItemId; readonly chance: number };
+  | { readonly kind: 'upgradeRandomItem'; readonly itemId: ItemId; readonly chance: number }
+  /** Each completed run has `chance` to acquire one stock of a competitor (`CorporationState.stocks` goes up by 1). What stocks do comes later. */
+  | { readonly kind: 'acquireStock'; readonly chance: number };
 
 /** Static description of an action of the corporation. */
 export interface CorporationActionDefinition {
   readonly id: CorporationActionId;
   /** Display name (placeholder, may be renamed freely). */
   readonly name: string;
-  /** Duration of one run, in milliseconds (> 0). Nothing speeds it up or slows it down: interface speed does not apply here. */
+  /** Duration of one run, in milliseconds (> 0). Only the action level speeds it up (see `Corporation.durationMs`); interface speed does not apply here. */
   readonly baseDurationMs: number;
   /** Action XP each completed run gives (> 0). Default: 1. The levels follow `progression.actionLevels`; a corporation action has no sleeve levels. */
   readonly xpPerRun?: number;
@@ -62,6 +64,8 @@ export interface CorporationActionState {
  * lists of `state.ts`).
  */
 export interface CorporationState {
+  /** Stocks of competitors acquired so far (a whole number). */
+  stocks: number;
   /** Progress per corporation action id. */
   actions: Record<CorporationActionId, CorporationActionState>;
 }

@@ -54,6 +54,11 @@ export function isCorporate(config: GameConfig, id: string): boolean {
   return def !== undefined && traitsOf(def).corporate === true;
 }
 
+/** The corporation action whose card shows a buyable, or `undefined` when it is not tied to one. */
+export function corporationActionOf(config: GameConfig, id: string): string | undefined {
+  return config.buyables.find((d) => d.id === id)?.corporationActionId;
+}
+
 /** True for the currencies that are points (skill points, re-sleeve points): their buyables live in the Skills tab, not in the Sleeve widget. */
 export function isPointCurrency(currency: Currency | undefined): boolean {
   return currency === 'skillPoints' || currency === 'resleevePoints';

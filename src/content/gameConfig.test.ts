@@ -236,11 +236,13 @@ describe('real game content (src/content/gameConfig.ts)', () => {
           ? skillViews(vm.skills.lanes)
           : b.currency === 'resleevePoints'
             ? skillViews(vm.skills.resleeve.lanes)
-            : b.effect.kind === 'corporateRank'
-              ? vm.corporation.buyables
-              : b.actionId === undefined
-                ? vm.sleeve.buyables
-                : vm.actions.find((a) => a.id === b.actionId)!.buyables;
+            : b.corporationActionId !== undefined
+              ? vm.corporation.actions.find((a) => a.id === b.corporationActionId)!.buyables
+              : b.effect.kind === 'corporateRank'
+                ? vm.corporation.buyables
+                : b.actionId === undefined
+                  ? vm.sleeve.buyables
+                  : vm.actions.find((a) => a.id === b.actionId)!.buyables;
       expect(owner.map((v) => v.id)).toContain(b.id);
     }
   });
