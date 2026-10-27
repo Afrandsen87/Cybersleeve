@@ -22,11 +22,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # the previous deploy's commit must be reachable to read its changelog
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
+      # build the changelog entry for this push: merge the entries added since the last push to main, or make one from the
+      # commit subjects (build-time only, nothing is committed)
+      - run: node scripts/collate-changelog.mjs "${{ github.event.before }}"
+      - run: npx biome format --write src/content/changelog.ts
       # typecheck, Biome, tests and the production build
       - run: npm run check
       - uses: actions/upload-pages-artifact@v3
