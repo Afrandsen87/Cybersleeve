@@ -95,7 +95,7 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
 /**
  * Gives each skill of one lane its column (depth) and row. The column is one more than the deepest parent in the lane. The rows come
  * from the tree of first parents: every skill without children takes the next free row, in configuration order, so each path is its own
- * line; a skill with children sits in the middle of its first and last child, so the root is centred on the lane and no two lines overlap.
+ * line; a skill with children sits in the middle of the first and last row under it, so the root is centred on the whole lane and no two lines overlap.
  * Extra parents (a skill with several) only add a drawn line; they do not move the skill.
  *
  * Called by: {@link buildSkillLanes}.
@@ -124,15 +124,26 @@ function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: numb
     if (first !== undefined) childrenOf.set(first, [...(childrenOf.get(first) ?? []), b]);
   }
   const rows = new Map<string, number>();
+  const spans = new Map<string, [number, number]>(); // the first and last row of the childless skills under a skill (itself included)
   let nextLeafRow = 0;
   const rowOf = (b: BuyableDefinition): number => {
     const known = rows.get(b.id);
     if (known !== undefined) return known;
     rows.set(b.id, nextLeafRow); // loop guard: a bad config gets some row instead of recursing forever
-    const kids = (childrenOf.get(b.id) ?? []).map(rowOf);
-    const row = kids.length === 0 ? nextLeafRow++ : (Math.min(...kids) + Math.max(...kids)) / 2;
-    rows.set(b.id, row);
-    return row;
+    spans.set(b.id, [nextLeafRow, nextLeafRow]);
+    const kids = childrenOf.get(b.id) ?? [];
+    for (const kid of kids) rowOf(kid);
+    if (kids.length === 0) {
+      rows.set(b.id, nextLeafRow);
+      spans.set(b.id, [nextLeafRow, nextLeafRow]);
+      return nextLeafRow++;
+    }
+    const spanOf = kids.map((kid) => spans.get(kid.id) ?? [0, 0]);
+    const first = Math.min(...spanOf.map(([lo]) => lo));
+    const last = Math.max(...spanOf.map(([, hi]) => hi));
+    spans.set(b.id, [first, last]);
+    rows.set(b.id, (first + last) / 2);
+    return (first + last) / 2;
   };
   const roots = defs.filter((b) => parentsIn(b).length === 0);
   for (const b of [...roots, ...defs]) rowOf(b); // `defs` again only reaches skills in a parent loop

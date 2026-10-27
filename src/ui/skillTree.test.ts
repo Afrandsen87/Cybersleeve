@@ -78,6 +78,19 @@ describe('skill tree layout: where a skill sits', () => {
     ]);
   });
 
+  it('a root is centred on the whole lane, not only on its children, when one child has lanes of its own', () => {
+    const skills = [
+      def('r'),
+      def('a', { parents: ['r'] }),
+      def('a1', { parents: ['a'] }),
+      def('a2', { parents: ['a'] }),
+      def('b', { parents: ['r'] }),
+      def('c', { parents: ['r'] }),
+    ];
+    const rows = Object.fromEntries(place(skills).map(([id, , row]) => [id, row]));
+    expect(rows).toEqual({ r: 1.5, a: 0.5, a1: 0, a2: 1, b: 2, c: 3 });
+  });
+
   it('two roots do not share a cell', () => {
     expect(place([def('a'), def('b')])).toEqual([
       ['a', 0, 0],
