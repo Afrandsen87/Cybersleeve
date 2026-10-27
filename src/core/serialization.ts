@@ -21,6 +21,7 @@ import { readCorporationState, writeCorporationState } from './corporationState'
 import { traitsOf } from './effectTraits';
 import { SCALAR_FIELDS, readScalar, writeScalars } from './fields';
 import { INFINITY } from './infinity';
+import { isActionCardPurchase } from './resleeveCarry';
 import { createInitialState } from './state';
 import type { GameConfig, GameState, GameStateView } from './types';
 
@@ -41,6 +42,7 @@ interface SaveData {
   overclocked: Record<string, boolean>;
   focused: Record<string, boolean>;
   focusStacks: Record<string, number>;
+  lastLifePurchases: Record<string, number>;
   zeroDaysOn: boolean;
   adminKeysOn: boolean;
   chains: Record<string, number>;
@@ -85,6 +87,7 @@ export function serializeState(state: GameStateView): string {
     overclocked: { ...state.overclocked },
     focused: { ...state.focused },
     focusStacks: { ...state.focusStacks },
+    lastLifePurchases: { ...state.lastLifePurchases },
     zeroDaysOn: state.zeroDaysOn,
     adminKeysOn: state.adminKeysOn,
     chains: { ...state.chains },
@@ -179,6 +182,12 @@ export function deserializeState(
       if (count > 0) state.purchased[b.id] = count;
     }
     dropUnmetRequirements(state, config.buyables);
+    // last life's purchases: only action-card purchases that exist, whole counts, never above what could have been owned
+    const savedLastLife = isRecord(raw['lastLifePurchases']) ? raw['lastLifePurchases'] : {};
+    for (const b of config.buyables) {
+      const count = Math.min(readCount(savedLastLife[b.id]), caps.maxCopies(b, state.purchased), Number.MAX_SAFE_INTEGER);
+      if (count > 0 && isActionCardPurchase(b)) state.lastLifePurchases[b.id] = count;
+    }
     // a skill dropped above may have been the one that allowed the extra copies of another buyable
     for (const b of config.buyables) {
       const count = state.purchased[b.id] ?? 0;

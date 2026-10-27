@@ -39,6 +39,7 @@ import type { PurchaseResult, Shop } from './shop';
 import type { Snapshot } from './snapshot';
 import type { SpeedFactor } from './speed';
 import { resetForNewGame } from './state';
+import type { Steppable } from './reflexArchive';
 import type { SynthSleeves } from './synthSleeves';
 import type { DerivedStats } from './stats';
 import type {
@@ -90,6 +91,8 @@ export interface EngineDependencies {
   readonly critFeed: CritFeed;
   /** The automation features and their points (built on the same state the engine owns). */
   readonly automation: Automation;
+  /** Buys back last life's purchases while Reflex Archive is owned (optional: a game without the skill needs none). */
+  readonly reflexArchive?: Steppable;
   /** Decides when re-sleeving is allowed. */
   readonly resleevePolicy: ResleevePolicy;
   /** Counts the re-sleeve lockout down as game time passes (the same gate as `resleevePolicy`, in the real game). */
@@ -136,6 +139,7 @@ export class GameEngine implements GameQueries, GameCommands {
   private readonly toggles: ActionToggles;
   private readonly critFeed: CritFeed;
   private readonly automationUnit: Automation;
+  private readonly reflexArchive: Steppable | undefined;
   private readonly drops: ItemDrops;
   private readonly augments: Augments;
   private readonly corporationUnit: Corporation;
@@ -179,6 +183,7 @@ export class GameEngine implements GameQueries, GameCommands {
       factory: this.factory,
       snapshot: this.scope,
     } = deps);
+    this.reflexArchive = deps.reflexArchive;
   }
 
   /** Read-only view of the current state. */
@@ -782,6 +787,7 @@ export class GameEngine implements GameQueries, GameCommands {
     this.runner.tickAll(deltaMs);
     this.corporationUnit.tickAll(deltaMs);
     this.automationUnit.step();
+    this.reflexArchive?.step();
     this.overflowPolicy.apply(this.state);
     notePeaks(this.state);
   }

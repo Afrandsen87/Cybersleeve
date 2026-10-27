@@ -6,7 +6,14 @@
  */
 import type { BigNum } from '../numbers';
 import type { GameConfig, GameStateView } from '../core';
-import { type AUTOMATION_FEATURES, BuyableCaps, SCALAR_FIELDS, automationPointsEarned, isFeatureUnlocked } from '../core';
+import {
+  type AUTOMATION_FEATURES,
+  BuyableCaps,
+  isActionCardPurchase,
+  SCALAR_FIELDS,
+  automationPointsEarned,
+  isFeatureUnlocked,
+} from '../core';
 
 /** Config sections the checks read. */
 type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'corporation' | 'focus' | 'items' | 'progression'>;
@@ -126,6 +133,10 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   }
   for (const id of Object.keys(state.focused)) {
     if (!known.has(id) || !unlocked('focusUnlock', id)) problems.push(`focused.${id} is switched on without its unlock`);
+  }
+  for (const [id, count] of Object.entries(state.lastLifePurchases)) {
+    const b = config.buyables.find((x) => x.id === id);
+    if (!b || !isActionCardPurchase(b) || !validCount(count) || count < 1) problems.push(`lastLifePurchases.${id} is invalid: ${count}`);
   }
   const stacking = config.buyables.some((b) => b.effect.kind === 'focusStacking' && (state.purchased[b.id] ?? 0) > 0);
   for (const [id, count] of Object.entries(state.focusStacks)) {

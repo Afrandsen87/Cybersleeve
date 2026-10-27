@@ -6,6 +6,7 @@
 import type { NumberFactory } from '../numbers';
 import { createAutomationState } from './automation';
 import { createCorporationState } from './corporationState';
+import { carryRetention, recordLastLife } from './resleeveCarry';
 import { initialScalars } from './fields';
 import type { ActionState, BuyableDefinition, Currency, GameConfig, GameState } from './types';
 
@@ -16,6 +17,7 @@ type ScalarKey = Exclude<
   | 'overclocked'
   | 'focused'
   | 'focusStacks'
+  | 'lastLifePurchases'
   | 'zeroDaysOn'
   | 'adminKeysOn'
   | 'chains'
@@ -89,6 +91,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
     overclocked: {},
     focused: {},
     focusStacks: {},
+    lastLifePurchases: {},
     zeroDaysOn: false,
     adminKeysOn: false,
     chains: {},
@@ -124,7 +127,8 @@ export function resetForNewGame(state: GameState, config: StateConfig, factory: 
  * action's sleeve XP and its run counter towards the next sleeve-XP batch), the record of finished runs and the synthetic sleeves
  * (`runs`, `synths`), the corporation (it is not the character), and the owned buyables paid in a currency of {@link CARRIED_OVER_BUYABLE_CURRENCIES} (the re-sleeve skills) or
  * with an effect of {@link CARRIED_OVER_BUYABLE_EFFECTS} (the sleeve-levels unlock).
- * Everything else resets, including fields added in the future (nothing has to be listed to be reset; to carry something over, add it
+ * The retention skills add to that (see `resleeveCarry.ts`): a record of last life's action-card purchases, the Automation tab, and shares of
+ * Hacking Proficiency and ICE Rating. Everything else resets, including fields added in the future (nothing has to be listed to be reset; to carry something over, add it
  * to a list).
  *
  * Called by: `resleever.ts`.
@@ -149,5 +153,7 @@ export function resetForResleeve(state: GameState, config: StateConfig & Pick<Ga
     const keep = (b.currency !== undefined && carried.has(b.currency)) || carriedEffects.has(b.effect.kind);
     if (owned > 0 && keep) fresh.purchased[b.id] = owned;
   }
+  recordLastLife(state, fresh, config.buyables);
+  carryRetention(state, fresh, config.buyables, factory);
   Object.assign(state, fresh);
 }

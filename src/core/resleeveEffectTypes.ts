@@ -33,4 +33,24 @@ export type ResleeveEffect =
   /** Corporation actions run faster by `1 + perLn x ln(1 + number of synthetic sleeves)`, per copy, on top of their action level. Read by `Corporation.durationMs`. */
   | { readonly kind: 'corporationSpeedPerLnSynths'; readonly perLn: number }
   /** Opens the option to buy synthetic sleeves on the Corporation tab (what it does is not designed yet; this is only the unlock). Read by `Corporation`. */
-  | { readonly kind: 'unlocksSynthPurchase' };
+  | { readonly kind: 'unlocksSynthPurchase' }
+  /**
+   * Reflex Archive: purchases on the cards of the actions that were owned at the end of the last life (`GameState.lastLifePurchases`) are
+   * bought again, as many copies as there were, cheapest first, as soon as the credits cover them. Read by `ReflexArchive`.
+   */
+  | { readonly kind: 'autoRepurchase' }
+  /**
+   * Daemon Persistence: a re-sleeve no longer wipes the Automation tab. The automation points' purchases (the Automation core and the
+   * automation skills) and the automation settings are carried over together, so the points stay balanced. Read by `resleeveCarry.ts`.
+   */
+  | { readonly kind: 'keepsAutomation' }
+  /**
+   * Residual Proficiency: a new life starts with `scale x log10(1 + the Hacking Proficiency the last life ended with)` instead of 0.
+   * Read by `resleeveCarry.ts`.
+   */
+  | { readonly kind: 'carriesProficiency'; readonly scale: number }
+  /**
+   * Residual Firewall: a new life starts with the last life's ICE Rating to the power `share` (0 < share <= 1), so it keeps that share of
+   * its orders of magnitude (the ICE Rating works on orders of magnitude); never below the starting value. Read by `resleeveCarry.ts`.
+   */
+  | { readonly kind: 'carriesIceRating'; readonly share: number };

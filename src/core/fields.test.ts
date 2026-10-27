@@ -82,6 +82,7 @@ describe('scalar field registry', () => {
       'overclocked',
       'focused',
       'focusStacks',
+      'lastLifePurchases',
       'zeroDaysOn',
       'adminKeysOn',
       'chains',

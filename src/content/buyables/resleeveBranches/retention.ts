@@ -24,7 +24,7 @@ export const retentionSkills: BuyableDefinition[] = [
     currency: 'resleevePoints',
     branch: BRANCH_RETENTION,
     cost: num(1),
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'autoRepurchase' },
   },
   {
     id: SKILL_DAEMON_PERSISTENCE,
@@ -35,7 +35,7 @@ export const retentionSkills: BuyableDefinition[] = [
     branch: BRANCH_RETENTION,
     cost: num(2),
     parents: [SKILL_REFLEX_ARCHIVE],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'keepsAutomation' },
   },
   {
     id: SKILL_RESIDUAL_PROFICIENCY,
@@ -46,7 +46,8 @@ export const retentionSkills: BuyableDefinition[] = [
     branch: BRANCH_RETENTION,
     cost: num(3),
     parents: [SKILL_DAEMON_PERSISTENCE],
-    effect: { kind: 'placeholder' },
+    // a first try, to be tuned by playing: a life ending at proficiency 1,000 starts the next at 3
+    effect: { kind: 'carriesProficiency', scale: 1 },
   },
   {
     id: SKILL_RESIDUAL_FIREWALL,
@@ -57,6 +58,7 @@ export const retentionSkills: BuyableDefinition[] = [
     branch: BRANCH_RETENTION,
     cost: num(4),
     parents: [SKILL_RESIDUAL_PROFICIENCY],
-    effect: { kind: 'placeholder' },
+    // a first try, to be tuned by playing: half of the orders of magnitude (ICE Rating 1e100 becomes 1e50)
+    effect: { kind: 'carriesIceRating', share: 0.5 },
   },
 ];

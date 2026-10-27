@@ -87,6 +87,11 @@ export interface GameState {
   overclocked: Record<ActionId, boolean>;
   /** Actions that are focused (absent or false: not); at most as many as there are Focus slots. Reset by re-sleeving. */
   focused: Record<ActionId, boolean>;
+  /**
+   * Copies of each purchase on an action's card that were owned when the last life ended (absent: 0), so Reflex Archive can buy them back. Written
+   * at every re-sleeve whatever skills are owned; empty in a new game. Whole counts.
+   */
+  lastLifePurchases: Record<BuyableId, number>;
   /** Focus slots on an action BEYOND its first (absent: 0); only with a `focusStacking` buyable. Whole counts. Reset by re-sleeving. */
   focusStacks: Record<ActionId, number>;
   /** Guaranteed critical successes banked for an action by `criticalLink` buyables (absent: 0): its next completed runs use them up. Whole counts. Reset by re-sleeving. */

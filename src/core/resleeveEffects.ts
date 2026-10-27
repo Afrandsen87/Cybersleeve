@@ -66,4 +66,19 @@ export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<
     },
   },
   unlocksSynthPurchase: { traits: sleeveWide, validate: () => {} },
+  // read only by ReflexArchive and resleeveCarry.ts
+  autoRepurchase: { traits: sleeveWide, validate: () => {} },
+  keepsAutomation: { traits: sleeveWide, validate: () => {} },
+  carriesProficiency: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.scale) && e.scale > 0)) errors.push(`${where}: carriesProficiency scale must be > 0`);
+    },
+  },
+  carriesIceRating: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.share) && e.share > 0 && e.share <= 1)) errors.push(`${where}: carriesIceRating share must be in (0, 1]`);
+    },
+  },
 };
