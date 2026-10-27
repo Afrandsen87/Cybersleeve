@@ -4,9 +4,9 @@ import { testConfig } from '../testing/testConfig';
 import { BackChannel } from './backChannel';
 import { Inventory } from './inventory';
 import { createInitialState } from './state';
-import type { BackChannelRule } from './effects';
+import type { BackChannelRule } from './leverageEffects';
 
-const rule: BackChannelRule = { itemId: 'file', rarityId: 'common', molesPerItem: 5, cooldownBoost: 2 };
+const rule: BackChannelRule = { itemId: 'file', molesByRarity: { common: 5 }, cooldownBoost: 2 };
 
 const setup = (channel: BackChannelRule | null) => {
   const state = createInitialState(testConfig, numberFactory);

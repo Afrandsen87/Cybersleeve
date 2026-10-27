@@ -78,10 +78,18 @@ export const SKILL_SIGNAL_AMPLIFIER = 'skill-signal-amplifier';
 export const SKILL_OVERDRIVE_SPIKE = 'skill-overdrive-spike';
 /** Id of the skill that doubles the Kompromat drop chance. */
 export const SKILL_NOSE_FOR_SECRETS = 'skill-nose-for-secrets';
-/** Id of the skill that raises node payout for each uncommon Kompromat file held. */
+/** Id of the skill that raises node payout for each rare Kompromat file held. */
 export const SKILL_EXPLOIT_KOMPROMAT = 'skill-exploit-kompromat';
 /** Id of the skill that lets common Kompromat be given up for Moles (faster heat cooldown). */
 export const SKILL_BACK_CHANNEL = 'skill-back-channel';
+/** Id of the skill that adds a flat bonus to every Kompromat rarity's drop weight. */
+export const SKILL_DEEP_FILES = 'skill-deep-files';
+/** Id of the skill that raises node payout for each legendary Kompromat file held. */
+export const SKILL_DOSSIER = 'skill-dossier';
+/** Id of the skill that opens the back channel to every rarity, worth more Moles the rarer the file. */
+export const SKILL_TIERED_INFORMANTS = 'skill-tiered-informants';
+/** Id of the skill that doubles the Moles the back channel pays. */
+export const SKILL_DOUBLE_AGENT = 'skill-double-agent';
 /** Id of the skill that lowers the heat Push malware's Overclock makes per run. */
 export const SKILL_OBFUSCATION = 'skill-obfuscation';
 /** Id of the skill that makes each heat cooldown cycle remove more heat per sleeve level of Build Legend. */
@@ -114,6 +122,10 @@ export const SKILLS = [
   SKILL_NOSE_FOR_SECRETS,
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_BACK_CHANNEL,
+  SKILL_DEEP_FILES,
+  SKILL_DOSSIER,
+  SKILL_TIERED_INFORMANTS,
+  SKILL_DOUBLE_AGENT,
 ] as const;
 /** Branch id of the skill tree's cybernetics lane (its title is in `ui/uiText.ts`, its colour in `ui/style.css`). */
 export const BRANCH_CYBERNETICS = 'cybernetics';

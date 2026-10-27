@@ -208,7 +208,19 @@ export type BuyableEffect =
       readonly rarityId: RarityId;
       readonly molesPerItem: number;
       readonly cooldownBoost: number;
-    };
+    }
+  /**
+   * Opens the back channel of `itemId` to every rarity. A rarity is then worth `molesPerItem x its position in the rarity list`
+   * (common x1, uncommon x2, rare x3, ...). Needs a `backChannel` buyable for the same item.
+   */
+  | { readonly kind: 'backChannelRarityScaling'; readonly itemId: ItemId }
+  /** Multiplies the Moles every item of `itemId` is worth in the back channel by `factor` per copy. */
+  | { readonly kind: 'backChannelMultiplier'; readonly itemId: ItemId; readonly factor: number }
+  /**
+   * Adds `amount` to the drop weight of EVERY rarity of `itemId` per copy, after the Hacking Proficiency shifts. With weights that
+   * add up to 100, an `amount` of 0.01 is 0.01 percentage points, so even rarities that weigh 0 can drop.
+   */
+  | { readonly kind: 'rarityWeightBonus'; readonly itemId: ItemId; readonly amount: number };
 
 /**
  * What a buyable is paid with. `skillPoints` are not held: the points available are what the action levels have earned minus what the

@@ -68,7 +68,8 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
     (item.hasRarity === false ? items.rarities.slice(0, 1) : items.rarities).map((rarity): InventoryRowView => {
       const count = itemCount(state, item.id, rarity.id);
       const label = item.hasRarity === false ? item.name : text.inventory.label(rarity.name, item.name);
-      const backChannel = channel !== null && channel.itemId === item.id && channel.rarityId === rarity.id;
+      const channelMoles = channel?.itemId === item.id ? channel.molesByRarity[rarity.id] : undefined;
+      const backChannel = channelMoles !== undefined;
       const isZeroDay = zeroDay?.itemId === item.id;
       const isAdminKey = adminKey?.itemId === item.id;
       const isShard = skillShard?.itemId === item.id;
@@ -95,10 +96,10 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
         on: (isZeroDay && state.zeroDaysOn) || (isAdminKey && state.adminKeysOn),
         backChannel,
         get backChannelTip() {
-          return backChannel && channel
+          return backChannel && channel && channelMoles !== undefined
             ? text.tips.backChannel({
                 label,
-                molesPerItem: formatPlain(channel.molesPerItem),
+                molesPerItem: formatPlain(channelMoles),
                 boostPercent: formatPlain(channel.cooldownBoost * 100),
               })
             : '';

@@ -13,7 +13,8 @@
 import type { BigNum } from '../numbers';
 import type { FocusStatus, OverclockStatus } from './actionToggles';
 import type { AutomationControls } from './automation';
-import type { BackChannelRule, SleeveStats } from './effects';
+import type { SleeveStats } from './effects';
+import type { BackChannelRule } from './leverageEffects';
 import type { RecentCrits } from './critFeed';
 import type { PurchaseResult } from './shop';
 import type { SpeedFactor } from './speed';

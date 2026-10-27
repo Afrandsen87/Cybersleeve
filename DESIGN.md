@@ -192,8 +192,12 @@ Skills are buyables paid in **skill points**, drawn as a **skill tree** on the S
 | Signal Amplifier | Every critical success has a **5% chance to bring one extra critical success**, free (the extra does not roll again). Applies to every action; extras bank critical links, feed the highlight and pay like any critical success. |
 | Overdrive Spike | Doubles the **reward** of every critical success (×3 becomes ×6; it stacks with the other critical boosts). The XP of a critical success is unchanged. |
 | Nose for Secrets | Doubles the Kompromat base drop chance (the result is at most 100%) |
-| Exploit Kompromat | Node payout ×(1 + 1% per uncommon Kompromat file held) |
+| Exploit Kompromat | Node payout ×(1 + 1% per rare Kompromat file held) |
+| Deep Files | Adds **0.01** to the drop weight of EVERY Kompromat rarity (weights add up to 100, so 0.01 percentage points), after the Hacking Proficiency shifts. Rarities that weigh 0 (legendary, crisis) can now drop |
+| Dossier | Node payout ×(1 + 5% per legendary Kompromat file held); child of Exploit Kompromat |
 | Back Channel Deals | Adds a **Back channel** button beside Sell and Sell all: with the common Kompromat stack selected, each press gives up one file for **5 Moles** |
+| Tiered Informants | Back channel takes every rarity, and a file pays 5 Moles × its position in the rarity list (common ×1, uncommon ×2, rare ×3, legendary ×4, crisis ×5); child of Back Channel Deals |
+| Double Agent | Back channel pays twice the Moles for every rarity; child of Tiered Informants |
 | Obfuscation | Push malware's Overclock makes **2x** the heat per run instead of 3x (the factor is lowered, never raised; other actions are not affected). |
 | Purge Protocol | Every heat cooldown cycle removes **1 more heat per sleeve level of Build Legend**. The cycles are not faster, so the cooldown still completes in discrete steps and the bigger step applies from the first cycle after the skill is bought. A late-stage skill, part of removing the heat tax. |
 

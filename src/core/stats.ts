@@ -10,8 +10,6 @@ import { augmentXpFactor, distinctAugmentRarities } from './augments';
 import { criticalRuleFor } from './critical';
 import type { Economy } from './economy';
 import {
-  type BackChannelRule,
-  resolveBackChannel,
   resolveDropChanceFactor,
   resolveEffects,
   resolveLevelBonus,
@@ -20,6 +18,7 @@ import {
   type SleeveStats,
 } from './effects';
 import { levelRewardFactor } from './levelRewardFactor';
+import { type BackChannelRule, resolveBackChannel, resolveRarityWeightBonus } from './leverageEffects';
 import type { Progression } from './progression';
 import { Snapshot } from './snapshot';
 import { shiftWeights, wholeOrders } from './rarityShift';
@@ -106,10 +105,12 @@ export class DerivedStats implements ModeStatuses {
       if (base === undefined) return { ...rule, chance: Math.min(1, rule.chance * factor) }; // an item without rarity has no ratios to shift
       let weights = rarityIds.map((r) => base[r] ?? 0);
       for (const fraction of rarityShifts) weights = shiftWeights(weights, steps, fraction);
+      const bonus = resolveRarityWeightBonus(this.config.buyables, this.state, rule.itemId); // added after the shift, to every rarity
+      if (bonus > 0) weights = weights.map((w) => w + bonus);
       return {
         ...rule,
         chance: Math.min(1, rule.chance * factor),
-        rarityWeights: rarityShifts.length === 0 ? base : Object.fromEntries(rarityIds.map((r, i) => [r, weights[i]!])),
+        rarityWeights: rarityShifts.length === 0 && bonus === 0 ? base : Object.fromEntries(rarityIds.map((r, i) => [r, weights[i]!])),
       };
     });
   }
@@ -152,7 +153,11 @@ export class DerivedStats implements ModeStatuses {
 
   /** The back channel the player has unlocked (an owned `backChannel` buyable), or `null`. */
   backChannel(): BackChannelRule | null {
-    return resolveBackChannel(this.config.buyables, this.state);
+    return resolveBackChannel(
+      this.config.buyables,
+      this.state,
+      this.config.items.rarities.map((r) => r.id),
+    );
   }
 
   /** True when the action restarts itself (an owned, switched-on auto-run buyable). */

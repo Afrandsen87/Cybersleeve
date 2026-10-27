@@ -4,14 +4,14 @@
  * The back channel: giving up items for Moles.
  */
 import type { Inventory } from './inventory';
-import type { BackChannelRule } from './effects';
+import type { BackChannelRule } from './leverageEffects';
 import type { GameState, ItemId, RarityId } from './types';
 
 /**
  * Turns items into Moles through the channel a skill unlocked.
  *
  * @remarks
- * Each item taken adds the rule's `molesPerItem` Moles to the state; Moles make heat cool faster (see `coolHeatBoosted`). Without a
+ * Each item taken adds the Moles its rarity is worth in the rule (`molesByRarity`) to the state; Moles make heat cool faster (see `coolHeatBoosted`). Without a
  * channel, or for any other item or rarity than the one it names, nothing happens.
  *
  * Called by: `engine.ts` (`GameEngine.giveUpForMoles`). Calls: `Inventory.take`.
@@ -40,9 +40,10 @@ export class BackChannel {
    */
   giveUp(itemId: ItemId, rarityId: RarityId, amount: number | 'all'): number {
     const channel = this.rule.backChannel();
-    if (!channel || channel.itemId !== itemId || channel.rarityId !== rarityId) return 0;
+    const moles = channel?.itemId === itemId ? channel.molesByRarity[rarityId] : undefined;
+    if (moles === undefined) return 0;
     const taken = this.inventory.take(itemId, rarityId, amount);
-    this.state.moles += taken * channel.molesPerItem;
+    this.state.moles += taken * moles;
     return taken;
   }
 }

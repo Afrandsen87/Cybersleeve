@@ -454,6 +454,26 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
       acc.heatCooldownBoost += e.cooldownBoost * owned;
     },
   },
+  backChannelRarityScaling: {
+    traits: sleeveWide,
+    validate: (e, { where, itemIds, errors }) => {
+      if (!itemIds.has(e.itemId)) errors.push(`${where}: refers to unknown item "${e.itemId}"`);
+    },
+  },
+  backChannelMultiplier: {
+    traits: sleeveWide,
+    validate: (e, { where, itemIds, errors }) => {
+      if (!itemIds.has(e.itemId)) errors.push(`${where}: refers to unknown item "${e.itemId}"`);
+      if (!(Number.isFinite(e.factor) && e.factor >= 1)) errors.push(`${where}: factor must be >= 1`);
+    },
+  },
+  rarityWeightBonus: {
+    traits: sleeveWide,
+    validate: (e, { where, itemIds, errors }) => {
+      if (!itemIds.has(e.itemId)) errors.push(`${where}: refers to unknown item "${e.itemId}"`);
+      if (!(Number.isFinite(e.amount) && e.amount > 0)) errors.push(`${where}: amount must be > 0`);
+    },
+  },
   interfaceSpeed: {
     traits: sleeveWide,
     validate: (e, { where, errors }) => {

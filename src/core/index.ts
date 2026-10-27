@@ -16,7 +16,6 @@ export {
 } from './speed';
 export {
   type ActionEffects,
-  type BackChannelRule,
   type FactorTerm,
   type SleeveStats,
   resolveEffects,
@@ -34,6 +33,7 @@ export { Economy } from './economy';
 export { Inventory, itemCount } from './inventory';
 export { Augments, augmentXpFactor } from './augments';
 export { BackChannel } from './backChannel';
+export type { BackChannelRule } from './leverageEffects';
 export { BurnLeads } from './burnLeads';
 export { ZeroDays, type CriticalKeyKind } from './zeroDays';
 export { SkillShards } from './skillShards';

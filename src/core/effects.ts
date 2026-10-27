@@ -370,32 +370,3 @@ export function resolveDropChanceFactor(
   }
   return saturate(factor);
 }
-
-/** What an owned `backChannel` buyable lets the player do. */
-export interface BackChannelRule {
-  readonly itemId: string;
-  readonly rarityId: string;
-  /** Moles one given-up item is worth. */
-  readonly molesPerItem: number;
-  /** The extra cooldown speed (0.5 = 50 percent) while Moles remain. */
-  readonly cooldownBoost: number;
-}
-
-/**
- * The back channel the player has unlocked, if any (the first owned `backChannel` buyable).
- *
- * Called by: `stats.ts` (`DerivedStats.backChannel`).
- *
- * @param buyables all buyable definitions
- * @param state current state (reads `purchased`)
- * @returns the rule, or `null` while none is owned
- */
-export function resolveBackChannel(buyables: readonly BuyableDefinition[], state: Pick<GameState, 'purchased'>): BackChannelRule | null {
-  for (const b of buyables) {
-    if ((state.purchased[b.id] ?? 0) > 0 && b.effect.kind === 'backChannel') {
-      const { itemId, rarityId, molesPerItem, cooldownBoost } = b.effect;
-      return { itemId, rarityId, molesPerItem, cooldownBoost };
-    }
-  }
-  return null;
-}

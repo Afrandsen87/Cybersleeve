@@ -16,6 +16,10 @@ import {
   SKILL_BACK_CHANNEL,
   SKILL_COLD_TRAIL,
   SKILL_EXPLOIT_KOMPROMAT,
+  SKILL_DEEP_FILES,
+  SKILL_DOSSIER,
+  SKILL_TIERED_INFORMANTS,
+  SKILL_DOUBLE_AGENT,
   SKILL_MUSCLE_MEMORY,
   SKILL_NOSE_FOR_SECRETS,
   SKILL_OBFUSCATION,
@@ -78,7 +82,17 @@ describe('what a new game shows of the skill tree', () => {
 
   it('the Cybernetics branch and Cold Trail read from the start; the rest waits for what makes it useful', () => {
     expect(masked(createGame()).sort()).toEqual(
-      [SKILL_OBFUSCATION, SKILL_PURGE_PROTOCOL, SKILL_NOSE_FOR_SECRETS, SKILL_EXPLOIT_KOMPROMAT, SKILL_BACK_CHANNEL].sort(),
+      [
+        SKILL_OBFUSCATION,
+        SKILL_PURGE_PROTOCOL,
+        SKILL_NOSE_FOR_SECRETS,
+        SKILL_EXPLOIT_KOMPROMAT,
+        SKILL_BACK_CHANNEL,
+        SKILL_DEEP_FILES,
+        SKILL_DOSSIER,
+        SKILL_TIERED_INFORMANTS,
+        SKILL_DOUBLE_AGENT,
+      ].sort(),
     );
   });
 
