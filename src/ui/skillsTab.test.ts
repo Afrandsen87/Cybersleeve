@@ -57,6 +57,7 @@ describe('skills in the view model', () => {
       { id: 'skills', label: 'Skills (1)', visible: true, attention: true },
       { id: 'automation', label: 'Automation', visible: false, attention: false },
       { id: 'stats', label: 'Stats', visible: false, attention: false },
+      { id: 'corporation', label: 'Corporation', visible: false, attention: false },
     ]);
     g.buy('s1');
     expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
@@ -64,11 +65,12 @@ describe('skills in the view model', () => {
 
   it('no tab shows until the first skill point is earned, and the Skills tab blinks only while a point is waiting', () => {
     const g = createGame({ config });
-    expect(buildViewModel(g).tabs.map((t) => t.visible)).toEqual([false, false, false, false]);
+    expect(buildViewModel(g).tabs.map((t) => t.visible)).toEqual([false, false, false, false, false]);
     loose(g).actions['z']!.xp = num(10);
     expect(buildViewModel(g).tabs.map((t) => [t.visible, t.attention])).toEqual([
       [true, false],
       [true, true],
+      [false, false],
       [false, false],
       [false, false],
     ]);
@@ -76,6 +78,7 @@ describe('skills in the view model', () => {
     expect(buildViewModel(g).tabs.map((t) => [t.visible, t.attention])).toEqual([
       [true, false],
       [true, false],
+      [false, false],
       [false, false],
       [false, false],
     ]);
@@ -163,8 +166,14 @@ describe('the screen', () => {
   it('has the two tabs on the credits line, and the Skills tab blinks while a point waits', () => {
     const { root } = mount();
     const tabs = root.querySelector<HTMLElement>('.tabs')!;
-    expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual(['Character', 'Skills (1)', 'Automation', 'Stats']);
-    expect(tabs.querySelectorAll<HTMLElement>('.tab[hidden]')).toHaveLength(2); // Automation waits for its first point, Stats for the first re-sleeve
+    expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual([
+      'Character',
+      'Skills (1)',
+      'Automation',
+      'Stats',
+      'Corporation',
+    ]);
+    expect(tabs.querySelectorAll<HTMLElement>('.tab[hidden]')).toHaveLength(3); // Automation waits for its first point, Stats for the first re-sleeve, Corporation for its unlock
     expect(tabs.parentElement).toBe(root.querySelector('header')); // the same line as the credits
     expect(tabs.previousElementSibling).toBe(root.querySelector('.credits'));
     expect(tabs.hidden).toBe(false);

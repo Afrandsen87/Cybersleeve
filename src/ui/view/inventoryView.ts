@@ -47,6 +47,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
   const zeroDay = items.zeroDay;
   const adminKey = items.adminKey;
   const skillShard = items.skillShard;
+  const augment = items.augment;
   const nameOf = (id: string): string => items.definitions.find((d) => d.id === id)?.name ?? id;
   const actionNameOf = (id: string | undefined): string | undefined =>
     id === undefined ? undefined : engine.getConfig().actions.find((a) => a.id === id)?.name;
@@ -82,6 +83,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
         count,
         unlocked: unlockedItems.has(item.id),
         countText: formatBigNum(factory.fromNumber(count)),
+        augmentable: augment?.itemId === item.id,
         sellable: item.sellable !== false,
         usable,
         canUse:

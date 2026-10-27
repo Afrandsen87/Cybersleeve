@@ -21,7 +21,7 @@ import { sleeveLevelsOpen } from './sleeveGate';
 import { SPEED_DECIMALS, formatSeconds } from './viewFormat';
 import { augmentView, focusView, overclockView } from './modeViews';
 import { squareView } from './squareView';
-import type { ActionView, BuyableView } from './viewTypes';
+import type { ActionView, BuyableView, ViewSelection } from './viewTypes';
 
 /** What starting an action costs, for the card (the share of the balance is shown with today's amount). */
 function startCostText(def: ActionDefinition, current: BigNum | null, text: UiText): string | null {
@@ -98,6 +98,7 @@ export function buildActionViews(
   viewById: ReadonlyMap<string, BuyableView>,
   factory: NumberFactory,
   text: UiText,
+  selection: ViewSelection,
 ): ActionView[] {
   const sleeveShown = sleeveLevelsOpen(state, config);
   return config.actions.map((def): ActionView => {
@@ -122,7 +123,7 @@ export function buildActionViews(
     const sleeveNextText = formatBigNum(engine.sleeveXpForLevel(def.id));
     const runsToNextXp = Math.max(1, engine.runsPerSleeveXp() - s.runsTowardSleeveXp);
     const level = engine.actionLevel(def.id);
-    const augment = augmentView(engine, def.id, text);
+    const augment = augmentView(engine, def.id, text, selection);
     const overclock = overclockView(engine, def.id, text);
     const focus = focusView(engine, def.id, text);
     const crits = engine.recentCrits(def.id);

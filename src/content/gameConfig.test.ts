@@ -170,14 +170,14 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(g.resleevePoints()).toBe(0);
   });
 
-  it('Incorporation says in its tooltip that it does nothing for now (once the first re-sleeve has shown what the skills are)', () => {
+  it('Incorporation says in its tooltip that it opens the Corporation tab (once the first re-sleeve has shown what the skills are)', () => {
     const g = createGame();
     openResleeving(g);
     g.resleeve();
     const view = buildViewModel(g)
       .skills.resleeve.tiers.flat()
       .find((b) => b.id === SKILL_INCORPORATION)!;
-    expect(view.tip).toContain('Does nothing for now');
+    expect(view.tip).toContain('opens the Corporation tab');
   });
 
   it('every action can be unlocked by playing (no action is permanently locked)', () => {

@@ -74,6 +74,8 @@ export type {
   ActionCommands,
   ActionQueries,
   ActivateResult,
+  CorporationCommands,
+  CorporationQueries,
   GameCommands,
   GameQueries,
   ItemCommands,
@@ -90,6 +92,9 @@ export type {
 export { type Diagnostics, silentDiagnostics } from './diagnostics';
 export { DerivedStats } from './stats';
 export { ActionRunner } from './actionRunner';
+export { Corporation } from './corporation';
+export { type CorporationEffectContext, CORPORATION_EFFECTS, applyCorporationEffect } from './corporationEffects';
+export { createCorporationState } from './corporationState';
 export { NetworkSystem } from './network';
 export { coolDownHeat, decayLegend } from './cooldowns';
 export { type ActionLookup, createActionLookup } from './actionLookup';

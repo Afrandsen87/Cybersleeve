@@ -133,6 +133,8 @@ export type BuyableEffect =
    * lockout (`resleeve.lockoutMs`). At most one buyable may have this effect. See `resleeveGate.ts`.
    */
   | { readonly kind: 'unlockSleeveLevels' }
+  /** Opens the Corporation tab (and lets its actions be started) while owned. See `corporation.ts`. */
+  | { readonly kind: 'unlocksCorporation' }
   /** Does nothing (yet): a node of the re-sleeve tree whose effect is not designed. */
   | { readonly kind: 'placeholder' }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */

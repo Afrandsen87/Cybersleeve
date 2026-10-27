@@ -13,6 +13,7 @@
 import type { GameConfig } from '../core';
 import { actionsConfig } from './actions';
 import { buyablesConfig } from './buyables';
+import { corporationConfig } from './corporation';
 import { itemsConfig } from './items';
 
 export * from './ids';
@@ -24,6 +25,9 @@ export const gameConfig: GameConfig = {
   actions: actionsConfig,
 
   buyables: buyablesConfig,
+
+  /** The actions of the Corporation tab. */
+  corporation: corporationConfig,
 
   /** What a critical success does unless an action says otherwise: its XP is doubled and its reward tripled. */
   criticalSuccess: { xpMultiplier: 2, rewardMultiplier: 3 },

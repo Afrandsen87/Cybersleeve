@@ -6,7 +6,7 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the text table.
  */
-import { AUTOMATION_FEATURES, type GameConfig, type SkillQueries, type GameStateView } from '../../core';
+import { AUTOMATION_FEATURES, type CorporationQueries, type GameConfig, type SkillQueries, type GameStateView } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import { resleeveTiers } from './buyableViews';
@@ -46,12 +46,13 @@ function maskedSkill(view: BuyableView, text: UiText): BuyableView {
  * @param state the game state
  * @param text the display text
  */
-export function tabsView(engine: SkillQueries, state: GameStateView, config: GameConfig, text: UiText): TabView[] {
+export function tabsView(engine: SkillQueries & CorporationQueries, state: GameStateView, config: GameConfig, text: UiText): TabView[] {
   const automation = engine.automation();
   const statsShown = state.runs.length > 0; // the first re-sleeve writes the first run down
   const skillsShown = engine.skillPointsEarned() > 0 || statsShown || resleeveSkillsShown(state, config); // the re-sleeve skills are on the Skills tab
   const automationShown = automation.pointsEarned() > 0;
-  const tabsShown = skillsShown || automationShown || statsShown;
+  const corporationShown = engine.isCorporationUnlocked();
+  const tabsShown = skillsShown || automationShown || statsShown || corporationShown;
   return [
     { id: 'character', label: text.tabs.character, visible: tabsShown, attention: false },
     {
@@ -67,6 +68,7 @@ export function tabsView(engine: SkillQueries, state: GameStateView, config: Gam
       attention: automation.pointsAvailable() > 0,
     },
     { id: 'stats', label: text.tabs.stats, visible: statsShown, attention: false },
+    { id: 'corporation', label: text.tabs.corporation, visible: corporationShown, attention: false },
   ];
 }
 

@@ -5,6 +5,7 @@
  */
 import type { NumberFactory } from '../numbers';
 import { createAutomationState } from './automation';
+import { createCorporationState } from './corporationState';
 import { initialScalars } from './fields';
 import type { ActionState, BuyableDefinition, Currency, GameConfig, GameState } from './types';
 
@@ -24,10 +25,11 @@ type ScalarKey = Exclude<
   | 'inventory'
   | 'runs'
   | 'synths'
+  | 'corporation'
 >;
 
 /** Config the state is created and reset from. */
-type StateConfig = Pick<GameConfig, 'actions' | 'automation' | 'progression' | 'sleeve'>;
+type StateConfig = Pick<GameConfig, 'actions' | 'automation' | 'corporation' | 'progression' | 'sleeve'>;
 
 /**
  * The currencies whose buyables survive a re-sleeve: re-sleeve skills are permanent. Skills paid in skill points (and everything else
@@ -88,6 +90,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
     runs: [],
     synths: [],
     automation: createAutomationState(config),
+    corporation: createCorporationState(config.corporation),
     actions,
     purchased: {},
     inventory: {},
@@ -113,7 +116,7 @@ export function resetForNewGame(state: GameState, config: StateConfig, factory: 
  * @remarks
  * Starts from a fresh game state and carries over only what is named on the positive lists: {@link CARRIED_OVER_ACTION_FIELDS} (every
  * action's sleeve XP and its run counter towards the next sleeve-XP batch), the record of finished runs and the synthetic sleeves
- * (`runs`, `synths`), and the owned buyables paid in a currency of {@link CARRIED_OVER_BUYABLE_CURRENCIES} (the re-sleeve skills) or
+ * (`runs`, `synths`), the corporation (it is not the character), and the owned buyables paid in a currency of {@link CARRIED_OVER_BUYABLE_CURRENCIES} (the re-sleeve skills) or
  * with an effect of {@link CARRIED_OVER_BUYABLE_EFFECTS} (the sleeve-levels unlock).
  * Everything else resets, including fields added in the future (nothing has to be listed to be reset; to carry something over, add it
  * to a list).
@@ -132,6 +135,7 @@ export function resetForResleeve(state: GameState, config: StateConfig & Pick<Ga
   }
   fresh.runs = state.runs;
   fresh.synths = state.synths;
+  fresh.corporation = state.corporation;
   const carried = new Set<string>(CARRIED_OVER_BUYABLE_CURRENCIES);
   const carriedEffects = new Set<string>(CARRIED_OVER_BUYABLE_EFFECTS);
   for (const b of config.buyables) {

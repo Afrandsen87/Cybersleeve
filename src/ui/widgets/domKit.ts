@@ -12,6 +12,12 @@ import type { IconSource } from '../pixelIcon';
 import type { TipRegistry } from '../tooltip';
 import type { UiText } from '../uiText';
 
+/** What the player has selected on the screen (see `ViewSelection`); the widgets that let the player choose write it. */
+export interface UiSelection {
+  /** The rarity of Augment schematic selected in the Inventory, or `null`. */
+  augmentRarityId: string | null;
+}
+
 /** Everything a widget needs from the screen it is part of. */
 export interface UiContext {
   /** The engine to read from and command. */
@@ -22,6 +28,8 @@ export interface UiContext {
   readonly icons: IconSource;
   /** Where hover texts are registered. */
   readonly tips: TipRegistry;
+  /** What the player has selected on the screen (a choice of the screen, not game state). */
+  readonly selection: UiSelection;
   /** A click on a purchase: the engine decides whether it buys or switches an auto-run. */
   activate(id: string): unknown;
   /** Redraws the whole screen (called after a click changed the game). */

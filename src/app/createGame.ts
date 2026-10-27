@@ -13,6 +13,7 @@ import {
   BurnLeads,
   CriticalLinks,
   Automation,
+  Corporation,
   CritFeed,
   CriticalSuccesses,
   Economy,
@@ -104,6 +105,12 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const critFeed = new CritFeed();
   const burnLeads = new BurnLeads(config, state, inventory, () => stats.heatCoolingBlocked());
   const augments = new Augments(config, state, inventory);
+  const corporation = new Corporation(config, state, {
+    state,
+    inventory,
+    random,
+    rarityIds: config.items.rarities.map((r) => r.id),
+  });
   const runner = new ActionRunner(
     config,
     state,
@@ -135,6 +142,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     critFeed,
     drops,
     augments,
+    corporation,
     automation: new Automation(config, state, inventory, burnLeads, augments),
     network: new NetworkSystem(state, stats, factory, synths),
     synths,

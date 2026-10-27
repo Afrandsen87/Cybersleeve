@@ -13,7 +13,8 @@ import { buildViewModel } from './viewModel';
 import { speed, config, augmentConfig, own, state, NOT } from './modesKit';
 
 describe('the square on an action card (view model)', () => {
-  const squareOf = (g: ReturnType<typeof createGame>, id = 'a') => buildViewModel(g).actions.find((a) => a.id === id)!.square;
+  const squareOf = (g: ReturnType<typeof createGame>, id = 'a', augmentRarityId: string | null = null) =>
+    buildViewModel(g, undefined, undefined, { augmentRarityId }).actions.find((a) => a.id === id)!.square;
 
   it('while Auto-run is not owned the whole square is the button that buys it', () => {
     const g = createGame({ config });
@@ -72,7 +73,8 @@ describe('the square on an action card (view model)', () => {
     own(g, 'auto');
     expect(squareOf(g).cells[3]).toMatchObject({ mode: 'press', clickable: false });
     state(g).inventory['file'] = { common: 1 };
-    expect(squareOf(g).cells[3]).toMatchObject({ mode: 'press', clickable: true, on: false });
+    expect(squareOf(g).cells[3]).toMatchObject({ mode: 'press', clickable: false }); // held, but no rarity is selected
+    expect(squareOf(g, 'a', 'common').cells[3]).toMatchObject({ mode: 'press', clickable: true, on: false });
   });
 
   it('an action with no Auto-run buyable has no locked square, and its Auto-run cell is empty', () => {
@@ -235,10 +237,12 @@ describe('the square on the screen', () => {
   });
 
   it('the Augment cell applies a schematic', () => {
-    const { game, render, cell } = mount(augmentConfig);
+    const { root, game, render, cell } = mount(augmentConfig);
     own(game, 'auto');
     state(game).inventory['file'] = { common: 1 };
     render();
+    expect(cell(0, 'augment').disabled).toBe(true); // nothing selected in the Inventory yet
+    root.querySelector<HTMLButtonElement>('.item-tile[aria-label="Common File"]')!.click(); // select the common rarity
     cell(0, 'augment').click();
     expect(game.getState().actions['a']!.augments).toEqual({ common: 1 });
     expect(cell(0, 'augment').disabled).toBe(true); // none left

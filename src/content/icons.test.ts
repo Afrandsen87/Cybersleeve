@@ -14,7 +14,10 @@ describe('the real icons', () => {
   });
 
   it('exist for every purchase and skill, so no button is left showing letters or a stand-in glyph', () => {
-    for (const b of gameConfig.buyables) expect(ENTITY_ICONS[b.id], `icon for ${b.id}`).toBeDefined();
+    // The sleeve-levels unlock is not a purchase button: it is the Re-sleeve button until it is bought, so it needs no icon.
+    for (const b of gameConfig.buyables.filter((x) => x.effect.kind !== 'unlockSleeveLevels')) {
+      expect(ENTITY_ICONS[b.id], `icon for ${b.id}`).toBeDefined();
+    }
   });
 
   it('cover every cell of the square on an action card (dom.ts looks them up by cell id)', () => {

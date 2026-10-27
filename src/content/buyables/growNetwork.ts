@@ -54,8 +54,8 @@ export const growNetworkBuyables: BuyableDefinition[] = [
       kind: 'itemDrop',
       drop: {
         itemId: BURN_LEAD,
-        /** Chance that one completed run drops a lead at all: 5%. */
-        chance: 0.05,
+        /** Chance that one completed run drops a lead at all: 0.5%. */
+        chance: 0.005,
       },
     },
   },
@@ -71,8 +71,8 @@ export const growNetworkBuyables: BuyableDefinition[] = [
       kind: 'itemDrop',
       drop: {
         itemId: AUGMENT_SCHEMATIC,
-        /** Chance that one completed run drops a schematic at all: 5% (placeholder, like the Kompromat numbers). */
-        chance: 0.05,
+        /** Chance that one completed run drops a schematic at all: 0.5% (placeholder, like the Kompromat numbers). */
+        chance: 0.005,
         /** Relative weight of each rarity once a schematic drops: 90% common, 9% uncommon, 1% rare. */
         rarityWeights: { common: 90, uncommon: 9, rare: 1, legendary: 0, crisis: 0 },
       },

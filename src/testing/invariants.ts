@@ -9,7 +9,7 @@ import type { GameConfig, GameStateView } from '../core';
 import { AUTOMATION_FEATURES, SCALAR_FIELDS } from '../core';
 
 /** Config sections the checks read. */
-type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'items' | 'progression'>;
+type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'corporation' | 'focus' | 'items' | 'progression'>;
 
 const validAmount = (n: BigNum): boolean => n.isFinite() && !n.isNegative() && !n.isNaN();
 const validCount = (n: number): boolean => Number.isInteger(n) && n >= 0;
@@ -41,6 +41,7 @@ const isWhole = (n: BigNum): boolean => {
  * - the Zero-day and Admin key toggles are on only while the game has the rule and at least one of the item is held;
  * - every recorded sleeve-run has a valid income and a whole total of action levels; every synthetic sleeve points at a recorded run, no run has
  *   two of them, and they exist only while the skill that gives them is owned;
+ * - every corporation action of the content has a state, the progress of each is in [0, 1) and 0 while it is idle;
  * - Skill shard counts are whole numbers, and an Overclock chain is a whole count within the most links of the chain buyable, for an action that owns one.
  *
  * @param state the state to check
@@ -160,5 +161,13 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   }
   if (state.synths.length > 0 && !config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (state.purchased[b.id] ?? 0) > 0))
     problems.push('synthetic sleeves exist without the skill that gives them');
+  for (const def of config.corporation?.actions ?? []) {
+    const action = state.corporation.actions[def.id];
+    if (!action) problems.push(`corporation action ${def.id} has no state`);
+    else if (!(Number.isFinite(action.progress) && action.progress >= 0 && action.progress < 1))
+      problems.push(`corporation action ${def.id} has progress outside [0, 1): ${action.progress}`);
+    else if (!action.running && action.progress !== 0)
+      problems.push(`corporation action ${def.id} is idle but has progress ${action.progress}`);
+  }
   return problems;
 }

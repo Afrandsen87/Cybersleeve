@@ -8,7 +8,7 @@
  * touches this file only: `viewModel.ts` and `dom.ts` hold no display text of their own. Entries that depend on numbers
  * are functions that receive already-formatted strings; the numeric work stays in the view model.
  */
-import type { AutomationFeature, Currency, RewardKind } from '../core';
+import type { AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
 import { formatPlain } from '../numbers';
 
 import { tipText } from './tipText';
@@ -78,6 +78,7 @@ export interface UiText {
     readonly resleeveSkills: string;
     readonly stats: string;
     readonly automation: string;
+    readonly corporation: string;
   };
   /** The tabs at the top. The Skills tab shows the points available, unless there are none. */
   readonly tabs: {
@@ -85,6 +86,22 @@ export interface UiText {
     skills(points: number): string;
     automation(points: number): string;
     readonly stats: string;
+    readonly corporation: string;
+  };
+  /** The Corporation tab: how its actions are described. */
+  readonly corporation: {
+    /** The line under an action's title. */
+    info(duration: string): string;
+    /** The hover text of an action: its name, its run time and what it does (one line per effect). */
+    tip(parts: { readonly name: string; readonly duration: string; readonly effects: readonly string[] }): string;
+    /** One sentence per kind of effect; a kind without one does not compile. */
+    readonly effects: {
+      readonly [K in CorporationEffect['kind']]: (
+        effect: Extract<CorporationEffect, { kind: K }>,
+        itemName: (id: string) => string,
+        percent: string,
+      ) => string;
+    };
   };
   /** The Automation tab: the points, each feature and its controls. */
   readonly automation: {
@@ -240,12 +257,23 @@ export const uiText: UiText = {
     resleeveSkills: 'Re-sleeve skills',
     stats: 'Stats',
     automation: 'Automation',
+    corporation: 'Corporation',
   },
   tabs: {
     character: 'Character',
     skills: (points) => (points > 0 ? `Skills (${points})` : 'Skills'),
     automation: (points) => (points > 0 ? `Automation (${points})` : 'Automation'),
     stats: 'Stats',
+    corporation: 'Corporation',
+  },
+  corporation: {
+    info: (duration) => `Run time ${duration}`,
+    tip: ({ name, duration, effects }) =>
+      [name, `Run Time = ${duration}`, 'Interface speed does not change it: the corporation scales on its own', '', ...effects].join('\n'),
+    effects: {
+      upgradeRandomItem: (effect, itemName, percent) =>
+        `Each run has a ${percent}% chance to upgrade one random ${itemName(effect.itemId)} you hold to the next rarity`,
+    },
   },
   automation: {
     points: (points) => `Automation points: ${points}`,

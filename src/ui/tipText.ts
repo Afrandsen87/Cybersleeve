@@ -195,7 +195,7 @@ export const tipText: UiText['tips'] = {
       `Owned = ${count}`,
       `Payment = ${total} ${unit}`,
     ].join('\n'),
-  augment: ({ xpPerRun, baseXp, bonus, bonusPercent, applied, held, next, item }) =>
+  augment: ({ xpPerRun, baseXp, bonus, bonusPercent, applied, held, selected, item }) =>
     [
       'XP per Run = Base XP x Boost of each Rarity',
       'Boost of a Rarity = 1 + Bonus per Augment x Augments of that Rarity',
@@ -206,9 +206,8 @@ export const tipText: UiText['tips'] = {
       // The whole calculation with the numbers in: the base XP, then the boost of each rarity that has augments, and the result.
       `XP per Run = ${[baseXp, ...applied.map((a) => `(1 + ${bonus} x ${a.count})`)].join(' x ')} = ${xpPerRun}`,
       '',
-      `${item}s held = ${held}`,
-      ...(next === null ? [] : [`Next to apply = ${next}`]),
-      'Click to apply one to this action: its action levels come sooner (sleeve levels are unaffected)',
+      selected === null ? `Select a rarity of ${item} in the Inventory first` : `Selected = ${selected} (${held} held)`,
+      'Click to apply one of the selected rarity to this action: its action levels come sooner (sleeve levels are unaffected)',
     ].join('\n'),
   overclock: ({ on, strength, speed, reward, heatPerMinute, heatPerRunFactor, nodesLost, alsoPays, holdsHeat, chain }) =>
     [
@@ -295,8 +294,7 @@ export const tipText: UiText['tips'] = {
   stackKept: ({ label, count, drops }) =>
     [
       label,
-      'Applied to an action with its Augment button',
-      'The most common one is used first',
+      'Click to select this rarity, then apply it to an action with its Augment button',
       '',
       ...dropChanceLines(drops),
       `Owned = ${count}`,

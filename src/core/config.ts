@@ -3,6 +3,7 @@
  *
  * Helpers for working with {@link GameConfig}: deriving variants and validating values.
  */
+import { validateCorporationEffect } from './corporationEffects';
 import { definitionOf, type EffectContext } from './effectRegistry';
 import { traitsOf } from './effectTraits';
 import { REWARD_KINDS, rewardOf } from './rewards';
@@ -32,6 +33,7 @@ export interface ConfigOverrides {
   readonly resleeve?: Partial<ResleeveConfig>;
   readonly reveal?: Partial<RevealConfig>;
   readonly automation?: Partial<AutomationConfig>;
+  readonly corporation?: GameConfig['corporation'];
   readonly progression?: Partial<ProgressionConfig>;
   readonly speed?: Partial<SpeedConfig>;
   readonly global?: Partial<GlobalTuning>;
@@ -61,6 +63,7 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
     focus: { ...base.focus, ...overrides.focus },
     resleeve: { ...base.resleeve, ...overrides.resleeve },
     ...(base.automation || overrides.automation ? { automation: { autoBurnCeiling: 0, ...base.automation, ...overrides.automation } } : {}),
+    ...(base.corporation || overrides.corporation ? { corporation: overrides.corporation ?? base.corporation! } : {}),
     ...(base.reveal || overrides.reveal ? { reveal: { buyableOrders: Infinity, ...base.reveal, ...overrides.reveal } } : {}),
     progression: { ...base.progression, ...overrides.progression },
     speed: { ...base.speed, ...overrides.speed },
@@ -384,6 +387,15 @@ export function validateConfig(config: GameConfig): string[] {
   if (!positive(config.engine.maxSliceMs)) errors.push('engine.maxSliceMs must be > 0');
   if (!positiveInt(config.engine.maxSlicesPerTick)) errors.push('engine.maxSlicesPerTick must be an integer >= 1');
   if (!positive(config.engine.minRunDurationMs)) errors.push('engine.minRunDurationMs must be > 0');
+
+  const corporationIds = new Set<string>();
+  for (const a of config.corporation?.actions ?? []) {
+    const where = `corporation action "${a.id}"`;
+    if (corporationIds.has(a.id)) errors.push(`duplicate corporation action id "${a.id}"`);
+    corporationIds.add(a.id);
+    if (!positive(a.baseDurationMs)) errors.push(`${where}: baseDurationMs must be > 0`);
+    for (const effect of a.effects) validateCorporationEffect(effect, where, config.items, errors);
+  }
 
   const r = config.runtime;
   for (const key of ['stepMs', 'renderMs', 'maxDeltaMs', 'autosaveMs'] as const) {

@@ -10,7 +10,7 @@ import { type ActionQueries, type StateQueries, itemCount } from '../../core';
 import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
 import { AUGMENT_BONUS_DECIMALS, AUGMENT_XP_DECIMALS, MODE_DECIMALS } from './viewFormat';
-import type { AugmentButtonView, ModeButtonView } from './viewTypes';
+import type { AugmentButtonView, ModeButtonView, ViewSelection } from './viewTypes';
 
 /**
  * The Augment button of one action.
@@ -20,20 +20,26 @@ import type { AugmentButtonView, ModeButtonView } from './viewTypes';
  * @param engine the engine to read from
  * @param actionId the action
  * @param text the display text
+ * @param selection what the player has selected in the Inventory (the button is enabled only while a held rarity is selected)
  * @returns the button, or `null` when the content has no schematic to apply
  */
-export function augmentView(engine: ActionQueries & StateQueries, actionId: string, text: UiText): AugmentButtonView | null {
+export function augmentView(
+  engine: ActionQueries & StateQueries,
+  actionId: string,
+  text: UiText,
+  selection: ViewSelection,
+): AugmentButtonView | null {
   const config = engine.getConfig();
   const augment = config.items.augment;
   if (!augment) return null;
   const state = engine.getState();
-  const held = config.items.rarities.reduce((sum, r) => sum + itemCount(state, augment.itemId, r.id), 0);
+  const chosen = config.items.rarities.find((r) => r.id === selection.augmentRarityId);
+  const held = chosen ? itemCount(state, augment.itemId, chosen.id) : 0;
   const appliedByRarity = state.actions[actionId]?.augments ?? {};
   const applied = config.items.rarities.flatMap((r) =>
     (appliedByRarity[r.id] ?? 0) > 0 ? [{ rarity: r.name, count: String(appliedByRarity[r.id]) }] : [],
   );
   const total = config.items.rarities.reduce((sum, r) => sum + (appliedByRarity[r.id] ?? 0), 0);
-  const nextRarity = config.items.rarities.find((r) => itemCount(state, augment.itemId, r.id) > 0);
   const item = config.items.definitions.find((d) => d.id === augment.itemId)?.name ?? augment.itemId;
   const definition = config.actions.find((a) => a.id === actionId);
   const baseXp = definition ? definition.xpPerRun.mul(numberFactory.fromNumber(config.global.xpMultiplier)) : engine.xpPerRun(actionId);
@@ -49,7 +55,7 @@ export function augmentView(engine: ActionQueries & StateQueries, actionId: stri
         bonusPercent: formatPlain(augment.xpBonusPerItem * 100),
         applied,
         held: String(held),
-        next: nextRarity?.name ?? null,
+        selected: chosen?.name ?? null,
         item,
       });
     },

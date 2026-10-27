@@ -73,6 +73,9 @@ Design rules:
 - Rendering: `RenderLoop` on rAF; bars use `transform: scaleX()`; tips are getters built only when shown; no per-frame work that scales with the number of buyables.
 - The engine mutates no state itself; the `GameEngine` delegating facade stays unless it hurts.
 - Hosting: GitHub Pages via `.github/workflows/deploy.yml`; `base: './'` in `vite.config.ts` must stay. One tab plays (Web Lock).
+- Corporation (`core/corporation*.ts`, `GameConfig.corporation`): its actions are NOT character actions (no interface speed, levels, Overclock, Focus, heat; a run takes exactly `baseDurationMs`); a completed run applies effects through the registry in `corporationEffects.ts`. It survives re-sleeving. The Corporation tab is opened by the Incorporation re-sleeve skill; its widgets are empty until the user designs them.
+- Augments are applied by selecting a rarity in the Inventory, then pressing the action's Augment button (`augmentAction(id, rarityId)`).
+- Known environment issue: `npm run check` fails at Biome while the nested worktree `.claude/worktrees/claude-parallel` is in the repository folder; run `npx biome check src scripts` instead.
 
 ## Working conventions (in use)
 

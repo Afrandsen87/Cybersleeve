@@ -9,13 +9,13 @@ import { PRACTICE_HACKING, PUSH_MALWARE, KOMPROMAT, AUGMENT_SCHEMATIC, BURN_LEAD
 
 /** The items of the game: rarities (with their sell values), the item kinds and the special items. */
 export const itemsConfig: GameConfig['items'] = {
-  /** Most common first. Common sells for 100 credits; each tier is two orders of magnitude above the one before. */
+  /** Most common first. Common sells for 100 credits; each tier is three orders of magnitude above the one before. */
   rarities: [
     { id: 'common', name: 'Common', sellValue: num(100) },
-    { id: 'uncommon', name: 'Uncommon', sellValue: num(10_000) },
-    { id: 'rare', name: 'Rare', sellValue: num(1_000_000) },
-    { id: 'legendary', name: 'Legendary', sellValue: num(100_000_000) },
-    { id: 'crisis', name: 'Crisis level', sellValue: num(10_000_000_000) },
+    { id: 'uncommon', name: 'Uncommon', sellValue: num(100_000) },
+    { id: 'rare', name: 'Rare', sellValue: num(100_000_000) },
+    { id: 'legendary', name: 'Legendary', sellValue: num(100_000_000_000) },
+    { id: 'crisis', name: 'Crisis level', sellValue: num(100_000_000_000_000) },
   ],
   definitions: [
     { id: KOMPROMAT, name: 'Kompromat file' },
@@ -31,10 +31,10 @@ export const itemsConfig: GameConfig['items'] = {
     { id: SKILL_SHARD, name: 'Skill shard', sellable: false, hasRarity: false },
   ],
   /**
-   * One Augment schematic applied to an action adds 1% to the action XP boost of ITS rarity (additively); the boosts of the
+   * One Augment schematic applied to an action adds 3% to the action XP boost of ITS rarity (additively); the boosts of the
    * different rarities multiply. Sleeve XP is not affected.
    */
-  augment: { itemId: AUGMENT_SCHEMATIC, xpBonusPerItem: 0.01 },
+  augment: { itemId: AUGMENT_SCHEMATIC, xpBonusPerItem: 0.03 },
   /** One Burn lead used from the Inventory takes 5% of the CURRENT heat away and is used up. */
   burnLead: { itemId: BURN_LEAD, heatFraction: 0.05 },
   /** While the Zero-day toggle is on, every completed Push malware run uses one Zero-day up and gets +100% critical chance. */

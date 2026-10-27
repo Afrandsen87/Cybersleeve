@@ -17,7 +17,17 @@ import type { BackChannelRule, SleeveStats } from './effects';
 import type { RecentCrits } from './critFeed';
 import type { PurchaseResult } from './shop';
 import type { SpeedFactor } from './speed';
-import type { ActionId, BuyableId, Currency, GameConfig, GameStateView, ItemId, RarityId } from './types';
+import type {
+  ActionId,
+  BuyableId,
+  CorporationActionDefinition,
+  CorporationActionId,
+  Currency,
+  GameConfig,
+  GameStateView,
+  ItemId,
+  RarityId,
+} from './types';
 
 /** What clicking a purchase did: it was bought (or refused), or an owned auto-run was switched. */
 export type ActivateResult = PurchaseResult | 'switched-on' | 'switched-off';
@@ -158,12 +168,30 @@ export interface SkillQueries {
   automation(): AutomationControls;
 }
 
+/** Read-only questions about the corporation. Called by: `ui/view/corporationView.ts`. */
+export interface CorporationQueries {
+  /** True while the Corporation tab is open (a purchase with the `unlocksCorporation` effect is owned). */
+  isCorporationUnlocked(): boolean;
+  /** The corporation's actions, in the order the tab lists them. */
+  corporationActions(): readonly CorporationActionDefinition[];
+  /** True when starting the corporation action now would work. */
+  canStartCorporationAction(id: CorporationActionId): boolean;
+}
+
 /**
  * Everything that can be asked of the game without changing it. Each part is a narrow interface of its own, so a piece of
  * UI (or a test fake) can depend on just the part it reads.
  * Called by: `ui/viewModel.ts`. Implemented by: `GameEngine`.
  */
-export interface GameQueries extends StateQueries, ActionQueries, LevelQueries, SleeveQueries, ItemQueries, ShopQueries, SkillQueries {
+export interface GameQueries
+  extends StateQueries,
+    ActionQueries,
+    LevelQueries,
+    SleeveQueries,
+    ItemQueries,
+    ShopQueries,
+    SkillQueries,
+    CorporationQueries {
   /**
    * Runs read-only work in which the sleeve stats and the skill points are computed once instead of on every question.
    * For building a screen. The work must not change the game.
@@ -178,12 +206,18 @@ export interface GameQueries extends StateQueries, ActionQueries, LevelQueries, 
 export interface ActionCommands {
   /** Starts an action manually. @returns true when it is now running */
   startAction(id: ActionId): boolean;
-  /** Applies one Augment schematic to an action (raises its action XP per run). @returns true when one was applied */
-  augmentAction(id: ActionId): boolean;
+  /** Applies one Augment schematic of the given rarity to an action (raises its action XP per run). @returns true when one was applied */
+  augmentAction(id: ActionId, rarityId: RarityId): boolean;
   /** Switches Overclock on or off for an action. @returns true when it is now on */
   toggleOverclock(id: ActionId): boolean;
   /** Switches Focus on or off for an action (switching on needs a free slot). @returns true when it is now on */
   toggleFocus(id: ActionId): boolean;
+}
+
+/** Commands on the corporation. Called by: `ui/widgets/corporationCards.ts`. */
+export interface CorporationCommands {
+  /** Starts a corporation action. @returns true when it is now running */
+  startCorporationAction(id: CorporationActionId): boolean;
 }
 
 /** Commands on purchases. Called by: `ui/widgets/`. */
@@ -228,4 +262,4 @@ export interface TestAidCommands {
 }
 
 /** Everything the player can do: the union of the commands by area. Implemented by: `GameEngine`. */
-export interface GameCommands extends ActionCommands, ShopCommands, ItemCommands, SleeveCommands, TestAidCommands {}
+export interface GameCommands extends ActionCommands, CorporationCommands, ShopCommands, ItemCommands, SleeveCommands, TestAidCommands {}

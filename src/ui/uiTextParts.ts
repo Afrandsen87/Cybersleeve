@@ -140,10 +140,10 @@ export interface AugmentTipParts {
   readonly bonusPercent: string;
   /** Schematics applied to this action, per rarity that has any (most common first). */
   readonly applied: readonly { readonly rarity: string; readonly count: string }[];
-  /** Schematics held in the inventory (all rarities). */
+  /** Schematics of the selected rarity held in the inventory (`"0"` while none is selected). */
   readonly held: string;
-  /** Name of the rarity the next press uses up (the most common one held), or `null` while none is held. */
-  readonly next: string | null;
+  /** Name of the rarity selected in the Inventory (the one a press uses up), or `null` while none is selected. */
+  readonly selected: string | null;
   /** Name of the item the schematics are (`"Augment schematic"`). */
   readonly item: string;
 }

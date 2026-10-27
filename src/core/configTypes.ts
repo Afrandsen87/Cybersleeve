@@ -4,6 +4,7 @@
  * The tuning of the game: everything that decides progression, gathered in GameConfig.
  */
 import type { ActionDefinition, CriticalSuccessRule, LevelRuleConfig, LevelScaling } from './actionTypes';
+import type { CorporationConfig } from './corporationTypes';
 import type { ItemsConfig } from './itemTypes';
 import type { BuyableDefinition } from './buyableTypes';
 
@@ -179,6 +180,8 @@ export interface GameConfig {
   readonly reveal?: RevealConfig;
   /** The automation features (unlocked with automation points); leave out for a game without automation. */
   readonly automation?: AutomationConfig;
+  /** The actions of the corporation (the Corporation tab, opened by a buyable with the `unlocksCorporation` effect); leave out for a game without one. */
+  readonly corporation?: CorporationConfig;
   readonly progression: ProgressionConfig;
   readonly speed: SpeedConfig;
   readonly global: GlobalTuning;

@@ -15,7 +15,7 @@ import { type UiContext, type XpBar, applyIcon, h, setFill, setText, setXpBar, x
 import { renderUpgrades, upgradeRow } from './upgradeButtons';
 
 /** Number of cells in the action grid (3 columns x 2 rows). Cells without an action are shown empty. */
-const ACTION_GRID_SLOTS = 6;
+export const ACTION_GRID_SLOTS = 6;
 
 /** Handles to update one action card. */
 interface ActionCard {
@@ -177,7 +177,7 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
         if (cell.buyableId !== null) engine.activateBuyable(cell.buyableId);
       } else if (cell.mode === 'toggle' && cell.id === 'overclock') engine.toggleOverclock(a.id);
       else if (cell.mode === 'toggle' && cell.id === 'focus') engine.toggleFocus(a.id);
-      else if (cell.mode === 'press') engine.augmentAction(a.id);
+      else if (cell.mode === 'press' && ctx.selection.augmentRarityId !== null) engine.augmentAction(a.id, ctx.selection.augmentRarityId);
       ctx.refresh();
     });
 

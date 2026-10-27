@@ -103,14 +103,14 @@ describe('item tooltips show the drop chance of the stack (real content)', () =>
   it('Augment schematics: the same rule on Grow network', () => {
     const g = createGame();
     own(g, INDUSTRIAL_ESPIONAGE);
-    expect(tip(g, AUGMENT_SCHEMATIC, 'common')).toContain('Drop Chance = 4.5% per Grow network run');
+    expect(tip(g, AUGMENT_SCHEMATIC, 'common')).toContain('Drop Chance = 0.45% per Grow network run');
     expect(tip(g, KOMPROMAT, 'common')).toContain('Drop Chance = 0%'); // the other item is not affected
   });
 
   it('the Burn lead has no rarity: its whole chance, per Grow network run', () => {
     const g = createGame();
     own(g, BURN_LEADS);
-    expect(tip(g, BURN_LEAD, 'common')).toContain('Drop Chance = 5% per Grow network run');
+    expect(tip(g, BURN_LEAD, 'common')).toContain('Drop Chance = 0.5% per Grow network run');
   });
 
   it('follows the skills that change the chance and the ratios: Nose for Secrets doubles the Kompromat chance', () => {
@@ -142,7 +142,7 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
     ).toContain(INDUSTRIAL_ESPIONAGE);
   });
 
-  it('a schematic can be applied to any action: +1% action XP, nothing for the sleeve level', () => {
+  it('a schematic can be applied to any action: its bonus to the action XP, nothing for the sleeve level', () => {
     const g = createGame({ random: () => 0 }); // every drop succeeds, always the most common rarity
     setCredits(g, num(100_000));
     g.buy(INDUSTRIAL_ESPIONAGE);
@@ -152,8 +152,8 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
     expect(held).toBeGreaterThanOrEqual(1);
     const target = PRACTICE_HACKING;
     expect(g.xpPerRun(target).toNumber()).toBe(1);
-    expect(g.augmentAction(target)).toBe(true);
-    expect(g.xpPerRun(target).toNumber()).toBeCloseTo(1.01, 12);
+    expect(g.augmentAction(target, 'common')).toBe(true);
+    expect(g.xpPerRun(target).toNumber()).toBeCloseTo(1 + gameConfig.items.augment!.xpBonusPerItem, 12);
     expect(g.getState().inventory[AUGMENT_SCHEMATIC]!['common']).toBe(held - 1);
   });
 
@@ -161,7 +161,8 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
     const vm = buildViewModel(createGame());
     for (const a of vm.actions) expect(a.augment, a.id).not.toBeNull();
     expect(gameConfig.items.definitions.map((d) => d.id)).toContain(AUGMENT_SCHEMATIC);
-    expect(gameConfig.items.augment).toEqual({ itemId: AUGMENT_SCHEMATIC, xpBonusPerItem: 0.01 });
+    expect(gameConfig.items.augment?.itemId).toBe(AUGMENT_SCHEMATIC);
+    expect(gameConfig.items.augment!.xpBonusPerItem).toBeGreaterThan(0);
   });
 });
 
@@ -177,19 +178,23 @@ describe('Augment schematics are applied, never paid out (real content)', () => 
     expect(g.sellItems(KOMPROMAT, 'common', 'all')).toBe(4);
   });
 
-  it('the rarities multiply: 3 common, 3 uncommon and 3 rare give 1.03 x 1.03 x 1.03', () => {
+  it('the rarities multiply: 3 common, 3 uncommon and 3 rare give (1 + 3 x bonus) cubed', () => {
     const g = createGame();
+    const bonus = gameConfig.items.augment!.xpBonusPerItem;
     (g.getState() as unknown as { inventory: unknown }).inventory = { [AUGMENT_SCHEMATIC]: { common: 3, uncommon: 3, rare: 3 } };
-    for (let i = 0; i < 9; i++) expect(g.augmentAction(PRACTICE_HACKING)).toBe(true);
+    for (const rarity of ['common', 'uncommon', 'rare']) {
+      for (let i = 0; i < 3; i++) expect(g.augmentAction(PRACTICE_HACKING, rarity)).toBe(true);
+    }
     expect(g.getState().actions[PRACTICE_HACKING]!.augments).toEqual({ common: 3, uncommon: 3, rare: 3 });
-    expect(g.xpPerRun(PRACTICE_HACKING).toNumber()).toBeCloseTo(1.03 ** 3, 12);
+    expect(g.xpPerRun(PRACTICE_HACKING).toNumber()).toBeCloseTo((1 + 3 * bonus) ** 3, 12);
   });
 
-  it('every common one has to be used before an uncommon one', () => {
+  it('only the chosen rarity is used up', () => {
     const g = createGame();
     (g.getState() as unknown as { inventory: unknown }).inventory = { [AUGMENT_SCHEMATIC]: { common: 2, uncommon: 5 } };
-    for (let i = 0; i < 3; i++) g.augmentAction(PRACTICE_HACKING);
-    expect(g.getState().actions[PRACTICE_HACKING]!.augments).toEqual({ common: 2, uncommon: 1 });
+    for (let i = 0; i < 3; i++) g.augmentAction(PRACTICE_HACKING, 'uncommon');
+    expect(g.getState().actions[PRACTICE_HACKING]!.augments).toEqual({ uncommon: 3 });
+    expect(g.getState().inventory[AUGMENT_SCHEMATIC]).toMatchObject({ common: 2, uncommon: 2 });
   });
 });
 

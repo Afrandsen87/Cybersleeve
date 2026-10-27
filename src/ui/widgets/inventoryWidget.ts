@@ -11,7 +11,7 @@ import type { IconSource } from '../pixelIcon';
 import type { TipRegistry } from '../tooltip';
 import type { UiText } from '../uiText';
 import type { InventoryRowView, InventoryView } from '../viewModel';
-import { applyIcon, h, setText } from './domKit';
+import { applyIcon, h, setText, type UiSelection } from './domKit';
 
 /** Handles to update the Inventory widget. */
 interface InventoryWidget {
@@ -45,6 +45,7 @@ const stackKey = (itemId: string, rarityId: string): string => `${itemId}/${rari
  * @param icons the icons of the items
  * @param text the display text (headings and button labels)
  * @param actions what the tiles and buttons do; each is followed by a refresh of the screen
+ * @param selection where the choice of an Augment schematic rarity is written (clicking an Augment tile selects its rarity, clicking it again deselects)
  */
 export function buildInventoryWidget(
   view: InventoryView,
@@ -57,6 +58,7 @@ export function buildInventoryWidget(
     toggle(itemId: string): void;
     refresh(): void;
   },
+  selection: UiSelection,
 ): InventoryWidget {
   const root = h('aside', 'inventory-widget');
   const keptGrid = h('div', 'item-grid');
@@ -83,9 +85,12 @@ export function buildInventoryWidget(
     tile.append(icon, count);
     tile.setAttribute('aria-label', r.label);
     tile.addEventListener('click', () => {
+      if (r.augmentable) selection.augmentRarityId = selection.augmentRarityId === r.rarityId ? null : r.rarityId;
       if (r.sellable) widget.selected = widget.selected === key ? null : key;
-      else if (r.toggleable) actions.toggle(r.itemId);
-      else if (r.usable) actions.use(r.itemId, r.rarityId);
+      else if (!r.augmentable) {
+        if (r.toggleable) actions.toggle(r.itemId);
+        else if (r.usable) actions.use(r.itemId, r.rarityId);
+      }
       actions.refresh();
     });
     // The tiles of one item sit together in a row of their own; a divider separates the items.
@@ -133,9 +138,10 @@ export function buildInventoryWidget(
 
 /**
  * Writes the inventory view into its widget: every tile shows its count (dimmed while it is 0), the selected sellable stack is
- * marked, and the buttons beside the sellable tiles act on it. A selection that has run out (everything sold) is dropped.
+ * marked, and the buttons beside the sellable tiles act on it. A selection that has run out (everything sold) is dropped. The
+ * selected Augment rarity is marked the same way; it is dropped when none of it is left.
  */
-export function renderInventory(widget: InventoryWidget, view: InventoryView, tips: TipRegistry): void {
+export function renderInventory(widget: InventoryWidget, view: InventoryView, tips: TipRegistry, selection: UiSelection): void {
   widget.root.hidden = !view.visible;
   // Only items that are unlocked show; a section with no item to show is hidden too.
   for (const [itemId, group] of widget.groups) group.hidden = !view.rows.some((r) => r.itemId === itemId && r.unlocked);
@@ -144,15 +150,17 @@ export function renderInventory(widget: InventoryWidget, view: InventoryView, ti
   const selectedKey = widget.selected;
   const selected = view.rows.find((r) => r.sellable && stackKey(r.itemId, r.rarityId) === selectedKey);
   if (selectedKey !== null && !(selected && selected.count > 0)) widget.selected = null;
+  const augmentRow = view.rows.find((r) => r.augmentable && r.rarityId === selection.augmentRarityId);
+  if (selection.augmentRarityId !== null && !(augmentRow && augmentRow.count > 0)) selection.augmentRarityId = null;
   for (const r of view.rows) {
     const key = stackKey(r.itemId, r.rarityId);
     const handle = widget.tiles.get(key);
     if (!handle) continue;
     setText(handle.count, r.countText);
     handle.tile.classList.toggle('empty', r.count <= 0);
-    handle.tile.classList.toggle('selected', key === widget.selected);
+    handle.tile.classList.toggle('selected', r.augmentable ? r.rarityId === selection.augmentRarityId : key === widget.selected);
     handle.tile.classList.toggle('on', r.on);
-    handle.tile.disabled = r.sellable ? r.count <= 0 : !((r.usable || r.toggleable) && r.canUse);
+    handle.tile.disabled = r.sellable || r.augmentable ? r.count <= 0 : !((r.usable || r.toggleable) && r.canUse);
     tips.set(handle.tile, () => r.tip);
   }
   const chosen = widget.selected === null ? undefined : selected;

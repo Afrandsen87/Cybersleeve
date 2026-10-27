@@ -16,6 +16,7 @@
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import { AUTOMATION_FEATURES } from './automation';
+import { readCorporationState, writeCorporationState } from './corporationState';
 import { traitsOf } from './effectTraits';
 import { SCALAR_FIELDS, readScalar, writeScalars } from './fields';
 import { createInitialState } from './state';
@@ -40,6 +41,7 @@ interface SaveData {
   bankedCriticals: Record<string, number>;
   runs: { creditsPerSecond: string; actionLevelsTotal: number }[];
   synths: { runIndex: number }[];
+  corporation: ReturnType<typeof writeCorporationState>;
   automation: {
     unlocked: Record<string, boolean>;
     autoBurnOn: boolean;
@@ -83,6 +85,7 @@ export function serializeState(state: GameStateView): string {
     bankedCriticals: { ...state.bankedCriticals },
     runs: state.runs.map((r) => ({ creditsPerSecond: r.creditsPerSecond.toString(), actionLevelsTotal: r.actionLevelsTotal })),
     synths: state.synths.map((s) => ({ runIndex: s.runIndex })),
+    corporation: writeCorporationState(state.corporation),
     automation: {
       unlocked: { ...state.automation.unlocked } as Record<string, boolean>,
       autoBurnOn: state.automation.autoBurnOn,
@@ -123,7 +126,7 @@ export function serializeState(state: GameStateView): string {
  */
 export function deserializeState(
   json: string,
-  config: Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'items' | 'progression' | 'sleeve'>,
+  config: Pick<GameConfig, 'actions' | 'buyables' | 'corporation' | 'focus' | 'items' | 'progression' | 'sleeve'>,
   factory: NumberFactory,
 ): GameState | null {
   let raw: unknown;
@@ -168,6 +171,7 @@ export function deserializeState(
     dropUnmetRequirements(state, config.buyables);
     state.runs = readRuns(raw['runs'], factory);
     state.synths = readSynths(raw['synths'], state, config.buyables);
+    state.corporation = readCorporationState(raw['corporation'], config.corporation);
     readToggles(state, raw, config);
     state.inventory = readInventory(raw['inventory'], config.items);
     const savedBank = isRecord(raw['bankedCriticals']) ? raw['bankedCriticals'] : {};

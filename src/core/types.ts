@@ -12,5 +12,6 @@
 export * from './actionTypes';
 export * from './itemTypes';
 export * from './buyableTypes';
+export * from './corporationTypes';
 export * from './configTypes';
 export * from './stateTypes';

@@ -76,7 +76,9 @@ export const SKILL_PURGE_PROTOCOL = 'skill-purge-protocol';
 export const SKILL_SLEEVE_EUPHORIA = 'skill-sleeve-euphoria';
 /** Id of the re-sleeve skill that gives synthetic sleeves. */
 export const SKILL_SYNTHETIC_SLEEVES = 'skill-synthetic-sleeves';
-/** Id of the re-sleeve skill that does nothing yet. */
+/** Id of the corporation action that may upgrade a random Kompromat file. */
+export const INSIDER_BACKSTABBING = 'insider-backstabbing';
+/** Id of the re-sleeve skill that opens the Corporation tab. */
 export const SKILL_INCORPORATION = 'skill-incorporation';
 /** Every re-sleeve skill id, in the order the tree lists them. */
 export const RESLEEVE_SKILLS = [SKILL_SLEEVE_EUPHORIA, SKILL_SYNTHETIC_SLEEVES, SKILL_INCORPORATION] as const;

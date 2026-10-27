@@ -27,50 +27,58 @@ const game = (held: { common?: number; rare?: number } = { common: 5, rare: 2 },
 describe('applying an Augment schematic', () => {
   it('does nothing without a schematic', () => {
     const g = game({});
-    expect(g.augmentAction('a')).toBe(false);
+    expect(g.augmentAction('a', 'common')).toBe(false);
     expect(g.getState().actions['a']!.augments).toEqual({});
   });
 
   it('uses up one schematic and counts it on the action, under its rarity', () => {
     const g = game({ common: 5 });
-    expect(g.augmentAction('a')).toBe(true);
+    expect(g.augmentAction('a', 'common')).toBe(true);
     expect(g.getState().actions['a']!.augments).toEqual({ common: 1 });
     expect(g.getState().inventory['file']!['common']).toBe(4);
   });
 
-  it('uses up the most common rarity held first: every common one goes before a rare one is touched', () => {
+  it('uses up exactly the rarity chosen: the others are not touched, whatever is held', () => {
     const g = game({ common: 1, rare: 2 });
-    g.augmentAction('a');
-    expect(g.getState().inventory['file']!['common']).toBe(0);
-    expect(g.getState().inventory['file']!['rare']).toBe(2);
-    g.augmentAction('a'); // only rare ones left
+    expect(g.augmentAction('a', 'rare')).toBe(true);
+    expect(g.getState().inventory['file']!['common']).toBe(1);
     expect(g.getState().inventory['file']!['rare']).toBe(1);
+    expect(g.augmentAction('a', 'common')).toBe(true);
+    expect(g.getState().inventory['file']!['common']).toBe(0);
     expect(g.getState().actions['a']!.augments).toEqual({ common: 1, rare: 1 });
+  });
+
+  it('refuses a rarity of which none is held, even when others are, and a rarity that does not exist', () => {
+    const g = game({ common: 3 });
+    expect(g.augmentAction('a', 'rare')).toBe(false);
+    expect(g.augmentAction('a', 'ghost')).toBe(false);
+    expect(g.getState().inventory['file']!['common']).toBe(3);
+    expect(g.getState().actions['a']!.augments).toEqual({});
   });
 
   it('stops when the schematics run out', () => {
     const g = game({ common: 1 });
-    expect(g.augmentAction('a')).toBe(true);
-    expect(g.augmentAction('a')).toBe(false);
+    expect(g.augmentAction('a', 'common')).toBe(true);
+    expect(g.augmentAction('a', 'common')).toBe(false);
     expect(g.getState().actions['a']!.augments).toEqual({ common: 1 });
   });
 
   it('only changes the action it was applied to', () => {
     const g = game();
-    g.augmentAction('a');
+    g.augmentAction('a', 'common');
     expect(g.getState().actions['b']!.augments).toEqual({});
     expect(g.xpPerRun('b').eq(num(1))).toBe(true);
   });
 
   it('an unknown action takes nothing', () => {
     const g = game({ common: 3 });
-    expect(g.augmentAction('ghost')).toBe(false);
+    expect(g.augmentAction('ghost', 'common')).toBe(false);
     expect(g.getState().inventory['file']!['common']).toBe(3);
   });
 
   it('is not possible in a game whose content has no schematic', () => {
     const g = game({ common: 3 }, testConfig);
-    expect(g.augmentAction('a')).toBe(false);
+    expect(g.augmentAction('a', 'common')).toBe(false);
     expect(g.getState().inventory['file']!['common']).toBe(3);
   });
 });
@@ -80,14 +88,17 @@ describe('what an augment does to the XP', () => {
     const g = game({ common: 10 });
     expect(g.xpPerRun('a').toNumber()).toBe(1);
     for (let n = 1; n <= 3; n++) {
-      g.augmentAction('a');
+      g.augmentAction('a', 'common');
       expect(g.xpPerRun('a').toNumber()).toBeCloseTo(1 + 0.01 * n, 12);
     }
   });
 
   it('the rarities multiply each other: 3 common and 3 rare augments give 1.03 x 1.03', () => {
     const g = game({ common: 3, rare: 3 });
-    for (let i = 0; i < 6; i++) g.augmentAction('a');
+    for (let i = 0; i < 3; i++) {
+      g.augmentAction('a', 'common');
+      g.augmentAction('a', 'rare');
+    }
     expect(g.getState().actions['a']!.augments).toEqual({ common: 3, rare: 3 });
     expect(g.xpPerRun('a').toNumber()).toBeCloseTo(1.03 * 1.03, 12);
     expect(g.xpPerRun('a').toNumber()).toBeGreaterThan(1 + 0.06); // more than six augments of one rarity would give
@@ -95,15 +106,16 @@ describe('what an augment does to the XP', () => {
 
   it('a rarer augment is worth more than another common one once there are several of the lower rarity', () => {
     const a = game({ common: 10 });
-    for (let i = 0; i < 10; i++) a.augmentAction('a');
+    for (let i = 0; i < 10; i++) a.augmentAction('a', 'common');
     const b = game({ common: 9, rare: 1 });
-    for (let i = 0; i < 10; i++) b.augmentAction('a');
+    for (let i = 0; i < 9; i++) b.augmentAction('a', 'common');
+    b.augmentAction('a', 'rare');
     expect(b.xpPerRun('a').toNumber()).toBeGreaterThan(a.xpPerRun('a').toNumber());
   });
 
   it('a completed run gives the raised XP', () => {
     const g = game({ common: 100 });
-    for (let i = 0; i < 100; i++) g.augmentAction('a'); // +100%: 2 XP a run
+    for (let i = 0; i < 100; i++) g.augmentAction('a', 'common'); // +100%: 2 XP a run
     g.startAction('a');
     g.tick(10_000);
     expect(g.getState().actions['a']!.xp.toNumber()).toBe(2);
@@ -112,7 +124,7 @@ describe('what an augment does to the XP', () => {
   it('the levels come sooner: with +100% level 1 (10 XP) arrives after 5 runs instead of 10', () => {
     const runsToLevelOne = (augments: number): number => {
       const g = game({ common: augments });
-      for (let i = 0; i < augments; i++) g.augmentAction('a');
+      for (let i = 0; i < augments; i++) g.augmentAction('a', 'common');
       let runs = 0;
       while (g.actionLevel('a') < 1 && runs < 100) {
         g.startAction('a');
@@ -128,7 +140,7 @@ describe('what an augment does to the XP', () => {
   it('the sleeve level is not affected: the same runs give the same sleeve XP and run counter', () => {
     const sleeveAfter100Runs = (augments: number) => {
       const g = game({ common: augments });
-      for (let i = 0; i < augments; i++) g.augmentAction('a');
+      for (let i = 0; i < augments; i++) g.augmentAction('a', 'common');
       (g.getState() as unknown as { credits: unknown }).credits = num(100);
       g.buy('auto');
       g.startAction('a');
@@ -149,7 +161,7 @@ describe('what an augment does to the XP', () => {
   it('closed-form batches agree with running one at a time', () => {
     const make = () => {
       const g = game({ common: 30 });
-      for (let i = 0; i < 30; i++) g.augmentAction('a');
+      for (let i = 0; i < 30; i++) g.augmentAction('a', 'common');
       (g.getState() as unknown as { credits: unknown }).credits = num(100);
       g.buy('auto');
       g.startAction('a');
@@ -166,7 +178,7 @@ describe('what an augment does to the XP', () => {
 
   it('keeps the state sound', () => {
     const g = game({ common: 20 });
-    for (let i = 0; i < 20; i++) g.augmentAction('a');
+    for (let i = 0; i < 20; i++) g.augmentAction('a', 'common');
     g.startAction('a');
     g.tick(100_000);
     expect(findInvariantViolations(g.getState(), g.getConfig())).toEqual([]);
@@ -176,19 +188,19 @@ describe('what an augment does to the XP', () => {
 describe('augments in saves and resets', () => {
   it('re-sleeving and a new game take the augments away (they are not on the carry-over list)', () => {
     const a = game();
-    a.augmentAction('a');
+    a.augmentAction('a', 'common');
     a.resleeve();
     expect(a.getState().actions['a']!.augments).toEqual({});
     const b = game();
-    b.augmentAction('a');
+    b.augmentAction('a', 'common');
     b.newGame();
     expect(b.getState().actions['a']!.augments).toEqual({});
   });
 
   it('survive a save and load', () => {
     const g = game();
-    g.augmentAction('a');
-    g.augmentAction('a');
+    g.augmentAction('a', 'common');
+    g.augmentAction('a', 'common');
     const restored = deserializeState(serializeState(g.getState()), config, numberFactory)!;
     expect(restored.actions['a']!.augments).toEqual({ common: 2 });
     expect(restored.actions['b']!.augments).toEqual({});
@@ -196,7 +208,7 @@ describe('augments in saves and resets', () => {
 
   it('an older save without them loads with none, and bad values are repaired', () => {
     const g = game();
-    g.augmentAction('a');
+    g.augmentAction('a', 'common');
     const json = JSON.parse(serializeState(g.getState()));
     const load = () => deserializeState(JSON.stringify(json), config, numberFactory)!.actions['a']!.augments;
     delete json.actions.a.augments;
@@ -232,7 +244,7 @@ describe('the Augment schematic configuration is validated', () => {
 it('buying is unaffected: credits are not needed to augment', () => {
   const g = game();
   setCredits(g, num(0));
-  expect(g.augmentAction('a')).toBe(true);
+  expect(g.augmentAction('a', 'common')).toBe(true);
 });
 
 describe('items that cannot be paid out', () => {
@@ -250,7 +262,7 @@ describe('items that cannot be paid out', () => {
 
   it('can still be applied', () => {
     const g = game({ common: 3 }, keptConfig);
-    expect(g.augmentAction('a')).toBe(true);
+    expect(g.augmentAction('a', 'common')).toBe(true);
   });
 
   it('other items can still be sold', () => {

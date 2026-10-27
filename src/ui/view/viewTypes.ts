@@ -246,6 +246,8 @@ export interface InventoryRowView {
   readonly count: number;
   /** The item is unlocked: a purchase that drops it is owned, or some of it is held. Every rarity of an unlocked item shows, even at 0; an item that is not unlocked is hidden. */
   readonly unlocked: boolean;
+  /** Clicking the tile selects the stack for the Augment buttons of the action cards (the Augment schematic). */
+  readonly augmentable: boolean;
   /** The stack can be paid out for credits (false for items such as Augment schematics, which are applied instead). */
   readonly sellable: boolean;
   readonly countText: string;
@@ -265,6 +267,18 @@ export interface InventoryRowView {
   readonly tip: string;
 }
 
+/**
+ * What the player has selected on the screen. A choice of the screen only: it is not game state and is not saved, so it is handed to
+ * the view model next to the engine.
+ */
+export interface ViewSelection {
+  /** The rarity of Augment schematic selected in the Inventory, or `null`. The Augment buttons of the action cards use this rarity. */
+  readonly augmentRarityId: string | null;
+}
+
+/** Nothing selected. */
+export const NO_SELECTION: ViewSelection = { augmentRarityId: null };
+
 /** Display data of the Inventory widget. */
 export interface InventoryView {
   readonly title: string;
@@ -276,7 +290,7 @@ export interface InventoryView {
 
 /** One tab at the top. */
 export interface TabView {
-  readonly id: 'character' | 'skills' | 'automation' | 'stats';
+  readonly id: 'character' | 'skills' | 'automation' | 'stats' | 'corporation';
   readonly label: string;
   /** Shown once the tab is useful: no tab shows until the first skill point has been earned. */
   readonly visible: boolean;
@@ -361,6 +375,32 @@ export interface ResleeveBuyView {
   readonly affordable: boolean;
 }
 
+/** Display data of one action of the corporation. */
+export interface CorporationActionView {
+  readonly id: string;
+  readonly name: string;
+  /** The run bar is filling. */
+  readonly running: boolean;
+  /** 0..100, how far through the current run. */
+  readonly progressPercent: number;
+  /** Starting it now would work. */
+  readonly startable: boolean;
+  /** The one-line description under the title (the run time). */
+  readonly infoText: string;
+  /** Hover text: what the action does. Built when read (a getter): only the tip under the pointer is ever shown. */
+  readonly tip: string;
+}
+
+/** Display data of the Corporation tab. */
+export interface CorporationView {
+  /** Title of the corporation widget. */
+  readonly title: string;
+  /** The rows of the corporation widget: none yet, the corporation has no figures of its own. */
+  readonly stats: readonly StatRowView[];
+  /** The corporation's actions, in order. */
+  readonly actions: readonly CorporationActionView[];
+}
+
 /** Display data of the whole screen. */
 export interface ViewModel {
   /** The balance on its own, e.g. `"12"`. */
@@ -374,6 +414,7 @@ export interface ViewModel {
   readonly runs: RunsView;
   readonly automation: AutomationView;
   readonly network: NetworkView;
+  readonly corporation: CorporationView;
   readonly inventory: InventoryView;
   readonly actions: readonly ActionView[];
   readonly sleeve: SleeveView;

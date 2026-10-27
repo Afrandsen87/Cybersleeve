@@ -6,6 +6,7 @@
 import type { AutomationState } from './automation';
 import type { BigNum } from '../numbers';
 import type { ActionId } from './actionTypes';
+import type { CorporationState } from './corporationTypes';
 import type { ItemId, RarityId } from './itemTypes';
 import type { BuyableId } from './buyableTypes';
 
@@ -96,6 +97,8 @@ export interface GameState {
   hackingProficiency: BigNum;
   /** What the player unlocked and set in the Automation tab. Reset by re-sleeving. */
   automation: AutomationState;
+  /** Progress of the corporation's actions. Survives re-sleeving: the corporation is not the character. */
+  corporation: CorporationState;
   actions: Record<ActionId, ActionState>;
   /** Copies owned per buyable id. Absent means 0. */
   purchased: Record<BuyableId, number>;

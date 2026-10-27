@@ -91,6 +91,7 @@ describe('scalar field registry', () => {
       'inventory',
       'runs',
       'synths',
+      'corporation',
     ];
     const expected = Object.keys(state)
       .filter((k) => !nonScalar.includes(k))

@@ -14,7 +14,8 @@ import { mountActionCards } from './widgets/actionCards';
 import { buildAutomationWidget, renderAutomation } from './widgets/automationWidget';
 import type { ChangelogEntry } from './widgets/changelogModal';
 import { buildDebugControls, buildResleeveRow, buildSaveRow } from './widgets/controls';
-import { applyIcon, h, setText, type UiContext } from './widgets/domKit';
+import { mountCorporationPanel } from './widgets/corporationPanel';
+import { applyIcon, h, setText, type UiContext, type UiSelection } from './widgets/domKit';
 import { buildInventoryWidget, inventoryActions, renderInventory } from './widgets/inventoryWidget';
 import { mountSkillsPanel } from './widgets/skillsPanel';
 import { mountSleeveWidgets } from './widgets/sleeveWidgets';
@@ -82,11 +83,12 @@ export function mountUi(
 ): () => void {
   const text = options.text ?? defaultText;
   const icons = options.icons ?? noIcons;
-  const initial = buildViewModel(engine, undefined, text);
+  const selection: UiSelection = { augmentRarityId: null };
+  const initial = buildViewModel(engine, undefined, text, selection);
   root.innerHTML = '';
   const tips = new TipRegistry();
   const tooltips = installTooltips(root.ownerDocument, tips);
-  const ctx: UiContext = { engine, text, icons, tips, activate: (id) => engine.activateBuyable(id), refresh: () => render() };
+  const ctx: UiContext = { engine, text, icons, tips, selection, activate: (id) => engine.activateBuyable(id), refresh: () => render() };
 
   const header = h('header');
   const credits = h('div', 'credits');
@@ -102,7 +104,9 @@ export function mountUi(
     icons,
     text,
     inventoryActions(engine, () => render()),
+    selection,
   );
+  const corporation = mountCorporationPanel(ctx, initial.corporation);
   const skills = mountSkillsPanel(ctx, initial.skills);
   const stats = mountStatsPanel(ctx, initial.runs);
   const saveRow = buildSaveRow(ctx, options.saveTransfer, options.changelog ?? []);
@@ -118,7 +122,7 @@ export function mountUi(
   const debug = (options.debugControls ?? true) ? buildDebugControls(ctx, root, speed, onResetSave) : null;
   if (debug) root.append(debug.root);
 
-  // The tabs sit on the credits line, to the right of the balance: everything so far is on the Character tab.
+  // The tabs sit on the credits line, to the right of the balance: the character's actions are on the Character tab, the corporation's on the Corporation tab.
   let activeTab: TabView['id'] = 'character';
   const tabBar = buildTabBar(initial.tabs, (id) => {
     activeTab = id;
@@ -131,15 +135,18 @@ export function mountUi(
   const automationPanel = h('div', 'tab-panel automation-panel');
   automationPanel.append(automationWidget.root);
   header.append(tabBar.root);
-  root.append(header, characterPanel, skills.root, automationPanel, stats.root);
+  root.append(header, characterPanel, corporation.root, skills.root, automationPanel, stats.root);
 
   function render(): void {
-    const vm = buildViewModel(engine, undefined, text);
+    const vm = buildViewModel(engine, undefined, text, selection);
     setText(credits, vm.creditsLine);
     renderStats(networkWidget, vm.network.stats, tips);
-    renderInventory(inventoryWidget, vm.inventory, tips);
+    renderInventory(inventoryWidget, vm.inventory, tips, selection);
+    // The corporation can close again (a new game): its tab then gives way to the Character tab.
+    if (activeTab === 'corporation' && !vm.tabs.some((t) => t.id === 'corporation' && t.visible)) activeTab = 'character';
     tabBar.render(vm.tabs, activeTab);
     characterPanel.hidden = activeTab !== 'character';
+    corporation.root.hidden = activeTab !== 'corporation';
     skills.root.hidden = activeTab !== 'skills';
     stats.root.hidden = activeTab !== 'stats';
     automationPanel.hidden = activeTab !== 'automation';
@@ -147,6 +154,7 @@ export function mountUi(
     skills.render(vm.skills);
     if (!stats.root.hidden) stats.render(vm.runs.rows);
     actions.render(vm.actions);
+    corporation.render(vm.corporation);
     sleeve.render(vm.sleeve);
     resleeveRow.render({ canResleeve: vm.canResleeve, shown: vm.resleeveShown, buy: vm.resleeveBuy });
     debug?.render();

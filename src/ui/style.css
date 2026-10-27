@@ -70,6 +70,7 @@ body {
   opacity: 0.5;
 }
 .sleeve-widget,
+.corporation-widget,
 .network-widget,
 .upgrades-widget,
 .exploitation-widget,
@@ -83,6 +84,7 @@ body {
   padding: 12px;
 }
 .sleeve-widget h2,
+.corporation-widget h2,
 .network-widget h2,
 .upgrades-widget h2,
 .exploitation-widget h2,

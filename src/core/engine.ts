@@ -17,6 +17,7 @@ import type { ActivateResult, GameCommands, GameQueries } from './api';
 import { coolDownHeat, decayLegend } from './cooldowns';
 import type { BackChannelRule, SleeveStats } from './effects';
 import type { Augments } from './augments';
+import type { Corporation } from './corporation';
 import type { Automation, AutomationControls } from './automation';
 import type { BackChannel } from './backChannel';
 import type { BurnLeads } from './burnLeads';
@@ -38,7 +39,18 @@ import type { SpeedFactor } from './speed';
 import { resetForNewGame } from './state';
 import type { SynthSleeves } from './synthSleeves';
 import type { DerivedStats } from './stats';
-import type { ActionId, BuyableId, Currency, GameConfig, GameState, GameStateView, ItemId, RarityId } from './types';
+import type {
+  ActionId,
+  BuyableId,
+  CorporationActionDefinition,
+  CorporationActionId,
+  Currency,
+  GameConfig,
+  GameState,
+  GameStateView,
+  ItemId,
+  RarityId,
+} from './types';
 
 /** The collaborators a {@link GameEngine} is built from (all injected; see `app/createGame.ts`). */
 export interface EngineDependencies {
@@ -54,6 +66,8 @@ export interface EngineDependencies {
   readonly network: NetworkSystem;
   /** Applies Augment schematics to actions. */
   readonly augments: Augments;
+  /** The corporation's actions (built on the same state the engine owns). */
+  readonly corporation: Corporation;
   /** Rolls item drops (also used by the drop test aid). */
   readonly drops: ItemDrops;
   /** Items held and their sale (built on the same state the engine owns). */
@@ -122,6 +136,7 @@ export class GameEngine implements GameQueries, GameCommands {
   private readonly automationUnit: Automation;
   private readonly drops: ItemDrops;
   private readonly augments: Augments;
+  private readonly corporationUnit: Corporation;
   private readonly scope: Snapshot;
 
   /**
@@ -153,6 +168,7 @@ export class GameEngine implements GameQueries, GameCommands {
       automation: this.automationUnit,
       drops: this.drops,
       augments: this.augments,
+      corporation: this.corporationUnit,
       resleevePolicy: this.resleevePolicy,
       resleeveLockout: this.resleeveLockout,
       resleever: this.resleever,
@@ -253,13 +269,14 @@ export class GameEngine implements GameQueries, GameCommands {
 
   /**
    * Applies one Augment schematic to an action: its action XP per run goes up by the schematic's bonus (additively) for the rest of
-   * this life. Uses up the most common schematic held. Sleeve XP is not affected.
+   * this life. Uses up one schematic of the chosen rarity. Sleeve XP is not affected.
    *
    * @param id the action to augment
-   * @returns true when a schematic was applied; false when none is held, the game has none, or the action is unknown
+   * @param rarityId the rarity of the schematic to use up
+   * @returns true when a schematic was applied; false when none of that rarity is held, the game has none, or the action or rarity is unknown
    */
-  augmentAction(id: ActionId): boolean {
-    return this.augments.apply(id);
+  augmentAction(id: ActionId, rarityId: RarityId): boolean {
+    return this.augments.apply(id, rarityId);
   }
 
   /**
@@ -547,6 +564,31 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.shop.pointsAvailable(this.state, 'resleevePoints');
   }
 
+  /** True while the Corporation tab is open (a purchase with the `unlocksCorporation` effect is owned). */
+  isCorporationUnlocked(): boolean {
+    return this.corporationUnit.isUnlocked();
+  }
+
+  /** The corporation's actions, in the order the tab lists them. */
+  corporationActions(): readonly CorporationActionDefinition[] {
+    return this.corporationUnit.actions();
+  }
+
+  /** True when starting the corporation action now would work (the corporation is open and the action exists). */
+  canStartCorporationAction(id: CorporationActionId): boolean {
+    return this.corporationUnit.canStart(id);
+  }
+
+  /**
+   * Starts a corporation action. Its run takes the action's own duration; interface speed does not apply.
+   *
+   * @param id the corporation action
+   * @returns true when it is now running
+   */
+  startCorporationAction(id: CorporationActionId): boolean {
+    return this.corporationUnit.start(id);
+  }
+
   /** True when the player owns the skill that gives synthetic sleeves. */
   synthSleevesUnlocked(): boolean {
     return this.synths.isUnlocked();
@@ -677,6 +719,7 @@ export class GameEngine implements GameQueries, GameCommands {
     decayLegend(this.state, this.config.sleeve, deltaMs);
     this.resleeveLockout.advance(deltaMs);
     this.runner.tickAll(deltaMs);
+    this.corporationUnit.tickAll(deltaMs);
     this.automationUnit.step();
     this.overflowPolicy.apply(this.state);
     notePeaks(this.state);

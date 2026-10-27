@@ -19,6 +19,17 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-10-27 Corporation',
+    changes: [
+      'New Corporation tab, opened by the Incorporation re-sleeve skill. It is laid out like the Character tab; its widgets are empty for now. Corporation actions have their own run time that interface speed does not change, and the corporation is kept when you re-sleeve.',
+      'New corporation action Insider backstabbing: a run takes 30 seconds, and each completed run has a 1% chance to upgrade one random Kompromat file you hold to the next rarity.',
+      'Augment schematics are now applied by selecting the rarity in the Inventory (click its tile), then pressing the Augment button on an action. Only that rarity is used up.',
+      'Each Augment schematic now adds 3% (was 1%) to the action XP boost of its rarity.',
+      'Augment schematics and Burn leads drop ten times less often (0.5% of runs).',
+      'Kompromat files sell for far more as they get rarer: each rarity is worth 1000 times the one before (100 credits for a common file, 100 thousand for an uncommon one, ...).',
+    ],
+  },
+  {
     version: '2026-10-27 13:46',
     changes: [
       'Re-sleeving now has to be unlocked: the Re-sleeve button at the bottom of the Sleeve widget starts as the purchase "Unlock resleeving" (100 billion credits). One click buys it and the button turns into Re-sleeve, disabled for 5 seconds so a double click cannot re-sleeve at once. The unlock is kept when you re-sleeve.',

@@ -39,10 +39,10 @@ export const resleeveSkillsBuyables: BuyableDefinition[] = [
     id: SKILL_INCORPORATION,
     name: 'Incorporation',
     symbol: 'IN',
-    description: 'Does nothing for now.',
+    description: 'Founds a corporation: opens the Corporation tab.',
     currency: 'resleevePoints',
     cost: num(1),
     requires: [SKILL_SLEEVE_EUPHORIA],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'unlocksCorporation' },
   },
 ];

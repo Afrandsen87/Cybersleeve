@@ -32,10 +32,10 @@ export function augmentXpFactor(applied: Readonly<Record<RarityId, number>>, bon
  * @remarks
  * Each applied schematic adds `items.augment.xpBonusPerItem` (0.01 = 1 percent) to the XP boost of ITS rarity on that action; the
  * boosts of the different rarities multiply (see {@link augmentXpFactor}). Only the ACTION XP is raised, so the action levels come
- * sooner; the sleeve level follows the number of runs and is not affected. Which schematic is used up is decided here: the most
- * common rarity the player holds, so every common one is used before an uncommon one.
+ * sooner; the sleeve level follows the number of runs and is not affected. The player chooses which rarity is used up (selected in
+ * the Inventory); the dispersal of the Automation tab (`applyMany`) has no choice to make and uses the most common rarity held first.
  *
- * Called by: `engine.ts` (`GameEngine.augmentAction`). Calls: {@link Inventory} (`take`).
+ * Called by: `engine.ts` (`GameEngine.augmentAction`), `automation.ts` (`applyMany`). Calls: {@link Inventory} (`take`).
  */
 export class Augments {
   private readonly rarityIds: readonly string[];
@@ -53,13 +53,6 @@ export class Augments {
     private readonly inventory: Inventory,
   ) {
     this.rarityIds = config.items.rarities.map((r) => r.id);
-  }
-
-  /** The rarity that the next application would use up (the most common one held), or `null` when none is held. */
-  private nextRarity(): RarityId | null {
-    const augment = this.config.items.augment;
-    if (!augment) return null;
-    return this.rarityIds.find((rarity) => itemCount(this.state, augment.itemId, rarity) > 0) ?? null;
   }
 
   /**
@@ -84,18 +77,18 @@ export class Augments {
   }
 
   /**
-   * Applies one schematic to an action, using up the most common rarity held.
+   * Applies one schematic of the chosen rarity to an action.
    *
    * @param actionId the action to augment
-   * @returns true when one was applied; false when the action is unknown, the game has no schematic, or none is held
+   * @param rarityId the rarity to use up (only this one is touched)
+   * @returns true when one was applied; false when the action or rarity is unknown, the game has no schematic, or none of that rarity is held
    */
-  apply(actionId: ActionId): boolean {
+  apply(actionId: ActionId, rarityId: RarityId): boolean {
     const augment = this.config.items.augment;
     const action = this.state.actions[actionId];
-    const rarity = this.nextRarity();
-    if (!augment || !action || rarity === null) return false;
-    if (this.inventory.take(augment.itemId, rarity, 1) <= 0) return false;
-    action.augments[rarity] = (action.augments[rarity] ?? 0) + 1;
+    if (!augment || !action || !this.rarityIds.includes(rarityId)) return false;
+    if (itemCount(this.state, augment.itemId, rarityId) <= 0 || this.inventory.take(augment.itemId, rarityId, 1) <= 0) return false;
+    action.augments[rarityId] = (action.augments[rarityId] ?? 0) + 1;
     return true;
   }
 }

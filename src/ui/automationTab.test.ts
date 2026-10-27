@@ -89,7 +89,7 @@ describe('automation in the view model', () => {
     const g = createGame({ config });
     setCredits(g, num(100));
     g.buy('core');
-    expect(buildViewModel(g).tabs.map((t) => t.visible)).toEqual([true, false, true, false]); // Stats waits for the first re-sleeve
+    expect(buildViewModel(g).tabs.map((t) => t.visible)).toEqual([true, false, true, false, false]); // Stats waits for the first re-sleeve, Corporation for its unlock
   });
 });
 
