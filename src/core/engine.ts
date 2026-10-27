@@ -574,6 +574,26 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.corporationUnit.rank();
   }
 
+  /** The action level of a corporation action. */
+  corporationLevel(id: CorporationActionId): number {
+    return this.corporationUnit.levels.level(id);
+  }
+
+  /** Action XP gathered inside the current level of a corporation action. */
+  corporationXpIntoLevel(id: CorporationActionId): BigNum {
+    return this.corporationUnit.levels.xpIntoLevel(id);
+  }
+
+  /** Action XP the current level of a corporation action costs on its own. */
+  corporationXpForLevel(id: CorporationActionId): BigNum {
+    return this.corporationUnit.levels.xpForLevel(id);
+  }
+
+  /** How far through its current level a corporation action is, from 0 to 1. */
+  corporationLevelProgress(id: CorporationActionId): number {
+    return this.corporationUnit.levels.progress(id);
+  }
+
   /** The corporation's actions, in the order the tab lists them. */
   corporationActions(): readonly CorporationActionDefinition[] {
     return this.corporationUnit.actions();

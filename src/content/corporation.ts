@@ -16,6 +16,8 @@ export const corporationConfig: CorporationConfig = {
       name: 'Insider backstabbing',
       /** One run takes 30 seconds. */
       baseDurationMs: 30_000,
+      /** Each completed run gives 1 action XP; the levels follow `progression.actionLevels`. */
+      xpPerRun: 1,
       effects: [
         /** Each completed run has a 1% chance to upgrade one random Kompromat file you hold to the next rarity (placeholder). */
         { kind: 'upgradeRandomItem', itemId: KOMPROMAT, chance: 0.01 },

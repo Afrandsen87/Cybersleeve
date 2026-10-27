@@ -174,6 +174,14 @@ export interface CorporationQueries {
   isCorporationUnlocked(): boolean;
   /** The corporate rank (what gates the corporation's actions). */
   corporateRank(): number;
+  /** The action level of a corporation action (0 at the start). */
+  corporationLevel(id: CorporationActionId): number;
+  /** Action XP gathered inside the current level of a corporation action. */
+  corporationXpIntoLevel(id: CorporationActionId): BigNum;
+  /** Action XP the current level of a corporation action costs on its own. */
+  corporationXpForLevel(id: CorporationActionId): BigNum;
+  /** How far through its current level a corporation action is, from 0 to 1. */
+  corporationLevelProgress(id: CorporationActionId): number;
   /** The corporation's actions, in the order the tab lists them. */
   corporationActions(): readonly CorporationActionDefinition[];
   /** True when starting the corporation action now would work. */

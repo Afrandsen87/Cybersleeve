@@ -143,6 +143,8 @@ describe('the Corporation tab on the screen', () => {
     const card = panel().querySelector<HTMLElement>('.corporation-action')!;
     expect(card.querySelector('.action-title')!.textContent).toBe('Backstab');
     expect(card.querySelector('.action-info')!.textContent).toBe('Run time 30s');
+    expect(card.querySelector('.xp-level .xp-label')!.textContent).toMatch(/^Lv 0 - /); // the action level bar, like a character action's
+    expect(card.querySelector('.xp-sleeve')).toBeNull(); // and no sleeve level
     card.querySelector<HTMLButtonElement>('.action-main')!.click();
     expect(game.getState().corporation.actions['c1']!.running).toBe(true);
     game.tick(15_000);

@@ -3,6 +3,7 @@
  *
  * Creating, saving and reading the {@link CorporationState}.
  */
+import type { BigNum, NumberFactory } from '../numbers';
 import type { CorporationConfig, CorporationState } from './corporationTypes';
 
 /**
@@ -11,11 +12,12 @@ import type { CorporationConfig, CorporationState } from './corporationTypes';
  * Called by: `state.ts` (`createInitialState`), {@link readCorporationState}.
  *
  * @param config the corporation's content (`undefined` for a game without one)
+ * @param factory number factory (for the XP)
  * @returns a fresh state with one idle entry per corporation action
  */
-export function createCorporationState(config: CorporationConfig | undefined): CorporationState {
+export function createCorporationState(config: CorporationConfig | undefined, factory: NumberFactory): CorporationState {
   const actions: CorporationState['actions'] = {};
-  for (const a of config?.actions ?? []) actions[a.id] = { running: false, progress: 0 };
+  for (const a of config?.actions ?? []) actions[a.id] = { running: false, progress: 0, xp: factory.fromNumber(0) };
   return { actions };
 }
 
@@ -26,9 +28,13 @@ export function createCorporationState(config: CorporationConfig | undefined): C
  *
  * @param state the corporation state
  */
-export function writeCorporationState(state: CorporationState): { actions: Record<string, { running: boolean; progress: number }> } {
+export function writeCorporationState(state: CorporationState): {
+  actions: Record<string, { running: boolean; progress: number; xp: string }>;
+} {
   return {
-    actions: Object.fromEntries(Object.entries(state.actions).map(([id, a]) => [id, { running: a.running, progress: a.progress }])),
+    actions: Object.fromEntries(
+      Object.entries(state.actions).map(([id, a]) => [id, { running: a.running, progress: a.progress, xp: a.xp.toString() }]),
+    ),
   };
 }
 
@@ -40,10 +46,11 @@ export function writeCorporationState(state: CorporationState): { actions: Recor
  *
  * @param saved the stored value, whatever it is
  * @param config the corporation's content (decides which actions are read)
+ * @param factory number factory (for the XP; a save without XP reads as 0)
  * @returns the restored state
  */
-export function readCorporationState(saved: unknown, config: CorporationConfig | undefined): CorporationState {
-  const state = createCorporationState(config);
+export function readCorporationState(saved: unknown, config: CorporationConfig | undefined, factory: NumberFactory): CorporationState {
+  const state = createCorporationState(config, factory);
   const savedActions = isRecord(saved) && isRecord(saved['actions']) ? saved['actions'] : {};
   for (const def of config?.actions ?? []) {
     const entry = savedActions[def.id];
@@ -52,6 +59,7 @@ export function readCorporationState(saved: unknown, config: CorporationConfig |
     state.actions[def.id] = {
       running: entry['running'] === true,
       progress: Number.isFinite(progress) && progress > 0 && progress < 1 ? progress : 0,
+      xp: readXp(entry['xp'], factory),
     };
   }
   return state;
@@ -59,4 +67,16 @@ export function readCorporationState(saved: unknown, config: CorporationConfig |
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/** Reads saved XP: a finite number or numeric string >= 0, otherwise 0. */
+function readXp(v: unknown, factory: NumberFactory): BigNum {
+  const zero = factory.fromNumber(0);
+  if (typeof v !== 'string' && typeof v !== 'number') return zero;
+  try {
+    const xp = factory.fromString(String(v));
+    return xp.isFinite() && !xp.isNegative() ? xp : zero;
+  } catch {
+    return zero;
+  }
 }

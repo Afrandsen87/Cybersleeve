@@ -4,6 +4,7 @@
  * The Corporation: starting its actions and advancing their runs.
  */
 import { applyCorporationEffect, type CorporationEffectContext } from './corporationEffects';
+import type { CorporationLevels } from './corporationLevels';
 import type { CorporationActionDefinition, CorporationActionId, GameConfig, GameState } from './types';
 
 /**
@@ -21,7 +22,7 @@ const PROGRESS_EPSILON = 1e-9;
  * stops when it completes (there is no auto-run yet). Time left over after a run is discarded, as for a manual character action.
  * The corporation can be used only while a purchase with the `unlocksCorporation` effect is owned, and an action needs its `requiredRank`.
  *
- * Called by: `engine.ts`. Calls: `applyCorporationEffect`.
+ * Called by: `engine.ts`. Calls: `applyCorporationEffect`, `CorporationLevels.award`.
  */
 export class Corporation {
   private readonly definitions = new Map<CorporationActionId, CorporationActionDefinition>();
@@ -32,11 +33,13 @@ export class Corporation {
    * @param config reads `corporation` (the actions) and `buyables` (which purchase opens the corporation)
    * @param state the live game state (mutated: `corporation`)
    * @param effects what the effects of the actions may use (inventory, randomness)
+   * @param levels gets the XP of each completed run (also read by the engine for the levels shown)
    */
   constructor(
     private readonly config: Pick<GameConfig, 'corporation' | 'buyables'>,
     private readonly state: Pick<GameState, 'corporation' | 'purchased'>,
     private readonly effects: CorporationEffectContext,
+    readonly levels: CorporationLevels,
   ) {
     for (const a of config.corporation?.actions ?? []) this.definitions.set(a.id, a);
   }
@@ -104,6 +107,7 @@ export class Corporation {
     }
     action.progress = 0;
     action.running = false;
+    this.levels.award(def.id, 1);
     for (const effect of def.effects) applyCorporationEffect(effect, 1, this.effects);
   }
 }

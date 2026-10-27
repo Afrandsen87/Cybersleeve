@@ -95,6 +95,7 @@ export { ActionRunner } from './actionRunner';
 export { Corporation } from './corporation';
 export { type CorporationEffectContext, CORPORATION_EFFECTS, applyCorporationEffect } from './corporationEffects';
 export { createCorporationState } from './corporationState';
+export { CorporationLevels } from './corporationLevels';
 export { NetworkSystem } from './network';
 export { coolDownHeat, decayLegend } from './cooldowns';
 export { type ActionLookup, createActionLookup } from './actionLookup';

@@ -9,7 +9,7 @@
  */
 import type { CorporationActionView, CorporationView } from '../viewModel';
 import { ACTION_GRID_SLOTS } from './actionCards';
-import { applyIcon, h, setFill, setText, type UiContext } from './domKit';
+import { applyIcon, h, setFill, setText, setXpBar, type UiContext, type XpBar, xpBar } from './domKit';
 import { buildStatWidget, renderStats } from './statWidget';
 import { upgradeRow, renderUpgrades } from './upgradeButtons';
 import { START_RUN_ICON_ID } from '../pixelIcon';
@@ -30,6 +30,7 @@ interface CorporationCard {
   readonly title: HTMLElement;
   readonly info: HTMLElement;
   readonly bar: HTMLElement;
+  readonly levelXp: XpBar;
 }
 
 /**
@@ -52,14 +53,16 @@ function buildCard(ctx: UiContext, view: CorporationActionView): CorporationCard
   const track = h('div', 'bar');
   track.append(bar);
   button.append(title, info, track);
+  const levelXp = xpBar();
+  levelXp.root.classList.add('xp-level');
   button.addEventListener('click', () => engine.startCorporationAction(view.id));
   const start = h('button', 'start-run') as HTMLButtonElement;
   start.setAttribute('aria-label', text.controls.startRun);
   applyIcon(start, icons.urlFor(START_RUN_ICON_ID));
   if (!start.classList.contains('has-icon')) start.textContent = '▶';
   start.addEventListener('click', () => engine.startCorporationAction(view.id));
-  root.append(button, start);
-  return { root, button, start, title, info, bar };
+  root.append(button, levelXp.root, start);
+  return { root, button, start, title, info, bar, levelXp };
 }
 
 /**
@@ -117,6 +120,7 @@ export function mountCorporationPanel(ctx: UiContext, initial: CorporationView):
         card.button.disabled = !a.startable;
         card.start.disabled = !a.startable || a.running; // greyed out until the run is over
         setFill(card.bar, a.progressPercent);
+        setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
         card.root.classList.toggle('running', a.running);
       }
     },

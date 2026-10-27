@@ -7,7 +7,7 @@
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries` (the corporation queries), the text table.
  */
 import type { CorporationEffect, CorporationQueries, GameConfig, StateQueries } from '../../core';
-import { formatPlain } from '../../numbers';
+import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import { isCorporate } from './buyableViews';
 import { DROP_CHANCE_DECIMALS, buildStatRow as row, formatSeconds } from './viewFormat';
@@ -70,11 +70,19 @@ export function corporationView(
     actions: engine.corporationActions().map((def): CorporationActionView => {
       const progress = state.corporation.actions[def.id];
       const running = progress?.running ?? false;
+      const level = engine.corporationLevel(def.id);
       const duration = formatSeconds(def.baseDurationMs, text);
       const effects = def.effects.map((e) => describeEffect(e, itemNames, text));
       return {
         id: def.id,
         name: def.name,
+        level,
+        levelBarText: text.action.levelBar(
+          level,
+          formatBigNum(engine.corporationXpIntoLevel(def.id)),
+          formatBigNum(engine.corporationXpForLevel(def.id)),
+        ),
+        levelProgressPercent: engine.corporationLevelProgress(def.id) * 100,
         running,
         progressPercent: (progress?.progress ?? 0) * 100,
         startable: engine.canStartCorporationAction(def.id),

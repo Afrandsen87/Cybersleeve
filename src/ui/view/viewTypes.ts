@@ -386,6 +386,12 @@ export interface ResleeveBuyView {
 
 /** Display data of one action of the corporation. */
 export interface CorporationActionView {
+  /** The action level. */
+  readonly level: number;
+  /** The label above the level bar, e.g. `"Lv 2 - 5/20 XP"`. */
+  readonly levelBarText: string;
+  /** How far through its level the action is, 0 to 100. */
+  readonly levelProgressPercent: number;
   readonly id: string;
   readonly name: string;
   /** The run bar is filling. */

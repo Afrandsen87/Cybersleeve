@@ -9,6 +9,7 @@
  * differently from the character. What it does when a run completes is a list of {@link CorporationEffect}s; a new kind of effect is
  * one union member here plus one entry in `corporationEffects.ts`.
  */
+import type { BigNum } from '../numbers';
 import type { ItemId } from './itemTypes';
 
 /** Identifier of a corporation action (e.g. `"insider-backstabbing"`). Never shown to the player. */
@@ -30,6 +31,8 @@ export interface CorporationActionDefinition {
   readonly name: string;
   /** Duration of one run, in milliseconds (> 0). Nothing speeds it up or slows it down: interface speed does not apply here. */
   readonly baseDurationMs: number;
+  /** Action XP each completed run gives (> 0). Default: 1. The levels follow `progression.actionLevels`; a corporation action has no sleeve levels. */
+  readonly xpPerRun?: number;
   /** The corporate rank needed to start the action (an integer >= 1). Default: 1. */
   readonly requiredRank?: number;
   /** Applied once for each completed run, in order. */
@@ -48,6 +51,8 @@ export interface CorporationConfig {
 export interface CorporationActionState {
   /** True while the progress bar is filling. */
   running: boolean;
+  /** Total action XP gathered; the action level is derived from it. Survives re-sleeving with the rest of the corporation. */
+  xp: BigNum;
   /** The share of the current run that is done: from 0 up to (not including) 1 (0 when idle). */
   progress: number;
 }

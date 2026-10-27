@@ -407,6 +407,7 @@ export function validateConfig(config: GameConfig): string[] {
     if (corporationIds.has(a.id)) errors.push(`duplicate corporation action id "${a.id}"`);
     corporationIds.add(a.id);
     if (!positive(a.baseDurationMs)) errors.push(`${where}: baseDurationMs must be > 0`);
+    if (a.xpPerRun !== undefined && !positive(a.xpPerRun)) errors.push(`${where}: xpPerRun must be > 0`);
     if (a.requiredRank !== undefined && !positiveInt(a.requiredRank)) errors.push(`${where}: requiredRank must be an integer >= 1`);
     for (const effect of a.effects) validateCorporationEffect(effect, where, config.items, errors);
   }

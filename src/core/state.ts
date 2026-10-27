@@ -93,7 +93,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
     runs: [],
     synths: [],
     automation: createAutomationState(config),
-    corporation: createCorporationState(config.corporation),
+    corporation: createCorporationState(config.corporation, factory),
     actions,
     purchased: {},
     inventory: {},

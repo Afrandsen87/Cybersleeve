@@ -171,7 +171,7 @@ export function deserializeState(
     dropUnmetRequirements(state, config.buyables);
     state.runs = readRuns(raw['runs'], factory);
     state.synths = readSynths(raw['synths'], state, config.buyables);
-    state.corporation = readCorporationState(raw['corporation'], config.corporation);
+    state.corporation = readCorporationState(raw['corporation'], config.corporation, factory);
     readToggles(state, raw, config);
     state.inventory = readInventory(raw['inventory'], config.items);
     const savedBank = isRecord(raw['bankedCriticals']) ? raw['bankedCriticals'] : {};

@@ -14,6 +14,7 @@ import {
   CriticalLinks,
   Automation,
   Corporation,
+  CorporationLevels,
   CritFeed,
   CriticalSuccesses,
   Economy,
@@ -105,12 +106,18 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const critFeed = new CritFeed();
   const burnLeads = new BurnLeads(config, state, inventory, () => stats.heatCoolingBlocked());
   const augments = new Augments(config, state, inventory);
-  const corporation = new Corporation(config, state, {
+  const corporationLevels = new CorporationLevels(config, state, factory);
+  const corporation = new Corporation(
+    config,
     state,
-    inventory,
-    random,
-    rarityIds: config.items.rarities.map((r) => r.id),
-  });
+    {
+      state,
+      inventory,
+      random,
+      rarityIds: config.items.rarities.map((r) => r.id),
+    },
+    corporationLevels,
+  );
   const runner = new ActionRunner(
     config,
     state,

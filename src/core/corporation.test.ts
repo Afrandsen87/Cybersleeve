@@ -56,7 +56,11 @@ const stock = (g: { getState(): unknown }, held: Record<string, number>): void =
   (g.getState() as unknown as Loose).inventory = { file: held };
 };
 const held = (g: { getState(): unknown }, rarity: string): number => (g.getState() as unknown as Loose).inventory['file']?.[rarity] ?? 0;
-const run = (g: ReturnType<typeof createGame>) => g.getState().corporation.actions['c1']!;
+/** The run state of action `c1` (its XP is left out: levels are tested in `corporationLevels.test.ts`). */
+const run = (g: ReturnType<typeof createGame>) => {
+  const { running, progress } = g.getState().corporation.actions['c1']!;
+  return { running, progress };
+};
 
 describe('the corporation is closed until its unlock is owned', () => {
   it('cannot be started, and nothing runs', () => {
@@ -218,7 +222,10 @@ describe('the corporation in saves and re-sleeves', () => {
     g.startCorporationAction('c1');
     g.tick(12_000);
     const json = JSON.parse(serializeState(g.getState()));
-    const load = () => deserializeState(JSON.stringify(json), config, numberFactory)!.corporation.actions['c1'];
+    const load = () => {
+      const { running, progress } = deserializeState(JSON.stringify(json), config, numberFactory)!.corporation.actions['c1']!;
+      return { running, progress };
+    };
     delete json.corporation;
     expect(load()).toEqual({ running: false, progress: 0 });
     for (const bad of [3, 'x', null, [1], { actions: 5 }, { actions: { c1: 7 } }]) {
