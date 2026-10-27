@@ -42,8 +42,8 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
         itemId: KOMPROMAT,
         /** Chance that one completed run drops a file at all: 5%. */
         chance: 0.05,
-        /** Relative weight of each rarity once a file drops: 90% common, 9% uncommon, 1% rare. */
-        rarityWeights: { common: 90, uncommon: 9, rare: 1, legendary: 0, crisis: 0 },
+        /** Relative weight of each rarity once a file drops: 90% common, 10% uncommon; nothing rarer can drop at first. */
+        rarityWeights: { common: 90, uncommon: 10, rare: 0, legendary: 0, crisis: 0 },
       },
     },
   },

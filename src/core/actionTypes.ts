@@ -129,6 +129,8 @@ export interface OverclockRule {
   readonly heatPerMinute?: number;
   /** The heat each completed run adds (`heatPerRun`) is multiplied by this (>= 1; 3 = three times as much). Default: 1. */
   readonly heatPerRunFactor?: number;
+  /** The chance that a completed run makes heat (`heatPerRun`) is multiplied by this (>= 1; 2 = twice as likely), capped at a chance of 1. Default: 1. */
+  readonly heatChanceFactor?: number;
   /** Applied once for each completed run while Overclock is on, after the ordinary completion effects. Default: none. */
   readonly completionEffects?: readonly CompletionEffect[];
   /** Each completed run also pays the reward of this other action, as if that action had completed one run (its own reward multipliers apply). Default: none. */
@@ -150,6 +152,11 @@ export interface ActionDefinition {
   readonly rewardPerNetworkNode?: boolean;
   /** Heat added to the sleeve by each completed run (>= 0). Default: 0. */
   readonly heatPerRun?: number;
+  /**
+   * The chance (0..1) that one completed run adds its `heatPerRun`. A batch of runs draws how many add heat in one binomial draw
+   * (never per run). Default: 1, i.e. every run makes heat and nothing is drawn.
+   */
+  readonly heatChance?: number;
   /** Heat added to the sleeve for every second this action is actually running (>= 0, may be a fraction). Default: 0. */
   readonly heatPerSecond?: number;
   /** Access level the sleeve needs before this action can be performed (integer >= 1). Default: 1. */

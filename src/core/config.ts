@@ -124,7 +124,7 @@ function checkCompletionEffects(where: string, effects: GameConfig['actions'][nu
 
 /** Checks the numbers of an action's Overclock rule: every field that is given must make sense, and at least one must be given. */
 function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions'][number]['overclock']>, errors: string[]): void {
-  const { speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, alsoPays, completionEffects, stopsHeatCooling } = rule;
+  const { speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, heatChanceFactor, alsoPays, completionEffects, stopsHeatCooling } = rule;
   if (speedBonus !== undefined && !(Number.isFinite(speedBonus) && speedBonus > 0))
     errors.push(`${where}: overclock speedBonus must be > 0`);
   if (rewardBonus !== undefined && !(Number.isFinite(rewardBonus) && rewardBonus > 0))
@@ -135,9 +135,12 @@ function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions
   if (heatPerRunFactor !== undefined && !(Number.isFinite(heatPerRunFactor) && heatPerRunFactor >= 1)) {
     errors.push(`${where}: overclock heatPerRunFactor must be >= 1`);
   }
+  if (heatChanceFactor !== undefined && !(Number.isFinite(heatChanceFactor) && heatChanceFactor >= 1)) {
+    errors.push(`${where}: overclock heatChanceFactor must be >= 1`);
+  }
   checkCompletionEffects(`${where} overclock`, completionEffects, errors);
   const anything =
-    [speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, alsoPays].some((v) => v !== undefined) ||
+    [speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, heatChanceFactor, alsoPays].some((v) => v !== undefined) ||
     stopsHeatCooling === true ||
     (completionEffects?.length ?? 0) > 0;
   if (!anything) errors.push(`${where}: overclock needs at least one effect`);
@@ -266,6 +269,9 @@ export function validateConfig(config: GameConfig): string[] {
     }
     if (a.heatPerRun !== undefined && !(Number.isFinite(a.heatPerRun) && a.heatPerRun >= 0)) {
       errors.push(`action "${a.id}": heatPerRun must be >= 0`);
+    }
+    if (a.heatChance !== undefined && !(Number.isFinite(a.heatChance) && a.heatChance >= 0 && a.heatChance <= 1)) {
+      errors.push(`action "${a.id}": heatChance must be between 0 and 1`);
     }
     if (a.heatPerSecond !== undefined && !(Number.isFinite(a.heatPerSecond) && a.heatPerSecond >= 0)) {
       errors.push(`action "${a.id}": heatPerSecond must be >= 0`);

@@ -13,6 +13,7 @@ import { type Diagnostics, silentDiagnostics } from './diagnostics';
 import type { ItemDrops } from './drops';
 import type { Economy } from './economy';
 import type { Progression } from './progression';
+import { binomial, type RandomSource } from './sampling';
 import { payReward } from './rewards';
 import type { DerivedStats } from './stats';
 import type { CriticalLinks } from './criticalLinks';
@@ -74,6 +75,7 @@ export class ActionRunner {
     private readonly links: CriticalLinks,
     private readonly feed: CritFeed,
     private readonly linked: LinkedPayouts,
+    private readonly random: RandomSource,
     private readonly diagnostics: Diagnostics = silentDiagnostics,
   ) {}
 
@@ -301,7 +303,10 @@ export class ActionRunner {
     if (overclock?.alsoPays) this.payAlso(overclock.alsoPays, count);
     for (const { targetActionId, count: paid } of this.linked.settle(def.id, runs))
       this.payAlso(targetActionId, this.factory.fromNumber(paid));
-    this.state.heat += runs * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
+    const heatChance = Math.min(1, (def.heatChance ?? 1) * (overclock?.heatChanceFactor ?? 1));
+    // one binomial draw for the whole batch (no draw at a chance of 1)
+    const heatRuns = binomial(runs, heatChance, this.random);
+    this.state.heat += heatRuns * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
     this.drops.roll(def.id, runs);
     this.extendChain(def.id, runs);
     applyCompletionEffects(def.completionEffects, this.state, runs, this.factory);
