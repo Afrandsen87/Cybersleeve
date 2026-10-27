@@ -58,12 +58,13 @@ function settle(heat: number): number {
  * @param heat heat points (>= 0; NaN and negatives count as 0)
  * @param reduction share of the heat's effect removed by ICE Rating (0..1)
  * @param taxPerPoint share of earned credits one heat point takes (`sleeve.heatTaxPerPoint`, 0.01 = 1%)
- * @returns `1 - heat * (1 - reduction) * taxPerPoint`, never below 0. With 1% per point and no reduction, 100 heat keeps
- *   nothing; with a 50% reduction, credits only stop at 200 heat.
+ * @param maxShare the most the tax may take (`heatTaxCap` buyables; default 1 = no cap, 0.5 = never more than half)
+ * @returns `1 - heat * (1 - reduction) * taxPerPoint`, never below `1 - maxShare` (and never below 0). With 1% per point and no
+ *   reduction, 100 heat keeps nothing; with a 50% reduction, credits only stop at 200 heat; with a cap of 0.5 half is always kept.
  */
-export function heatTaxFactor(heat: number, reduction: number, taxPerPoint: number): number {
+export function heatTaxFactor(heat: number, reduction: number, taxPerPoint: number, maxShare = 1): number {
   if (!(heat > 0)) return 1;
-  return Math.max(0, 1 - heat * (1 - reduction) * taxPerPoint);
+  return Math.max(0, 1 - maxShare, 1 - heat * (1 - reduction) * taxPerPoint);
 }
 
 /**

@@ -16,6 +16,7 @@ import type { ActionToggles, FocusStatus, OverclockStatus } from './actionToggle
 import type { ActivateResult, GameCommands, GameQueries } from './api';
 import { coolDownHeat, decayLegend } from './cooldowns';
 import type { SleeveStats } from './effects';
+import { coolingPace } from './heatPace';
 import type { BackChannelRule } from './leverageEffects';
 import type { Augments } from './augments';
 import type { Corporation } from './corporation';
@@ -750,8 +751,17 @@ export class GameEngine implements GameQueries, GameCommands {
     this.network.grow(deltaMs);
     const sleeve = this.stats.sleeveStats();
     // An Overclock that stops heat cooling holds the cooldown in place while its action runs.
-    if (!this.stats.heatCoolingBlocked())
-      coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost, sleeve.heatCooldownAmount);
+    if (!this.stats.heatCoolingBlocked()) {
+      const pace = coolingPace({
+        speed: sleeve.heatCooldownSpeed,
+        boost: sleeve.heatCooldownBoost,
+        moles: this.state.moles,
+        idle: this.stats.heatIsIdle(),
+        idleFactor: sleeve.idleHeatCooldown,
+        moleAggregation: sleeve.moleAggregation,
+      });
+      coolDownHeat(this.state, this.config.sleeve, deltaMs, pace.speed, pace.boost, sleeve.heatCooldownAmount);
+    }
     decayLegend(this.state, this.config.sleeve, deltaMs);
     this.resleeveLockout.advance(deltaMs);
     this.runner.tickAll(deltaMs);

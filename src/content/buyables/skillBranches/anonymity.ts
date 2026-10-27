@@ -2,20 +2,34 @@
  * @module content
  *
  * The skills of the anonymity branch (heat and traces), bought with skill points.
+ *
+ * Shape: Cold Trail is the root and splits into three paths. Cooling: Obfuscation, Purge Protocol. Burn leads: Scorched Earth, Silver
+ * Tongue. Idle: Quiet Hours, Undercover. Moles: Deep Cover (readable once Back Channel Deals is owned). Blackout is the end skill and
+ * needs Purge Protocol, Undercover and Deep Cover, so the tree has to be invested in first.
  */
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import {
   BRANCH_ANONYMITY,
+  BURN_LEAD,
+  BURN_LEADS,
+  GROW_NETWORK,
   LEGEND,
   PUSH_MALWARE,
+  SKILL_BACK_CHANNEL,
+  SKILL_BLACKOUT,
   SKILL_COLD_TRAIL,
+  SKILL_DEEP_COVER,
   SKILL_OBFUSCATION,
   SKILL_PURGE_PROTOCOL,
+  SKILL_QUIET_HOURS,
+  SKILL_SCORCHED_EARTH,
+  SKILL_SILVER_TONGUE,
+  SKILL_UNDERCOVER,
   overclockUnlockId,
 } from '../../ids';
 
-/** The anonymity branch: Cold Trail is the root, then Obfuscation, then Purge Protocol. */
+/** The anonymity branch: Cold Trail is the root; see the module comment for the paths. */
 export const anonymitySkills: BuyableDefinition[] = [
   {
     id: SKILL_COLD_TRAIL,
@@ -51,5 +65,80 @@ export const anonymitySkills: BuyableDefinition[] = [
     parents: [SKILL_OBFUSCATION],
     cost: num(1), // placeholder; a late-stage skill, since sleeve levels of Build Legend come slowly
     effect: { kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: LEGEND, perLevel: 1 },
+  },
+
+  {
+    id: SKILL_SCORCHED_EARTH,
+    name: 'Scorched Earth',
+    symbol: 'SC',
+    description: 'Each Burn lead takes 1 more point of heat away, after its percentage.',
+    currency: 'skillPoints',
+    branch: BRANCH_ANONYMITY,
+    parents: [SKILL_COLD_TRAIL],
+    requires: [BURN_LEADS], // reveal gate: the purchase that makes Burn leads drop
+    cost: num(1),
+    effect: { kind: 'burnLeadFlatHeat', amount: 1 },
+  },
+
+  {
+    id: SKILL_SILVER_TONGUE,
+    name: 'Silver Tongue',
+    symbol: 'SV',
+    description: 'Burn leads drop 50% more often.',
+    currency: 'skillPoints',
+    branch: BRANCH_ANONYMITY,
+    parents: [SKILL_SCORCHED_EARTH],
+    cost: num(1),
+    effect: { kind: 'itemDropChanceMultiplier', itemId: BURN_LEAD, factor: 1.5 },
+  },
+
+  {
+    id: SKILL_QUIET_HOURS,
+    name: 'Quiet Hours',
+    symbol: 'QH',
+    description: 'While nothing is running, heat cools 5 times as fast.',
+    currency: 'skillPoints',
+    branch: BRANCH_ANONYMITY,
+    parents: [SKILL_COLD_TRAIL],
+    cost: num(1),
+    effect: { kind: 'idleHeatCooldown', factor: 5 }, // placeholder strength; it may need to be much higher
+  },
+
+  {
+    id: SKILL_UNDERCOVER,
+    name: 'Undercover',
+    symbol: 'UC',
+    description: 'Quiet Hours also counts while Grow network runs without Overclock.',
+    currency: 'skillPoints',
+    branch: BRANCH_ANONYMITY,
+    parents: [SKILL_QUIET_HOURS],
+    cost: num(1),
+    effect: { kind: 'idleHeatCooldownAction', actionId: GROW_NETWORK },
+  },
+
+  {
+    id: SKILL_DEEP_COVER,
+    name: 'Deep Cover',
+    symbol: 'DC',
+    description:
+      'Moles stay with you instead of being spent. Heat cools 5% faster for every order of magnitude of Moles you hold, in place of the Mole boost.',
+    currency: 'skillPoints',
+    branch: BRANCH_ANONYMITY,
+    parents: [SKILL_COLD_TRAIL],
+    requires: [SKILL_BACK_CHANNEL], // reveal gate: Moles only come from Back Channel Deals
+    cost: num(1),
+    effect: { kind: 'moleAggregation', bonusPerOrder: 0.05 },
+  },
+
+  {
+    id: SKILL_BLACKOUT,
+    name: 'Blackout',
+    symbol: 'BO',
+    description: 'The heat tax takes at most half of your node income, however hot you are.',
+    currency: 'skillPoints',
+    branch: BRANCH_ANONYMITY,
+    parents: [SKILL_PURGE_PROTOCOL, SKILL_UNDERCOVER, SKILL_DEEP_COVER],
+    cost: num(1),
+    effect: { kind: 'heatTaxCap', maxShare: 0.5 },
   },
 ];

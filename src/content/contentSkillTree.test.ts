@@ -14,7 +14,9 @@ import {
   PUSH_MALWARE,
   SKILL_BANDWIDTH,
   SKILL_BACK_CHANNEL,
+  SKILL_BLACKOUT,
   SKILL_COLD_TRAIL,
+  SKILL_DEEP_COVER,
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_DEEP_FILES,
   SKILL_DOSSIER,
@@ -26,6 +28,8 @@ import {
   SKILL_OVERCLOCK,
   SKILL_PURGE_PROTOCOL,
   SKILL_QUICK_STUDY,
+  SKILL_SCORCHED_EARTH,
+  SKILL_SILVER_TONGUE,
   overclockUnlockId,
 } from './ids';
 
@@ -80,11 +84,15 @@ describe('what a new game shows of the skill tree', () => {
       .filter((n) => n.masked)
       .map((n) => n.view.id);
 
-  it('the Cybernetics branch and Cold Trail read from the start; the rest waits for what makes it useful', () => {
+  it('the Cybernetics branch, Cold Trail, Quiet Hours and Undercover read from the start; the rest waits for what makes it useful', () => {
     expect(masked(createGame()).sort()).toEqual(
       [
         SKILL_OBFUSCATION,
         SKILL_PURGE_PROTOCOL,
+        SKILL_SCORCHED_EARTH,
+        SKILL_SILVER_TONGUE,
+        SKILL_DEEP_COVER,
+        SKILL_BLACKOUT,
         SKILL_NOSE_FOR_SECRETS,
         SKILL_EXPLOIT_KOMPROMAT,
         SKILL_BACK_CHANNEL,

@@ -74,7 +74,8 @@ export class DerivedStats implements ModeStatuses {
 
   /** The share of node income kept after the heat tax (with the current ICE Rating). */
   creditKeepFactor(): number {
-    return this.economy.keepFactor(this.state.heat, this.sleeveStats().heatReduction);
+    const stats = this.sleeveStats();
+    return this.economy.keepFactor(this.state.heat, stats.heatReduction, stats.heatTaxCap);
   }
 
   /**
@@ -262,6 +263,18 @@ export class DerivedStats implements ModeStatuses {
     );
   }
 
+  /**
+   * True while no action is in progress, so heat cools at the idle pace (Quiet Hours). An action that is running without Overclock
+   * still counts as idle when an `idleHeatCooldownAction` buyable names it (Undercover). A manual action that has finished its run and
+   * waits is not running.
+   */
+  heatIsIdle(): boolean {
+    const allowed = this.sleeveStats().idleHeatCooldownActions;
+    return !this.config.actions.some(
+      (a) => this.state.actions[a.id]?.running === true && !(allowed.includes(a.id) && this.activeOverclock(a.id) === null),
+    );
+  }
+
   /** Levels added to an action's level for speed by buyables; its XP progress is not affected. */
   levelBonus(id: ActionId): number {
     return resolveLevelBonus(this.config.buyables, this.state, id, (source) => this.progression.sleeveLevel(this.state, source));
@@ -404,6 +417,7 @@ export class DerivedStats implements ModeStatuses {
       stats.heatReduction,
       stats.nodePayoutMultiplier,
       stats.nodePayoutBonus,
+      stats.heatTaxCap,
     );
   }
 }

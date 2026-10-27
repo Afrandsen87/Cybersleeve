@@ -131,10 +131,10 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it('there is one skill for each of the sixteen in the design, all costing 1 point and none belonging to an action', () => {
+  it('there is one skill for each of the twenty-six in the design, all costing 1 point and none belonging to an action', () => {
     const skills = gameConfig.buyables.filter((b) => b.currency === 'skillPoints');
     expect(skills.map((b) => b.id)).toEqual([...SKILLS]);
-    expect(skills).toHaveLength(20);
+    expect(skills).toHaveLength(26);
     for (const b of skills) {
       expect(b.cost.eq(num(1)), b.id).toBe(true);
       expect(b.actionId, b.id).toBeUndefined();

@@ -111,7 +111,13 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const links = new CriticalLinks(stats, state);
   const critFeed = new CritFeed();
   const linked = new LinkedPayouts(stats, random);
-  const burnLeads = new BurnLeads(config, state, inventory, () => stats.heatCoolingBlocked());
+  const burnLeads = new BurnLeads(
+    config,
+    state,
+    inventory,
+    () => stats.heatCoolingBlocked(),
+    () => stats.sleeveStats().burnLeadFlatHeat,
+  );
   const augments = new Augments(config, state, inventory);
   const corporationLevels = new CorporationLevels(config, state, factory);
   const corporation = new Corporation(

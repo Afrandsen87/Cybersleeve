@@ -198,6 +198,23 @@ export type BuyableEffect =
   | { readonly kind: 'itemDropChanceMultiplier'; readonly itemId: ItemId; readonly factor: number }
   /** Node payout is multiplied by `1 + perItem x` the number of `itemId` items of `rarityId` held, per copy. */
   | { readonly kind: 'nodePayoutFromItems'; readonly itemId: ItemId; readonly rarityId: RarityId; readonly perItem: number }
+  /** Every Burn lead used also takes `amount` points of heat away, after its percentage (per copy). Heat never goes below 0. */
+  | { readonly kind: 'burnLeadFlatHeat'; readonly amount: number }
+  /** While no action is in progress, heat cools `factor` times as fast (per copy). See `heatPace.ts`. */
+  | { readonly kind: 'idleHeatCooldown'; readonly factor: number }
+  /**
+   * An action that is running WITHOUT Overclock still counts as "no action in progress" for `idleHeatCooldown`. Does nothing without
+   * an `idleHeatCooldown` buyable.
+   */
+  | { readonly kind: 'idleHeatCooldownAction'; readonly actionId: ActionId }
+  /**
+   * Moles are no longer spent: they stay and add up. Heat cools `1 + bonusPerOrder` times as fast for every order of magnitude of
+   * Moles held (`log10`, none at 1 Mole or fewer), and the Moles' own cooldown boost (`backChannel`) no longer applies. Once, whatever
+   * the number of copies.
+   */
+  | { readonly kind: 'moleAggregation'; readonly bonusPerOrder: number }
+  /** The heat tax never takes more than `maxShare` of node income (0.5 = at most half), however much heat there is. The lowest cap wins. */
+  | { readonly kind: 'heatTaxCap'; readonly maxShare: number }
   /**
    * Lets the player give up items of `itemId` / `rarityId` for Moles: `molesPerItem` Moles each. While Moles remain, heat cools
    * `cooldownBoost` (0.5 = 50 percent) faster, and every point of heat cooled uses up one Mole.
