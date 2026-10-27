@@ -619,15 +619,16 @@ button:not(:disabled):hover {
 .modal-close {
   align-self: flex-end;
 }
-.corner-controls {
-  position: fixed;
-  top: 8px;
-  right: 8px;
+/* The test aids: a bar in the page flow above the header, so it never covers the tabs. */
+.debug-bar {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
-  z-index: 10;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--magenta);
 }
-.corner-controls button {
+.debug-bar button {
   padding: 6px 10px;
   font-size: 13px;
 }

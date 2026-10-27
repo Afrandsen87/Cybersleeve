@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * The buttons around the game: re-sleeve (two clicks), the test aids in the corner, and the save row (export, import, changelog).
+ * The buttons around the game: re-sleeve (two clicks), the test aids bar at the top of the page, and the save row (export, import, changelog).
  *
  * @remarks
  * Called by: `ui/dom.ts`. Calls: `ConfirmGate`, `GameCommands`.
@@ -79,7 +79,7 @@ export function buildResleeveRow(ctx: UiContext): ResleeveRow {
   };
 }
 
-/** The test aids in the corner. */
+/** The test aids, a bar at the top of the page. */
 export interface DebugControls {
   readonly root: HTMLElement;
   /** Updates the fast-forward button. */
@@ -129,7 +129,7 @@ export function buildDebugControls(ctx: UiContext, page: HTMLElement, speed: Spe
     onResetSave();
     ctx.refresh();
   });
-  const root = h('div', 'corner-controls');
+  const root = h('div', 'debug-bar');
   root.append(revealBtn, dropBtn, doubleBtn, resetBtn, speedBtn);
   return {
     root,

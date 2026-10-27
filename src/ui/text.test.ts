@@ -145,7 +145,7 @@ describe('the screen renders stat rows from data', () => {
 });
 
 describe('test aids and notices', () => {
-  it('the corner controls are left out when debug controls are off', () => {
+  it('the debug bar is left out when debug controls are off', () => {
     const root = document.createElement('div');
     document.body.append(root);
     mountUi(root, createGame({ config: testConfig }), speed, () => {}, { debugControls: false });
