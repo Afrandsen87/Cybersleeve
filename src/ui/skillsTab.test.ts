@@ -6,6 +6,7 @@ import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel, statRow } from './viewModel';
+import { skillViews } from '../testing/skillViews';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 
@@ -86,7 +87,7 @@ describe('skills in the view model', () => {
 
   it('lists the skills, and keeps them out of the Sleeve purchases', () => {
     const vm = buildViewModel(pointGame());
-    expect(vm.skills.buyables.map((b) => b.id)).toEqual(['s1', 's2', 'bc']);
+    expect(skillViews(vm.skills.lanes).map((b) => b.id)).toEqual(['s1', 's2', 'bc']);
     expect(vm.skills.points).toBe(1);
     expect(vm.skills.pointsText).toBe('Skill points: 1');
     expect(vm.sleeve.buyables.map((b) => b.id)).not.toContain('s1');
@@ -94,14 +95,14 @@ describe('skills in the view model', () => {
   });
 
   it('a skill tip names the skill, what it does and the cost in skill points', () => {
-    const tip = buildViewModel(createGame({ config })).skills.buyables[0]!.tip;
+    const tip = skillViews(buildViewModel(createGame({ config })).skills.lanes)[0]!.tip;
     expect(tip).toBe('Skill s1\nDoes something.\n\nCost = 1 skill points');
   });
 
   it('a skill that cannot be paid is not clickable', () => {
     const g = pointGame();
     g.buy('s1');
-    const views = buildViewModel(g).skills.buyables;
+    const views = skillViews(buildViewModel(g).skills.lanes);
     expect(views.find((b) => b.id === 's1')!.owned).toBe(1);
     expect(views.find((b) => b.id === 's2')!.clickable).toBe(false);
   });

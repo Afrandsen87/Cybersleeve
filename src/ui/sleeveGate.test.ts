@@ -8,6 +8,7 @@ import { createConfig } from '../core';
 import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
 import { buildViewModel } from './viewModel';
+import { skillViews } from '../testing/skillViews';
 
 const gate = { id: 'levels', name: 'Sleeve levels', description: '', cost: num(10), effect: { kind: 'unlockSleeveLevels' } } as const;
 const skill = {
@@ -55,10 +56,7 @@ describe('the screen after buying it', () => {
     const g = game();
     setCredits(g, num(100));
     g.buy('levels');
-    const find = () =>
-      buildViewModel(g)
-        .skills.resleeve.tiers.flat()
-        .find((b) => b.id === 'skill')!;
+    const find = () => skillViews(buildViewModel(g).skills.resleeve.lanes).find((b) => b.id === 'skill')!;
     const before = find();
     expect(before.name).toBe('???');
     expect(before.description).toBe('???');

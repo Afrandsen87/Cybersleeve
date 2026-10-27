@@ -12,6 +12,7 @@ import {
   BURN_LEADS,
   PERSISTENCE,
   RANSOMWARE,
+  SKILL_COLD_TRAIL,
   SKILL_OBFUSCATION,
   ZERO_DAY,
   ZERO_DAY_EXPLOITS,
@@ -282,7 +283,8 @@ describe('Zero-days (real content)', () => {
     const g = rich();
     g.buy(overclockUnlockId(PUSH_MALWARE));
     expect(g.overclockStatus(PUSH_MALWARE)!.heatPerRunFactor).toBe(3);
-    (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(10);
+    (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
+    (g.getState().purchased as Record<string, number>)[SKILL_COLD_TRAIL] = 1; // Obfuscation grows from it
     expect(g.buy(SKILL_OBFUSCATION)).toBe('purchased');
     expect(g.overclockStatus(PUSH_MALWARE)!.heatPerRunFactor).toBe(2);
   });

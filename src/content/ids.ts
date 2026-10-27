@@ -82,18 +82,18 @@ export const INSIDER_BACKSTABBING = 'insider-backstabbing';
 export const SKILL_INCORPORATION = 'skill-incorporation';
 /** Every re-sleeve skill id, in the order the tree lists them. */
 export const RESLEEVE_SKILLS = [SKILL_SLEEVE_EUPHORIA, SKILL_SYNTHETIC_SLEEVES, SKILL_INCORPORATION] as const;
-/** Every skill id, in the order the Skills tab lists them. */
+/** Every skill id, branch by branch (cybernetics, anonymity, leverage), each root first. */
 export const SKILLS = [
   SKILL_OVERCLOCK,
   SKILL_BANDWIDTH,
-  SKILL_COLD_TRAIL,
   SKILL_MUSCLE_MEMORY,
   SKILL_QUICK_STUDY,
+  SKILL_COLD_TRAIL,
+  SKILL_OBFUSCATION,
+  SKILL_PURGE_PROTOCOL,
   SKILL_NOSE_FOR_SECRETS,
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_BACK_CHANNEL,
-  SKILL_OBFUSCATION,
-  SKILL_PURGE_PROTOCOL,
 ] as const;
 /** Branch id of the skill tree's cybernetics lane (its title is in `ui/uiText.ts`, its colour in `ui/style.css`). */
 export const BRANCH_CYBERNETICS = 'cybernetics';

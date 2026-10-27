@@ -31,6 +31,7 @@ import {
   PUSH_MALWARE,
   SKILLS,
 } from './gameConfig';
+import { skillViews } from '../testing/skillViews';
 
 describe('real game content (src/content/gameConfig.ts)', () => {
   it('is a valid configuration', () => {
@@ -113,9 +114,9 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     for (const b of bought) expect(g.ownedCount(b.id), `${b.id} was never purchasable`).toBeGreaterThan(0);
   });
 
-  it('a new game has no skill point, the first comes when an action reaches level 1, and every skill can be bought with it', () => {
+  it('a new game has no skill point, the first comes when an action reaches level 1, and every root skill can be bought with it', () => {
     expect(createGame().skillPoints()).toBe(0);
-    for (const id of SKILLS) {
+    for (const id of SKILLS.filter((s) => !gameConfig.buyables.find((b) => b.id === s)?.parents?.length)) {
       const g = createGame();
       expect(g.canBuy(id), `${id} can be bought without a point`).toBe(false);
       // a skill is offered only once the purchase that unlocks it is owned
@@ -147,10 +148,10 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       expect(b.cost.eq(num(1)), b.id).toBe(true);
       expect(b.actionId, b.id).toBeUndefined();
     }
-    const requires = (id: string): readonly string[] => skills.find((b) => b.id === id)?.requires ?? [];
-    expect(requires(SKILL_SLEEVE_EUPHORIA)).toEqual([]);
-    expect(requires(SKILL_SYNTHETIC_SLEEVES)).toEqual([SKILL_SLEEVE_EUPHORIA]);
-    expect(requires(SKILL_INCORPORATION)).toEqual([SKILL_SLEEVE_EUPHORIA]);
+    const parents = (id: string): readonly string[] => skills.find((b) => b.id === id)?.parents ?? [];
+    expect(parents(SKILL_SLEEVE_EUPHORIA)).toEqual([]);
+    expect(parents(SKILL_SYNTHETIC_SLEEVES)).toEqual([SKILL_SLEEVE_EUPHORIA]);
+    expect(parents(SKILL_INCORPORATION)).toEqual([SKILL_SLEEVE_EUPHORIA]);
   });
 
   it('a new game has no re-sleeve point; each re-sleeve gives one, and the tree is bought from the top', () => {
@@ -174,9 +175,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     const g = createGame();
     openResleeving(g);
     g.resleeve();
-    const view = buildViewModel(g)
-      .skills.resleeve.tiers.flat()
-      .find((b) => b.id === SKILL_INCORPORATION)!;
+    const view = skillViews(buildViewModel(g).skills.resleeve.lanes).find((b) => b.id === SKILL_INCORPORATION)!;
     expect(view.tip).toContain('opens the Corporation tab');
   });
 
@@ -234,9 +233,9 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       if (b.id === SLEEVE_LEVELS) continue; // it is the Re-sleeve button, not in a list (tested below)
       const owner =
         b.currency === 'skillPoints'
-          ? vm.skills.buyables
+          ? skillViews(vm.skills.lanes)
           : b.currency === 'resleevePoints'
-            ? vm.skills.resleeve.tiers.flat()
+            ? skillViews(vm.skills.resleeve.lanes)
             : b.actionId === undefined
               ? vm.sleeve.buyables
               : vm.actions.find((a) => a.id === b.actionId)!.buyables;

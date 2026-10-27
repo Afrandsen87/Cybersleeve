@@ -9,6 +9,10 @@
   --line: #26304d;
   --teal: #14a89a;
   --gold: #b8860b;
+  /* The neon colours of the skill-tree branches (a lane takes its colour from its branch id). */
+  --branch-cybernetics: #39ff88;
+  --branch-anonymity: #ff3b5c;
+  --branch-leverage: #d98a3d;
 }
 * {
   box-sizing: border-box;
@@ -722,26 +726,105 @@ button:not(:disabled):hover {
   display: none;
 }
 
-/* The re-sleeve skill tree: one row per depth, a short line down from each row to the next. */
+/*
+ * The skill trees grow sideways: one lane per branch, the roots on the left, each skill to the right of the ones it needs. A lane
+ * is coloured by its branch (`--lane`, set from the branch tokens below) with a neon gradient under it that fades to the right.
+ * A skill is placed by --col / --row in steps of --step; the lines between skills are an SVG in the same grid units.
+ */
 .skill-tree {
+  --step: 76px;
+  --tile: 44px;
   display: grid;
-  gap: 18px;
-  justify-items: center;
+  gap: 14px;
+  overflow-x: auto;
 }
-.skill-tier {
+.skill-lane {
+  --lane: var(--cyan);
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  min-width: 100%;
+  padding: 8px 14px 12px 12px;
+  border-left: 3px solid var(--lane);
+  border-radius: 6px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--lane) 26%, transparent), transparent 80%);
+  box-shadow: inset 3px 0 10px -6px var(--lane);
   position: relative;
-  justify-content: center;
 }
-.skill-tier + .skill-tier::before {
+.skill-lane::after {
   content: "";
   position: absolute;
-  top: -18px;
-  left: 50%;
-  height: 18px;
-  border-left: 1px solid var(--line);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--lane), transparent 70%);
+  box-shadow: 0 0 8px var(--lane);
+  opacity: 0.8;
+}
+.skill-lane[data-branch="cybernetics"] {
+  --lane: var(--branch-cybernetics);
+}
+.skill-lane[data-branch="anonymity"] {
+  --lane: var(--branch-anonymity);
+}
+.skill-lane[data-branch="leverage"] {
+  --lane: var(--branch-leverage);
+}
+.lane-title {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lane);
+  text-shadow: 0 0 8px var(--lane);
+}
+.lane-grid {
+  position: relative;
+  width: calc(var(--cols) * var(--step));
+  height: calc(var(--rows) * var(--step));
+}
+.lane-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.lane-edge {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.lane-edge.lit {
+  stroke: var(--lane);
+  filter: drop-shadow(0 0 3px var(--lane));
+}
+.skill-node {
+  position: absolute;
+  left: calc(var(--col) * var(--step) + (var(--step) - var(--tile)) / 2);
+  top: calc(var(--row) * var(--step) + (var(--step) - var(--tile)) / 2);
+}
+.skill-lane .upgrade.purchasable {
+  border-color: var(--lane);
+  color: var(--lane);
+}
+.skill-lane .upgrade.owned,
+.skill-lane .upgrade.owned.single {
+  border-color: var(--lane);
+  color: var(--lane);
+  box-shadow: 0 0 10px var(--lane);
 }
 .upgrade.locked {
   opacity: 0.35;
+}
+/* A masked skill keeps its place and its lane colour, but nothing glows: it is not lit yet. */
+.skill-node.masked {
+  color: var(--muted);
+  border-color: var(--line);
+  box-shadow: none;
 }
 
 /* The Stats tab: the latest finished sleeve-runs. */

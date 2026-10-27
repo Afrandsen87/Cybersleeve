@@ -9,8 +9,7 @@
 import { AUTOMATION_FEATURES, type CorporationQueries, type GameConfig, type SkillQueries, type GameStateView } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
-import { isPointCurrency } from './buyableViews';
-import { buildSkillLanes } from './skillTree';
+import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
 import type { AutomationView, BuyableView, RunRowView, RunsView, SkillsView, TabView } from './viewTypes';
 
@@ -70,40 +69,51 @@ export function tabsView(engine: SkillQueries & CorporationQueries, state: GameS
 /**
  * The Skills tab, with the group of re-sleeve skills.
  *
- * Called by: {@link buildViewModel}. Calls: {@link resleeveTiers}.
+ * Both trees show every node and every branch title from the start; what a skill says stays hidden until it is readable (see
+ * `skillTree.ts`). The re-sleeve skills are all hidden until the first re-sleeve.
+ *
+ * Called by: {@link buildViewModel}. Calls: {@link buildSkillLanes}.
  *
  * @param engine the engine to read from
  * @param state the game state
  * @param config game configuration
- * @param buyableViews the view of every buyable
- * @param viewById the same views by id
+ * @param viewById the view of every buyable, by id
  * @param text the display text
- * @param revealAll test aid: the re-sleeve skills are not masked before the first re-sleeve
+ * @param revealAll test aid: no skill is masked
  */
 export function skillsView(
   engine: SkillQueries,
   state: GameStateView,
   config: GameConfig,
-  buyableViews: readonly BuyableView[],
   viewById: ReadonlyMap<string, BuyableView>,
   text: UiText,
   revealAll = false,
 ): SkillsView {
+  const owned = (id: string): number => viewById.get(id)?.owned ?? 0;
+  const common = { viewById, owned, hiddenText: text.skills.hidden, revealAll };
+  const branchTitle = (id: string): string => (id === GENERAL_LANE ? text.skills.generalBranch : (text.skills.branches[id] ?? id));
   return {
     title: text.titles.skills,
     points: engine.skillPoints(),
     pointsText: text.skills.points(formatPlain(engine.skillPoints())),
-    buyables: buyableViews.filter((b) => config.buyables.find((d) => d.id === b.id)?.currency === 'skillPoints'),
+    lanes: buildSkillLanes({
+      ...common,
+      skills: config.buyables.filter((b) => b.currency === 'skillPoints'),
+      laneTitle: branchTitle,
+      open: true,
+    }),
     resleeve: {
       title: text.titles.resleeveSkills,
       visible: resleeveSkillsShown(state, config),
       points: engine.resleevePoints(),
       pointsText: text.skills.resleevePoints(formatPlain(engine.resleevePoints())),
       // until the first re-sleeve the player has not seen what the skills do: only their places in the tree show
-      tiers:
-        state.runs.length > 0 || revealAll
-          ? resleeveTiers(config, viewById)
-          : resleeveTiers(config, viewById).map((tier) => tier.map((v) => maskedSkill(v, text))),
+      lanes: buildSkillLanes({
+        ...common,
+        skills: config.buyables.filter((b) => b.currency === 'resleevePoints'),
+        laneTitle: () => '', // the widget's own heading says it
+        open: state.runs.length > 0,
+      }),
     },
   };
 }

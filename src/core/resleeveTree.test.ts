@@ -21,7 +21,7 @@ const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], requires
   currency: 'resleevePoints',
   cost: num(1),
   effect,
-  ...(requires ? { requires } : {}),
+  ...(requires ? { parents: requires } : {}),
 });
 
 const treeBuyables: BuyableDefinition[] = [

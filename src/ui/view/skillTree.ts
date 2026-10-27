@@ -32,6 +32,8 @@ export interface SkillTreeInput {
   readonly hiddenText: string;
   /** False masks the whole tree (the re-sleeve skills before the first re-sleeve). */
   readonly open: boolean;
+  /** Test aid ("Show all"): nothing is masked, whatever the gates and `open` say. */
+  readonly revealAll: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
 
   const readableMemo = new Map<string, boolean>();
   const readable = (id: string): boolean => {
+    if (input.revealAll) return true;
     const known = readableMemo.get(id);
     if (known !== undefined) return known;
     readableMemo.set(id, false); // guards against a loop (validation rejects those; this keeps a bad config from hanging the screen)

@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * The view of every buyable, and the groupings of buyables the screen needs (Sleeve sections, re-sleeve skill tiers).
+ * The view of every buyable, and the groupings of buyables the screen needs (Sleeve sections).
  *
  * @remarks
  * Called by: `ui/viewModel.ts`, `sleeveView.ts`, `skillsView.ts`, `actionView.ts`, `squareView.ts`.
@@ -49,36 +49,6 @@ export function sectionLayout(config: GameConfig): readonly { id: SleeveSectionI
 /** True for the currencies that are points (skill points, re-sleeve points): their buyables live in the Skills tab, not in the Sleeve widget. */
 export function isPointCurrency(currency: Currency | undefined): boolean {
   return currency === 'skillPoints' || currency === 'resleevePoints';
-}
-
-/**
- * The re-sleeve skills in rows by depth: a skill that needs nothing is on row 0, any other one row below the deepest skill it needs.
- *
- * Called by: {@link buildViewModel}.
- *
- * @param config game content (decides which buyables are re-sleeve skills and what they require)
- * @param viewById the view of every buyable
- * @returns the rows, top first; a row holds its skills in configuration order
- */
-export function resleeveTiers(config: GameConfig, viewById: ReadonlyMap<string, BuyableView>): BuyableView[][] {
-  const skills = config.buyables.filter((b) => b.currency === 'resleevePoints');
-  const byId = new Map(skills.map((b) => [b.id, b]));
-  const depths = new Map<string, number>();
-  const depthOf = (id: string): number => {
-    const known = depths.get(id);
-    if (known !== undefined) return known;
-    depths.set(id, 0); // guards against a loop (validation rejects those, this only keeps a bad config from hanging the screen)
-    const needs = (byId.get(id)?.requires ?? []).filter((r) => byId.has(r));
-    const depth = needs.length === 0 ? 0 : 1 + Math.max(...needs.map(depthOf));
-    depths.set(id, depth);
-    return depth;
-  };
-  const tiers: BuyableView[][] = [];
-  for (const b of skills) {
-    const view = viewById.get(b.id);
-    if (view) (tiers[depthOf(b.id)] ??= []).push(view);
-  }
-  return tiers.filter((tier) => tier !== undefined);
 }
 
 /**

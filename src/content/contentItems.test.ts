@@ -201,8 +201,9 @@ describe('Augment schematics are applied, never paid out (real content)', () => 
 describe('Back Channel Deals (real content)', () => {
   it('Moles make heat cool 200% faster: three times the pace, one Mole per point of heat', () => {
     const g = createGame();
-    (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(10);
+    (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
     (g.getState().purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
+    (g.getState().purchased as Record<string, number>)[SKILL_NOSE_FOR_SECRETS] = 1; // Back Channel Deals grows from it
     expect(g.buy(SKILL_BACK_CHANNEL)).toBe('purchased');
     (g.getState() as unknown as { heat: number; moles: number }).heat = 20;
     (g.getState() as unknown as { heat: number; moles: number }).moles = 5;

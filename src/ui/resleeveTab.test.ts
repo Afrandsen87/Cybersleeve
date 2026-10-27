@@ -6,10 +6,11 @@ import { num } from '../numbers';
 import { networkAction, testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel, statRow } from './viewModel';
+import { skillViews } from '../testing/skillViews';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 
-const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], requires?: string[]): BuyableDefinition => ({
+const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], parents?: string[]): BuyableDefinition => ({
   id,
   name: `Skill ${id}`,
   description: id === 'inc' ? 'Does nothing for now.' : 'Does something.',
@@ -17,7 +18,7 @@ const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], requires
   currency: 'resleevePoints',
   cost: num(1),
   effect,
-  ...(requires ? { requires } : {}),
+  ...(parents ? { parents } : {}),
 });
 const tree = [
   resleeveSkill('eu', { kind: 'actionXpReductionFromSleeveLevel', remainingPerOrder: 0.5, maxReduction: 0.999 }),
@@ -83,7 +84,12 @@ describe('the re-sleeve skills in the view model', () => {
     expect(buildViewModel(createGame({ config })).skills.resleeve.visible).toBe(false);
     const vm = buildViewModel(resleeved(1)).skills.resleeve;
     expect(vm.visible).toBe(true);
-    expect(vm.tiers.map((row) => row.map((b) => b.id))).toEqual([['eu'], ['syn', 'inc']]);
+    // grown sideways: the root in column 0, what needs it in column 1, one below the other
+    expect(vm.lanes.flatMap((lane) => lane.nodes.map((n) => [n.view.id, n.col, n.row]))).toEqual([
+      ['eu', 0, 0],
+      ['syn', 1, 0],
+      ['inc', 1, 1],
+    ]);
   });
 
   it('show the re-sleeve points, keep the skills out of the Sleeve purchases, and add the points to the Skills tab label', () => {
@@ -92,16 +98,13 @@ describe('the re-sleeve skills in the view model', () => {
     expect(vm.skills.resleeve.points).toBe(2);
     expect(vm.skills.resleeve.pointsText).toBe('Re-sleeve points: 2');
     expect(vm.sleeve.buyables.map((b) => b.id)).not.toContain('eu');
-    expect(vm.skills.buyables.map((b) => b.id)).not.toContain('eu');
+    expect(skillViews(vm.skills.lanes).map((b) => b.id)).not.toContain('eu');
     expect(vm.tabs[1]!.label).toBe('Skills (2)');
   });
 
   it('mark what cannot be bought yet as unavailable, and what is bought as owned', () => {
     const g = resleeved(1);
-    const find = (id: string) =>
-      buildViewModel(g)
-        .skills.resleeve.tiers.flat()
-        .find((b) => b.id === id)!;
+    const find = (id: string) => skillViews(buildViewModel(g).skills.resleeve.lanes).find((b) => b.id === id)!;
     expect(find('syn').available).toBe(false);
     expect(find('eu').clickable).toBe(true);
     g.buy('eu');
@@ -110,9 +113,7 @@ describe('the re-sleeve skills in the view model', () => {
   });
 
   it('costs are in re-sleeve points', () => {
-    const view = buildViewModel(resleeved(1))
-      .skills.resleeve.tiers.flat()
-      .find((b) => b.id === 'eu')!;
+    const view = skillViews(buildViewModel(resleeved(1)).skills.resleeve.lanes).find((b) => b.id === 'eu')!;
     expect(view.costUnit).toBe('re-sleeve points');
     expect(view.tip).toContain('Cost = 1 re-sleeve points');
   });
@@ -171,14 +172,22 @@ describe('the screen', () => {
     ]);
   });
 
-  it('shows the re-sleeve skills as a tree of rows, a locked skill dimmed, and lets the player buy from the top', () => {
+  it('shows the re-sleeve skills as a tree grown sideways, a locked skill dimmed, and lets the player buy from the top', () => {
     const { root, game, render } = mount();
     click(root, 'Skills');
     const widget = root.querySelector<HTMLElement>('.resleeve-skills')!;
     expect(widget.hidden).toBe(false);
     expect(widget.querySelector('.skills-points')!.textContent).toBe('Re-sleeve points: 1');
-    const tiers = [...widget.querySelectorAll('.skill-tier')].map((row) => [...row.querySelectorAll('button')].map((b) => b.textContent));
-    expect(tiers).toEqual([['EU'], ['SYN', 'INC']]);
+    const places = [...widget.querySelectorAll<HTMLElement>('.skill-node')].map((b) => [
+      b.textContent,
+      b.style.getPropertyValue('--col'),
+      b.style.getPropertyValue('--row'),
+    ]);
+    expect(places).toEqual([
+      ['EU', '0', '0'],
+      ['SYN', '1', '0'],
+      ['INC', '1', '1'],
+    ]);
     const button = (symbol: string) => [...widget.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === symbol)!;
     expect(button('SYN').classList.contains('locked')).toBe(true);
     expect(button('SYN').hidden).toBe(false);
