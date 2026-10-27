@@ -10,6 +10,8 @@ import type { ActionDefinition, CriticalSuccessRule } from './types';
 export interface CriticalChanceSource {
   /** Chance (0..1) that one completed run is a critical success. */
   criticalChance(): number;
+  /** Chance (0..1) that a critical success brings one extra critical success (default: none). */
+  criticalExtraChance?(): number;
 }
 
 /**
@@ -44,6 +46,7 @@ export interface CriticalBatch {
  * probability `c - floor(c)` (150% is one sure success and a 50% chance of a second). On top of that, `covered` runs each carry +100%
  * (a Zero-day, an Admin key or a banked success), on distinct runs, so they are one more sure success each. Everything is drawn
  * once per batch with binomial draws (not once per run), so a batch of a million runs costs as much as one.
+ * Each critical success then has `criticalExtraChance` to bring one more, free (one more binomial draw; the extras do not roll again).
  *
  * Called by: `actionRunner.ts` (`ActionRunner.completeRuns`).
  * Calls: {@link CriticalChanceSource.criticalChance}, `binomial`.
@@ -75,7 +78,9 @@ export class CriticalSuccesses {
     const uncovered = runs - covered;
     const uncoveredExtra = part > 0 ? binomial(uncovered, part, this.random) : 0;
     const coveredExtra = part > 0 ? binomial(covered, part, this.random) : 0;
-    const crits = covered + runs * sure + uncoveredExtra + coveredExtra;
+    const rolled = covered + runs * sure + uncoveredExtra + coveredExtra;
+    // Each critical success may bring one extra, free; the extras do not roll again.
+    const crits = rolled + binomial(rolled, this.source.criticalExtraChance?.() ?? 0, this.random);
     const plainRuns = sure > 0 ? 0 : uncovered - uncoveredExtra;
     return { crits, plainRuns };
   }

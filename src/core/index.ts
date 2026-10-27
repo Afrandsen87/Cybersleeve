@@ -56,6 +56,7 @@ export {
   createAutomationState,
 } from './automation';
 export { CRIT_WINDOW_MS, CritFeed, type RecentCrits } from './critFeed';
+export { LinkedPayouts, type LinkedPayout, type LinkedPayoutRules } from './linkedPayouts';
 export { CriticalSuccesses, criticalRuleFor, type CriticalBatch, type CriticalChanceSource } from './critical';
 export { shiftWeights, wholeOrders } from './rarityShift';
 export { type RandomSource, binomial, multinomial } from './sampling';

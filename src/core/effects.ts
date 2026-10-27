@@ -7,7 +7,7 @@ import type { BigNum, NumberFactory } from '../numbers';
 import { type CurveBeyond, concaveBonus } from './concaveBonus';
 import { type ActionAccumulator, definitionOf, type SleeveAccumulator } from './effectRegistry';
 import { INFINITY, saturate } from './infinity';
-import type { ActionId, BuyableDefinition, ChainRule, GameState, ItemDropRule, SleeveConfig } from './types';
+import type { ActionId, BuyableDefinition, ChainRule, GameState, ItemDropRule, PaysActionRule, SleeveConfig } from './types';
 
 /** One owned buyable's share of a multiplier. */
 export interface FactorTerm {
@@ -63,6 +63,12 @@ export interface SleeveStats {
   readonly heatCooldownAmount: number;
   /** Chance that a completed run of any action is a critical success: the sum of owned `criticalChance` copies. It may exceed 1 (150% is one sure success and a 50% chance of a second). */
   readonly criticalChance: number;
+  /** What each completed run of an action may also pay: one reward of another action, by chance (`paysActionReward` buyables). */
+  readonly paysActions: readonly PaysActionRule[];
+  /** Chance (0..1) that a critical success brings one extra critical success (`criticalExtraChance` buyables). */
+  readonly criticalExtraChance: number;
+  /** What the reward of every critical success is multiplied by (`criticalRewardMultiplier` buyables, >= 1). */
+  readonly criticalRewardFactor: number;
   /** How strong every Overclock is: 1, plus `perCopy` for each copy of an Overclock strength buyable (>= 1). */
   readonly overclockStrength: number;
   /** Focus slots bought on top of `focus.baseSlots` (>= 0). */
@@ -173,6 +179,7 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
  * @param factory number factory
  * @param actionLevelOf plain action level of an action (read by effects that scale with one; defaults to level 0 for all)
  * @param sleeveLevelOf sleeve level of an action (read by effects that scale with one; defaults to level 0 for all)
+ * @param augmentRaritiesHeld how many distinct rarities have an augment applied on any action (defaults to 0)
  * @returns the current stats
  */
 export function resolveSleeveStats(
@@ -185,6 +192,7 @@ export function resolveSleeveStats(
   factory: NumberFactory,
   actionLevelOf: (actionId: ActionId) => number = () => 0,
   sleeveLevelOf: (actionId: ActionId) => number = () => 0,
+  augmentRaritiesHeld: () => number = () => 0,
 ): SleeveStats {
   const acc: SleeveAccumulator = {
     accessLevel: sleeve.baseAccessLevel,
@@ -199,6 +207,9 @@ export function resolveSleeveStats(
     heatCooldownBoost: 0,
     extraHeatCooldownAmount: 0,
     criticalChance: 0,
+    paysActions: [],
+    criticalExtraChance: 0,
+    criticalRewardFactor: 1,
     overclockStrength: 1,
     extraFocusSlots: 0,
     overclockHeatFactors: {},
@@ -210,7 +221,7 @@ export function resolveSleeveStats(
     if (owned <= 0) continue;
     const payoutBefore = acc.nodePayoutFactor;
     const iceBefore = acc.iceRatingFactor;
-    definitionOf(b).sleeve?.(acc, b.effect, { owned, state, factory, actionLevelOf, sleeveLevelOf });
+    definitionOf(b).sleeve?.(acc, b.effect, { owned, state, factory, actionLevelOf, sleeveLevelOf, augmentRaritiesHeld });
     // A buyable's term is how much it moved the running product, so every effect kind reports itself without extra code.
     if (acc.nodePayoutFactor !== payoutBefore)
       nodePayoutTerms.push({ buyableId: b.id, factor: saturate(acc.nodePayoutFactor / payoutBefore) });
@@ -263,6 +274,9 @@ export function resolveSleeveStats(
     heatCooldownBoost,
     heatCooldownAmount: saturate(sleeve.heatCooldownAmount + acc.extraHeatCooldownAmount),
     criticalChance: acc.criticalChance,
+    paysActions: acc.paysActions,
+    criticalExtraChance: acc.criticalExtraChance,
+    criticalRewardFactor: saturate(acc.criticalRewardFactor),
     overclockStrength: acc.overclockStrength,
     extraFocusSlots: acc.extraFocusSlots,
     overclockHeatFactors: acc.overclockHeatFactors,

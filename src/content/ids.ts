@@ -64,6 +64,18 @@ export const SKILL_COLD_TRAIL = 'skill-cold-trail';
 export const SKILL_MUSCLE_MEMORY = 'skill-muscle-memory';
 /** Id of the skill that lowers the XP every action level needs. */
 export const SKILL_QUICK_STUDY = 'skill-quick-study';
+/** Id of the skill that raises interface speed with the network's size, very slowly. */
+export const SKILL_PARALLEL_THREADS = 'skill-parallel-threads';
+/** Id of the skill that raises interface speed for each distinct rarity of augment applied. */
+export const SKILL_NEURAL_ACCELERANT = 'skill-neural-accelerant';
+/** Id of the skill that lets Push malware runs also pay a Grow network reward. */
+export const SKILL_FIBER_TAP = 'skill-fiber-tap';
+/** Id of the skill that multiplies the Grow network reward with its action level. */
+export const SKILL_BACKBONE_PARASITE = 'skill-backbone-parasite';
+/** Id of the skill that gives critical successes a chance to bring an extra one. */
+export const SKILL_SIGNAL_AMPLIFIER = 'skill-signal-amplifier';
+/** Id of the skill that raises the reward of critical successes. */
+export const SKILL_OVERDRIVE_SPIKE = 'skill-overdrive-spike';
 /** Id of the skill that doubles the Kompromat drop chance. */
 export const SKILL_NOSE_FOR_SECRETS = 'skill-nose-for-secrets';
 /** Id of the skill that raises node payout for each uncommon Kompromat file held. */
@@ -90,6 +102,12 @@ export const SKILLS = [
   SKILL_BANDWIDTH,
   SKILL_MUSCLE_MEMORY,
   SKILL_QUICK_STUDY,
+  SKILL_PARALLEL_THREADS,
+  SKILL_NEURAL_ACCELERANT,
+  SKILL_FIBER_TAP,
+  SKILL_BACKBONE_PARASITE,
+  SKILL_SIGNAL_AMPLIFIER,
+  SKILL_OVERDRIVE_SPIKE,
   SKILL_COLD_TRAIL,
   SKILL_OBFUSCATION,
   SKILL_PURGE_PROTOCOL,

@@ -98,6 +98,14 @@ export interface ChainRule {
   readonly nodesPerLink: number;
 }
 
+/** What a `paysActionReward` buyable does: each completed run of `sourceActionId` has `chance` to also pay one reward of `targetActionId`. */
+export interface PaysActionRule {
+  readonly sourceActionId: ActionId;
+  readonly targetActionId: ActionId;
+  /** Chance (0..1) that one completed run pays it. */
+  readonly chance: number;
+}
+
 /**
  * What Overclock does to ONE action while it is switched on (the toggle exists on every action that has a rule, once the Overclock
  * buyable is owned). Each action's rule is its own, so Overclock can do something different for each. A rule lists any mix of the

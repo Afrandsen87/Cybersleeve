@@ -18,6 +18,7 @@ import {
   CorporationLevels,
   CritFeed,
   CriticalSuccesses,
+  LinkedPayouts,
   Economy,
   GameEngine,
   Inventory,
@@ -109,6 +110,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const adminKeys = new ZeroDays(config, state, inventory, 'adminKey', random);
   const links = new CriticalLinks(stats, state);
   const critFeed = new CritFeed();
+  const linked = new LinkedPayouts(stats, random);
   const burnLeads = new BurnLeads(config, state, inventory, () => stats.heatCoolingBlocked());
   const augments = new Augments(config, state, inventory);
   const corporationLevels = new CorporationLevels(config, state, factory);
@@ -137,6 +139,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     adminKeys,
     links,
     critFeed,
+    linked,
     diagnostics,
   );
   return new GameEngine(config, state, {

@@ -6,7 +6,7 @@
 import type { BigNum, NumberFactory } from '../numbers';
 import type { ActionLookup } from './actionLookup';
 import type { FocusStatus, ModeStatuses, OverclockStatus } from './actionToggles';
-import { augmentXpFactor } from './augments';
+import { augmentXpFactor, distinctAugmentRarities } from './augments';
 import { criticalRuleFor } from './critical';
 import type { Economy } from './economy';
 import {
@@ -19,11 +19,12 @@ import {
   resolveSleeveStats,
   type SleeveStats,
 } from './effects';
+import { levelRewardFactor } from './levelRewardFactor';
 import type { Progression } from './progression';
 import { Snapshot } from './snapshot';
 import { shiftWeights, wholeOrders } from './rarityShift';
 import { effectiveDurationMs, type SpeedContext, type SpeedFactor, speedFactors, speedMultiplier, type SpeedModifier } from './speed';
-import type { ActionId, CriticalSuccessRule, GameConfig, GameState, ItemDropRule } from './types';
+import type { ActionId, CriticalSuccessRule, GameConfig, GameState, ItemDropRule, PaysActionRule } from './types';
 
 /**
  * Read-only calculations over the game state: sleeve stats, speed, durations, rewards and passive income.
@@ -67,6 +68,7 @@ export class DerivedStats implements ModeStatuses {
         this.factory,
         (id) => this.progression.actionLevel(this.state, id),
         (id) => this.progression.sleeveLevel(this.state, id),
+        () => distinctAugmentRarities(this.state.actions),
       ),
     );
   }
@@ -81,7 +83,9 @@ export class DerivedStats implements ModeStatuses {
    * (`1 + rewardBonus`). It scales that reward only.
    */
   rewardMultiplier(id: ActionId): BigNum {
-    const bought = resolveEffects(this.config.buyables, this.state, id, this.factory).rewardMultiplier;
+    const fromLevel = levelRewardFactor(this.config.buyables, this.state, id, (a) => this.progression.actionLevel(this.state, a));
+    const effects = resolveEffects(this.config.buyables, this.state, id, this.factory).rewardMultiplier;
+    const bought = fromLevel === 1 ? effects : effects.mul(this.factory.fromNumber(fromLevel));
     const overclock = this.activeOverclock(id);
     const bonus = (overclock?.rewardBonus ?? 0) + (overclock?.chain ? this.chainLinks(id) * overclock.chain.rewardPerLink : 0);
     return bonus > 0 ? bought.mul(this.factory.fromNumber(1 + bonus)) : bought;
@@ -165,7 +169,20 @@ export class DerivedStats implements ModeStatuses {
   criticalRule(id: ActionId): CriticalSuccessRule {
     const rule = criticalRuleFor(this.config.criticalSuccess, this.definition(id));
     const factor = resolveEffects(this.config.buyables, this.state, id, this.factory).criticalFactor;
-    return factor === 1 ? rule : { ...rule, xpMultiplier: rule.xpMultiplier * factor, rewardMultiplier: rule.rewardMultiplier * factor };
+    const rewardFactor = factor * this.sleeveStats().criticalRewardFactor;
+    return factor === 1 && rewardFactor === 1
+      ? rule
+      : { ...rule, xpMultiplier: rule.xpMultiplier * factor, rewardMultiplier: rule.rewardMultiplier * rewardFactor };
+  }
+
+  /** Chance (0..1) that a critical success brings one extra, free critical success (owned `criticalExtraChance` buyables). */
+  criticalExtraChance(): number {
+    return this.sleeveStats().criticalExtraChance;
+  }
+
+  /** What each completed run of the action may also pay: one reward of another action, by chance (owned `paysActionReward` buyables). */
+  paysActions(id: ActionId): readonly PaysActionRule[] {
+    return this.sleeveStats().paysActions.filter((rule) => rule.sourceActionId === id);
   }
 
   /** The actions that every critical run of this action banks a guaranteed critical success for (owned `criticalLink` buyables). */
@@ -187,6 +204,7 @@ export class DerivedStats implements ModeStatuses {
   /**
    * The most critical successes one completed run of this action can have now: the whole part of the chance, one more while a fraction of a
    * chance remains, and one more while a Zero-day, Admin key or banked success can cover it. 0 when criticals are not possible.
+   * Doubled while a `criticalExtraChance` buyable is owned (one possible extra per success).
    */
   maxCritsPerRun(id: ActionId): number {
     const chance = this.criticalChance();
@@ -195,7 +213,9 @@ export class DerivedStats implements ModeStatuses {
       (this.state.zeroDaysOn && zeroDay?.actionId === id) ||
       (this.state.adminKeysOn && adminKey?.actionId === id) ||
       (this.state.bankedCriticals[id] ?? 0) > 0;
-    return Math.floor(chance) + (chance % 1 > 0 ? 1 : 0) + (covered ? 1 : 0);
+    const rolled = Math.floor(chance) + (chance % 1 > 0 ? 1 : 0) + (covered ? 1 : 0);
+    // Each critical success may bring one extra (which does not roll again).
+    return this.criticalExtraChance() > 0 ? rolled * 2 : rolled;
   }
 
   /**

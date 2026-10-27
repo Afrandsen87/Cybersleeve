@@ -27,6 +27,22 @@ export function augmentXpFactor(applied: Readonly<Record<RarityId, number>>, bon
 }
 
 /**
+ * How many distinct rarities have at least one augment applied on any action (common alone is 1; common and uncommon is 2).
+ *
+ * Called by: `stats.ts` (`DerivedStats.sleeveStats`, for `interfaceSpeedFromAugmentRarities`).
+ *
+ * @param actions the state of every action (reads `augments`)
+ * @returns a whole number, at most the number of rarities
+ */
+export function distinctAugmentRarities(actions: Readonly<Record<ActionId, Pick<GameState['actions'][ActionId], 'augments'>>>): number {
+  const held = new Set<RarityId>();
+  for (const action of Object.values(actions)) {
+    for (const [rarity, count] of Object.entries(action.augments)) if (count > 0) held.add(rarity);
+  }
+  return held.size;
+}
+
+/**
  * Applies Augment schematics (items) to actions.
  *
  * @remarks

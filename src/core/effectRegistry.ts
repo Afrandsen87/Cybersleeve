@@ -14,7 +14,7 @@
 import type { BigNum, NumberFactory } from '../numbers';
 import { AUTOMATION_FEATURES } from './automation';
 import { itemCount } from './inventory';
-import type { ActionId, BuyableDefinition, ChainRule, BuyableEffect, GameState, ItemDropRule } from './types';
+import type { ActionId, BuyableDefinition, ChainRule, BuyableEffect, GameState, ItemDropRule, PaysActionRule } from './types';
 
 /** Facts about one kind of effect. */
 export interface EffectTraits {
@@ -65,6 +65,12 @@ export interface SleeveAccumulator {
   /** Heat removed per cooldown cycle on top of `sleeve.heatCooldownAmount`. */
   extraHeatCooldownAmount: number;
   criticalChance: number;
+  /** The `paysActionReward` rules: each completed run of a source action may also pay one reward of a target action. */
+  paysActions: PaysActionRule[];
+  /** Chance (0..1) that a critical success brings one extra, summed over `criticalExtraChance` buyables. */
+  criticalExtraChance: number;
+  /** What the `criticalRewardMultiplier` buyables multiply the reward of every critical success by (starts at 1). */
+  criticalRewardFactor: number;
   /** How strong every Overclock is: 1, plus `perCopy` for each copy of an Overclock strength buyable. */
   overclockStrength: number;
   /** Focus slots bought on top of the base slots. */
@@ -92,6 +98,8 @@ export interface SleeveHookContext {
   readonly actionLevelOf: (actionId: ActionId) => number;
   /** Sleeve level of an action. */
   readonly sleeveLevelOf: (actionId: ActionId) => number;
+  /** How many distinct rarities have at least one augment applied on any action. */
+  readonly augmentRaritiesHeld: () => number;
 }
 
 /** What a validator may look at besides the effect itself. */
@@ -252,6 +260,57 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
     },
     sleeve: (acc, e) => {
       acc.overclockHeatFactors[e.targetActionId] = Math.min(acc.overclockHeatFactors[e.targetActionId] ?? Infinity, e.factor);
+    },
+  },
+  criticalExtraChance: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.chance) && e.chance > 0 && e.chance <= 1))
+        errors.push(`${where}: criticalExtraChance chance must be in (0, 1]`);
+    },
+    sleeve: (acc, e, { owned }) => {
+      acc.criticalExtraChance = Math.min(1, acc.criticalExtraChance + e.chance * owned);
+    },
+  },
+  criticalRewardMultiplier: {
+    traits: sleeveWide,
+    validate: factorAtLeastOne,
+    sleeve: (acc, e, { owned }) => {
+      acc.criticalRewardFactor *= e.factor ** owned;
+    },
+  },
+  paysActionReward: {
+    traits: sleeveWide,
+    validate: (e, { where, actionIds, errors }) => {
+      for (const id of [e.sourceActionId, e.targetActionId]) {
+        if (!actionIds.has(id)) errors.push(`${where}: paysActionReward refers to unknown action "${id}"`);
+      }
+      if (!(Number.isFinite(e.chance) && e.chance > 0 && e.chance <= 1)) errors.push(`${where}: paysActionReward chance must be in (0, 1]`);
+    },
+    sleeve: (acc, e) => {
+      acc.paysActions.push({ sourceActionId: e.sourceActionId, targetActionId: e.targetActionId, chance: e.chance });
+    },
+  },
+  rewardMultiplierFromActionLevel: {
+    // read only by `levelRewardFactor.ts` (through `DerivedStats.rewardMultiplier`)
+    traits: sleeveWide,
+    validate: (e, { where, actionIds, errors }) => {
+      for (const id of [e.sourceActionId, e.targetActionId]) {
+        if (!actionIds.has(id)) errors.push(`${where}: rewardMultiplierFromActionLevel refers to unknown action "${id}"`);
+      }
+      if (!(Number.isFinite(e.coefficient) && e.coefficient > 0))
+        errors.push(`${where}: rewardMultiplierFromActionLevel coefficient must be > 0`);
+      if (!(Number.isFinite(e.scale) && e.scale > 0)) errors.push(`${where}: rewardMultiplierFromActionLevel scale must be > 0`);
+    },
+  },
+  interfaceSpeedFromAugmentRarities: {
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!(Number.isFinite(e.perRarity) && e.perRarity > 0))
+        errors.push(`${where}: interfaceSpeedFromAugmentRarities perRarity must be > 0`);
+    },
+    sleeve: (acc, e, { augmentRaritiesHeld }) => {
+      acc.interfaceSkillFactor *= 1 + e.perRarity * augmentRaritiesHeld();
     },
   },
   itemDrop: {

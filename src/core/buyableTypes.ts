@@ -68,6 +68,39 @@ export type BuyableEffect =
    */
   | { readonly kind: 'criticalLink'; readonly targetActionId: ActionId }
   /**
+   * Every critical success of every action has `chance` (0..1) to bring one extra critical success, free. The extra does not roll again.
+   * Sleeve-wide; the chances of several copies add up (capped at 1).
+   */
+  | { readonly kind: 'criticalExtraChance'; readonly chance: number }
+  /** Multiplies the reward of every critical success (`CriticalSuccessRule.rewardMultiplier`) of every action by `factor` (>= 1) per copy. Its XP is not touched. */
+  | { readonly kind: 'criticalRewardMultiplier'; readonly factor: number }
+  /**
+   * Every completed run of `sourceActionId` has `chance` (0..1) to also pay one whole reward of `targetActionId`: its reward, its own
+   * reward multipliers and its reward kind (like Overclock's `alsoPays`). Never critical, and no XP, heat or drops. Applies once. Sleeve-wide.
+   */
+  | {
+      readonly kind: 'paysActionReward';
+      readonly sourceActionId: ActionId;
+      readonly targetActionId: ActionId;
+      readonly chance: number;
+    }
+  /**
+   * Multiplies the reward of `targetActionId` by `1 + coefficient * ln(1 + level / scale)`, where `level` is the plain action level of
+   * `sourceActionId`: a concave curve, quick at first, ever flatter. Applies once, whatever the number of copies. Sleeve-wide.
+   */
+  | {
+      readonly kind: 'rewardMultiplierFromActionLevel';
+      readonly sourceActionId: ActionId;
+      readonly targetActionId: ActionId;
+      readonly coefficient: number;
+      readonly scale: number;
+    }
+  /**
+   * Multiplies the interface speed by `1 + perRarity` for each distinct rarity (of the five) that has at least one augment applied on any
+   * action: additive, so five rarities give `1 + 5 * perRarity`. Applies once.
+   */
+  | { readonly kind: 'interfaceSpeedFromAugmentRarities'; readonly perRarity: number }
+  /**
    * Lowers the factor Overclock multiplies the heat of each completed run of `targetActionId` by (`OverclockRule.heatPerRunFactor`)
    * to `factor` (>= 1) when the rule's own factor is higher. Applies once, whatever the number of copies; the lowest factor wins.
    */

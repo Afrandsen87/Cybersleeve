@@ -7,6 +7,7 @@ import type { BigNum, NumberFactory } from '../numbers';
 import type { ActionLookup } from './actionLookup';
 import { applyCompletionEffects } from './completion';
 import type { CriticalSuccesses } from './critical';
+import type { LinkedPayouts } from './linkedPayouts';
 import type { CritFeed } from './critFeed';
 import { type Diagnostics, silentDiagnostics } from './diagnostics';
 import type { ItemDrops } from './drops';
@@ -36,7 +37,7 @@ const PROGRESS_EPSILON = 1e-9;
  *
  * Called by: `engine.ts`.
  * Calls: {@link DerivedStats}, {@link Progression}, {@link Economy},
- * `payReward`, `applyCompletionEffects`, {@link ItemDrops}, {@link CriticalSuccesses}, {@link ZeroDays}, {@link CriticalLinks}.
+ * `payReward`, `applyCompletionEffects`, {@link ItemDrops}, {@link CriticalSuccesses}, {@link ZeroDays}, {@link CriticalLinks}, {@link LinkedPayouts}.
  */
 export class ActionRunner {
   /**
@@ -55,6 +56,7 @@ export class ActionRunner {
    * @param adminKeys uses up the Admin keys that make runs critical for sure (and may drop Skill shards)
    * @param links spends and banks the guaranteed critical successes of critical links
    * @param feed told about the critical successes of every batch (for the highlight on the action card)
+   * @param linked draws the extra rewards completed runs pay for other actions (`paysActionReward` buyables)
    * @param diagnostics receives a warning when game time has to be dropped (default: ignored)
    */
   constructor(
@@ -71,6 +73,7 @@ export class ActionRunner {
     private readonly adminKeys: ZeroDays,
     private readonly links: CriticalLinks,
     private readonly feed: CritFeed,
+    private readonly linked: LinkedPayouts,
     private readonly diagnostics: Diagnostics = silentDiagnostics,
   ) {}
 
@@ -296,6 +299,8 @@ export class ActionRunner {
       payReward(this.state, kind, gross.mul(this.factory.fromNumber(rule.rewardMultiplier)), this.factory.fromNumber(critical));
     const overclock = this.stats.activeOverclock(def.id);
     if (overclock?.alsoPays) this.payAlso(overclock.alsoPays, count);
+    for (const { targetActionId, count: paid } of this.linked.settle(def.id, runs))
+      this.payAlso(targetActionId, this.factory.fromNumber(paid));
     this.state.heat += runs * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
     this.drops.roll(def.id, runs);
     this.extendChain(def.id, runs);
