@@ -26,13 +26,13 @@ describe('the cybernetics skills of the real content', () => {
     expect(childrenOf(SKILL_OVERCLOCK).sort()).toEqual([SKILL_BANDWIDTH, SKILL_MUSCLE_MEMORY, SKILL_PARALLEL_THREADS].sort());
   });
 
-  it('the three lanes are straight lines', () => {
-    expect(childrenOf(SKILL_BANDWIDTH)).toEqual([SKILL_SIGNAL_AMPLIFIER]);
-    expect(childrenOf(SKILL_SIGNAL_AMPLIFIER)).toEqual([SKILL_FIBER_TAP]);
+  it('Bandwidth Leech splits into two straight lanes, Signal Amplifier above Fiber Tap, beside the two other arms', () => {
+    expect(childrenOf(SKILL_BANDWIDTH)).toEqual([SKILL_SIGNAL_AMPLIFIER, SKILL_FIBER_TAP]);
+    expect(childrenOf(SKILL_SIGNAL_AMPLIFIER)).toEqual([SKILL_OVERDRIVE_SPIKE]);
     expect(childrenOf(SKILL_FIBER_TAP)).toEqual([SKILL_BACKBONE_PARASITE]);
     expect(childrenOf(SKILL_MUSCLE_MEMORY)).toEqual([SKILL_QUICK_STUDY]);
     expect(childrenOf(SKILL_PARALLEL_THREADS)).toEqual([SKILL_NEURAL_ACCELERANT]);
-    expect(childrenOf(SKILL_NEURAL_ACCELERANT)).toEqual([SKILL_OVERDRIVE_SPIKE]);
+    expect(childrenOf(SKILL_NEURAL_ACCELERANT)).toEqual([]);
     expect(childrenOf(SKILL_OVERCLOCK).length).toBe(3);
   });
 

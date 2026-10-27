@@ -22,8 +22,8 @@ import {
 } from '../../ids';
 
 /**
- * The cybernetics branch: Overclocked Cortex is the root, with three lanes drawn as straight lines. Bandwidth Leech, Signal Amplifier, Fiber Tap, Backbone Parasite;
- * Muscle Memory, Quick Study; Parallel Threads, Neural Accelerant, Overdrive Spike.
+ * The cybernetics branch: Overclocked Cortex is the root, with three arms drawn as straight lanes. Bandwidth Leech, which splits into two lanes (Signal Amplifier, Overdrive Spike; and Fiber Tap, Backbone Parasite);
+ * Muscle Memory, Quick Study; Parallel Threads, Neural Accelerant.
  */
 export const cyberneticsSkills: BuyableDefinition[] = [
   {
@@ -99,13 +99,37 @@ export const cyberneticsSkills: BuyableDefinition[] = [
   },
 
   {
+    id: SKILL_SIGNAL_AMPLIFIER,
+    name: 'Signal Amplifier',
+    symbol: 'SG',
+    description: 'Every critical success has a 5% chance to bring one extra critical success.',
+    currency: 'skillPoints',
+    branch: BRANCH_CYBERNETICS,
+    parents: [SKILL_BANDWIDTH],
+    cost: num(1),
+    effect: { kind: 'criticalExtraChance', chance: 0.05 },
+  },
+
+  {
+    id: SKILL_OVERDRIVE_SPIKE,
+    name: 'Overdrive Spike',
+    symbol: 'OS',
+    description: 'Doubles the reward of every critical success.',
+    currency: 'skillPoints',
+    branch: BRANCH_CYBERNETICS,
+    parents: [SKILL_SIGNAL_AMPLIFIER],
+    cost: num(1),
+    effect: { kind: 'criticalRewardMultiplier', factor: 2 },
+  },
+
+  {
     id: SKILL_FIBER_TAP,
     name: 'Fiber Tap',
     symbol: 'FT',
     description: 'Each completed Push malware run has a 25% chance to also pay one full Grow network reward. It cannot be critical.',
     currency: 'skillPoints',
     branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_SIGNAL_AMPLIFIER],
+    parents: [SKILL_BANDWIDTH],
     cost: num(1),
     // A whole reward or nothing (half a node cannot be paid), so the chance is the lever.
     effect: { kind: 'paysActionReward', sourceActionId: PUSH_MALWARE, targetActionId: GROW_NETWORK, chance: 0.25 },
@@ -129,29 +153,5 @@ export const cyberneticsSkills: BuyableDefinition[] = [
       coefficient: 2.263,
       scale: 18,
     },
-  },
-
-  {
-    id: SKILL_SIGNAL_AMPLIFIER,
-    name: 'Signal Amplifier',
-    symbol: 'SG',
-    description: 'Every critical success has a 5% chance to bring one extra critical success.',
-    currency: 'skillPoints',
-    branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_BANDWIDTH],
-    cost: num(1),
-    effect: { kind: 'criticalExtraChance', chance: 0.05 },
-  },
-
-  {
-    id: SKILL_OVERDRIVE_SPIKE,
-    name: 'Overdrive Spike',
-    symbol: 'OS',
-    description: 'Doubles the reward of every critical success.',
-    currency: 'skillPoints',
-    branch: BRANCH_CYBERNETICS,
-    parents: [SKILL_NEURAL_ACCELERANT],
-    cost: num(1),
-    effect: { kind: 'criticalRewardMultiplier', factor: 2 },
   },
 ];
