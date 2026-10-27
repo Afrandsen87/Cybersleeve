@@ -6,7 +6,7 @@
  */
 import type { BigNum } from '../numbers';
 import type { GameConfig, GameStateView } from '../core';
-import { AUTOMATION_FEATURES, SCALAR_FIELDS } from '../core';
+import { type AUTOMATION_FEATURES, SCALAR_FIELDS, automationPointsEarned, isFeatureUnlocked } from '../core';
 
 /** Config sections the checks read. */
 type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'corporation' | 'focus' | 'items' | 'progression'>;
@@ -61,17 +61,19 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
     }
   }
   const auto = state.automation;
-  const earned = config.buyables.reduce(
-    (n, b) => (b.effect.kind === 'automationPoints' ? n + b.effect.perCopy * (state.purchased[b.id] ?? 0) : n),
+  const earned = automationPointsEarned(config.buyables, state.purchased);
+  const spent = config.buyables.reduce(
+    (n, b) => (b.currency === 'automationPoints' ? n + b.cost.toNumber() * (state.purchased[b.id] ?? 0) : n),
     0,
   );
-  const unlockedCount = AUTOMATION_FEATURES.filter((f) => auto.unlocked[f]).length;
-  if (unlockedCount > earned) problems.push(`more automation features unlocked (${unlockedCount}) than points earned (${earned})`);
+  if (spent > earned) problems.push(`more automation points spent (${spent}) than earned (${earned})`);
+  const featureUnlocked = (feature: (typeof AUTOMATION_FEATURES)[number]): boolean =>
+    isFeatureUnlocked(config.buyables, state.purchased, feature);
   if (!(Number.isFinite(auto.autoBurnCeiling) && auto.autoBurnCeiling >= 0))
     problems.push(`autoBurnCeiling is not valid: ${auto.autoBurnCeiling}`);
-  if (auto.autoBurnOn && !auto.unlocked.autoBurn) problems.push('Auto Burn is on but not unlocked');
-  if (Object.keys(auto.autosale).length > 0 && !auto.unlocked.autosale) problems.push('autosale is set but not unlocked');
-  if (Object.keys(auto.dispersal).length > 0 && !auto.unlocked.dispersal) problems.push('augment dispersal is set but not unlocked');
+  if (auto.autoBurnOn && !featureUnlocked('autoBurn')) problems.push('Auto Burn is on but not unlocked');
+  if (Object.keys(auto.autosale).length > 0 && !featureUnlocked('autosale')) problems.push('autosale is set but not unlocked');
+  if (Object.keys(auto.dispersal).length > 0 && !featureUnlocked('dispersal')) problems.push('augment dispersal is set but not unlocked');
   const shareTotal = Object.values(auto.dispersal).reduce((n, s) => n + s, 0);
   if (shareTotal > 100 + 1e-9) problems.push(`dispersal shares add up to more than 100: ${shareTotal}`);
   for (const [id, share] of Object.entries(auto.dispersal)) {

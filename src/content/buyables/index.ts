@@ -13,6 +13,7 @@ import { corporationBuyables } from './corporation';
 import { sleeveBuyables } from './sleeve';
 import { skillsBuyables } from './skills';
 import { resleeveSkillsBuyables } from './resleeveSkills';
+import { automationSkills } from './skillBranches/automationLines';
 
 /** All buyables, in configuration order. */
 export const buyablesConfig: BuyableDefinition[] = [
@@ -23,6 +24,7 @@ export const buyablesConfig: BuyableDefinition[] = [
   ...buildLegendBuyables,
   ...skillsBuyables,
   ...resleeveSkillsBuyables,
+  ...automationSkills,
   ...sleeveBuyables,
   ...corporationBuyables,
 ];

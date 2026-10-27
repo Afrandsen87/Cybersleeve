@@ -12,6 +12,7 @@
  * level bonus, XP reductions, drop chance, the back channel) leaves both hooks out and is read by that query.
  */
 import type { BigNum, NumberFactory } from '../numbers';
+import { AUTOMATION_FEATURES } from './automation';
 import { itemCount } from './inventory';
 import type { ActionId, BuyableDefinition, ChainRule, BuyableEffect, GameState, ItemDropRule } from './types';
 
@@ -321,6 +322,14 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
     traits: corporate,
     validate: (e, { where, errors }) => {
       if (!(Number.isInteger(e.amount) && e.amount >= 1)) errors.push(`${where}: corporate rank amount must be an integer >= 1`);
+    },
+  },
+  unlocksAutomation: {
+    // read only by the Automation unit, which looks for the owned buyable of each feature
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!AUTOMATION_FEATURES.includes(e.feature))
+        errors.push(`${where}: unlocksAutomation names an unknown feature "${String(e.feature)}"`);
     },
   },
   placeholder: { traits: sleeveWide, validate: none },

@@ -15,7 +15,7 @@
  * version; changing the meaning of an existing field does, together with a migration.
  */
 import type { BigNum, NumberFactory } from '../numbers';
-import { AUTOMATION_FEATURES } from './automation';
+import { AUTOMATION_FEATURES, isFeatureUnlocked, unlockingBuyable } from './automation';
 import { readCorporationState, writeCorporationState } from './corporationState';
 import { traitsOf } from './effectTraits';
 import { SCALAR_FIELDS, readScalar, writeScalars } from './fields';
@@ -23,7 +23,10 @@ import { createInitialState } from './state';
 import type { GameConfig, GameState, GameStateView } from './types';
 
 /** Current save format version. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
+
+/** The previous save format, still read: its unlocked automation features are turned into owned lane skills (see {@link migrateV4}). */
+const PREVIOUS_SAVE_VERSION = 4;
 
 /**
  * Shape of the stored JSON (current version): `version`, one entry per scalar field of `fields.ts` (amounts as strings, plain
@@ -43,7 +46,6 @@ interface SaveData {
   synths: { runIndex: number }[];
   corporation: ReturnType<typeof writeCorporationState>;
   automation: {
-    unlocked: Record<string, boolean>;
     autoBurnOn: boolean;
     autoBurnCeiling: number;
     autosale: Record<string, boolean>;
@@ -87,7 +89,6 @@ export function serializeState(state: GameStateView): string {
     synths: state.synths.map((s) => ({ runIndex: s.runIndex })),
     corporation: writeCorporationState(state.corporation),
     automation: {
-      unlocked: { ...state.automation.unlocked } as Record<string, boolean>,
       autoBurnOn: state.automation.autoBurnOn,
       autoBurnCeiling: state.automation.autoBurnCeiling,
       autosale: { ...state.automation.autosale },
@@ -129,15 +130,15 @@ export function deserializeState(
   config: Pick<GameConfig, 'actions' | 'buyables' | 'corporation' | 'focus' | 'items' | 'progression' | 'sleeve'>,
   factory: NumberFactory,
 ): GameState | null {
-  let raw: unknown;
+  let parsed: unknown;
   try {
-    raw = JSON.parse(json);
+    parsed = JSON.parse(json);
   } catch {
     return null;
   }
-  if (!isRecord(raw)) return null;
-  const version = raw['version'];
-  if (version !== SAVE_VERSION) return null;
+  if (!isRecord(parsed)) return null;
+  const raw = parsed['version'] === PREVIOUS_SAVE_VERSION ? migrateV4(parsed, config) : parsed;
+  if (raw['version'] !== SAVE_VERSION) return null;
 
   try {
     const state = createInitialState(config, factory);
@@ -202,32 +203,37 @@ export function deserializeState(
 }
 
 /**
- * Reads the automation settings: a feature is unlocked only while there are points for it (the first listed features keep theirs if
- * the save claims more than the points owned), Auto Burn is on only when unlocked, the ceiling must be a finite number >= 0, and
+ * Turns a version 4 save into a version 5 one: a feature that was unlocked (a flag in `automation.unlocked`, paid with one automation
+ * point) becomes an owned copy of the skill that unlocks it, which costs the same one point. Everything else is read as it is.
+ *
+ * Called by: {@link deserializeState}. Calls: {@link unlockingBuyable}.
+ */
+function migrateV4(raw: Record<string, unknown>, config: Pick<GameConfig, 'buyables'>): Record<string, unknown> {
+  const automation = isRecord(raw['automation']) ? raw['automation'] : {};
+  const unlocked = isRecord(automation['unlocked']) ? automation['unlocked'] : {};
+  const purchased: Record<string, unknown> = isRecord(raw['purchased']) ? { ...raw['purchased'] } : {};
+  for (const feature of AUTOMATION_FEATURES) {
+    const skill = unlockingBuyable(config.buyables, feature);
+    if (unlocked[feature] === true && skill !== undefined) purchased[skill] = Math.max(1, readCount(purchased[skill]));
+  }
+  return { ...raw, version: SAVE_VERSION, purchased };
+}
+
+/**
+ * Reads the automation settings (a feature is unlocked when its skill is owned, so this runs after the purchases are read): Auto Burn is on only when unlocked, the ceiling must be a finite number >= 0, and
  * autosale and dispersal keep only known rarities and actions (shares clamped to 1..100).
  */
 function readAutomation(state: GameState, raw: unknown, config: Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>): void {
   if (config.automation === undefined || !isRecord(raw)) return;
-  const earned = config.buyables.reduce(
-    (n, b) => (b.effect.kind === 'automationPoints' ? n + b.effect.perCopy * (state.purchased[b.id] ?? 0) : n),
-    0,
-  );
-  const saved = isRecord(raw['unlocked']) ? raw['unlocked'] : {};
-  let points = earned;
-  for (const feature of AUTOMATION_FEATURES) {
-    if (points > 0 && saved[feature] === true) {
-      state.automation.unlocked[feature] = true;
-      points--;
-    }
-  }
+  const unlocked = (feature: (typeof AUTOMATION_FEATURES)[number]): boolean => isFeatureUnlocked(config.buyables, state.purchased, feature);
   const auto = state.automation;
   const ceiling = raw['autoBurnCeiling'];
   if (typeof ceiling === 'number' && Number.isFinite(ceiling) && ceiling >= 0) auto.autoBurnCeiling = ceiling;
-  auto.autoBurnOn = raw['autoBurnOn'] === true && auto.unlocked.autoBurn === true;
+  auto.autoBurnOn = raw['autoBurnOn'] === true && unlocked('autoBurn');
   const savedSale = isRecord(raw['autosale']) ? raw['autosale'] : {};
   const savedShares = isRecord(raw['dispersal']) ? raw['dispersal'] : {};
-  if (auto.unlocked.autosale) for (const r of config.items.rarities) if (savedSale[r.id] === true) auto.autosale[r.id] = true;
-  if (auto.unlocked.dispersal) {
+  if (unlocked('autosale')) for (const r of config.items.rarities) if (savedSale[r.id] === true) auto.autosale[r.id] = true;
+  if (unlocked('dispersal')) {
     let room = 100;
     for (const a of config.actions) {
       const share = savedShares[a.id];

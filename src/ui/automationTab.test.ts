@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { createConfig, type GameConfig } from '../core';
 import { num } from '../numbers';
+import { automationLaneBuyables } from '../testing/automationKit';
 import { setCredits, testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel } from './viewModel';
@@ -32,6 +33,7 @@ const config: GameConfig = createConfig(testConfig, {
       maxPurchases: Infinity,
       effect: { kind: 'automationPoints', perCopy: 1 },
     },
+    ...automationLaneBuyables(),
   ],
   automation: { autoBurnCeiling: 10 },
 });
@@ -74,10 +76,10 @@ describe('automation in the view model', () => {
     g.automation().unlock('dispersal');
     g.automation().setDispersal('b', 40);
     const view = buildViewModel(g).automation;
-    expect(view.features.map((f) => [f.id, f.unlocked, f.canUnlock])).toEqual([
-      ['autoBurn', false, false],
-      ['autosale', false, false],
-      ['dispersal', true, false],
+    expect(view.features.map((f) => [f.id, f.unlocked])).toEqual([
+      ['autoBurn', false],
+      ['autosale', false],
+      ['dispersal', true],
     ]);
     expect(view.pointsText).toBe('Automation points: 0');
     expect(view.autoBurn.ceiling).toBe(10);
@@ -102,20 +104,20 @@ describe('the Automation tab on the screen', () => {
     const boxes = [...panel(root).querySelectorAll<HTMLElement>('.automation-feature')];
     expect(boxes).toHaveLength(3);
     for (const box of boxes) {
-      expect(box.querySelector<HTMLElement>('.automation-unlock')!.hidden).toBe(false);
       expect(box.querySelector<HTMLElement>('.automation-controls')!.hidden).toBe(true);
     }
   });
 
-  it('unlocking spends a point and reveals the controls; with no point left the other unlocks are disabled', () => {
-    const { root, game } = mount(1);
+  it('buying the first skill of a lane spends a point and reveals the controls; with no point left the other lanes cannot be started', () => {
+    const { root, game, render } = mount(1);
     tab(root, /Automation/).click();
-    const unlocks = [...panel(root).querySelectorAll<HTMLButtonElement>('.automation-unlock')];
-    unlocks[0]!.click();
+    const first = (feature: string) => panel(root).querySelector<HTMLButtonElement>(`.automation-${feature} .skill-node`)!;
+    first('autoBurn').click();
+    render();
     expect(game.automation().isUnlocked('autoBurn')).toBe(true);
     expect(panel(root).querySelector<HTMLElement>('.automation-autoBurn .automation-controls')!.hidden).toBe(false);
-    expect(panel(root).querySelector<HTMLElement>('.automation-autoBurn .automation-unlock')!.hidden).toBe(true);
-    expect(unlocks[1]!.disabled).toBe(true);
+    first('autosale').click();
+    expect(game.automation().isUnlocked('autosale')).toBe(false);
     expect(panel(root).querySelector('.skills-points')!.textContent).toBe('Automation points: 0');
   });
 

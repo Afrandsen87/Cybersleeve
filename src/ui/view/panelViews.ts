@@ -127,14 +127,36 @@ export function skillsView(
 /**
  * The Automation tab.
  *
- * Called by: {@link buildViewModel}. Calls: `GameQueries.automation`.
+ * Called by: {@link buildViewModel}. Calls: `GameQueries.automation`, {@link buildSkillLanes}.
+ *
+ * Each feature carries its own skill lane (the buyables paid in automation points whose branch is the feature's id), laid out like a
+ * skill tree and never masked: the whole lane is shown from the start.
  *
  * @param engine the engine to read from
  * @param config game configuration
+ * @param viewById the view of every buyable, by id
  * @param text the display text
+ * @param revealAll test aid: no skill is masked (none is anyway)
  */
-export function automationView(engine: SkillQueries, config: GameConfig, text: UiText): AutomationView {
+export function automationView(
+  engine: SkillQueries,
+  config: GameConfig,
+  viewById: ReadonlyMap<string, BuyableView>,
+  text: UiText,
+  revealAll = false,
+): AutomationView {
   const automation = engine.automation();
+  const owned = (id: string): number => viewById.get(id)?.owned ?? 0;
+  const laneOf = (feature: string): SkillLaneView[] =>
+    buildSkillLanes({
+      viewById,
+      owned,
+      hiddenText: text.skills.hidden,
+      revealAll,
+      skills: config.buyables.filter((b) => b.currency === 'automationPoints' && b.branch === feature),
+      laneTitle: () => '', // the feature's own heading says it
+      open: true,
+    });
   return {
     title: text.titles.automation,
     points: automation.pointsAvailable(),
@@ -144,7 +166,7 @@ export function automationView(engine: SkillQueries, config: GameConfig, text: U
       name: text.automation.features[id].name,
       description: text.automation.features[id].description,
       unlocked: automation.isUnlocked(id),
-      canUnlock: !automation.isUnlocked(id) && automation.pointsAvailable() >= 1,
+      lanes: laneOf(id),
     })),
     autoBurn: {
       on: automation.isAutoBurnOn(),

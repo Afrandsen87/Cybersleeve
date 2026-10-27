@@ -219,7 +219,7 @@ describe('serialization', () => {
     expect(restored.purchased).toEqual({ auto: 1, dual: 1, dup: 7 });
   });
 
-  it.each([0, 1, 2, 5, 99, '4', null])(
+  it.each([0, 1, 2, 6, 99, '5', null])(
     'refuses a save of another format version (%j): the game starts over instead of guessing',
     (version) => {
       const json = JSON.parse(serializeState(createInitialState(config, numberFactory)));

@@ -59,9 +59,9 @@ export function corporationActionOf(config: GameConfig, id: string): string | un
   return config.buyables.find((d) => d.id === id)?.corporationActionId;
 }
 
-/** True for the currencies that are points (skill points, re-sleeve points): their buyables live in the Skills tab, not in the Sleeve widget. */
+/** True for the currencies that are points (skill points, re-sleeve points, automation points): their buyables live in the Skills or Automation tab, not in the Sleeve widget. */
 export function isPointCurrency(currency: Currency | undefined): boolean {
-  return currency === 'skillPoints' || currency === 'resleevePoints';
+  return currency === 'skillPoints' || currency === 'resleevePoints' || currency === 'automationPoints';
 }
 
 /**

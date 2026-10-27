@@ -46,6 +46,10 @@ export { ItemDrops, type DropRules } from './drops';
 export {
   AUTOMATION_FEATURES,
   Automation,
+  automationPointsEarned,
+  isFeatureUnlocked,
+  unlockingBuyable,
+  type AutomationShop,
   type AutomationControls,
   type AutomationFeature,
   type AutomationState,

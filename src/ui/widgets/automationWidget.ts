@@ -1,22 +1,31 @@
 /**
  * @module ui
  *
- * The Automation tab: unlock buttons for the automation features and their settings.
+ * The Automation tab: for each automation feature its settings and its skill lane.
  *
  * @remarks
- * Called by: `ui/dom.ts`. Calls: `domKit.ts`, `AutomationControls`.
+ * Called by: `ui/dom.ts`. Calls: `domKit.ts`, `skillTree.ts`, `AutomationControls`.
  */
 import type { AutomationControls, AutomationFeature } from '../../core';
-import type { UiText } from '../uiText';
 import type { AutomationView } from '../viewModel';
-import { h, setText } from './domKit';
+import { type UiContext, h, setText } from './domKit';
+import { type SkillTreeWidget, mountSkillTree } from './skillTree';
+
+/** One feature's box in the Automation tab. */
+export interface AutomationFeatureHandle {
+  readonly box: HTMLElement;
+  /** The settings, shown once the feature is unlocked. */
+  readonly controls: HTMLElement;
+  /** The feature's skill lane. */
+  readonly tree: SkillTreeWidget;
+}
 
 /** Handles to update the Automation tab. */
 export interface AutomationWidget {
   readonly root: HTMLElement;
   readonly points: HTMLElement;
-  /** Each feature's box, its unlock button and the controls that show once it is unlocked. */
-  readonly features: ReadonlyMap<AutomationFeature, { box: HTMLElement; unlock: HTMLButtonElement; controls: HTMLElement }>;
+  /** Each feature's box, its unlock button, the controls that show once it is unlocked, and its skill lane. */
+  readonly features: ReadonlyMap<AutomationFeature, AutomationFeatureHandle>;
   readonly autoBurnSwitch: HTMLButtonElement;
   readonly autoBurnCeiling: HTMLInputElement;
   readonly rarities: ReadonlyMap<string, HTMLButtonElement>;
@@ -42,27 +51,28 @@ function numberField(
 }
 
 /**
- * Builds the Automation tab: the points, and one box per feature with an unlock button and, once unlocked, its controls (Auto Burn's switch and
- * ceiling, a switch per rarity for autosale, a share per action for dispersal). Every press goes to the automation controls of the engine,
- * which decide what is allowed.
+ * Builds the Automation tab: the points, and one box per feature with an unlock button, its controls once unlocked (Auto Burn's switch and
+ * ceiling, a switch per rarity for autosale, a share per action for dispersal) and its skill lane (always shown; the first skill is the
+ * unlock: there is no separate unlock button). Every press goes to the automation controls of the engine, which decide
+ * what is allowed; a skill press goes through `ctx.activate`.
  *
  * Called by: {@link mountUi}.
  *
- * @param view the initial view data (decides which switches and inputs exist)
+ * @param ctx what the skill lanes need from the screen (icons, tips, the buy command)
+ * @param view the initial view data (decides which switches and inputs and skills exist)
  * @param controls the engine's automation controls
- * @param text the display text
  * @param refresh redraws the screen after a press
  */
 export function buildAutomationWidget(
+  ctx: UiContext,
   view: AutomationView,
   controls: AutomationControls,
-  text: UiText,
   refresh: () => void,
 ): AutomationWidget {
   const root = h('aside', 'automation-widget');
   const points = h('div', 'skills-points');
   root.append(h('h2', undefined, view.title), points);
-  const features = new Map<AutomationFeature, { box: HTMLElement; unlock: HTMLButtonElement; controls: HTMLElement }>();
+  const features = new Map<AutomationFeature, AutomationFeatureHandle>();
   const autoBurnSwitch = h('button', 'automation-switch') as HTMLButtonElement;
   autoBurnSwitch.addEventListener('click', () => {
     controls.setAutoBurn(!controls.isAutoBurnOn());
@@ -76,11 +86,6 @@ export function buildAutomationWidget(
   const shares = new Map<string, HTMLInputElement>();
   for (const f of view.features) {
     const box = h('section', `automation-feature automation-${f.id}`);
-    const unlock = h('button', 'automation-unlock', text.automation.unlock) as HTMLButtonElement;
-    unlock.addEventListener('click', () => {
-      controls.unlock(f.id);
-      refresh();
-    });
     const body = h('div', 'automation-controls');
     if (f.id === 'autoBurn') body.append(autoBurnSwitch, ceiling.row);
     else if (f.id === 'autosale') {
@@ -103,8 +108,9 @@ export function buildAutomationWidget(
         body.append(field.row);
       }
     }
-    box.append(h('h3', 'section-title', f.name), h('p', 'automation-description', f.description), unlock, body);
-    features.set(f.id, { box, unlock, controls: body });
+    const tree = mountSkillTree(ctx, f.lanes);
+    box.append(h('h3', 'section-title', f.name), h('p', 'automation-description', f.description), body, tree.element);
+    features.set(f.id, { box, controls: body, tree });
     root.append(box);
   }
   return { root, points, features, autoBurnSwitch, autoBurnCeiling: ceiling.input, rarities, shares };
@@ -121,10 +127,9 @@ export function renderAutomation(widget: AutomationWidget, view: AutomationView)
   for (const f of view.features) {
     const handle = widget.features.get(f.id);
     if (!handle) continue;
-    handle.unlock.hidden = f.unlocked;
-    handle.unlock.disabled = !f.canUnlock;
     handle.controls.hidden = !f.unlocked;
     handle.box.classList.toggle('unlocked', f.unlocked);
+    handle.tree.render(f.lanes);
   }
   setText(widget.autoBurnSwitch, view.autoBurn.switchText);
   widget.autoBurnSwitch.classList.toggle('on', view.autoBurn.on);

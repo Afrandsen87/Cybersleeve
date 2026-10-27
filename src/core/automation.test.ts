@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num, numberFactory } from '../numbers';
+import { automationLaneBuyables, laneSkillId } from '../testing/automationKit';
 import { findInvariantViolations } from '../testing/invariants';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { createConfig, deserializeState, serializeState, validateConfig, type GameConfig } from './index';
+import {
+  AUTOMATION_FEATURES,
+  createConfig,
+  deserializeState,
+  isFeatureUnlocked,
+  serializeState,
+  validateConfig,
+  type GameConfig,
+} from './index';
 
 /**
  * Test content: `file` is sold (Common 10, Rare 100 credits), `schem` is the Augment schematic, `lead` the Burn lead (5% of the heat).
@@ -32,6 +41,7 @@ const config: GameConfig = createConfig(testConfig, {
       maxPurchases: Infinity,
       effect: { kind: 'automationPoints', perCopy: 1 },
     },
+    ...automationLaneBuyables(),
   ],
   automation: { autoBurnCeiling: 10 },
 });
@@ -298,7 +308,7 @@ describe('automation is saved and keeps every invariant', () => {
 
   it('a save restores the unlocks and every setting', () => {
     const restored = deserializeState(serializeState(setup().getState()), config, numberFactory)!;
-    expect(restored.automation.unlocked).toEqual({ autoBurn: true, autosale: true, dispersal: true });
+    expect(AUTOMATION_FEATURES.every((f) => isFeatureUnlocked(config.buyables, restored.purchased, f))).toBe(true);
     expect(restored.automation.autoBurnOn).toBe(true);
     expect(restored.automation.autoBurnCeiling).toBe(42);
     expect(restored.automation.autosale).toEqual({ rare: true });
@@ -311,14 +321,13 @@ describe('automation is saved and keeps every invariant', () => {
     expect(serializeState(deserializeState(saved, config, numberFactory)!)).toBe(saved);
   });
 
-  it('a save cannot unlock more than the points owned, or set what is not unlocked', () => {
+  it('a save cannot set what is not unlocked', () => {
     const data = JSON.parse(serializeState(setup().getState()));
-    data.purchased = { core: 1 }; // one point only
-    data.automation.unlocked = { autoBurn: true, autosale: true, dispersal: true };
+    data.purchased = { core: 1, [laneSkillId('autoBurn', 1)]: 1 }; // only Auto Burn is unlocked
     data.automation.autoBurnCeiling = -5;
     data.automation.dispersal = { b: 30, nope: 10 };
     const restored = deserializeState(JSON.stringify(data), config, numberFactory)!;
-    expect(restored.automation.unlocked).toEqual({ autoBurn: true });
+    expect(AUTOMATION_FEATURES.filter((f) => isFeatureUnlocked(config.buyables, restored.purchased, f))).toEqual(['autoBurn']);
     expect(restored.automation.autoBurnCeiling).toBe(10); // the bad value is ignored: the default stays
     expect(restored.automation.autosale).toEqual({});
     expect(restored.automation.dispersal).toEqual({});
@@ -329,7 +338,7 @@ describe('automation is saved and keeps every invariant', () => {
     const data = JSON.parse(serializeState(game(0).getState()));
     delete data.automation;
     const restored = deserializeState(JSON.stringify(data), config, numberFactory)!;
-    expect(restored.automation.unlocked).toEqual({});
+    expect(AUTOMATION_FEATURES.some((f) => isFeatureUnlocked(config.buyables, restored.purchased, f))).toBe(false);
     expect(restored.automation.autoBurnOn).toBe(false);
   });
 
@@ -356,6 +365,7 @@ describe('automation configuration is validated', () => {
     const bad = createConfig(config, {
       buyables: [
         ...testConfig.buyables,
+        ...automationLaneBuyables(),
         { id: 'core', name: 'Core', description: '', cost: num(1), effect: { kind: 'automationPoints', perCopy: 0.5 } },
       ],
     });

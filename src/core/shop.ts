@@ -28,7 +28,7 @@ export class Shop {
    * @param buyables all purchasable definitions
    * @param factory number factory
    * @param costMultiplier global price lever (`global.costMultiplier`)
-   * @param pointsEarned the points of a currency earned in total from the state (what purchases paid in `skillPoints` or `resleevePoints` are paid from; default none)
+   * @param pointsEarned the points of a currency earned in total from the state (what purchases paid in `skillPoints`, `resleevePoints` or `automationPoints` are paid from; default none)
    * @param snapshot scope in which the points are computed once (default: a private one that is never opened)
    * @param revealOrders `reveal.buyableOrders`: how many orders of magnitude above the peak balance a price may be and still show (default: all show)
    * @param onPurchased called after every purchase (default: nothing)
@@ -92,7 +92,7 @@ export class Shop {
     if (!this.isAvailable(state, id)) return false;
     if (this.owned(state, id) > 0 || this.revealOrders === Infinity) return true;
     const currency = this.currencyOf(id);
-    if (currency === 'skillPoints') return true;
+    if (currency === 'skillPoints' || currency === 'automationPoints') return true;
     const peak = currency === 'networkNodes' ? state.peakNetwork : state.peakCredits;
     // a peak below one counts as one, so a new game with nothing yet still shows the cheapest purchases
     const reference = peak.lt(this.factory.fromNumber(1)) ? this.factory.fromNumber(1) : peak;
@@ -123,7 +123,7 @@ export class Shop {
    * Nothing is stored for them: buying a skill raises the cost owned, which lowers this.
    *
    * @param state current state
-   * @param currency `skillPoints` or `resleevePoints`
+   * @param currency `skillPoints`, `resleevePoints` or `automationPoints`
    * @returns a whole number >= 0
    */
   pointsAvailable(state: GameState, currency: PointCurrency): number {
@@ -188,7 +188,8 @@ export class Shop {
   /** What the player holds of the buyable's currency. */
   private balance(state: GameState, id: BuyableId): BigNum {
     const currency = this.currencyOf(id);
-    if (currency === 'skillPoints' || currency === 'resleevePoints') return this.factory.fromNumber(this.pointsAvailable(state, currency));
+    if (currency === 'skillPoints' || currency === 'resleevePoints' || currency === 'automationPoints')
+      return this.factory.fromNumber(this.pointsAvailable(state, currency));
     return currency === 'networkNodes' ? state.network : state.credits;
   }
 }
