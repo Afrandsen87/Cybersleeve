@@ -242,11 +242,11 @@ describe('Zero-days (real content)', () => {
     expect(row().tip).toContain('Switched on');
   });
 
-  it('Zero-day exploits cost 5,000 credits; Persistence is a one-time 500,000-credit buyable on Push malware that triples critical successes', () => {
+  it('Zero-day exploits cost 5 million credits; Persistence is a one-time 1-trillion-credit buyable on Push malware that triples critical successes', () => {
     const find = (id: string) => gameConfig.buyables.find((b) => b.id === id)!;
-    expect(find(ZERO_DAY_EXPLOITS).cost.eq(num(5_000))).toBe(true);
+    expect(find(ZERO_DAY_EXPLOITS).cost.eq(num(5_000_000))).toBe(true);
     const persistence = find(PERSISTENCE);
-    expect(persistence.cost.eq(num(500_000))).toBe(true);
+    expect(persistence.cost.eq(num(1e12))).toBe(true);
     expect(persistence.actionId).toBe(PUSH_MALWARE);
     expect(persistence.maxPurchases ?? 1).toBe(1);
     expect(persistence.effect).toEqual({ kind: 'criticalBoost', factor: 3 });

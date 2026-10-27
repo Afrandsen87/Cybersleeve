@@ -66,6 +66,7 @@ Design rules:
 - No global reward or output multiplier: every lever/multiplier names exactly what it scales (`REWARDS`, `EFFECT_TRAITS`); code asks descriptors, never compares kind names.
 - New buyable effect kind = union member + ONE entry in `core/effectRegistry.ts`; switches over kinds end in `assertNever`.
 - Actions are gated only by access level; no unlock rules.
+- Nothing is shown before it matters: any stat, bar, button, skill or purchase stays hidden until something makes or changes it (`ui/view/statReveal.ts`, `ui/view/sleeveGate.ts`). Purchases are listed by base price via `sortByBasePrice` (`ui/view/buyableViews.ts`).
 - Re-sleeve is a positive list (`CARRIED_OVER_ACTION_FIELDS`, `CARRIED_OVER_BUYABLE_CURRENCIES`); everything else resets. Only the current save version is read; changing a saved field's meaning needs a version bump and migration.
 - Randomness only through an injected `RandomSource`, drawn per batch of runs (closed form), never per run.
 - All interface wording in `src/ui/uiText.ts`; stat widgets are data-driven rows. Test aids (Reset save, Speed x10) only in dev builds or with `?debug`.

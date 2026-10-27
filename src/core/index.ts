@@ -62,6 +62,7 @@ export { euphoriaReduction } from './sleeveEuphoria';
 export { type SynthIncome, SynthSleeves, synthCreditsPerSecond } from './synthSleeves';
 export { Resleever } from './resleever';
 export { type ResleevePolicy, alwaysAllowResleeve } from './resleeve';
+export { ResleeveGate, sleeveLevelsGateId } from './resleeveGate';
 export {
   CARRIED_OVER_ACTION_FIELDS,
   CARRIED_OVER_BUYABLE_CURRENCIES,

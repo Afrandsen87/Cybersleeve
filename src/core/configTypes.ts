@@ -140,6 +140,11 @@ export interface ResleeveConfig {
   readonly pointsPerResleeve: number;
   /** How many of the latest sleeve-runs the Stats tab lists (a whole number >= 1). */
   readonly runsShown: number;
+  /**
+   * Game time in ms after buying the sleeve-levels unlock during which re-sleeving is refused (>= 0; default 0). Only matters in a
+   * game with an `unlockSleeveLevels` buyable.
+   */
+  readonly lockoutMs?: number;
 }
 
 /** The automation features and their starting values. Leave the section out for a game without automation. */

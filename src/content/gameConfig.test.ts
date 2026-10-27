@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { validateConfig } from '../core';
 import { num } from '../numbers';
+import { openResleeving } from '../testing/sleeveLevelsKit';
 import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
@@ -15,6 +16,7 @@ import {
   PERSISTENCE,
   RANSOMWARE,
   RESLEEVE_SKILLS,
+  SLEEVE_LEVELS,
   SKILL_INCORPORATION,
   SKILL_SLEEVE_EUPHORIA,
   SKILL_SYNTHETIC_SLEEVES,
@@ -89,7 +91,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(card.square.cells[0]).toMatchObject({ id: 'autoRun', mode: 'buy', buyableId: MALWARE_AUTO_RUN });
     expect(card.buyables.find((b) => b.id === MALWARE_AUTO_RUN)!.inSquare).toBe(true);
     const row = card.buyables.filter((b) => !b.inSquare).map((b) => b.id);
-    expect(row).toEqual([ZERO_DAY_EXPLOITS, MALWARE_OUTPUT, MALWARE_ICE, RANSOMWARE, PERSISTENCE]);
+    expect(row).toEqual([MALWARE_OUTPUT, MALWARE_ICE, ZERO_DAY_EXPLOITS, RANSOMWARE, PERSISTENCE]); // by base price
   });
 
   it("Push malware's row of purchases is sorted by price, cheapest first", () => {
@@ -155,6 +157,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     const g = createGame();
     expect(g.resleevePoints()).toBe(0);
     expect(g.canBuy(SKILL_SLEEVE_EUPHORIA)).toBe(false);
+    openResleeving(g);
     g.resleeve();
     expect(g.resleevePoints()).toBe(1);
     expect(g.canBuy(SKILL_SYNTHETIC_SLEEVES), 'a node under Sleeve Euphoria is locked until it is bought').toBe(false);
@@ -167,8 +170,11 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(g.resleevePoints()).toBe(0);
   });
 
-  it('Incorporation says in its tooltip that it does nothing for now', () => {
-    const view = buildViewModel(createGame())
+  it('Incorporation says in its tooltip that it does nothing for now (once the first re-sleeve has shown what the skills are)', () => {
+    const g = createGame();
+    openResleeving(g);
+    g.resleeve();
+    const view = buildViewModel(g)
       .skills.resleeve.tiers.flat()
       .find((b) => b.id === SKILL_INCORPORATION)!;
     expect(view.tip).toContain('Does nothing for now');
@@ -225,6 +231,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     const vm = buildViewModel(createGame());
     expect(vm.actions.map((a) => a.id)).toEqual(gameConfig.actions.map((a) => a.id));
     for (const b of gameConfig.buyables) {
+      if (b.id === SLEEVE_LEVELS) continue; // it is the Re-sleeve button, not in a list (tested below)
       const owner =
         b.currency === 'skillPoints'
           ? vm.skills.buyables
@@ -235,6 +242,23 @@ describe('real game content (src/content/gameConfig.ts)', () => {
               : vm.actions.find((a) => a.id === b.actionId)!.buyables;
       expect(owner.map((v) => v.id)).toContain(b.id);
     }
+  });
+
+  it('the sleeve-levels unlock is the Re-sleeve button: for sale once in reach, then the Re-sleeve action after a lockout', () => {
+    const g = createGame();
+    expect(buildViewModel(g).resleeveBuy).toBeNull(); // not in reach in a new game
+    setCredits(g, num('1e11'));
+    (g.getState() as { peakCredits: unknown }).peakCredits = num('1e11');
+    const vm = buildViewModel(g);
+    expect(vm.resleeveShown).toBe(false);
+    expect(vm.resleeveBuy).toMatchObject({ id: SLEEVE_LEVELS, affordable: true });
+    g.buy(SLEEVE_LEVELS);
+    const after = buildViewModel(g);
+    expect(after.resleeveShown).toBe(true);
+    expect(after.resleeveBuy).toBeNull();
+    expect(after.canResleeve).toBe(false);
+    g.tick(5_000);
+    expect(buildViewModel(g).canResleeve).toBe(true);
   });
 
   it('the player is never charged a negative or non-finite price', () => {

@@ -23,7 +23,7 @@ import {
   Progression,
   Resleever,
   Shop,
-  alwaysAllowResleeve,
+  ResleeveGate,
   createActionLookup,
   createClampOverflowPolicy,
   createInitialState,
@@ -74,6 +74,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const progression = new Progression(config, factory);
   const snapshot = new Snapshot();
   const synths = new SynthSleeves(config, state, progression, factory);
+  const resleeveGate = new ResleeveGate(config, state);
   const shop = new Shop(
     config.buyables,
     factory,
@@ -84,7 +85,10 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
         : s.runs.length * config.resleeve.pointsPerResleeve,
     snapshot,
     config.reveal?.buyableOrders ?? Infinity,
-    (buyable) => synths.onPurchased(buyable),
+    (buyable) => {
+      synths.onPurchased(buyable);
+      resleeveGate.onPurchased(buyable);
+    },
   );
   const economy = new Economy(config, factory);
   const definition = createActionLookup(config.actions);
@@ -135,7 +139,8 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     network: new NetworkSystem(state, stats, factory, synths),
     synths,
     resleever: new Resleever(config, state, stats, progression, synths, factory),
-    resleevePolicy: alwaysAllowResleeve,
+    resleevePolicy: resleeveGate,
+    resleeveLockout: resleeveGate,
     overflowPolicy: createClampOverflowPolicy(factory),
     factory,
     snapshot,

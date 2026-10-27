@@ -17,6 +17,7 @@ import {
 } from '../../core';
 import { type BigNum, formatBigNum, formatPlain, type NumberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
+import { sleeveLevelsOpen } from './sleeveGate';
 import { SPEED_DECIMALS, formatSeconds } from './viewFormat';
 import { augmentView, focusView, overclockView } from './modeViews';
 import { squareView } from './squareView';
@@ -98,6 +99,7 @@ export function buildActionViews(
   factory: NumberFactory,
   text: UiText,
 ): ActionView[] {
+  const sleeveShown = sleeveLevelsOpen(state, config);
   return config.actions.map((def): ActionView => {
     const s = state.actions[def.id];
     if (!s) throw new Error(`Missing state for action ${def.id}`);
@@ -132,6 +134,7 @@ export function buildActionViews(
       xpText,
       nextLevelXpText,
       levelProgressPercent: engine.actionLevelProgress(def.id) * 100,
+      sleeveShown,
       sleeve: {
         level: sleeveLevel,
         xpText: sleeveXpText,

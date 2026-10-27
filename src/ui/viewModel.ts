@@ -15,6 +15,7 @@ import { buildBuyableViews } from './view/buyableViews';
 import { inventoryView } from './view/inventoryView';
 import { networkView } from './view/networkView';
 import { automationView, runsView, skillsView, tabsView } from './view/panelViews';
+import { resleeveBuyView, sleeveLevelsOpen } from './view/sleeveGate';
 import { sleeveView } from './view/sleeveView';
 import type { ViewModel } from './view/viewTypes';
 import { type UiText, uiText as defaultText } from './uiText';
@@ -50,7 +51,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
     creditsText: formatBigNum(state.credits),
     creditsLine: text.credits(formatBigNum(state.credits)),
     network: networkView(engine, config, state, stats, text),
-    tabs: tabsView(engine, state, text),
+    tabs: tabsView(engine, state, config, text),
     skills: skillsView(engine, state, config, buyableViews, viewById, text),
     runs: runsView(state.runs, config, text),
     automation: automationView(engine, config, text),
@@ -58,5 +59,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText):
     actions: buildActionViews(engine, config, state, buyableViews, viewById, factory, text),
     sleeve: sleeveView(stats, state, config, buyableViews, viewById, text),
     canResleeve: engine.canResleeve(),
+    resleeveShown: sleeveLevelsOpen(state, config),
+    resleeveBuy: resleeveBuyView(state, config, viewById),
   };
 }

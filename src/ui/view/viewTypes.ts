@@ -93,6 +93,8 @@ export interface ActionView {
   readonly nextLevelXpText: string;
   /** Action level bar: 0..100, how far through the current level. */
   readonly levelProgressPercent: number;
+  /** The sleeve XP bar is shown: false until the sleeve-levels unlock is bought (the XP is tracked meanwhile). */
+  readonly sleeveShown: boolean;
   /** This action's own sleeve level and XP. */
   readonly sleeve: XpTrackView & { readonly runsToNextXp: number };
   readonly speedText: string;
@@ -350,6 +352,15 @@ export interface SkillsView {
   readonly resleeve: ResleeveSkillsView;
 }
 
+/** The sleeve-levels unlock as it is shown on the Re-sleeve button before it is bought. */
+export interface ResleeveBuyView {
+  readonly id: string;
+  /** Button text: name and price. */
+  readonly text: string;
+  readonly tip: string;
+  readonly affordable: boolean;
+}
+
 /** Display data of the whole screen. */
 export interface ViewModel {
   /** The balance on its own, e.g. `"12"`. */
@@ -367,4 +378,8 @@ export interface ViewModel {
   readonly actions: readonly ActionView[];
   readonly sleeve: SleeveView;
   readonly canResleeve: boolean;
+  /** The Re-sleeve button works as the Re-sleeve action: false while it is still the purchase of the sleeve-levels unlock. */
+  readonly resleeveShown: boolean;
+  /** While the button is still the purchase of the sleeve-levels unlock: what to show on it; `null` once bought (or when it is not in reach yet). */
+  readonly resleeveBuy: ResleeveBuyView | null;
 }

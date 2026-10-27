@@ -139,12 +139,12 @@ export const tipText: UiText['tips'] = {
       `Heat falls by ${amount} every ${cycleSeconds}s, in whole points only: it waits until there is at least ${amount}`,
       ...(moles === null ? [] : [`${moles.moles} Moles make it ${moles.boostPercent}% faster`]),
     ].join('\n'),
-  iceRating: ({ earned, levelBonus, multipliers, total, orders, perOrderPercent, reductionPercent, fullAt }) =>
+  iceRating: ({ earned, levelBonus, levelBonusSource, multipliers, total, orders, perOrderPercent, reductionPercent, fullAt }) =>
     [
-      `ICE Rating = ${levelBonus === null ? 'Earned' : '(Earned + Level Bonus)'}${multipliers.map((t) => ` x ${t.label}`).join('')}`,
+      `ICE Rating = ${levelBonus === null ? 'Earned' : `(Earned + ${levelBonusSource})`}${multipliers.map((t) => ` x ${t.label}`).join('')}`,
       '',
       `Earned = ${earned}`,
-      ...(levelBonus === null ? [] : [`Level Bonus = ${levelBonus}`]),
+      ...(levelBonus === null ? [] : [`${levelBonusSource} = ${levelBonus}`]),
       ...multipliers.map((t) => `${t.label} = x${t.value}`),
       `ICE Rating = ${total}`,
       '',

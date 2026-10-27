@@ -311,6 +311,7 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
     },
   },
   synthSleeves: { traits: sleeveWide, validate: none },
+  unlockSleeveLevels: { traits: sleeveWide, validate: none },
   placeholder: { traits: sleeveWide, validate: none },
   heatCooldownAmountFromSleeveLevel: {
     traits: sleeveWide,

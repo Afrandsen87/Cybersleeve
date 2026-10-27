@@ -26,7 +26,12 @@ import {
 describe('Rarity refinement (real content)', () => {
   it('is on the Practice Hacking card after the harvest, needs the harvest and costs 10,000', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === PRACTICE_HACKING)!;
-    expect(card.buyables.map((b) => b.id).slice(0, 3)).toEqual([expect.any(String), KOMPROMAT_HARVEST, RARITY_REFINEMENT]);
+    expect(
+      card.buyables
+        .filter((b) => !b.inSquare)
+        .map((b) => b.id)
+        .slice(0, 2),
+    ).toEqual([KOMPROMAT_HARVEST, RARITY_REFINEMENT]);
     const def = gameConfig.buyables.find((b) => b.id === RARITY_REFINEMENT)!;
     expect(def.requires).toEqual([KOMPROMAT_HARVEST]);
     expect(def.cost.eq(num(10_000))).toBe(true);

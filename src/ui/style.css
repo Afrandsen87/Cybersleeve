@@ -553,11 +553,18 @@ button:not(:disabled):hover {
 .resleeve-row {
   display: flex;
   gap: 8px;
+  margin-top: 12px;
+}
+.resleeve-row[hidden] {
+  display: none;
 }
 .resleeve {
   flex: 1;
   border-color: var(--magenta);
   text-align: center;
+}
+.resleeve.buy {
+  border-color: var(--cyan, var(--magenta));
 }
 .resleeve.armed {
   background: var(--magenta);

@@ -68,6 +68,7 @@ export const SCALAR_FIELDS: readonly ScalarField[] = [
   { kind: 'num', key: 'legend', whole: true, initial: () => 0 },
   { kind: 'num', key: 'legendCooldownMs', initial: () => 0 },
   { kind: 'num', key: 'moles', initial: () => 0 },
+  { kind: 'num', key: 'resleeveLockoutMs', initial: () => 0 },
   { kind: 'num', key: 'networkRemainder', below: 1, initial: () => 0 },
   { kind: 'big', key: 'nodePayoutBonus', initial: (_c, f) => f.fromNumber(0) },
   { kind: 'big', key: 'hackingProficiency', initial: (_c, f) => f.fromNumber(0) },

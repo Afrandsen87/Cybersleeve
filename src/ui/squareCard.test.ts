@@ -86,7 +86,7 @@ describe('the square on an action card (view model)', () => {
     const g = createGame({ config });
     const flagged = (b: { inSquare: boolean }) => b.inSquare;
     const card = buildViewModel(g).actions[0]!;
-    expect(card.buyables.filter(flagged).map((b) => b.id)).toEqual(['auto', 'oc-a', 'fo-a']);
+    expect(card.buyables.filter(flagged).map((b) => b.id)).toEqual(['oc-a', 'fo-a', 'auto']); // by base price
     expect(card.buyables.filter((b) => !b.inSquare).map((b) => b.id)).toEqual(['dual', 'dup']);
   });
 

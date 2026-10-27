@@ -330,6 +330,11 @@ export function validateConfig(config: GameConfig): string[] {
 
   if (!positiveInt(config.resleeve.pointsPerResleeve)) errors.push('resleeve.pointsPerResleeve must be an integer >= 1');
   if (!positiveInt(config.resleeve.runsShown)) errors.push('resleeve.runsShown must be an integer >= 1');
+  const lockout = config.resleeve.lockoutMs;
+  if (lockout !== undefined && !(Number.isFinite(lockout) && lockout >= 0)) errors.push('resleeve.lockoutMs must be >= 0');
+  if (config.buyables.filter((b) => b.effect.kind === 'unlockSleeveLevels').length > 1) {
+    errors.push('at most one buyable may have the unlockSleeveLevels effect');
+  }
 
   const p = config.progression;
   if (!positiveInt(p.runsPerSleeveXp)) errors.push('progression.runsPerSleeveXp must be an integer >= 1');

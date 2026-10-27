@@ -115,11 +115,11 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
     ]);
   });
 
-  it('leaves out empty sections and action buyables, and keeps the flat list in configuration order', () => {
+  it('leaves out empty sections and action buyables, and keeps the flat list in base-price order', () => {
     const vm = buildViewModel(game({ buyables: [buy('b', { cost: num(9) }), buy('a', { cost: num(2) }), buy('mine', { actionId: 'a' })] }));
     expect(vm.sleeve.sections.map((s) => s.title)).toEqual(['One-time']);
     expect(vm.sleeve.sections[0]!.buyables.map((b) => b.id)).toEqual(['a', 'b']);
-    expect(vm.sleeve.buyables.map((b) => b.id)).toEqual(['b', 'a']);
+    expect(vm.sleeve.buyables.map((b) => b.id)).toEqual(['a', 'b']);
   });
 
   it('a rebuyable lights up only after it was bought once and the next copy is affordable', () => {

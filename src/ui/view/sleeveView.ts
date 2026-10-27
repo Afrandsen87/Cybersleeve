@@ -7,10 +7,18 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: the helpers in `viewFormat.ts`, `buyableViews.ts`.
  */
-import { type ActionDefinition, type GameConfig, type GameStateView, type SleeveStats, earnedSpeedBeyond } from '../../core';
+import {
+  sleeveLevelsGateId,
+  type ActionDefinition,
+  type GameConfig,
+  type GameStateView,
+  type SleeveStats,
+  earnedSpeedBeyond,
+} from '../../core';
 import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
 import { isPointCurrency, sectionLayout } from './buyableViews';
+import { isStatHidden } from './statReveal';
 import { MULTIPLIER_DECIMALS, PROFICIENCY_DECIMALS, SPEED_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
 import type { BuyableView, SleeveView, StatRowView } from './viewTypes';
 
@@ -33,10 +41,25 @@ function nextUnlock(config: GameConfig, accessLevel: number): { name: string; le
   return next === null ? null : { name: next.name, level: String(next.requiredAccessLevel ?? 1) };
 }
 
+/**
+ * The names of the owned purchases that add base ICE Rating per action level, joined with " + ".
+ *
+ * Called by: {@link sleeveRows}.
+ *
+ * @param config game configuration (reads the buyables)
+ * @param ownedCount copies owned of a buyable id
+ * @returns the names, or a generic label when none is owned
+ */
+function iceBonusSource(config: GameConfig, ownedCount: (id: string) => number): string {
+  const names = config.buyables.filter((b) => b.effect.kind === 'iceRatingFromActionLevel' && ownedCount(b.id) > 0).map((b) => b.name);
+  return names.length > 0 ? names.join(' + ') : 'Purchase Bonus';
+}
+
 /** The sleeve stat rows. */
 function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig, text: UiText): StatRowView[] {
   const ownedCount = (id: string): number => state.purchased[id] ?? 0;
   const { sleeve } = config;
+  const reveal = { config, accessLevel: stats.accessLevel, owned: ownedCount };
   const keep = 1 - stats.heatReduction;
   const stopsAt = keep > 0 && sleeve.heatTaxPerPoint > 0 ? text.format.heatPoints(formatPlain(1 / sleeve.heatTaxPerPoint / keep)) : null;
   const cycleMs = sleeve.heatCooldownMs / (1 + sleeve.legendHeatSpeedup * stats.legend);
@@ -90,23 +113,37 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
         curve,
       }),
     ),
-    row('iceRating', text, formatBigNum(stats.iceRating), () =>
-      text.tips.iceRating({
-        earned: formatBigNum(stats.iceRatingEarned),
-        levelBonus: stats.iceRatingBonus.gt(numberFactory.fromNumber(0)) ? formatBigNum(stats.iceRatingBonus) : null,
-        multipliers: namedTerms(stats.iceRatingTerms, config, ownedCount, (f) => formatPlain(f)),
-        total: formatBigNum(stats.iceRating),
-        orders: formatPlain(orders),
-        perOrderPercent: formatPlain(sleeve.iceRatingReductionPerOrder * 100),
-        reductionPercent: formatPlain(stats.heatReduction * 100),
-        fullAt: sleeve.iceRatingReductionPerOrder > 0 ? text.format.powerOfTen(formatPlain(1 / sleeve.iceRatingReductionPerOrder)) : null,
-      }),
+    row(
+      'iceRating',
+      text,
+      formatBigNum(stats.iceRating),
+      () =>
+        text.tips.iceRating({
+          earned: formatBigNum(stats.iceRatingEarned),
+          levelBonus: stats.iceRatingBonus.gt(numberFactory.fromNumber(0)) ? formatBigNum(stats.iceRatingBonus) : null,
+          levelBonusSource: iceBonusSource(config, ownedCount),
+          multipliers: namedTerms(stats.iceRatingTerms, config, ownedCount, (f) => formatPlain(f)),
+          total: formatBigNum(stats.iceRating),
+          orders: formatPlain(orders),
+          perOrderPercent: formatPlain(sleeve.iceRatingReductionPerOrder * 100),
+          reductionPercent: formatPlain(stats.heatReduction * 100),
+          fullAt: sleeve.iceRatingReductionPerOrder > 0 ? text.format.powerOfTen(formatPlain(1 / sleeve.iceRatingReductionPerOrder)) : null,
+        }),
+      null,
+      isStatHidden('iceRating', reveal, stats.iceRatingEarned.gt(numberFactory.fromNumber(sleeve.baseIceRating))),
     ),
-    row('heat', text, String(Number(stats.heat.toFixed(4))), heatTip, {
-      label: text.bars.heat(coolsNow),
-      percent: Math.min(100, (state.heatCooldownMs / cycleMs) * 100),
-      running: coolsNow,
-    }),
+    row(
+      'heat',
+      text,
+      String(Number(stats.heat.toFixed(4))),
+      heatTip,
+      {
+        label: text.bars.heat(coolsNow),
+        percent: Math.min(100, (state.heatCooldownMs / cycleMs) * 100),
+        running: coolsNow,
+      },
+      isStatHidden('heat', reveal, stats.heat > 0),
+    ),
     row(
       'legend',
       text,
@@ -124,6 +161,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
         percent: Math.min(100, (state.legendCooldownMs / sleeve.legendDecayPeriodMs) * 100),
         running: stats.legend > 0,
       },
+      isStatHidden('legend', reveal, stats.legend > 0),
     ),
     row(
       'criticalChance',
@@ -165,7 +203,10 @@ export function sleeveView(
     title: text.titles.sleeve,
     stats: sleeveRows(stats, state, config, text),
     buyables: buyableViews.filter(
-      (b) => b.actionId === undefined && !isPointCurrency(config.buyables.find((d) => d.id === b.id)?.currency),
+      (b) =>
+        b.actionId === undefined &&
+        !isPointCurrency(config.buyables.find((d) => d.id === b.id)?.currency) &&
+        b.id !== sleeveLevelsGateId(config.buyables),
     ),
     sections: sectionLayout(config).map((section) => ({
       id: section.id,

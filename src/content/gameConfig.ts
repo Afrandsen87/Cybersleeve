@@ -32,7 +32,7 @@ export const gameConfig: GameConfig = {
   focus: { speedBonus: 0.25, baseSlots: 1 },
 
   /** Each re-sleeve gives one re-sleeve point; the Stats tab lists the last 10 sleeve-runs. */
-  resleeve: { pointsPerResleeve: 1, runsShown: 10 },
+  resleeve: { pointsPerResleeve: 1, runsShown: 10, lockoutMs: 5_000 },
 
   /** A purchase shows once its price is within 3 orders of magnitude of the most of its currency held this life. */
   reveal: { buyableOrders: 3 },

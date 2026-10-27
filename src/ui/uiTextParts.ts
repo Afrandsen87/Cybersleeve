@@ -334,6 +334,8 @@ export interface IceRatingTipParts {
   readonly earned: string;
   /** Base ICE Rating that purchases add per action level, or `null` when there is none. */
   readonly levelBonus: string | null;
+  /** Name of the purchase(s) that give {@link levelBonus}, e.g. `"Hardened payload"`. */
+  readonly levelBonusSource: string;
   /** The purchases that multiply ICE Rating, one named factor each (empty when none is owned). */
   readonly multipliers: readonly TipTerm[];
   /** ICE Rating now. */

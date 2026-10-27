@@ -211,6 +211,7 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
         setText(card.info, a.infoText);
         tips.set(card.info, a.unlocked ? () => a.speedTip : null);
         setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
+        card.sleeveXp.root.hidden = !a.sleeveShown;
         setXpBar(card.sleeveXp, a.sleeveBarText, a.sleeve.progressPercent);
         setText(card.reward, a.rewardLine);
         card.button.disabled = !a.startable;

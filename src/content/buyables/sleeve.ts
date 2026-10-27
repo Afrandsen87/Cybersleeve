@@ -16,6 +16,7 @@ import {
   AUTOMATION_CORE,
   OVERCLOCK_UPGRADE,
   FOCUS_UPGRADE,
+  SLEEVE_LEVELS,
 } from '../ids';
 
 /** The buyables of the sleeve as a whole (not tied to an action). */
@@ -37,7 +38,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     name: 'ICE Rating boost',
     symbol: 'IB',
     description: 'Multiplies ICE Rating by 2. Each copy costs 100x more.',
-    cost: num(15_000), // a little above Hardened payload: it multiplies nothing until that adds base ICE Rating
+    cost: num(150_000), // a little above Hardened payload: it multiplies nothing until that adds base ICE Rating
     costGrowth: 100, // every 2nd order of magnitude
     maxPurchases: Infinity,
     effect: { kind: 'iceRatingMultiplier', factor: 2 },
@@ -137,5 +138,15 @@ export const sleeveBuyables: BuyableDefinition[] = [
     maxPurchases: Infinity,
     // chance 0.05 per copy: 20 copies make every run critical (the total is capped at 1)
     effect: { kind: 'criticalChance', chance: 0.05 },
+  },
+
+  {
+    id: SLEEVE_LEVELS,
+    name: 'Unlock resleeving',
+    symbol: 'SL',
+    description:
+      'Unlocks sleeve levels and the option to re-sleeve, and with it the re-sleeve skills. Sleeve XP is tracked before this, but does nothing until you buy it. Kept when you re-sleeve.',
+    cost: num(100e9),
+    effect: { kind: 'unlockSleeveLevels' },
   },
 ];

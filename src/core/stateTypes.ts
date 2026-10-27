@@ -70,6 +70,8 @@ export interface GameState {
   legend: number;
   /** Time spent on the current Legend decay cycle, in ms. Only advances while Legend > 0. Reset by re-sleeving. */
   legendCooldownMs: number;
+  /** Game time left, in ms, before the player may re-sleeve after buying the sleeve-levels unlock (stops a double click). Reset by re-sleeving. */
+  resleeveLockoutMs: number;
   /** Moles: points of heat that still cool down faster, bought by giving up items (Back Channel Deals). Reset by re-sleeving. */
   moles: number;
   /** Fraction of a node (0..1) the network has grown by itself but not yet completed; carried between ticks. Reset by re-sleeving. */

@@ -94,6 +94,7 @@ Chance comes from `criticalChance` buyables (`{kind:'criticalChance', chance 0 <
 | Field | Meaning |
 |---|---|
 | `pointsPerResleeve` | Re-sleeve points given for each re-sleeve (integer >= 1; real content: 1) |
+| `lockoutMs` | Game time in ms after buying the Unlock resleeving buyable during which re-sleeving is refused (>= 0, optional, default 0; real content: 5000) |
 | `runsShown` | How many of the latest finished sleeve-runs the Stats tab lists (integer >= 1; real content: 10) |
 
 ## `automation` – the automation features (optional)

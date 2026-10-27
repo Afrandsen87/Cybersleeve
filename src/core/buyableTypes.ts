@@ -127,6 +127,12 @@ export type BuyableEffect =
    * gives one more (copied from the run that just ended). See `synthSleeves.ts`.
    */
   | { readonly kind: 'synthSleeves' }
+  /**
+   * The gate of sleeve levels and re-sleeving. Until it is owned, sleeve XP is still tracked but sleeve levels read 0 (no bonuses) and
+   * stay hidden, and the player cannot re-sleeve. Owning it opens all three; it survives re-sleeving and starts a short re-sleeve
+   * lockout (`resleeve.lockoutMs`). At most one buyable may have this effect. See `resleeveGate.ts`.
+   */
+  | { readonly kind: 'unlockSleeveLevels' }
   /** Does nothing (yet): a node of the re-sleeve tree whose effect is not designed. */
   | { readonly kind: 'placeholder' }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */

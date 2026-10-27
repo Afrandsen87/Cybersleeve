@@ -10,27 +10,42 @@ import { ConfirmGate } from '../confirmGate';
 import { type ChangelogEntry, buildChangelogModal } from './changelogModal';
 import { type UiContext, h, setText } from './domKit';
 import type { SpeedControl } from '../dom';
+import type { ResleeveBuyView } from '../viewModel';
+
+/** What the re-sleeve button needs to draw itself. */
+export interface ResleeveButtonState {
+  /** A re-sleeve is possible now. */
+  readonly canResleeve: boolean;
+  /** The button is the Re-sleeve action (the sleeve-levels unlock is owned); otherwise it is that unlock's purchase. */
+  readonly shown: boolean;
+  /** The purchase to show on the button while it is not yet the Re-sleeve action; `null` hides the button. */
+  readonly buy: ResleeveBuyView | null;
+}
 
 /** The re-sleeve button with its cancel button. */
 export interface ResleeveRow {
   readonly root: HTMLElement;
-  /** Updates the button from whether a re-sleeve is possible now. */
-  render(canResleeve: boolean): void;
+  /** Draws the button as the purchase of the sleeve-levels unlock, as the Re-sleeve action, or hides it. */
+  render(state: ResleeveButtonState): void;
 }
 
 /**
- * Builds the re-sleeve row. Re-sleeving wipes most progress, so it takes two clicks: the first arms the gate, the second confirms.
+ * Builds the re-sleeve row, which sits at the bottom of the Sleeve widget. Until the sleeve-levels unlock is owned the button IS that
+ * purchase (one click buys it); then it turns into the Re-sleeve action. Re-sleeving wipes most progress, so it takes two clicks: the
+ * first arms the gate, the second confirms.
  *
- * Called by: {@link mountUi}. Calls: `ConfirmGate`, `GameCommands.resleeve`.
+ * Called by: {@link mountUi}. Calls: `ConfirmGate`, `UiContext.activate`, `GameCommands.resleeve`.
  *
  * @param ctx what the row needs from the screen
  */
 export function buildResleeveRow(ctx: UiContext): ResleeveRow {
-  const { engine, text } = ctx;
+  const { engine, text, tips } = ctx;
   const gate = new ConfirmGate();
   const button = h('button', 'resleeve') as HTMLButtonElement;
+  let buyId: string | null = null; // the purchase the button stands for, while it is not the Re-sleeve action
   button.addEventListener('click', () => {
-    if (!engine.canResleeve()) gate.cancel();
+    if (buyId !== null) ctx.activate(buyId);
+    else if (!engine.canResleeve()) gate.cancel();
     else if (gate.request()) engine.resleeve();
     ctx.refresh();
   });
@@ -43,10 +58,21 @@ export function buildResleeveRow(ctx: UiContext): ResleeveRow {
   root.append(button, cancel);
   return {
     root,
-    render(canResleeve) {
+    render({ canResleeve, shown, buy }) {
+      buyId = shown ? null : (buy?.id ?? null);
+      root.hidden = !shown && buy === null;
+      if (root.hidden || !shown) gate.cancel();
       const armed = gate.isArmed && canResleeve;
-      button.disabled = !canResleeve;
-      setText(button, armed ? text.resleeve.armed : text.resleeve.idle);
+      button.classList.toggle('buy', !shown);
+      if (!shown) {
+        button.disabled = !(buy?.affordable ?? false);
+        setText(button, buy?.text ?? '');
+        tips.set(button, buy ? () => buy.tip : null);
+      } else {
+        button.disabled = !canResleeve;
+        setText(button, armed ? text.resleeve.armed : text.resleeve.idle);
+        tips.set(button, null);
+      }
       button.classList.toggle('armed', armed);
       cancel.hidden = !armed;
     },

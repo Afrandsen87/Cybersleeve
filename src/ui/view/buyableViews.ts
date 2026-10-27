@@ -7,7 +7,15 @@
  * Called by: `ui/viewModel.ts`, `sleeveView.ts`, `skillsView.ts`, `actionView.ts`, `squareView.ts`.
  * Calls: `GameQueries`, the text table.
  */
-import { type BuyableDefinition, type Currency, type GameConfig, type LevelQueries, type ShopQueries, traitsOf } from '../../core';
+import {
+  type BuyableDefinition,
+  type Currency,
+  type GameConfig,
+  type LevelQueries,
+  type ShopQueries,
+  sleeveLevelsGateId,
+  traitsOf,
+} from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { BuyableValues, SleeveSectionId, UiText } from '../uiText';
 import { initials } from './viewFormat';
@@ -25,14 +33,13 @@ export function sectionLayout(config: GameConfig): readonly { id: SleeveSectionI
   if (cached) return cached;
   const sectionOf = (b: BuyableDefinition): SleeveSectionId =>
     b.currency === 'networkNodes' ? 'nodes' : (b.maxPurchases ?? 1) > 1 ? 'rebuyable' : 'oneTime';
-  const defs = config.buyables.filter((b) => b.actionId === undefined && !isPointCurrency(b.currency));
+  // the sleeve-levels unlock is not listed: it is the Re-sleeve button until bought
+  const gateId = sleeveLevelsGateId(config.buyables);
+  const defs = config.buyables.filter((b) => b.actionId === undefined && !isPointCurrency(b.currency) && b.id !== gateId);
   const layout = (['rebuyable', 'oneTime', 'nodes'] as const)
     .map((id) => ({
       id,
-      ids: defs
-        .filter((b) => sectionOf(b) === id)
-        .sort((a, b) => (a.cost.lt(b.cost) ? -1 : a.cost.gt(b.cost) ? 1 : 0))
-        .map((b) => b.id),
+      ids: sortByBasePrice(defs.filter((b) => sectionOf(b) === id)).map((b) => b.id),
     }))
     .filter((section) => section.ids.length > 0);
   layoutCache.set(config, layout);
@@ -93,7 +100,25 @@ function purchaseValues(b: BuyableDefinition, engine: LevelQueries & ShopQueries
 }
 
 /**
- * The view of every buyable in the configuration, in configuration order.
+ * Sorts buyable definitions by BASE price, cheapest first: `BuyableDefinition.cost` as configured, before cost growth, copies owned
+ * or any price lever. Stable, so equal prices keep their configuration order. The one place that decides the order of purchases on
+ * screen: change a price in the content and every widget re-sorts.
+ *
+ * Called by: {@link buildBuyableViews}, {@link sectionLayout}.
+ *
+ * @param defs the definitions (not modified)
+ * @returns a new sorted array
+ */
+export function sortByBasePrice<T extends Pick<BuyableDefinition, 'cost'>>(defs: readonly T[]): T[] {
+  return [...defs].sort((a, b) => (a.cost.lt(b.cost) ? -1 : a.cost.gt(b.cost) ? 1 : 0));
+}
+
+/** The buyables of a configuration in base-price order: derived from the content only, so computed once per config. */
+const sortedCache = new WeakMap<GameConfig, readonly BuyableDefinition[]>();
+
+/**
+ * The view of every buyable in the configuration, in base-price order ({@link sortByBasePrice}). Every widget filters this list, so
+ * each of them shows its purchases cheapest first.
  *
  * Called by: {@link buildViewModel}. Calls: `GameQueries.ownedCount`, `canBuy`, `costOf`, `isBuyableAvailable`, the text table.
  *
@@ -102,7 +127,12 @@ function purchaseValues(b: BuyableDefinition, engine: LevelQueries & ShopQueries
  * @param text the display text
  */
 export function buildBuyableViews(engine: LevelQueries & ShopQueries, config: GameConfig, text: UiText): BuyableView[] {
-  return config.buyables.map((b): BuyableView => {
+  let sorted = sortedCache.get(config);
+  if (!sorted) {
+    sorted = sortByBasePrice(config.buyables);
+    sortedCache.set(config, sorted);
+  }
+  return sorted.map((b): BuyableView => {
     const owned = engine.ownedCount(b.id);
     const toggleable = traitsOf(b).toggleable;
     const enabled = toggleable && engine.isAutoRunEnabled(b.id);

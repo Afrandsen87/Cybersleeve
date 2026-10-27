@@ -100,7 +100,12 @@ export interface UiText {
     readonly dispersalShare: string;
   };
   /** The Skills box and the re-sleeve skills group. */
-  readonly skills: { points(points: string): string; resleevePoints(points: string): string };
+  readonly skills: {
+    points(points: string): string;
+    resleevePoints(points: string): string;
+    /** Stands in for the name, description, price and tip of a re-sleeve skill until the first re-sleeve. */
+    readonly hidden: string;
+  };
   /** The Stats tab: the list of the latest finished sleeve-runs. */
   readonly runs: {
     readonly empty: string;
@@ -263,7 +268,7 @@ export const uiText: UiText = {
     autoBurnCeiling: 'Use leads above this heat',
     dispersalShare: 'Share (%)',
   },
-  skills: { points: (points) => `Skill points: ${points}`, resleevePoints: (points) => `Re-sleeve points: ${points}` },
+  skills: { points: (points) => `Skill points: ${points}`, resleevePoints: (points) => `Re-sleeve points: ${points}`, hidden: '???' },
   runs: {
     empty: 'No finished sleeve-runs yet. Re-sleeve to write the first one down.',
     headers: { run: 'Run', income: 'Credits per second at the end', levels: 'Action levels in total' },
@@ -334,7 +339,7 @@ export const uiText: UiText = {
   },
   tips: tipText,
   resleeve: {
-    idle: 'Re-sleeve (test: no requirement)',
+    idle: 'Re-sleeve',
     armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. Re-sleeve skills stay, and you gain a re-sleeve point.',
     cancel: 'Cancel',
   },

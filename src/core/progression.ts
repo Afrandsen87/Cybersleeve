@@ -5,6 +5,7 @@
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import { LevelRule } from './level';
+import { sleeveLevelsGateId } from './resleeveGate';
 import { euphoriaReduction } from './sleeveEuphoria';
 import type { ActionId, ActionState, BuyableEffect, BuyableId, GameConfig, GameState } from './types';
 
@@ -66,6 +67,8 @@ export class Progression {
   private readonly actionReductionSources: readonly ActionReductionSource[];
   private readonly euphoriaSources: readonly EuphoriaSource[];
   private readonly maxTotalReduction: number;
+  /** Id of the buyable that opens sleeve levels, or `null` when the content has none. */
+  private readonly sleeveLevelsGateId: string | null;
   /** Levels one Skill shard delays the action XP scaling by (0 when the game has none). */
   private readonly levelsPerShard: number;
 
@@ -93,6 +96,7 @@ export class Progression {
     this.runsReductionSources = (config.buyables ?? []).flatMap((b) =>
       b.effect.kind === 'runsPerSleeveXpReduction' ? [{ id: b.id, perCopy: b.effect.perCopy, minRuns: b.effect.minRuns }] : [],
     );
+    this.sleeveLevelsGateId = sleeveLevelsGateId(config.buyables);
     for (const a of config.actions) {
       this.actionRules.set(a.id, new LevelRule(a.levels ?? config.progression.actionLevels, factory));
       this.sleeveRules.set(a.id, new LevelRule(a.sleeveLevels ?? config.progression.sleeveLevels, factory));
@@ -366,6 +370,8 @@ export class Progression {
 
   /** Sleeve level of an action if thresholds were reduced by `reduction`. */
   private sleeveLevelAt(state: GameState, actionId: ActionId, reduction: number): number {
+    // sleeve XP is tracked all along, but its levels count only once the unlock is owned (a game without that buyable has no gate)
+    if (this.sleeveLevelsGateId !== null && (state.purchased[this.sleeveLevelsGateId] ?? 0) <= 0) return 0;
     return this.rule(this.sleeveRules, actionId).levelForXp(this.scaledSleeveXp(state, actionId, reduction));
   }
 

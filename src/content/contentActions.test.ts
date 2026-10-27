@@ -16,10 +16,8 @@ import {
   KILL_CHAIN,
   KILL_SERVERS,
   SKILL_SHARD,
-  ZERO_DAY_EXPLOITS,
   FASTER_CONDITIONING,
   gameConfig,
-  MALWARE_AUTO_RUN,
   ICE_RATING_BOOST,
   MALWARE_ICE,
   MALWARE_OUTPUT,
@@ -29,9 +27,9 @@ import {
 } from './gameConfig';
 
 describe('Malware payload (real content)', () => {
-  it('sits on the Push malware card after the auto-run and the cheaper Zero-day exploits, rebuyable with a 100x price per copy', () => {
+  it('is the cheapest purchase on the Push malware card (they are sorted by base price), rebuyable with a 100x price per copy', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === PUSH_MALWARE)!;
-    expect(card.buyables.map((b) => b.id).slice(0, 3)).toEqual([MALWARE_AUTO_RUN, ZERO_DAY_EXPLOITS, MALWARE_OUTPUT]);
+    expect(card.buyables.filter((b) => !b.inSquare)[0]!.id).toBe(MALWARE_OUTPUT);
     const g = createGame();
     setCredits(g, num('1e100'));
     expect(g.costOf(MALWARE_OUTPUT).eq(num(10_000))).toBe(true);

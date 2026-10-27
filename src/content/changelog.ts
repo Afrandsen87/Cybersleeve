@@ -19,6 +19,17 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-10-27 13:46',
+    changes: [
+      'Re-sleeving now has to be unlocked: the Re-sleeve button at the bottom of the Sleeve widget starts as the purchase "Unlock resleeving" (100 billion credits). One click buys it and the button turns into Re-sleeve, disabled for 5 seconds so a double click cannot re-sleeve at once. The unlock is kept when you re-sleeve.',
+      'Sleeve levels and the sleeve XP bars are hidden, and give nothing, until re-sleeving is unlocked (the XP is still collected). The re-sleeve skill tree appears with it, with all its text hidden as ??? until your first re-sleeve.',
+      'Heat, ICE Rating and Legend stay hidden until something that makes or boosts them is unlocked.',
+      'Purchases are listed cheapest first (by base price) in every widget.',
+      'Push malware costs more: Hardened payload 100 thousand, Zero-day exploits 5 million, Ransomware 5 billion, Persistence 1 trillion. The ICE Rating boost now costs 150 thousand.',
+      'The ICE Rating tip names the purchase that adds the per-level bonus (Hardened payload) instead of "Level Bonus".',
+    ],
+  },
+  {
     version: '2026-10-26 23:33',
     changes: [
       'Grow network Auto-run now costs 10 credits; the Overclock and Focus of every action cost 25 and 100 times the Auto-run price of that same action.',

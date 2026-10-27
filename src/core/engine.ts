@@ -30,6 +30,7 @@ import type { OverflowPolicy } from './overflow';
 import { notePeaks } from './reveal';
 import type { Progression } from './progression';
 import type { ResleevePolicy } from './resleeve';
+import type { ResleeveGate } from './resleeveGate';
 import type { Resleever } from './resleever';
 import type { PurchaseResult, Shop } from './shop';
 import type { Snapshot } from './snapshot';
@@ -75,6 +76,8 @@ export interface EngineDependencies {
   readonly automation: Automation;
   /** Decides when re-sleeving is allowed. */
   readonly resleevePolicy: ResleevePolicy;
+  /** Counts the re-sleeve lockout down as game time passes (the same gate as `resleevePolicy`, in the real game). */
+  readonly resleeveLockout: Pick<ResleeveGate, 'advance'>;
   /** Performs a re-sleeve (writes the run down, resets, gives the synthetic sleeve). */
   readonly resleever: Resleever;
   /** The synthetic sleeves (built on the same state the engine owns). */
@@ -100,6 +103,7 @@ export class GameEngine implements GameQueries, GameCommands {
   private readonly progression: Progression;
   private readonly shop: Shop;
   private readonly resleevePolicy: ResleevePolicy;
+  private readonly resleeveLockout: Pick<ResleeveGate, 'advance'>;
   private readonly resleever: Resleever;
   private readonly synths: SynthSleeves;
   private readonly overflowPolicy: OverflowPolicy;
@@ -150,6 +154,7 @@ export class GameEngine implements GameQueries, GameCommands {
       drops: this.drops,
       augments: this.augments,
       resleevePolicy: this.resleevePolicy,
+      resleeveLockout: this.resleeveLockout,
       resleever: this.resleever,
       synths: this.synths,
       overflowPolicy: this.overflowPolicy,
@@ -670,6 +675,7 @@ export class GameEngine implements GameQueries, GameCommands {
     if (!this.stats.heatCoolingBlocked())
       coolDownHeat(this.state, this.config.sleeve, deltaMs, sleeve.heatCooldownSpeed, sleeve.heatCooldownBoost, sleeve.heatCooldownAmount);
     decayLegend(this.state, this.config.sleeve, deltaMs);
+    this.resleeveLockout.advance(deltaMs);
     this.runner.tickAll(deltaMs);
     this.automationUnit.step();
     this.overflowPolicy.apply(this.state);

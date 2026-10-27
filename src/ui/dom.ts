@@ -95,6 +95,7 @@ export function mountUi(
 
   const actions = mountActionCards(ctx, initial.actions);
   const sleeve = mountSleeveWidgets(ctx, initial.sleeve);
+  const resleeveRow = buildResleeveRow(ctx);
   const networkWidget = buildStatWidget('network-widget', initial.network.title, initial.network.stats);
   const inventoryWidget = buildInventoryWidget(
     initial.inventory,
@@ -104,7 +105,6 @@ export function mountUi(
   );
   const skills = mountSkillsPanel(ctx, initial.skills);
   const stats = mountStatsPanel(ctx, initial.runs);
-  const resleeveRow = buildResleeveRow(ctx);
   const saveRow = buildSaveRow(ctx, options.saveTransfer, options.changelog ?? []);
   root.append(saveRow.modal);
 
@@ -125,7 +125,8 @@ export function mountUi(
     render();
   });
   const characterPanel = h('div', 'tab-panel character-panel');
-  characterPanel.append(layout, resleeveRow.root, saveRow.row);
+  characterPanel.append(layout, saveRow.row);
+  sleeve.stats.root.append(resleeveRow.root); // the bottom of the Sleeve widget
   const automationWidget = buildAutomationWidget(initial.automation, engine.automation(), text, () => render());
   const automationPanel = h('div', 'tab-panel automation-panel');
   automationPanel.append(automationWidget.root);
@@ -147,7 +148,7 @@ export function mountUi(
     if (!stats.root.hidden) stats.render(vm.runs.rows);
     actions.render(vm.actions);
     sleeve.render(vm.sleeve);
-    resleeveRow.render(vm.canResleeve);
+    resleeveRow.render({ canResleeve: vm.canResleeve, shown: vm.resleeveShown, buy: vm.resleeveBuy });
     debug?.render();
     tooltips.refresh();
   }

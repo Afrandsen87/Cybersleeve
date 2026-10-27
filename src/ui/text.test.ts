@@ -59,10 +59,7 @@ describe('display text comes from the text table', () => {
       'Access level',
       'Interface speed',
       'Hacking Proficiency',
-      'ICE Rating',
-      'Heat',
-      'Legend',
-    ]);
+    ]); // Heat, ICE Rating and Legend stay hidden until something makes or boosts them
     expect(vm.network.stats.filter((s) => !s.hidden).map((s) => s.label)).toEqual(['Nodes', 'Payout per node', 'Credits per second']);
   });
 });
