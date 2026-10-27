@@ -9,6 +9,7 @@
 import type { GameConfig, ItemQueries, SleeveQueries, GameStateView, SleeveStats } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
+import { aggregatedMoleText } from './moleBonus';
 import { ACTION_BONUS_DECIMALS, MULTIPLIER_DECIMALS, PER_NODE_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
 import type { NetworkView } from './viewTypes';
 
@@ -78,7 +79,12 @@ export function networkView(
         'moles',
         text,
         formatPlain(state.moles),
-        () => text.tips.moles({ moles: formatPlain(state.moles), boostPercent: formatPlain(stats.heatCooldownBoost * 100) }),
+        () =>
+          text.tips.moles({
+            moles: formatPlain(state.moles),
+            boostPercent: formatPlain(stats.heatCooldownBoost * 100),
+            aggregatedPercent: aggregatedMoleText(stats.moleAggregation, state.moles),
+          }),
         null,
         engine.backChannel() === null && !(state.moles > 0), // the counter appears with the skill that gives Moles
       ),

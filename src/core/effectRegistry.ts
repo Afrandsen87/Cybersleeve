@@ -13,6 +13,7 @@
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import { AUTOMATION_FEATURES } from './automation';
+import { HEAT_EFFECTS } from './heatEffects';
 import { itemCount } from './inventory';
 import type { ActionId, BuyableDefinition, ChainRule, BuyableEffect, GameState, ItemDropRule, PaysActionRule } from './types';
 
@@ -64,6 +65,16 @@ export interface SleeveAccumulator {
   heatCooldownBoost: number;
   /** Heat removed per cooldown cycle on top of `sleeve.heatCooldownAmount`. */
   extraHeatCooldownAmount: number;
+  /** Heat each Burn lead takes away on top of its percentage (0 without `burnLeadFlatHeat`). */
+  burnLeadFlatHeat: number;
+  /** How many times as fast heat cools while no action is in progress (1 without `idleHeatCooldown`). */
+  idleHeatCooldown: number;
+  /** The actions that still count as "no action in progress" while running without Overclock (`idleHeatCooldownAction`). */
+  idleHeatCooldownActions: ActionId[];
+  /** The `bonusPerOrder` of `moleAggregation`, or `null` while it is not owned. */
+  moleAggregation: number | null;
+  /** The largest share of node income the heat tax may take (1 = no cap; `heatTaxCap` lowers it). */
+  heatTaxCap: number;
   criticalChance: number;
   /** The `paysActionReward` rules: each completed run of a source action may also pay one reward of a target action. */
   paysActions: PaysActionRule[];
@@ -143,6 +154,7 @@ function factorAtLeastOne(e: { kind: string; factor: number }, { where, errors }
 
 /** Every kind of effect, with its facts, validator and hooks. */
 export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<Extract<BuyableEffect, { kind: K }>> } = {
+  ...HEAT_EFFECTS,
   autoRun: {
     traits: { needsAction: true, toggleable: true },
     validate: none,

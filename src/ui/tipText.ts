@@ -126,7 +126,7 @@ export const tipText: UiText['tips'] = {
       ...(keepPercent === null ? [] : [`Before the Heat Tax = ${gross} credits/s`]),
       `Credits per Second = ${total}`,
     ].join('\n'),
-  heat: ({ heat, perPointPercent, reductionPercent, taxPercent, stopsAt, amount, cycleSeconds, moles }) =>
+  heat: ({ heat, perPointPercent, reductionPercent, taxPercent, stopsAt, taxCapPercent, amount, cycleSeconds, moles }) =>
     [
       'Heat Tax = Heat x Tax per Point x (1 - Heat Reduction)',
       '',
@@ -135,9 +135,16 @@ export const tipText: UiText['tips'] = {
       `Heat Reduction = ${reductionPercent}% (from ICE Rating)`,
       '',
       `Heat Tax = ${taxPercent}% of all credits earned from nodes`,
+      ...(taxCapPercent === null ? [] : [`The Heat Tax takes at most ${taxCapPercent}%`]),
       ...(stopsAt === null ? [] : [`Node credits stop at ${stopsAt}`]),
       `Heat falls by ${amount} every ${cycleSeconds}s, once at least ${amount} heat is held`,
-      ...(moles === null ? [] : [`${moles.moles} Moles make it ${moles.boostPercent}% faster`]),
+      ...(moles === null
+        ? []
+        : [
+            moles.aggregatedPercent === null
+              ? `${moles.moles} Moles make it ${moles.boostPercent}% faster`
+              : `${moles.moles} Moles make it ${moles.aggregatedPercent}% faster`,
+          ]),
     ].join('\n'),
   iceRating: ({ earned, levelBonus, levelBonusSource, multipliers, total, orders, perOrderPercent, reductionPercent, fullAt }) =>
     [
@@ -310,15 +317,24 @@ export const tipText: UiText['tips'] = {
       `Synthetic Sleeves = ${count}`,
       `Credits per Second = ${perSecond}`,
     ].join('\n'),
-  moles: ({ moles, boostPercent }) =>
-    [
-      'Heat Cooldown Speed = Normal Speed x (1 + Mole Boost) while Moles remain',
-      'Each point of heat cooled uses one Mole',
-      '',
-      `Mole Boost = ${boostPercent}%`,
-      '',
-      `Moles = ${moles}`,
-    ].join('\n'),
+  moles: ({ moles, boostPercent, aggregatedPercent }) =>
+    (aggregatedPercent === null
+      ? [
+          'Heat Cooldown Speed = Normal Speed x (1 + Mole Boost) while Moles remain',
+          'Each point of heat cooled uses one Mole',
+          '',
+          `Mole Boost = ${boostPercent}%`,
+          '',
+          `Moles = ${moles}`,
+        ]
+      : [
+          'Heat Cooldown Speed = Normal Speed x (1 + Bonus per Order) ^ log10(Moles)',
+          'Moles stay with you',
+          '',
+          `Moles = ${moles}`,
+          `Heat cools ${aggregatedPercent}% faster`,
+        ]
+    ).join('\n'),
   networkGrowthValues: ({ level, percent }) => ({
     variables: [`Action level = ${level}`],
     result: `Growth factor percentage = ${percent}%`,

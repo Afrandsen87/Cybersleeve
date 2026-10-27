@@ -94,6 +94,18 @@ export const SKILL_DOUBLE_AGENT = 'skill-double-agent';
 export const SKILL_OBFUSCATION = 'skill-obfuscation';
 /** Id of the skill that makes each heat cooldown cycle remove more heat per sleeve level of Build Legend. */
 export const SKILL_PURGE_PROTOCOL = 'skill-purge-protocol';
+/** Id of the skill that makes each Burn lead take 1 more point of heat away. */
+export const SKILL_SCORCHED_EARTH = 'skill-scorched-earth';
+/** Id of the skill that makes Burn leads drop more often. */
+export const SKILL_SILVER_TONGUE = 'skill-silver-tongue';
+/** Id of the skill that makes heat cool faster while no action is in progress. */
+export const SKILL_QUIET_HOURS = 'skill-quiet-hours';
+/** Id of the skill that lets Grow network (without Overclock) count as "no action in progress" for Quiet Hours. */
+export const SKILL_UNDERCOVER = 'skill-undercover';
+/** Id of the skill that stops Moles being spent and makes them speed up heat cooling instead. */
+export const SKILL_DEEP_COVER = 'skill-deep-cover';
+/** Id of the end skill that caps the heat tax. */
+export const SKILL_BLACKOUT = 'skill-blackout';
 /** Id of the re-sleeve skill that lowers the XP every action level needs, by the action's own sleeve level. */
 export const SKILL_SLEEVE_EUPHORIA = 'skill-sleeve-euphoria';
 /** Id of the re-sleeve skill that gives synthetic sleeves. */
@@ -119,6 +131,12 @@ export const SKILLS = [
   SKILL_COLD_TRAIL,
   SKILL_OBFUSCATION,
   SKILL_PURGE_PROTOCOL,
+  SKILL_SCORCHED_EARTH,
+  SKILL_SILVER_TONGUE,
+  SKILL_QUIET_HOURS,
+  SKILL_UNDERCOVER,
+  SKILL_DEEP_COVER,
+  SKILL_BLACKOUT,
   SKILL_NOSE_FOR_SECRETS,
   SKILL_EXPLOIT_KOMPROMAT,
   SKILL_BACK_CHANNEL,

@@ -18,6 +18,7 @@ import {
 import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
 import { isCorporate, isPointCurrency, sectionLayout } from './buyableViews';
+import { aggregatedMoleText } from './moleBonus';
 import { isStatHidden } from './statReveal';
 import { MULTIPLIER_DECIMALS, PROFICIENCY_DECIMALS, SPEED_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
 import type { BuyableView, SleeveView, StatRowView } from './viewTypes';
@@ -61,7 +62,9 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
   const { sleeve } = config;
   const reveal = { config, accessLevel: stats.accessLevel, owned: ownedCount };
   const keep = 1 - stats.heatReduction;
-  const stopsAt = keep > 0 && sleeve.heatTaxPerPoint > 0 ? text.format.heatPoints(formatPlain(1 / sleeve.heatTaxPerPoint / keep)) : null;
+  const capped = stats.heatTaxCap < 1; // Blackout: the tax stops short of taking everything, so node credits never stop
+  const stopsAt =
+    !capped && keep > 0 && sleeve.heatTaxPerPoint > 0 ? text.format.heatPoints(formatPlain(1 / sleeve.heatTaxPerPoint / keep)) : null;
   const cycleMs = sleeve.heatCooldownMs / (1 + sleeve.legendHeatSpeedup * stats.legend);
   const orders = Math.max(0, stats.iceRating.log10());
   const beyond = earnedSpeedBeyond(sleeve);
@@ -79,11 +82,19 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
       heat: formatPlain(stats.heat),
       perPointPercent: formatPlain(sleeve.heatTaxPerPoint * 100),
       reductionPercent: formatPlain(stats.heatReduction * 100),
-      taxPercent: formatPlain(Math.min(100, stats.heat * keep * sleeve.heatTaxPerPoint * 100)),
+      taxPercent: formatPlain(Math.min(stats.heatTaxCap * 100, stats.heat * keep * sleeve.heatTaxPerPoint * 100)),
       stopsAt,
+      taxCapPercent: capped ? formatPlain(stats.heatTaxCap * 100) : null,
       amount: formatPlain(stats.heatCooldownAmount),
       cycleSeconds: formatPlain(cycleMs / cooldownSpeed / 1000),
-      moles: state.moles > 0 ? { moles: formatPlain(state.moles), boostPercent: formatPlain(stats.heatCooldownBoost * 100) } : null,
+      moles:
+        state.moles > 0
+          ? {
+              moles: formatPlain(state.moles),
+              boostPercent: formatPlain(stats.heatCooldownBoost * 100),
+              aggregatedPercent: aggregatedMoleText(stats.moleAggregation, state.moles),
+            }
+          : null,
     });
   return [
     row('access', text, String(stats.accessLevel), () =>

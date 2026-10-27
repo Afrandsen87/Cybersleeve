@@ -248,12 +248,7 @@ export class Automation implements AutomationControls {
     const stack = this.config.items.rarities[0];
     const { heat, automation } = this.state;
     if (!lead || !stack || !(heat > automation.autoBurnCeiling) || !this.burnLeads.canUse(stack.id)) return;
-    const keep = 1 - lead.heatFraction;
-    const needed =
-      keep <= 0 || automation.autoBurnCeiling <= 0
-        ? Number.POSITIVE_INFINITY
-        : Math.ceil(Math.log(automation.autoBurnCeiling / heat) / Math.log(keep));
-    this.burnLeads.useMany(stack.id, needed);
+    this.burnLeads.useMany(stack.id, this.burnLeads.leadsNeeded(automation.autoBurnCeiling));
   }
 
   /** Autosale: sells every stack of a switched-on rarity, for every item that can be sold and has rarities. */

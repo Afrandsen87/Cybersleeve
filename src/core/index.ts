@@ -35,6 +35,7 @@ export { Augments, augmentXpFactor } from './augments';
 export { BackChannel } from './backChannel';
 export type { BackChannelRule } from './leverageEffects';
 export { BurnLeads } from './burnLeads';
+export { type CoolingPace, type CoolingPaceInputs, coolingPace } from './heatPace';
 export { ZeroDays, type CriticalKeyKind } from './zeroDays';
 export { SkillShards } from './skillShards';
 export { CriticalLinks, type CriticalLinkSource } from './criticalLinks';

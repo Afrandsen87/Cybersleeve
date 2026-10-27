@@ -265,6 +265,8 @@ export interface MolesTipParts {
   readonly moles: string;
   /** The extra cooldown speed while Moles remain, in percent. */
   readonly boostPercent: string;
+  /** With Deep Cover: how much faster the Moles held make heat cool, in percent; `null` while Moles are still spent. */
+  readonly aggregatedPercent: string | null;
 }
 
 /** Pre-formatted pieces of the explanation of the back channel button on an inventory stack. */
@@ -324,12 +326,14 @@ export interface HeatTipParts {
   readonly taxPercent: string;
   /** Heat at which credits stop, e.g. `"200 heat"`, or `null` when they never do. */
   readonly stopsAt: string | null;
+  /** With Blackout: the most the tax can take, in percent; `null` without a cap. */
+  readonly taxCapPercent: string | null;
   /** Heat removed per cooldown cycle. */
   readonly amount: string;
   /** Length of one cooldown cycle in seconds (Legend and skills included). */
   readonly cycleSeconds: string;
   /** Moles held and the extra speed they give in percent, or `null` while there are none. */
-  readonly moles: { readonly moles: string; readonly boostPercent: string } | null;
+  readonly moles: { readonly moles: string; readonly boostPercent: string; readonly aggregatedPercent: string | null } | null;
 }
 
 /** Pre-formatted pieces of the ICE Rating explanation. */

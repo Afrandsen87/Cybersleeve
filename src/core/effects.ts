@@ -61,6 +61,16 @@ export interface SleeveStats {
   readonly heatCooldownBoost: number;
   /** Heat removed by each completed cooldown cycle: `sleeve.heatCooldownAmount` plus `heatCooldownAmountFromSleeveLevel` buyables (> 0). */
   readonly heatCooldownAmount: number;
+  /** Heat each Burn lead takes away on top of its percentage, from `burnLeadFlatHeat` buyables (>= 0). */
+  readonly burnLeadFlatHeat: number;
+  /** How many times as fast heat cools while no action is in progress, from `idleHeatCooldown` buyables (>= 1). */
+  readonly idleHeatCooldown: number;
+  /** Actions that count as "no action in progress" while they run without Overclock (`idleHeatCooldownAction` buyables). */
+  readonly idleHeatCooldownActions: readonly ActionId[];
+  /** Heat cooling gained per order of magnitude of Moles held, or `null` while Moles are still spent (`moleAggregation`). */
+  readonly moleAggregation: number | null;
+  /** The largest share of node income the heat tax may take (1 = no cap), from `heatTaxCap` buyables. */
+  readonly heatTaxCap: number;
   /** Chance that a completed run of any action is a critical success: the sum of owned `criticalChance` copies. It may exceed 1 (150% is one sure success and a 50% chance of a second). */
   readonly criticalChance: number;
   /** What each completed run of an action may also pay: one reward of another action, by chance (`paysActionReward` buyables). */
@@ -206,6 +216,11 @@ export function resolveSleeveStats(
     heatCooldownSpeed: 1,
     heatCooldownBoost: 0,
     extraHeatCooldownAmount: 0,
+    burnLeadFlatHeat: 0,
+    idleHeatCooldown: 1,
+    idleHeatCooldownActions: [],
+    moleAggregation: null,
+    heatTaxCap: 1,
     criticalChance: 0,
     paysActions: [],
     criticalExtraChance: 0,
@@ -273,6 +288,11 @@ export function resolveSleeveStats(
     heatCooldownSpeed: saturate(heatCooldownSpeed),
     heatCooldownBoost,
     heatCooldownAmount: saturate(sleeve.heatCooldownAmount + acc.extraHeatCooldownAmount),
+    burnLeadFlatHeat: acc.burnLeadFlatHeat,
+    idleHeatCooldown: saturate(acc.idleHeatCooldown),
+    idleHeatCooldownActions: acc.idleHeatCooldownActions,
+    moleAggregation: acc.moleAggregation,
+    heatTaxCap: acc.heatTaxCap,
     criticalChance: acc.criticalChance,
     paysActions: acc.paysActions,
     criticalExtraChance: acc.criticalExtraChance,
