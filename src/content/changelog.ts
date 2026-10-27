@@ -19,6 +19,14 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-10-27 Skill tree',
+    changes: [
+      'The skills are now a tree with three branches: Cybernetics (green), Anonymity (red) and Leverage (brown). Each grows sideways from a root skill, and a skill needs the one before it.',
+      'The whole tree and all branch names are visible from the start; what a skill does reads ??? until what makes it useful is owned, and a skill below a hidden one stays hidden.',
+      'The re-sleeve skills grow sideways too.',
+    ],
+  },
+  {
     version: '2026-10-27 Show all',
     changes: [
       'The test aid "Show locked" is now "Show all": it also reveals hidden tabs, stats, purchases, re-sleeve skills and inventory items.',

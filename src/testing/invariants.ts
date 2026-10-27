@@ -32,7 +32,8 @@ const isWhole = (n: BigNum): boolean => {
  * - plain-number scalars are finite and >= 0;
  * - network nodes are whole (to within the precision of the number type) and the carried fraction is below 1;
  * - times are finite and >= 0 (a run may exceed a duration that just got shorter, so no upper bound);
- * - owned copies are whole numbers within the buyable's limit;
+ * - owned copies are whole numbers within the buyable's limit, and a buyable is owned only with everything it `requires` and every
+ *   skill-tree parent it has;
  * - the run counter towards sleeve XP is whole and below `runsPerSleeveXp`;
  * - every inventory stack is a whole number >= 0;
  * - Overclock and Focus are switched on only for actions whose unlock is owned (Overclock also needs an Overclock rule), and no
@@ -105,6 +106,9 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   for (const b of config.buyables) {
     const owned = state.purchased[b.id] ?? 0;
     if (!validCount(owned) || owned > (b.maxPurchases ?? 1)) problems.push(`${b.id} owned count is invalid: ${owned}`);
+    for (const need of [...(b.requires ?? []), ...(b.parents ?? [])]) {
+      if (owned > 0 && (state.purchased[need] ?? 0) <= 0) problems.push(`${b.id} is owned without ${need}, which it needs`);
+    }
   }
   const unlocked = (kind: string, actionId: string): boolean =>
     config.buyables.some((b) => b.effect.kind === kind && b.actionId === actionId && (state.purchased[b.id] ?? 0) > 0);
