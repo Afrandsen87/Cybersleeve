@@ -1149,7 +1149,7 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   [NETWORK_SYNERGY]: 'network-synergy',
   [ICE_RATING_BOOST]: 'ice-rating-boost',
   [AUTOMATION_CORE]: 'automation-core',
-  // the automation lane skills share the Automation core picture until each gets its own
+  // the automation skills share the Automation core picture until each gets its own
   ...Object.fromEntries(AUTOMATION_SKILLS.map((id) => [id, 'automation-core'])),
   [NODE_PAYOUT]: 'node-payout',
   [NODE_UPLINK]: 'node-uplink',

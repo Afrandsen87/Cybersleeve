@@ -154,7 +154,7 @@ export const BRANCH_DISPERSAL = 'dispersal' as const;
 export const AUTOMATION_LINE_LENGTH = 10;
 /** Id of the `step`-th skill (1-based) of an automation lane. */
 export const automationSkillId = (branch: string, step: number): string => `skill-${branch}-${step}`;
-/** Every automation-lane skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first. */
+/** Every automation skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first. */
 export const AUTOMATION_SKILLS: readonly string[] = [BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL].flatMap((branch) =>
   Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => automationSkillId(branch, i + 1)),
 );

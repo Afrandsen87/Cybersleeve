@@ -56,6 +56,23 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     }),
     buyable({ id: 'synth', currency: 'resleevePoints', cost: num(1), parents: ['euphoria'], effect: { kind: 'synthSleeves' } }),
     buyable({ id: 'incorp', currency: 'resleevePoints', cost: num(1), parents: ['euphoria'], effect: { kind: 'placeholder' } }),
+    // the newer re-sleeve skills, so random play reaches their code (each costs one re-sleeve point)
+    ...(
+      [
+        { id: 'r-caps', effect: { kind: 'buyableCapBonus', targetId: 'slots', extra: 2 } },
+        { id: 'r-stack', effect: { kind: 'focusStacking' } },
+        { id: 'r-vats', effect: { kind: 'synthsPerResleeve', count: 2 } },
+        { id: 'r-hive', effect: { kind: 'interfaceSpeedPerLnSynths', perLn: 0.1 } },
+        { id: 'r-mirror', effect: { kind: 'synthXpBoost', factor: 1.25 } },
+        { id: 'r-perfect', effect: { kind: 'perfectCopies' } },
+        { id: 'r-workers', effect: { kind: 'corporationSpeedPerLnSynths', perLn: 0.1 } },
+        { id: 'r-procure', effect: { kind: 'unlocksSynthPurchase' } },
+        { id: 'r-reflex', effect: { kind: 'autoRepurchase' } },
+        { id: 'r-daemon', effect: { kind: 'keepsAutomation' } },
+        { id: 'r-prof', effect: { kind: 'carriesProficiency', scale: 1 } },
+        { id: 'r-ice', effect: { kind: 'carriesIceRating', share: 0.5 } },
+      ] satisfies Pick<BuyableDefinition, 'id' | 'effect'>[]
+    ).map((s) => buyable({ ...s, currency: 'resleevePoints', cost: num(1) })),
     buyable({ id: 'net-auto', actionId: 'net', effect: { kind: 'autoRun' } }),
     buyable({ id: 'net-x2', actionId: 'net', costGrowth: 3, maxPurchases: Infinity, effect: { kind: 'rewardMultiplier', factor: 2 } }),
     buyable({ id: 'grow', actionId: 'net', effect: { kind: 'networkGrowth', ratePerSecond: 0.001 } }),

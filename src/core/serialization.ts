@@ -28,7 +28,7 @@ import type { GameConfig, GameState, GameStateView } from './types';
 /** Current save format version. */
 export const SAVE_VERSION = 5;
 
-/** The previous save format, still read: its unlocked automation features are turned into owned lane skills (see {@link migrateV4}). */
+/** The previous save format, still read: its unlocked automation features are turned into owned automation skills (see {@link migrateV4}). */
 const PREVIOUS_SAVE_VERSION = 4;
 
 /**

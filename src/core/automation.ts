@@ -55,7 +55,7 @@ export function isFeatureUnlocked(
 
 /** What {@link Automation} needs from the shop: the automation points still to spend, and buying a skill. */
 export interface AutomationShop {
-  /** Automation points still to spend: earned minus the price of the owned lane skills. */
+  /** Automation points still to spend: earned minus the price of the owned automation skills. */
   pointsAvailable(): number;
   /** Buys one copy of the buyable; true when it was bought. */
   buy(id: BuyableId): boolean;
@@ -93,7 +93,7 @@ export interface AutomationControls {
   available(): boolean;
   /** Automation points earned in total (spent or not): 0 until a point is bought. */
   pointsEarned(): number;
-  /** Automation points still to spend: earned minus the price of the lane skills owned. */
+  /** Automation points still to spend: earned minus the price of the automation skills owned. */
   pointsAvailable(): number;
   /** True when the feature has been unlocked. */
   isUnlocked(feature: AutomationFeature): boolean;
@@ -162,7 +162,7 @@ export class Automation implements AutomationControls {
     return this.available() ? automationPointsEarned(this.config.buyables, this.state.purchased) : 0;
   }
 
-  /** See {@link AutomationControls.pointsAvailable}: asks the shop (earned points minus the price of the lane skills owned). */
+  /** See {@link AutomationControls.pointsAvailable}: asks the shop (earned points minus the price of the automation skills owned). */
   pointsAvailable(): number {
     return this.available() ? this.shop.pointsAvailable() : 0;
   }

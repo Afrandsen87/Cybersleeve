@@ -56,7 +56,7 @@ describe('Daemon Persistence', () => {
     expect(g.automation().autoBurnCeiling()).toBe(10);
   });
 
-  it('keeps the automation core, the lane skills and the settings, so the points stay balanced, and wipes the rest', () => {
+  it('keeps the automation core, the automation skills and the settings, so the points stay balanced, and wipes the rest', () => {
     const g = automated(true);
     const earned = g.automation().pointsEarned();
     const available = g.automation().pointsAvailable();
