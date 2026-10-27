@@ -4,6 +4,7 @@
  * Experience bookkeeping: per-action XP/levels and per-action sleeve XP/levels.
  */
 import type { BigNum, NumberFactory } from '../numbers';
+import { BuyableCaps } from './buyableCaps';
 import { LevelRule } from './level';
 import { sleeveLevelsGateId } from './resleeveGate';
 import { euphoriaReduction } from './sleeveEuphoria';
@@ -62,6 +63,7 @@ export class Progression {
   private readonly sleeveRules = new Map<ActionId, LevelRule>();
   private readonly baseRunsPerSleeveXp: number;
   private readonly runsReductionSources: readonly RunsReductionSource[];
+  private readonly caps: BuyableCaps;
   private readonly sleeveXpPerGrant: BigNum;
   private readonly reductionSources: readonly ReductionSource[];
   private readonly actionReductionSources: readonly ActionReductionSource[];
@@ -96,6 +98,7 @@ export class Progression {
     this.runsReductionSources = (config.buyables ?? []).flatMap((b) =>
       b.effect.kind === 'runsPerSleeveXpReduction' ? [{ id: b.id, perCopy: b.effect.perCopy, minRuns: b.effect.minRuns }] : [],
     );
+    this.caps = new BuyableCaps(config.buyables ?? []);
     this.sleeveLevelsGateId = sleeveLevelsGateId(config.buyables);
     for (const a of config.actions) {
       this.actionRules.set(a.id, new LevelRule(a.levels ?? config.progression.actionLevels, factory));
@@ -124,7 +127,8 @@ export class Progression {
       const copies = state.purchased[id] ?? 0;
       if (copies <= 0) continue;
       runs -= perCopy * copies;
-      floor = Math.max(floor, minRuns);
+      // a skill that allows more copies of this buyable lowers its floor with them, one run per extra copy
+      floor = Math.max(floor, minRuns - this.caps.bonusOf(state.purchased, id) * perCopy);
     }
     return Math.min(this.baseRunsPerSleeveXp, Math.max(floor, runs));
   }

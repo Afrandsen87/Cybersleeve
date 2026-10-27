@@ -14,6 +14,7 @@
 import type { BigNum, NumberFactory } from '../numbers';
 import { AUTOMATION_FEATURES } from './automation';
 import { HEAT_EFFECTS } from './heatEffects';
+import { RESLEEVE_EFFECTS } from './resleeveEffects';
 import { itemCount } from './inventory';
 import type { ActionId, BuyableDefinition, ChainRule, BuyableEffect, GameState, ItemDropRule, PaysActionRule } from './types';
 
@@ -122,6 +123,8 @@ export interface EffectContext {
   readonly rarityIds: ReadonlySet<string>;
   /** The items that have no rarity (`ItemDefinition.hasRarity: false`). */
   readonly raritylessItemIds: ReadonlySet<string>;
+  /** Every buyable id of the content. */
+  readonly buyableIds: ReadonlySet<string>;
   readonly errors: string[];
 }
 
@@ -155,6 +158,7 @@ function factorAtLeastOne(e: { kind: string; factor: number }, { where, errors }
 /** Every kind of effect, with its facts, validator and hooks. */
 export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<Extract<BuyableEffect, { kind: K }>> } = {
   ...HEAT_EFFECTS,
+  ...RESLEEVE_EFFECTS,
   autoRun: {
     traits: { needsAction: true, toggleable: true },
     validate: none,

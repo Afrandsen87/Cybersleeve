@@ -5,7 +5,15 @@
  */
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
-import { BRANCH_REACH, SKILL_CLEARANCE_ESCALATION, SKILL_DEEP_CONDITIONING, SKILL_OVERDRIVE_CAP, SKILL_SLEEVE_EUPHORIA } from '../../ids';
+import {
+  ACCESS_UPGRADE,
+  FASTER_CONDITIONING,
+  BRANCH_REACH,
+  SKILL_CLEARANCE_ESCALATION,
+  SKILL_DEEP_CONDITIONING,
+  SKILL_OVERDRIVE_CAP,
+  SKILL_SLEEVE_EUPHORIA,
+} from '../../ids';
 
 /** The reach lane, root first. Prices rise down the lane. */
 export const reachSkills: BuyableDefinition[] = [
@@ -31,7 +39,8 @@ export const reachSkills: BuyableDefinition[] = [
     branch: BRANCH_REACH,
     cost: num(2),
     parents: [SKILL_SLEEVE_EUPHORIA],
-    effect: { kind: 'placeholder' },
+    // 90 copies reach the floor of 10 runs; 5 more reach 5 (the floor falls by one run per extra copy)
+    effect: { kind: 'buyableCapBonus', targetId: FASTER_CONDITIONING, extra: 5 },
   },
   {
     id: SKILL_CLEARANCE_ESCALATION,
@@ -42,7 +51,7 @@ export const reachSkills: BuyableDefinition[] = [
     branch: BRANCH_REACH,
     cost: num(3),
     parents: [SKILL_DEEP_CONDITIONING],
-    effect: { kind: 'placeholder' },
+    effect: { kind: 'buyableCapBonus', targetId: ACCESS_UPGRADE, extra: 1 },
   },
   {
     id: SKILL_OVERDRIVE_CAP,

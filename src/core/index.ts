@@ -63,6 +63,7 @@ export { shiftWeights, wholeOrders } from './rarityShift';
 export { type RandomSource, binomial, multinomial } from './sampling';
 export { type OverflowPolicy, createClampOverflowPolicy } from './overflow';
 export { Progression } from './progression';
+export { BuyableCaps } from './buyableCaps';
 export { Shop, type PurchaseListener, type PurchaseResult } from './shop';
 export { euphoriaReduction } from './sleeveEuphoria';
 export { type SynthIncome, SynthSleeves, synthCreditsPerSecond } from './synthSleeves';

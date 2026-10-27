@@ -6,7 +6,7 @@
  */
 import type { BigNum } from '../numbers';
 import type { GameConfig, GameStateView } from '../core';
-import { type AUTOMATION_FEATURES, SCALAR_FIELDS, automationPointsEarned, isFeatureUnlocked } from '../core';
+import { type AUTOMATION_FEATURES, BuyableCaps, SCALAR_FIELDS, automationPointsEarned, isFeatureUnlocked } from '../core';
 
 /** Config sections the checks read. */
 type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'corporation' | 'focus' | 'items' | 'progression'>;
@@ -105,9 +105,10 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
       problems.push(`${def.id}.runsTowardSleeveXp is invalid: ${action.runsTowardSleeveXp}`);
     }
   }
+  const caps = new BuyableCaps(config.buyables);
   for (const b of config.buyables) {
     const owned = state.purchased[b.id] ?? 0;
-    if (!validCount(owned) || owned > (b.maxPurchases ?? 1)) problems.push(`${b.id} owned count is invalid: ${owned}`);
+    if (!validCount(owned) || owned > caps.maxCopies(b, state.purchased)) problems.push(`${b.id} owned count is invalid: ${owned}`);
     for (const need of [...(b.requires ?? []), ...(b.parents ?? [])]) {
       if (owned > 0 && (state.purchased[need] ?? 0) <= 0) problems.push(`${b.id} is owned without ${need}, which it needs`);
     }

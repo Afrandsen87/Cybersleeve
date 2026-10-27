@@ -16,6 +16,7 @@
  */
 import type { BigNum, NumberFactory } from '../numbers';
 import { AUTOMATION_FEATURES, isFeatureUnlocked, unlockingBuyable } from './automation';
+import { BuyableCaps } from './buyableCaps';
 import { readCorporationState, writeCorporationState } from './corporationState';
 import { traitsOf } from './effectTraits';
 import { SCALAR_FIELDS, readScalar, writeScalars } from './fields';
@@ -165,11 +166,17 @@ export function deserializeState(
     }
 
     const owned = readPurchased(raw['purchased']);
+    const caps = new BuyableCaps(config.buyables);
     for (const b of config.buyables) {
-      const count = Math.min(owned[b.id] ?? 0, b.maxPurchases ?? 1, Number.MAX_SAFE_INTEGER);
+      const count = Math.min(owned[b.id] ?? 0, caps.maxCopies(b, owned), Number.MAX_SAFE_INTEGER);
       if (count > 0) state.purchased[b.id] = count;
     }
     dropUnmetRequirements(state, config.buyables);
+    // a skill dropped above may have been the one that allowed the extra copies of another buyable
+    for (const b of config.buyables) {
+      const count = state.purchased[b.id] ?? 0;
+      if (count > caps.maxCopies(b, state.purchased)) state.purchased[b.id] = caps.maxCopies(b, state.purchased);
+    }
     state.runs = readRuns(raw['runs'], factory);
     state.synths = readSynths(raw['synths'], state, config.buyables);
     state.corporation = readCorporationState(raw['corporation'], config.corporation, factory);

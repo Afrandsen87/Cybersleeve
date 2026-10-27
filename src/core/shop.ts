@@ -4,6 +4,7 @@
  * Purchases ("buyables") paid with credits, network nodes or points: one-time or repeatable, optionally gated.
  */
 import type { BigNum, NumberFactory } from '../numbers';
+import { BuyableCaps } from './buyableCaps';
 import { traitsOf } from './effectTraits';
 import { Snapshot } from './snapshot';
 import type { BuyableDefinition, BuyableId, Currency, GameState, PointCurrency } from './types';
@@ -21,6 +22,7 @@ export type PurchaseResult = 'purchased' | 'max-reached' | 'locked' | 'cannot-af
  */
 export class Shop {
   private readonly byId = new Map<BuyableId, BuyableDefinition>();
+  private readonly caps: BuyableCaps;
 
   /**
    * Creates the shop.
@@ -43,6 +45,7 @@ export class Shop {
     private readonly onPurchased: PurchaseListener = () => {},
   ) {
     for (const b of buyables) this.byId.set(b.id, b);
+    this.caps = new BuyableCaps(buyables);
   }
 
   /** Rounds up to a whole number. */
@@ -99,10 +102,10 @@ export class Shop {
     return this.costOf(state, id).lte(reference.mul(this.factory.fromNumber(10).pow(this.revealOrders)));
   }
 
-  /** True when no further copy can be bought (`maxPurchases` reached). */
+  /** True when no further copy can be bought (`maxPurchases` plus any `buyableCapBonus` reached). */
   isMaxed(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
-    return !b || this.owned(state, id) >= (b.maxPurchases ?? 1);
+    return !b || this.owned(state, id) >= this.caps.maxCopies(b, state.purchased);
   }
 
   /**

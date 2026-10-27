@@ -306,7 +306,7 @@ export function validateConfig(config: GameConfig): string[] {
         errors.push(`buyable "${b.id}": belongs to unknown corporation action "${b.corporationActionId}"`);
       if (b.actionId !== undefined) errors.push(`buyable "${b.id}": cannot belong to both a character action and a corporation action`);
     }
-    checkEffect(b, { actionIds, itemIds, rarityIds, raritylessItemIds, errors });
+    checkEffect(b, { actionIds, itemIds, rarityIds, raritylessItemIds, buyableIds, errors });
     if (b.effect.kind === 'overclockChain') {
       const action = config.actions.find((a) => a.id === b.actionId);
       if (!action?.overclock) errors.push(`buyable "${b.id}": overclockChain needs an action that has an overclock rule`);

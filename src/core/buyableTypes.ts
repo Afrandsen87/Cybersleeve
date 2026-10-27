@@ -8,6 +8,7 @@ import type { BigNum } from '../numbers';
 import type { ActionId, ChainRule } from './actionTypes';
 import type { CorporationActionId, CorporationEffect } from './corporationTypes';
 import type { ItemDropRule, ItemId, RarityId } from './itemTypes';
+import type { ResleeveEffect } from './resleeveEffectTypes';
 
 /** Identifier of a buyable (e.g. `"auto-run"`). Never shown to the player. */
 export type BuyableId = string;
@@ -185,6 +186,8 @@ export type BuyableEffect =
   | { readonly kind: 'unlocksAutomation'; readonly feature: AutomationFeature }
   /** Does nothing (yet): a node of a tree whose effect is not designed. */
   | { readonly kind: 'placeholder' }
+  /** The effects of the newer re-sleeve skills (see `resleeveEffectTypes.ts`). */
+  | ResleeveEffect
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */
   | { readonly kind: 'hackingProficiencyMultiplier'; readonly factor: number }
   /** Every ACTION level needs `amount` (a fraction, 0.01 = 1 percent) less XP per copy. Sleeve levels are not affected. */

@@ -83,10 +83,11 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: ACCESS_UPGRADE,
     name: 'Access upgrade',
     symbol: 'AX',
-    description: 'Raises Access Level by 1, which unlocks the next action. Each copy costs 1000x more.',
+    description: 'Raises Access Level by 1, which unlocks the next action. Each copy costs 1000x more. Up to 4 copies.',
     cost: num(5),
     costGrowth: 1_000, // every 3rd order of magnitude
-    maxPurchases: Infinity,
+    // 4 copies reach access level 5, which opens the five actions there are; the Clearance Escalation re-sleeve skill allows one more
+    maxPurchases: 4,
     effect: { kind: 'accessLevel', amount: 1 },
   },
 
