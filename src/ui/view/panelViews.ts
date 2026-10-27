@@ -11,7 +11,7 @@ import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
-import type { AutomationView, BuyableView, RunRowView, RunsView, SkillsView, TabView } from './viewTypes';
+import type { AutomationView, BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
 
 /** The latest finished sleeve-runs, newest first. */
 export function runsView(runs: GameStateView['runs'], config: GameConfig, text: UiText): RunsView {
@@ -92,28 +92,34 @@ export function skillsView(
   const owned = (id: string): number => viewById.get(id)?.owned ?? 0;
   const common = { viewById, owned, hiddenText: text.skills.hidden, revealAll };
   const branchTitle = (id: string): string => (id === GENERAL_LANE ? text.skills.generalBranch : (text.skills.branches[id] ?? id));
+  const lanes = buildSkillLanes({
+    ...common,
+    skills: config.buyables.filter((b) => b.currency === 'skillPoints'),
+    laneTitle: branchTitle,
+    open: true,
+  });
+  // until the first re-sleeve the player has not seen what the skills do: only their places in the tree show
+  const resleeveLanes = buildSkillLanes({
+    ...common,
+    skills: config.buyables.filter((b) => b.currency === 'resleevePoints'),
+    laneTitle: () => '', // the widget's own heading says it
+    open: state.runs.length > 0,
+  });
+  const resleeveVisible = resleeveSkillsShown(state, config);
+  const anyMasked = (l: readonly SkillLaneView[]): boolean => l.some((lane) => lane.nodes.some((n) => n.masked));
   return {
     title: text.titles.skills,
     points: engine.skillPoints(),
     pointsText: text.skills.points(formatPlain(engine.skillPoints())),
-    lanes: buildSkillLanes({
-      ...common,
-      skills: config.buyables.filter((b) => b.currency === 'skillPoints'),
-      laneTitle: branchTitle,
-      open: true,
-    }),
+    note: text.skills.note,
+    noteVisible: anyMasked(lanes) || (resleeveVisible && anyMasked(resleeveLanes)),
+    lanes,
     resleeve: {
       title: text.titles.resleeveSkills,
-      visible: resleeveSkillsShown(state, config),
+      visible: resleeveVisible,
       points: engine.resleevePoints(),
       pointsText: text.skills.resleevePoints(formatPlain(engine.resleevePoints())),
-      // until the first re-sleeve the player has not seen what the skills do: only their places in the tree show
-      lanes: buildSkillLanes({
-        ...common,
-        skills: config.buyables.filter((b) => b.currency === 'resleevePoints'),
-        laneTitle: () => '', // the widget's own heading says it
-        open: state.runs.length > 0,
-      }),
+      lanes: resleeveLanes,
     },
   };
 }

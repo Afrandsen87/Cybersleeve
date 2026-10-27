@@ -126,6 +126,8 @@ export interface UiText {
     readonly branches: Readonly<Record<string, string>>;
     /** The title of the lane that holds the skills without a branch. */
     readonly generalBranch: string;
+    /** The note at the top of the Skills tab, shown while some skill is still masked. */
+    readonly note: string;
   };
   /** The Stats tab: the list of the latest finished sleeve-runs. */
   readonly runs: {
@@ -305,6 +307,7 @@ export const uiText: UiText = {
     hidden: '???',
     branches: { cybernetics: 'Cybernetics', anonymity: 'Anonymity', leverage: 'Leverage' },
     generalBranch: 'General',
+    note: 'Skills that read ??? will be unlocked as you play further.',
   },
   runs: {
     empty: 'No finished sleeve-runs yet. Re-sleeve to write the first one down.',

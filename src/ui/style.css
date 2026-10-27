@@ -705,6 +705,16 @@ button:not(:disabled):hover {
   display: none;
 }
 
+/* The note at the top of the Skills tab. */
+.skills-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.skills-note[hidden] {
+  display: none;
+}
+
 /* The Skills tab: a box holding the skills. */
 .skills-widget {
   display: grid;

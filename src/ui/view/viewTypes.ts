@@ -365,6 +365,10 @@ export interface SkillsView {
   /** Skill points that can still be spent. */
   readonly points: number;
   readonly pointsText: string;
+  /** The note at the top of the tab: skills that read ??? unlock as the player plays on. */
+  readonly note: string;
+  /** True while any skill that is on screen is masked (once all of them read, the note has nothing to say). */
+  readonly noteVisible: boolean;
   /** The skill tree: one lane per branch, in configuration order. */
   readonly lanes: readonly SkillLaneView[];
   /** The group of skills bought with re-sleeve points. */

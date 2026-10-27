@@ -39,11 +39,13 @@ export function mountSkillsPanel(ctx: UiContext, initial: SkillsView): SkillsPan
   const resleeveTree = mountSkillTree(ctx, initial.resleeve.lanes);
   resleeveWidget.append(h('h2', undefined, initial.resleeve.title), resleevePoints, resleeveTree.element);
 
+  const note = h('p', 'skills-note', initial.note);
   const root = h('div', 'tab-panel skills-panel');
-  root.append(skillsWidget, resleeveWidget);
+  root.append(note, skillsWidget, resleeveWidget);
   return {
     root,
     render(view) {
+      note.hidden = !view.noteVisible;
       setText(skillsPoints, view.pointsText);
       skillsTree.render(view.lanes);
       resleeveWidget.hidden = !view.resleeve.visible;

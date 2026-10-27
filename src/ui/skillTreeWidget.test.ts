@@ -133,6 +133,17 @@ describe('the skill tree on the screen', () => {
     expect(node('G1').classList.contains('owned')).toBe(true);
   });
 
+  it('has a note at the top of the tab that ??? skills unlock as you play on, until no skill is masked any more', () => {
+    const { root, render, game } = mount();
+    const note = root.querySelector<HTMLElement>('.skills-panel > .skills-note')!;
+    expect(root.querySelector('.skills-panel')!.firstElementChild).toBe(note);
+    expect(note.textContent).toBe('Skills that read ??? will be unlocked as you play further.');
+    expect(note.hidden).toBe(false);
+    loose(game).purchased['dual'] = 1; // the gated branch reads now: nothing is masked
+    render();
+    expect(note.hidden).toBe(true);
+  });
+
   it('clicking a skill that cannot be bought yet does nothing', () => {
     const { node, game } = mount();
     node('G2').click();
