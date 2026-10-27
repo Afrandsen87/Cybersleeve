@@ -16,6 +16,13 @@ import { renderUpgrades } from './upgradeButtons';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/** The size of one grid cell in pixels. Handed to the style sheet as `--step`, and used to place the ends of the lines. */
+export const STEP_PX = 76;
+/** The size of a skill button in pixels (handed to the style sheet as `--tile`). Lines start and end at its edge. */
+export const TILE_PX = 44;
+/** Half the width of a skill button, in grid units: how far a line starts from the centre of its parent and stops short of its child's. */
+export const HALF_TILE = TILE_PX / STEP_PX / 2;
+
 /** A drawn skill tree. */
 export interface SkillTreeWidget {
   /** The tree's element, to place in a box. */
@@ -40,6 +47,8 @@ interface Edge {
  */
 export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]): SkillTreeWidget {
   const element = h('div', 'skill-tree');
+  element.style.setProperty('--step', `${STEP_PX}px`);
+  element.style.setProperty('--tile', `${TILE_PX}px`);
   const buttons = new Map<string, HTMLButtonElement>();
   const edges: Edge[] = [];
 
@@ -108,19 +117,20 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
 }
 
 /**
- * The line from a parent to a child in grid units: out of the parent's right side, across to the middle of the gap, up or down to the
- * child's row, and into the child's left side. Nodes are one unit wide, centred in their cell.
+ * The line from a parent to a child in grid units: out of the parent's right edge, across to the middle of the gap, up or down to the
+ * child's row, and into the child's left edge. Each node is centred in its cell and {@link HALF_TILE} wide on either side of the
+ * centre, so the line touches the icons without running under them.
  *
  * Called by: {@link mountSkillTree}.
  *
  * @param parent the parent node
  * @param child the child node (further right than the parent)
  */
-function edgePath(parent: SkillNodeView, child: SkillNodeView): string {
+export function edgePath(parent: SkillNodeView, child: SkillNodeView): string {
   const y1 = parent.row + 0.5;
   const y2 = child.row + 0.5;
-  const x1 = parent.col + 0.5;
-  const x2 = child.col + 0.5;
+  const x1 = parent.col + 0.5 + HALF_TILE;
+  const x2 = child.col + 0.5 - HALF_TILE;
   const mid = (x1 + x2) / 2;
   return `M ${x1} ${y1} H ${mid} V ${y2} H ${x2}`;
 }

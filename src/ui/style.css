@@ -732,8 +732,7 @@ button:not(:disabled):hover {
  * A skill is placed by --col / --row in steps of --step; the lines between skills are an SVG in the same grid units.
  */
 .skill-tree {
-  --step: 76px;
-  --tile: 44px;
+  /* --step and --tile (the grid cell and the button, in px) are set by widgets/skillTree.ts, which also places the ends of the lines */
   display: grid;
   gap: 14px;
   overflow-x: auto;
@@ -792,18 +791,22 @@ button:not(:disabled):hover {
   pointer-events: none;
   overflow: visible;
 }
+/* A line is the colour of its lane: dim until its parent is owned, then full colour with a glow. */
 .lane-edge {
   fill: none;
-  stroke: var(--line);
-  stroke-width: 2;
+  stroke: var(--lane);
+  stroke-opacity: 0.4;
+  stroke-width: 3;
   vector-effect: non-scaling-stroke;
 }
 .lane-edge.lit {
-  stroke: var(--lane);
+  stroke-opacity: 1;
   filter: drop-shadow(0 0 3px var(--lane));
 }
 .skill-node {
   position: absolute;
+  width: var(--tile);
+  height: var(--tile);
   left: calc(var(--col) * var(--step) + (var(--step) - var(--tile)) / 2);
   top: calc(var(--row) * var(--step) + (var(--step) - var(--tile)) / 2);
 }

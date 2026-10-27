@@ -5,6 +5,7 @@ import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
 import { type SpeedControl, mountUi } from './dom';
+import { HALF_TILE, STEP_PX, TILE_PX } from './widgets/skillTree';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 
@@ -79,6 +80,24 @@ describe('the skill tree on the screen', () => {
     expect([red!.style.getPropertyValue('--cols'), red!.style.getPropertyValue('--rows')]).toEqual(['2', '1']);
     expect(green!.querySelectorAll('.lane-edge')).toHaveLength(2);
     expect(red!.querySelectorAll('.lane-edge')).toHaveLength(1);
+  });
+
+  it('a line leaves the parent at its right edge and stops at the left edge of the child, not at their centres', () => {
+    const { tree } = mount();
+    const [green] = [...tree().querySelectorAll<HTMLElement>('.lane-grid')];
+    const [toG2, toG3] = [...green!.querySelectorAll('.lane-edge')].map((e) => e.getAttribute('d'));
+    const out = 0.5 + HALF_TILE; // the right edge of the parent in column 0
+    const into = 1.5 - HALF_TILE; // the left edge of a child in column 1
+    expect(HALF_TILE).toBeCloseTo(TILE_PX / STEP_PX / 2, 10);
+    expect(toG2).toBe(`M ${out} 0.5 H 1 V 0.5 H ${into}`); // same row: a straight line
+    expect(toG3).toBe(`M ${out} 0.5 H 1 V 1.5 H ${into}`); // one row down: a step in the middle of the gap
+  });
+
+  it('hands the size of a cell and of a button to the style sheet, so the lines and the buttons agree', () => {
+    const { tree } = mount();
+    const element = tree().querySelector<HTMLElement>('.skill-tree')!;
+    expect(element.style.getPropertyValue('--step')).toBe(`${STEP_PX}px`);
+    expect(element.style.getPropertyValue('--tile')).toBe(`${TILE_PX}px`);
   });
 
   it('masks a skill whose gate is not met: ? on the button, ??? in the label, and it cannot be bought', () => {
