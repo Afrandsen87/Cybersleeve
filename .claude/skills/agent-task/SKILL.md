@@ -11,7 +11,7 @@ Task: $ARGUMENTS
 
 1. If you are not already inside `.claude/worktrees/`, create a worktree with the EnterWorktree tool, named with a short kebab-case slug of the task (for example "corporation-widgets"). This is the **task branch**. Confirm its path and branch.
 2. Run `npm install` in it (each worktree has its own `node_modules`).
-3. Read `CLAUDE.md`, then the parts of `DESIGN.md` and `docs/DECISIONS.md` that cover the mechanic you will touch.
+3. Read `CLAUDE.md`, then the parts of `DESIGN.md` and `docs/DECISIONS.md` that cover the mechanic you will touch. If the task involves design, economy, pacing or balance, also read `.claude/skills/incremental-design/SKILL.md`, and tell subagents doing such work to read it.
 4. If you need the dev server, use a port derived from the worktree name (`npm run dev -- --port <port>`) and say which. Saves live in the browser per origin, so worktrees do not share saves.
 5. State the files and directories in scope. If the task did not name them and they are unclear, propose a scope and ask once.
 

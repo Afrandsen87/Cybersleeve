@@ -10,7 +10,7 @@ Last updated: 2026-10-27.
 
 Cyberpunk idle/incremental game. The player is a character who performs **actions**. There is no life clock: the player builds up their current **sleeve** (body) and chooses when to **re-sleeve** (the first prestige layer). Later layers, not designed yet: several sleeves at once, each replaying a copy of the previous lifetime; companies that produce ever more sleeves; cities, outposts, planets.
 
-Scope decisions: desktop browsers only; offline progress is out of scope for now; balance is not a factor yet (more mechanics, including buyables for every action, are coming), so do not "fix" balance oddities. **Infinity is 1e308**: every amount is held at or below it (see 9).
+Scope decisions: desktop browsers only; offline progress is out of scope for now; balance matters now that players are on the live game: new content is checked against the pacing of what exists (a price against the income that pays it, a reward against the time it takes), existing tuning is changed only when asked, and a pacing concern is flagged with numbers. Being corrected later is still fine (see `docs/DECISIONS.md`, 2026-10-28). **Infinity is 1e308**: every amount is held at or below it (see 9).
 
 ## 2. Resources and the screen
 
