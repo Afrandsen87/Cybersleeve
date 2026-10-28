@@ -17,17 +17,24 @@
 - Strength: the economy is legible because the formula is on screen; decisions are numeric and real.
 - Borrow (TO CONFIRM with the user): showing the player the structure of what they are scaling.
 
-## Space Idle (Steam)  [TO CONFIRM, the assistant is unsure which game this is]
-- *User to fill in:* what it does well, how it layers expansion, what Cybersleeve borrows.
+## Unnamed Space Idle (Steam)  [TO CONFIRM]
+- Unofficial wiki: https://spaceidle.game-vault.net/wiki/Main_Page (not yet read; the host was blocked in the cloud session).
+- *Fill in from the wiki or the user:* core loop, prestige structure, best decision, what Cybersleeve borrows.
 
 ## CIFI  [TO CONFIRM]
-- *User to fill in.*
+- Unofficial wiki: https://cifi.game-vault.net/wiki/Main_Page (not yet read; the host was blocked in the cloud session; the user has not played it and is unsure of the wiki's quality).
+- *Fill in from the wiki:* core loop, prestige structure, best decision, what Cybersleeve borrows.
 
 ## ISEPS  [TO CONFIRM]
-- *User to fill in.*
+- A web search describes it as a mobile game ("ISEPS Idle Particle Simulator", Android listing) about earning cash with exotic particles, no Steam page found. Nothing more is verified.
+- *User to fill in:* what it does well and what Cybersleeve borrows.
 
-## Underworld Idle (Steam)  [TO CONFIRM]
-- *User to fill in.*
+## Underworld Idle (Steam)  [from the user]
+- Niche. Its main characteristics are shared by the other games here: exponential scaling growth, like Derivative Clicker. Treat it as another example of "scale is the progression", not as a source of distinct mechanics.
+
+## Increlution  [from the user; very little public information]
+- The inspiration for Cybersleeve's progress bars: actions are bars that fill over time, with the player choosing what to run, not repeatedly clicking.
+- *User to fill in:* how actions, levels/XP and resets work there, and what Cybersleeve borrows or rejects.
 
 ## Template for each entry
 - Core loop in one sentence.
