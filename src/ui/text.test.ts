@@ -56,7 +56,7 @@ describe('display text comes from the text table', () => {
     const vm = buildViewModel(createGame({ config: testConfig }));
     expect(vm.creditsLine).toBe('Credits: 0');
     expect(vm.sleeve.stats.filter((s) => !s.hidden).map((s) => s.label)).toEqual([
-      'Access level',
+      'Access Level',
       'Interface speed',
       'Hacking Proficiency',
     ]); // Heat, ICE Rating and Legend stay hidden until something makes or boosts them

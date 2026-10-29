@@ -1,12 +1,9 @@
+import { game } from '../testing/gameKit';
 import { describe, expect, it } from 'vitest';
-import { createConfig } from '../core';
 import { numberFactory, num } from '../numbers';
 import { setCredits, setSleeveXp, testConfig } from '../testing/testConfig';
-import { createGame } from './createGame';
 import { createNewGameHandler } from './newGame';
 import { BACKUP_KEY, MemoryStore, PREVIOUS_KEY, SAVE_KEY, SaveGame, createBrowserStore, type KeyValueStore } from './persistence';
-
-const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
 
 describe('SaveGame', () => {
   it('saves and loads a game', () => {

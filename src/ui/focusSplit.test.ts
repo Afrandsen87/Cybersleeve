@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { focusStackGame } from '../core/resleeveSkillsKit';
+import { focusStackGame } from '../testing/resleeveSkillsKit';
 import { buildViewModel } from './viewModel';
 
 /** The Focus cell of action 'a' as the screen is told to draw it. */

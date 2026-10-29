@@ -1,3 +1,4 @@
+import { game } from '../testing/gameKit';
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { gameConfig } from '../content/gameConfig';
@@ -6,7 +7,6 @@ import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
 import { buildViewModel, statRow } from './viewModel';
 
-const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
 const sleeveTip = (g: ReturnType<typeof game>, id: Parameters<typeof statRow>[1]): string =>
   statRow(buildViewModel(g).sleeve.stats, id).tip ?? '';
 const set = (g: ReturnType<typeof game>, patch: Record<string, unknown>): void => void Object.assign(g.getState(), patch);
@@ -69,9 +69,9 @@ describe('Heat, ICE Rating and Legend tooltips', () => {
       'Earned = 1e100',
       'ICE Rating = 1e100',
       '',
-      'Heat Reduction = Orders of Magnitude x Reduction per Order',
+      'Heat Reduction = Orders of Magnitude ICE Rating x Reduction per Order',
       '',
-      'Orders of Magnitude = 100',
+      'Orders of Magnitude ICE Rating = 100',
       'Reduction per Order = 0.5%',
       '',
       'Heat Reduction = 50%',
@@ -319,7 +319,7 @@ describe('Critical success tooltip', () => {
       'Chance per completed run = 10%',
       '',
       'Each critical success gives 2x action XP and pays 3x the reward',
-      'Above 100% a run can have several critical successes: 150% is one for sure and a 50% chance of a second',
+      'Above 100% a run can have several critical successes: 150% is one guaranteed and a 50% chance of a second',
       'Some actions may have other effects as well',
     ]);
   });

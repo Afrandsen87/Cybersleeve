@@ -133,7 +133,7 @@ describe('the square on the screen', () => {
   it('shows a poster naming the access level instead of a locked card, and the poster is empty of the lock once revealed', () => {
     const { card } = mount();
     const poster = card(0).querySelector<HTMLElement>('.action-poster')!;
-    expect(poster.textContent).toMatch(/^Increase Access level to \d+ to unlock$/);
+    expect(poster.textContent).toMatch(/^Requires Access Level \d+$/);
   });
 
   it('the start-run corner button starts the action and is disabled with it', () => {

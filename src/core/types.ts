@@ -9,9 +9,9 @@
  * are separate from state (what changes while playing), so content and tuning can change
  * without touching engine code (open/closed).
  */
-export * from './actionTypes';
-export * from './itemTypes';
-export * from './buyableTypes';
-export * from './corporationTypes';
-export * from './configTypes';
-export * from './stateTypes';
+export * from './actions/actionTypes';
+export * from './items/itemTypes';
+export * from './effects/buyableTypes';
+export * from './corporation/corporationTypes';
+export * from './config/configTypes';
+export * from './save/stateTypes';

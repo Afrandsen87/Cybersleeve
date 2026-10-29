@@ -45,7 +45,7 @@ describe('the Augment button in the view model', () => {
     expect(tip.split('\n')[0]).toBe('XP per Run = Base XP x Boost of each Rarity');
     expect(tip).toContain('\n\nBonus per Augment = 1%\nCommon Augments = 2\n\nXP per Run = 1 x (1 + 0.01 x 2) = 1.02\n');
     expect(tip).toContain('Selected = Rare (1 held)');
-    expect(tip).toContain('its action levels come sooner');
+    expect(tip).toContain('It will boost its XP gain.');
   });
 
   it('says what things do and never what they do not (no "not", "never" or "no")', () => {

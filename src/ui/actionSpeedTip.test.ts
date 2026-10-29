@@ -1,11 +1,9 @@
+import { game } from '../testing/gameKit';
 import { describe, expect, it } from 'vitest';
-import { createGame } from '../app/createGame';
-import { createConfig } from '../core';
 import { num } from '../numbers';
 import { killAction, setSleeveXp, testConfig } from '../testing/testConfig';
 import { buildViewModel } from './viewModel';
 
-const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
 const tip = (g: ReturnType<typeof game>, index = 0): string => buildViewModel(g).actions[index]!.speedTip;
 
 describe("the tooltip on an action card's speed line", () => {

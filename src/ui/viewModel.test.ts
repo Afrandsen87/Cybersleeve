@@ -1,3 +1,4 @@
+import { game } from '../testing/gameKit';
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
@@ -14,8 +15,6 @@ import {
   testConfig,
 } from '../testing/testConfig';
 import { buildViewModel, formatSeconds, statRow } from './viewModel';
-
-const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
 
 describe('view model - unlocks, start costs and toggles', () => {
   const unlock = {
@@ -36,7 +35,7 @@ describe('view model - unlocks, start costs and toggles', () => {
     expect(kill!.lockedReason).toBeNull();
     expect(kill!.startCostText).toBe('50 nodes');
     expect(kill!.startable).toBe(false); // no nodes to pay the start cost with
-    expect(legend!.lockedReason).toBe('Needs access level 2');
+    expect(legend!.lockedReason).toBe('Requires Access Level 2');
   });
 
   it('shows no reason once an action is unlocked', () => {

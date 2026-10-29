@@ -1,14 +1,12 @@
 /**
  * Heat, ICE Rating and Legend stay hidden until something that makes or boosts them is unlocked.
  */
+import { game } from '../testing/gameKit';
 import { describe, expect, it } from 'vitest';
-import { createGame } from '../app/createGame';
-import { createConfig } from '../core';
 import { num } from '../numbers';
 import { killAction, legendAction, payoutAction, setCredits, testConfig } from '../testing/testConfig';
 import { buildViewModel } from './viewModel';
 
-const game = (overrides = {}) => createGame({ config: createConfig(testConfig, overrides) });
 const shown = (g: ReturnType<typeof game>): string[] =>
   buildViewModel(g)
     .sleeve.stats.filter((s) => !s.hidden)

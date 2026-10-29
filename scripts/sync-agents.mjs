@@ -7,8 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const source = readFileSync(join(root, 'CLAUDE.md'), 'utf8');
-const header =
-  '<!-- Generated from CLAUDE.md by scripts/sync-agents.mjs. Edit CLAUDE.md, then run `npm run agents:sync`. -->\n\n';
+const header = '<!-- Generated from CLAUDE.md by scripts/sync-agents.mjs. Edit CLAUDE.md, then run `npm run agents:sync`. -->\n\n';
 
 writeFileSync(join(root, 'AGENTS.md'), header + source);
 console.log('AGENTS.md written from CLAUDE.md');

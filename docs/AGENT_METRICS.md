@@ -22,3 +22,6 @@ Experiment: does running implementation subagents on a cheaper model (haiku) sav
 | 2026-10-29 | baseline | Audit: effects/speed/rewards duplication | explore | haiku | 172597 | n/a | no | 14 findings + file split proposals; strong |
 | 2026-10-29 | baseline | Audit: buyable/action option data | explore | haiku | 91631 | n/a | no | Rich table; 2 flags to verify (Study methods, Cascade) |
 | 2026-10-29 | baseline | Audit: skills/items/resleeve option data | explore | haiku | 115512 | n/a | no | Good tables; claims dominance none, dup icons; spot-check pending |
+| 2026-10-29 | baseline | S0 core move (script, no subagents) | refactor | n/a | 0 | 1 (format only) | no | Orchestrator only; biome format fixes after path-length change |
+| 2026-10-29 | baseline | S2 classify DECISIONS entries by context | explore | haiku | 61009 | n/a | no | JSON map of 82 entries, judgement calls reported |
+| 2026-10-29 | baseline | S3 registry split + ownsKind (script + edits, no subagents) | refactor | n/a | 0 | 0 | no | Orchestrator only; 1 failed script run (regex) fixed before check |

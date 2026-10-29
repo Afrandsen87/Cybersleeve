@@ -30,7 +30,7 @@ describe('the Overclock toggle in the view model', () => {
     expect(tip.split('\n')[0]).toBe('Overclock (off)');
     expect(tip).toContain('Strength = 1.1');
     expect(tip).toContain('Speed Bonus = 55% (50% x Strength)');
-    expect(tip).toContain('Costs 1 heat per minute while this action runs');
+    expect(tip).toContain('Causes 1 heat per minute while this action runs');
     expect(tip).toContain('Click to switch on');
   });
 

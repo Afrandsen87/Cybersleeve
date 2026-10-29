@@ -14,6 +14,10 @@ import {
   type GameStateView,
   type SleeveStats,
   earnedSpeedBeyond,
+  coolsNow as heatCoolsNow,
+  cycleMs as heatCycleMs,
+  heatStopPoint,
+  heatTaxShare,
 } from '../../core';
 import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
@@ -63,11 +67,10 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
   const reveal = { config, accessLevel: stats.accessLevel, owned: ownedCount };
   // heat and ICE Rating appear together, so either having moved keeps both on show
   const heatOrIceShown = heatOrIceMoved(stats, config);
-  const keep = 1 - stats.heatReduction;
   const capped = stats.heatTaxCap < 1; // Blackout: the tax stops short of taking everything, so node credits never stop
-  const stopsAt =
-    !capped && keep > 0 && sleeve.heatTaxPerPoint > 0 ? text.format.heatPoints(formatPlain(1 / sleeve.heatTaxPerPoint / keep)) : null;
-  const cycleMs = sleeve.heatCooldownMs / (1 + sleeve.legendHeatSpeedup * stats.legend);
+  const stopPoint = heatStopPoint(stats.heatReduction, sleeve.heatTaxPerPoint, stats.heatTaxCap);
+  const stopsAt = stopPoint === null ? null : text.format.heatPoints(formatPlain(stopPoint));
+  const cycleMs = heatCycleMs(sleeve, stats.legend);
   const orders = Math.max(0, stats.iceRating.log10());
   const beyond = earnedSpeedBeyond(sleeve);
   const curve = {
@@ -78,13 +81,13 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
   };
   const proficiency = state.hackingProficiency.mul(numberFactory.fromNumber(stats.hackingProficiencyFactor));
   const cooldownSpeed = stats.heatCooldownSpeed;
-  const coolsNow = stats.heat >= stats.heatCooldownAmount; // the cooldown waits until there is a whole amount of heat to remove
+  const coolsNow = heatCoolsNow(stats.heat, stats.heatCooldownAmount);
   const heatTip = (): string =>
     text.tips.heat({
       heat: formatPlain(stats.heat),
       perPointPercent: formatPlain(sleeve.heatTaxPerPoint * 100),
       reductionPercent: formatPlain(stats.heatReduction * 100),
-      taxPercent: formatPlain(Math.min(stats.heatTaxCap * 100, stats.heat * keep * sleeve.heatTaxPerPoint * 100)),
+      taxPercent: formatPlain(heatTaxShare(stats.heat, stats.heatReduction, sleeve.heatTaxPerPoint, stats.heatTaxCap) * 100),
       stopsAt,
       taxCapPercent: capped ? formatPlain(stats.heatTaxCap * 100) : null,
       amount: formatPlain(stats.heatCooldownAmount),

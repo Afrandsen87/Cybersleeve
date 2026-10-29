@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loose, newGame, withBuyables } from '../core/resleeveSkillsKit';
+import { loose, newGame, withBuyables } from '../testing/resleeveSkillsKit';
 import { num } from '../numbers';
 import { buildViewModel } from './viewModel';
 

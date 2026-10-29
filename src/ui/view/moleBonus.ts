@@ -3,12 +3,13 @@
  *
  * How much faster the Moles held make heat cool once Deep Cover keeps them (for the tips).
  */
+import { moleSpeedFactor } from '../../core';
 import { formatPlain } from '../../numbers';
 
 /**
  * The speed-up in percent that Moles give with Deep Cover, as text: `((1 + bonusPerOrder) ^ log10(moles) - 1) * 100`.
  *
- * Called by: `sleeveView.ts`, `networkView.ts`. Calls: `formatPlain`.
+ * Called by: `sleeveView.ts`, `networkView.ts`. Calls: `moleSpeedFactor` (core heat model), `formatPlain`.
  *
  * @param moleAggregation the skill's bonus per order of magnitude, or `null` while Moles are still spent
  * @param moles Moles held
@@ -16,5 +17,5 @@ import { formatPlain } from '../../numbers';
  */
 export function aggregatedMoleText(moleAggregation: number | null, moles: number): string | null {
   if (moleAggregation === null) return null;
-  return formatPlain(moles > 1 ? ((1 + moleAggregation) ** Math.log10(moles) - 1) * 100 : 0);
+  return formatPlain((moleSpeedFactor(moleAggregation, moles) - 1) * 100);
 }

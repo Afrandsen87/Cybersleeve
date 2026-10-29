@@ -137,7 +137,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     cost: num(50),
     costGrowth: 1_000, // every 3rd order of magnitude
     maxPurchases: Infinity,
-    // chance 0.05 per copy: 20 copies make every run critical (the total is capped at 1)
+    // chance 0.05 per copy: 20 copies make every run critical (the total is not capped: above 1 a run has several)
     effect: { kind: 'criticalChance', chance: 0.05 },
   },
 
