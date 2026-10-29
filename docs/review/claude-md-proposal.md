@@ -1,4 +1,4 @@
-# Proposed instruction edits (NOT applied)
+# Proposed instruction edits (sections 1-3 and the agent-task tweak applied 2026-10-29 after the user accepted S4; the ARCHITECTURE pointer waits for Step 14)
 
 Apply after the first context is migrated (migration Step 3). Afterwards ask the user whether to run `npm run agents:sync`; do not regenerate `AGENTS.md` unprompted.
 

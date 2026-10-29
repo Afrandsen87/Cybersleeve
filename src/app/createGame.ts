@@ -19,6 +19,8 @@ import {
   CritFeed,
   CriticalSuccesses,
   LinkedPayouts,
+  RewardPayer,
+  StartCosts,
   Economy,
   GameEngine,
   Inventory,
@@ -113,6 +115,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const links = new CriticalLinks(stats, state);
   const critFeed = new CritFeed();
   const linked = new LinkedPayouts(stats, random);
+  const payer = new RewardPayer(state, economy, stats, definition);
   const burnLeads = new BurnLeads(
     config,
     state,
@@ -138,7 +141,8 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     state,
     stats,
     progression,
-    economy,
+    payer,
+    new StartCosts(state, stats, factory, definition),
     factory,
     definition,
     drops,

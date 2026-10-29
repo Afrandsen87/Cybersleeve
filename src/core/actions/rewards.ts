@@ -50,9 +50,22 @@ export function rewardOf(kind: RewardKind | undefined): RewardDescriptor {
 }
 
 /**
+ * What ONE run of a reward adds: the amount rounded down for whole-unit kinds (`wholePerRun`), unchanged for the others. The single
+ * owner of reward rounding; the shown payout and the paid amount both come from here.
+ *
+ * Called by: {@link payReward}, `Economy.payout`.
+ *
+ * @param kind the reward kind (`undefined` means credits)
+ * @param gross amount of one run
+ */
+export function wholeRunAmount(kind: RewardKind | undefined, gross: BigNum): BigNum {
+  return rewardOf(kind).wholePerRun ? gross.floor() : gross;
+}
+
+/**
  * Pays `runs` runs of a reward in full. Heat taxes only the credits network nodes produce, never a run's reward.
  *
- * Called by: `actionRunner.ts`.
+ * Called by: `rewardPayer.ts`. Calls: {@link wholeRunAmount}.
  *
  * @param state state to mutate
  * @param kind the reward kind
@@ -60,7 +73,5 @@ export function rewardOf(kind: RewardKind | undefined): RewardDescriptor {
  * @param runs number of runs (a `BigNum`)
  */
 export function payReward(state: GameState, kind: RewardKind, gross: BigNum, runs: BigNum): void {
-  const target = REWARDS[kind];
-  const perRun = target.wholePerRun ? gross.floor() : gross;
-  addToScalar(state, target.field, perRun.mul(runs));
+  addToScalar(state, REWARDS[kind].field, wholeRunAmount(kind, gross).mul(runs));
 }

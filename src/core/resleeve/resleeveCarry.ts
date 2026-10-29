@@ -5,6 +5,7 @@
  * the Automation tab (Daemon Persistence), and shares of Hacking Proficiency and ICE Rating (Residual Proficiency and Residual Firewall).
  */
 import { ownsKind } from '../effects/ownedOfKind';
+import { currencyInfo } from '../kernel/currencies';
 import { logScaled } from '../kernel/curves';
 import type { BigNum, NumberFactory } from '../../numbers';
 import type { BuyableDefinition, GameState } from '../types';
@@ -25,7 +26,7 @@ function owns(
  * Called by: {@link recordLastLife}, `reflexArchive.ts`.
  */
 export function isActionCardPurchase(b: BuyableDefinition): boolean {
-  return b.actionId !== undefined && b.corporationActionId === undefined && (b.currency ?? 'credits') === 'credits';
+  return b.actionId !== undefined && b.corporationActionId === undefined && currencyInfo(b.currency).archivedByReflex === true;
 }
 
 /**

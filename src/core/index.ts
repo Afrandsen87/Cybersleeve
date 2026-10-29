@@ -28,7 +28,9 @@ export { type BoostedCooldownState, type HeatCooldownState, coolHeat, coolHeatBo
 export { coolsNow, cycleMs, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heat/heatModel';
 export { applyCompletionEffects } from './actions/completion';
 export { SCALAR_FIELDS, type ScalarField } from './kernel/fields';
-export { type RewardDescriptor, REWARDS, REWARD_KINDS, payReward, rewardOf } from './actions/rewards';
+export { type RewardDescriptor, REWARDS, REWARD_KINDS, DEFAULT_REWARD_KIND, payReward, rewardOf, wholeRunAmount } from './actions/rewards';
+export { StartCosts } from './actions/startCosts';
+export { RewardPayer, type RewardMultipliers } from './actions/rewardPayer';
 export { EFFECT_TRAITS, type EffectTraits, assertNever, traitsOf } from './effects/effectTraits';
 export { Economy } from './economy/economy';
 export { Inventory, itemCount } from './items/inventory';
@@ -62,6 +64,7 @@ export { LinkedPayouts, type LinkedPayout, type LinkedPayoutRules } from './acti
 export { CriticalSuccesses, criticalRuleFor, type CriticalBatch, type CriticalChanceSource } from './crits/critical';
 export { shiftWeights } from './items/rarityShift';
 export { bigOrders, logScaled, orders, wholeOrders } from './kernel/curves';
+export { CURRENCIES, CURRENCY_IDS, DEFAULT_CURRENCY, type CurrencyDescriptor, currencyInfo, isPointCurrency } from './kernel/currencies';
 export { type RandomSource, binomial, multinomial } from './kernel/sampling';
 export { type OverflowPolicy, createClampOverflowPolicy } from './kernel/overflow';
 export { Progression } from './actions/progression';

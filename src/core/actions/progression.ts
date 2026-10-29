@@ -1,48 +1,15 @@
 /**
  * @module core
  *
- * Experience bookkeeping: per-action XP/levels and per-action sleeve XP/levels.
+ * Experience bookkeeping: per-action XP/levels and per-action sleeve XP/levels. The reduction buyables live in `xpReductions.ts` and the
+ * run counting in `sleeveXp.ts`; this is the facade the rest of the game imports.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
-import { BuyableCaps } from '../effects/buyableCaps';
 import { LevelRule } from './level';
 import { sleeveLevelsGateId } from '../resleeve/resleeveGate';
-import { euphoriaReduction } from '../sleeve/sleeveEuphoria';
-import type { ActionId, ActionState, BuyableEffect, BuyableId, GameConfig, GameState } from '../types';
-
-/** A `sleeveXpReduction` buyable. */
-interface ReductionSource {
-  readonly id: BuyableId;
-  readonly effect: Extract<BuyableEffect, { kind: 'sleeveXpReduction' }>;
-}
-
-/** An `actionXpReduction` buyable. */
-interface ActionReductionSource {
-  readonly id: BuyableId;
-  readonly amount: number;
-}
-
-/** An `actionXpReductionFromSleeveLevel` buyable (Sleeve Euphoria). */
-interface EuphoriaSource {
-  readonly id: BuyableId;
-  readonly remainingPerOrder: number;
-  readonly maxReduction: number;
-}
-
-/** A `runsPerSleeveXpReduction` buyable. */
-interface RunsReductionSource {
-  readonly id: BuyableId;
-  readonly perCopy: number;
-  readonly minRuns: number;
-}
-
-/** Above this many runs the exact remainder toward the next sleeve-XP batch is meaningless and dropped. */
-const EXACT_RUN_LIMIT = 1e15;
-
-/** `floor(x)` as a JS number (`Infinity` beyond the double range, 0 for negatives). */
-function wholeCount(x: BigNum): number {
-  return Math.max(0, Math.floor(x.toNumber()));
-}
+import { countRunsTowardSleeveXp, wholeCount } from './sleeveXp';
+import { XpReductions } from './xpReductions';
+import type { ActionId, ActionState, GameConfig, GameState } from '../types';
 
 /**
  * Applies completed runs to the experience counters and answers level queries.
@@ -50,25 +17,14 @@ function wholeCount(x: BigNum): number {
  * @remarks
  * Owns no mutable state of its own; it mutates the `GameState` passed in.
  * Every action has its own action XP/level and its own sleeve XP/level.
- * `sleeveXpReduction` buyables scale down the XP every sleeve level asks for: a reduction `r` makes each threshold
- * `(1 - r)` times as large. The action whose sleeve level feeds a reduction is exempt from it, so the level is always
- * measured against the normal thresholds.
- * `actionXpReduction` buyables do the same for every ACTION level (never the sleeve levels): each action level then needs `(1 - r)`
- * times the XP.
- * `runsPerSleeveXpReduction` buyables lower how many runs one batch of sleeve XP takes (see {@link Progression.runsPerSleeveXp}).
- * Called by: `engine.ts`.
+ * Reduction buyables are answered by {@link XpReductions}; the level queries here measure XP against the unreduced thresholds.
+ * Called by: `engine.ts`. Calls: {@link XpReductions}, `countRunsTowardSleeveXp`.
  */
 export class Progression {
   private readonly actionRules = new Map<ActionId, LevelRule>();
   private readonly sleeveRules = new Map<ActionId, LevelRule>();
-  private readonly baseRunsPerSleeveXp: number;
-  private readonly runsReductionSources: readonly RunsReductionSource[];
-  private readonly caps: BuyableCaps;
+  private readonly reductions: XpReductions;
   private readonly sleeveXpPerGrant: BigNum;
-  private readonly reductionSources: readonly ReductionSource[];
-  private readonly actionReductionSources: readonly ActionReductionSource[];
-  private readonly euphoriaSources: readonly EuphoriaSource[];
-  private readonly maxTotalReduction: number;
   /** Id of the buyable that opens sleeve levels, or `null` when the content has none. */
   private readonly sleeveLevelsGateId: string | null;
   /** Levels one Skill shard delays the action XP scaling by (0 when the game has none). */
@@ -84,29 +40,13 @@ export class Progression {
     config: Pick<GameConfig, 'actions' | 'progression'> & Partial<Pick<GameConfig, 'buyables' | 'items'>>,
     private readonly factory: NumberFactory,
   ) {
-    this.reductionSources = (config.buyables ?? []).flatMap((b) =>
-      b.effect.kind === 'sleeveXpReduction' ? [{ id: b.id, effect: b.effect }] : [],
-    );
-    this.actionReductionSources = (config.buyables ?? []).flatMap((b) =>
-      b.effect.kind === 'actionXpReduction' ? [{ id: b.id, amount: b.effect.amount }] : [],
-    );
-    this.euphoriaSources = (config.buyables ?? []).flatMap((b) =>
-      b.effect.kind === 'actionXpReductionFromSleeveLevel'
-        ? [{ id: b.id, remainingPerOrder: b.effect.remainingPerOrder, maxReduction: b.effect.maxReduction }]
-        : [],
-    );
-    this.runsReductionSources = (config.buyables ?? []).flatMap((b) =>
-      b.effect.kind === 'runsPerSleeveXpReduction' ? [{ id: b.id, perCopy: b.effect.perCopy, minRuns: b.effect.minRuns }] : [],
-    );
-    this.caps = new BuyableCaps(config.buyables ?? []);
+    this.reductions = new XpReductions(config.buyables ?? [], config.progression.runsPerSleeveXp, config.progression.maxSleeveXpReduction);
     this.sleeveLevelsGateId = sleeveLevelsGateId(config.buyables);
     for (const a of config.actions) {
       this.actionRules.set(a.id, new LevelRule(a.levels ?? config.progression.actionLevels, factory));
       this.sleeveRules.set(a.id, new LevelRule(a.sleeveLevels ?? config.progression.sleeveLevels, factory));
     }
-    this.baseRunsPerSleeveXp = config.progression.runsPerSleeveXp;
     this.sleeveXpPerGrant = factory.fromNumber(config.progression.sleeveXpPerGrant);
-    this.maxTotalReduction = config.progression.maxSleeveXpReduction;
     this.levelsPerShard = config.items?.skillShard?.levelsDelayed ?? 0;
   }
 
@@ -121,16 +61,7 @@ export class Progression {
    * @returns a whole number between 1 and `progression.runsPerSleeveXp`
    */
   runsPerSleeveXp(state: GameState): number {
-    let runs = this.baseRunsPerSleeveXp;
-    let floor = 1;
-    for (const { id, perCopy, minRuns } of this.runsReductionSources) {
-      const copies = state.purchased[id] ?? 0;
-      if (copies <= 0) continue;
-      runs -= perCopy * copies;
-      // a skill that allows more copies of this buyable lowers its floor with them, one run per extra copy
-      floor = Math.max(floor, minRuns - this.caps.bonusOf(state.purchased, id) * perCopy);
-    }
-    return Math.min(this.baseRunsPerSleeveXp, Math.max(floor, runs));
+    return this.reductions.runsPerSleeveXp(state);
   }
 
   /**
@@ -149,20 +80,7 @@ export class Progression {
     const action = this.requireAction(state, actionId);
     action.xp = action.xp.add(xp);
 
-    const runsPerXp = this.runsPerSleeveXp(state);
-    const total = this.factory.fromNumber(action.runsTowardSleeveXp).add(runs);
-    let grants: BigNum;
-    if (total.lt(this.factory.fromNumber(EXACT_RUN_LIMIT))) {
-      // Whole runs below the limit are exact as plain numbers; the number type's division is not (90 / 90 can come out just under 1).
-      const runCount = Math.round(total.toNumber());
-      const batches = Math.floor(runCount / runsPerXp);
-      action.runsTowardSleeveXp = runCount - batches * runsPerXp;
-      grants = this.factory.fromNumber(batches);
-    } else {
-      action.runsTowardSleeveXp = 0;
-      grants = total.div(this.factory.fromNumber(runsPerXp)).floor();
-    }
-    if (!grants.isZero()) action.sleeveXp = action.sleeveXp.add(grants.mul(this.sleeveXpPerGrant));
+    countRunsTowardSleeveXp(action, runs, this.runsPerSleeveXp(state), this.sleeveXpPerGrant, this.factory);
   }
 
   /**
@@ -219,14 +137,7 @@ export class Progression {
    * @returns a fraction in [0, 1)
    */
   actionXpReduction(state: GameState, actionId: ActionId): number {
-    let flat = 0;
-    for (const { id, amount } of this.actionReductionSources) flat += amount * (state.purchased[id] ?? 0);
-    let remaining = 1 - Math.min(flat, this.maxTotalReduction);
-    for (const { id, remainingPerOrder, maxReduction } of this.euphoriaSources) {
-      if ((state.purchased[id] ?? 0) <= 0) continue;
-      remaining *= 1 - euphoriaReduction(this.sleeveLevel(state, actionId), remainingPerOrder, maxReduction);
-    }
-    return 1 - remaining;
+    return this.reductions.actionXpReduction(state, () => this.sleeveLevel(state, actionId));
   }
 
   /**
@@ -299,14 +210,7 @@ export class Progression {
    * @returns a fraction in [0, `progression.maxSleeveXpReduction`]
    */
   sleeveXpReduction(state: GameState, actionId: ActionId): number {
-    let total = 0;
-    for (const { id, effect } of this.reductionSources) {
-      const copies = state.purchased[id] ?? 0;
-      if (copies <= 0 || effect.sourceActionId === actionId) continue;
-      const level = this.sleeveLevelAt(state, effect.sourceActionId, 0);
-      total += Math.min(effect.maxReduction, effect.perLevel * level * copies);
-    }
-    return Math.min(total, this.maxTotalReduction);
+    return this.reductions.sleeveXpReduction(state, actionId, (id) => this.sleeveLevelAt(state, id, 0));
   }
 
   /**

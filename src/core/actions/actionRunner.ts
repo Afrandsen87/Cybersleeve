@@ -11,10 +11,10 @@ import type { LinkedPayouts } from './linkedPayouts';
 import type { CritFeed } from '../crits/critFeed';
 import { type Diagnostics, silentDiagnostics } from '../kernel/diagnostics';
 import type { ItemDrops } from '../items/drops';
-import type { Economy } from '../economy/economy';
 import type { Progression } from './progression';
 import { perRunEvents, type RandomSource } from '../kernel/sampling';
-import { payReward } from './rewards';
+import type { RewardPayer } from './rewardPayer';
+import type { StartCosts } from './startCosts';
 import type { DerivedStats } from '../engine/stats';
 import type { CriticalLinks } from '../crits/criticalLinks';
 import type { ZeroDays } from '../crits/zeroDays';
@@ -37,8 +37,8 @@ const PROGRESS_EPSILON = 1e-9;
  * waits for the player.
  *
  * Called by: `engine.ts`.
- * Calls: {@link DerivedStats}, {@link Progression}, {@link Economy},
- * `payReward`, `applyCompletionEffects`, {@link ItemDrops}, {@link CriticalSuccesses}, {@link ZeroDays}, {@link CriticalLinks}, {@link LinkedPayouts}.
+ * Calls: {@link DerivedStats}, {@link Progression}, {@link RewardPayer}, {@link StartCosts},
+ * `applyCompletionEffects`, {@link ItemDrops}, {@link CriticalSuccesses}, {@link ZeroDays}, {@link CriticalLinks}, {@link LinkedPayouts}.
  */
 export class ActionRunner {
   /**
@@ -48,7 +48,8 @@ export class ActionRunner {
    * @param state the live game state (mutated)
    * @param stats derived values
    * @param progression XP/level service
-   * @param economy reward formulas
+   * @param payer pays the reward of runs (own, critical and linked)
+   * @param startCosts prices and pays start costs
    * @param factory number factory
    * @param definition action lookup
    * @param drops rolls the items completed runs drop
@@ -65,7 +66,8 @@ export class ActionRunner {
     private readonly state: GameState,
     private readonly stats: DerivedStats,
     private readonly progression: Progression,
-    private readonly economy: Economy,
+    private readonly payer: RewardPayer,
+    private readonly startCosts: StartCosts,
     private readonly factory: NumberFactory,
     private readonly definition: ActionLookup,
     private readonly drops: ItemDrops,
@@ -88,7 +90,7 @@ export class ActionRunner {
     const action = this.state.actions[id];
     if (!action || !this.isUnlocked(id)) return false;
     if (action.running) return true;
-    if (!this.payStartCost(this.definition(id))) return false;
+    if (!this.startCosts.pay(this.definition(id))) return false;
     action.running = true;
     return true;
   }
@@ -110,32 +112,12 @@ export class ActionRunner {
   canStart(id: ActionId): boolean {
     if (!this.isUnlocked(id)) return false;
     if (this.state.actions[id]?.running) return true;
-    return this.canPayStartCost(this.definition(id));
+    return this.startCosts.canPay(this.definition(id));
   }
 
-  /**
-   * What starting the action would cost right now: the fixed amount plus the share of the balance held (network nodes are
-   * rounded down to whole nodes). The share is scaled by `DerivedStats.startCostScale`: lowered by Decommission protocol, raised by the
-   * links of an Overclock chain, never above the whole balance. With a reduction owned, a node cost that rounds down to 0 is 1 node.
-   * @returns the cost, or `null` when starting is free
-   * @throws Error if the action id is unknown
-   */
+  /** What starting the action would cost right now (see {@link StartCosts.costOf}). @returns the cost, or `null` when starting is free */
   startCostOf(id: ActionId): BigNum | null {
-    const cost = this.definition(id).startCost;
-    if (!cost) return null;
-    const balance = cost.currency === 'networkNodes' ? this.state.network : this.state.credits;
-    let total = cost.amount ?? this.factory.fromNumber(0);
-    if (cost.fractionOfBalance !== undefined) {
-      const scale = this.stats.startCostScale(id);
-      const share = balance.mul(this.factory.fromNumber(Math.min(1, cost.fractionOfBalance * scale.factor)));
-      let part = cost.currency === 'networkNodes' ? share.floor() : share;
-      // A reduction never lets the price vanish: one node is the least a network can be made to give up.
-      if (scale.atLeastOne && cost.currency === 'networkNodes' && part.isZero() && balance.gte(this.factory.fromNumber(1))) {
-        part = this.factory.fromNumber(1);
-      }
-      total = total.add(part);
-    }
-    return total;
+    return this.startCosts.costOf(id);
   }
 
   /**
@@ -144,42 +126,6 @@ export class ActionRunner {
    */
   tickAll(deltaMs: number): void {
     for (const def of this.config.actions) this.tick(def, deltaMs);
-  }
-
-  /**
-   * Pays an action's start cost, if it has one. A share-of-balance cost that comes to 0 cannot be paid (the run would be free).
-   * @returns false (and pays nothing) when the player cannot afford it
-   */
-  private payStartCost(def: ActionDefinition): boolean {
-    const cost = def.startCost;
-    const price = this.startCostOf(def.id);
-    if (!cost || !price) return true;
-    if (!this.canPayStartCost(def)) return false;
-    if (cost.currency === 'networkNodes') {
-      this.state.network = this.state.network.sub(price);
-      this.paySiphon(def.id, price);
-    } else this.state.credits = this.state.credits.sub(price);
-    return true;
-  }
-
-  /**
-   * Pays the Credit Siphon of an action for the nodes its start cost just destroyed: `siphonSeconds` seconds of what one node
-   * produces now (after the node payout multiplier and the heat tax) for each node. Nothing without a Credit Siphon.
-   */
-  private paySiphon(id: ActionId, destroyed: BigNum): void {
-    const seconds = this.stats.siphonSeconds(id);
-    if (!(seconds > 0)) return;
-    const perNode = this.stats.taxedCreditsPerNode();
-    this.state.credits = this.state.credits.add(destroyed.mul(perNode).mul(this.factory.fromNumber(seconds)));
-  }
-
-  /** True when the start cost (if any) can be paid now; a share-of-balance cost that comes to 0 cannot (the run would be free). */
-  private canPayStartCost(def: ActionDefinition): boolean {
-    const cost = def.startCost;
-    const price = this.startCostOf(def.id);
-    if (!cost || !price) return true;
-    const balance = cost.currency === 'networkNodes' ? this.state.network : this.state.credits;
-    return !(balance.lt(price) || (cost.fractionOfBalance !== undefined && price.isZero()));
   }
 
   /**
@@ -208,7 +154,7 @@ export class ActionRunner {
     if (!action || !this.isUnlocked(def.id)) return 0;
     const auto = this.stats.isAutoRun(def.id);
     if (auto && !action.running) {
-      if (!this.payStartCost(def)) return 0;
+      if (!this.startCosts.pay(def)) return 0;
       action.running = true;
     }
     if (!action.running) return 0;
@@ -230,8 +176,8 @@ export class ActionRunner {
       const runs = auto && !def.startCost ? this.runsInBatch(def, remaining - needed, duration) : 1;
       remaining = Math.max(0, remaining - (needed + (runs - 1) * duration));
       action.progress = 0;
-      this.completeRuns(def, runs);
-      if (!auto || (def.startCost && !this.payStartCost(def))) {
+      this.runBatch(def, runs);
+      if (!auto || (def.startCost && !this.startCosts.pay(def))) {
         action.running = false;
         delete this.state.chains[def.id]; // a stopped action breaks its Overclock chain
       }
@@ -264,55 +210,72 @@ export class ActionRunner {
   }
 
   /**
-   * Pays the reward of another action for `runs` runs, as if that action had completed them (Overclock's `alsoPays`): its reward,
-   * its own reward multipliers and its reward kind. Its XP, heat, drops and critical successes are not part of it.
-   */
-  private payAlso(otherId: ActionId, runs: BigNum): void {
-    const other = this.definition(otherId);
-    const gross = this.economy.grossReward(other, this.state.network, this.stats.rewardMultiplier(otherId));
-    payReward(this.state, other.rewardKind ?? 'credits', gross, runs);
-  }
-
-  /**
    * Applies `runs` completed runs of an action at once. Every reward is paid in full: heat taxes only the credits that
    * network nodes produce, never what a run pays (see `Economy.passiveCreditsPerNode`).
    *
    * @remarks
-   * The critical successes of the batch are settled once (see `CriticalSuccesses.settle`): a run can have several, the chance may exceed 100%, and a banked
-   * success, Zero-day or Admin key adds +100% to one run each. Each critical success then banks what the action's critical links give. Runs without one pay and
-   * teach as usual; every critical success pays `rewardMultiplier` times the reward and gives `xpMultiplier` times the action XP, and applies the rule's own
-   * completion effects once. Heat, drops and the runs counted towards sleeve XP do not depend on it.
+   * The steps run in a fixed order, which fixes the order of the random draws (critical successes, linked payouts, heat, drops):
+   * claim covers and settle the critical successes, pay, charge heat, roll drops, extend the chain, apply completion effects, give XP.
+   * Runs without a critical success pay and teach as usual; every critical success pays `rewardMultiplier` times the reward and gives
+   * `xpMultiplier` times the action XP, and applies the rule's own completion effects once. Heat, drops and the runs counted towards
+   * sleeve XP do not depend on it.
    */
-  private completeRuns(def: ActionDefinition, runs: number): void {
-    const count = this.factory.fromNumber(runs);
-    // A banked success, a Zero-day or an Admin key adds +100% critical chance to one run each (distinct runs); the chance itself may exceed 100%.
-    const banked = this.links.claim(def.id, runs);
-    const zeroDayRuns = this.zeroDays.claim(def.id, runs - banked);
-    const covered = banked + zeroDayRuns + this.adminKeys.claim(def.id, runs - banked - zeroDayRuns);
-    const { crits: critical, plainRuns } = this.criticals.settle(runs, covered);
-    this.links.bank(def.id, critical);
-    this.feed.record(def.id, critical);
+  private runBatch(def: ActionDefinition, runs: number): void {
+    const { critical, plainRuns } = this.settleCrits(def.id, runs);
     const rule = this.stats.criticalRule(def.id);
-    const multiplier = this.stats.rewardMultiplier(def.id);
-    const gross = this.economy.grossReward(def, this.state.network, multiplier);
-    const kind = def.rewardKind ?? 'credits';
-    payReward(this.state, kind, gross, this.factory.fromNumber(plainRuns));
-    if (critical > 0)
-      payReward(this.state, kind, gross.mul(this.factory.fromNumber(rule.rewardMultiplier)), this.factory.fromNumber(critical));
     const overclock = this.stats.activeOverclock(def.id);
-    if (overclock?.alsoPays) this.payAlso(overclock.alsoPays, count);
-    for (const { targetActionId, count: paid } of this.linked.settle(def.id, runs))
-      this.payAlso(targetActionId, this.factory.fromNumber(paid));
-    const heatChance = Math.min(1, (def.heatChance ?? 1) * (overclock?.heatChanceFactor ?? 1));
-    // one binomial draw for the whole batch (no draw at a chance of 1)
-    const heatRuns = perRunEvents(runs, heatChance, this.random);
-    this.state.heat += heatRuns * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
+    this.payBatch(def, runs, plainRuns, critical, rule.rewardMultiplier);
+    this.chargeRunHeat(def, runs, overclock);
     this.drops.roll(def.id, runs);
     this.extendChain(def.id, runs);
+    this.applyEffects(def, runs, critical, rule, overclock);
+    const xpRuns = this.factory.fromNumber(plainRuns + critical * rule.xpMultiplier);
+    this.progression.recordRuns(this.state, def.id, this.stats.xpPerRun(def.id).mul(xpRuns), this.factory.fromNumber(runs));
+  }
+
+  /**
+   * Claims the guaranteed critical successes that cover runs of this batch (banked, then Zero-days, then Admin keys; each adds +100%
+   * critical chance to one distinct run, and the chance itself may exceed 100%), settles the batch and banks what critical links give.
+   * @returns how many critical successes happened and how many runs were plain
+   */
+  private settleCrits(id: ActionId, runs: number): { critical: number; plainRuns: number } {
+    const banked = this.links.claim(id, runs);
+    const zeroDayRuns = this.zeroDays.claim(id, runs - banked);
+    const covered = banked + zeroDayRuns + this.adminKeys.claim(id, runs - banked - zeroDayRuns);
+    const { crits: critical, plainRuns } = this.criticals.settle(runs, covered);
+    this.links.bank(id, critical);
+    this.feed.record(id, critical);
+    return { critical, plainRuns };
+  }
+
+  /**
+   * Pays the batch: plain runs at the reward, critical runs at `criticalScale` times it, then every linked payout (Overclock's
+   * `alsoPays` and `paysActionReward` buyables, one source list) as whole rewards of the target action.
+   */
+  private payBatch(def: ActionDefinition, runs: number, plainRuns: number, critical: number, criticalScale: number): void {
+    this.payer.payRun(def, this.factory.fromNumber(plainRuns));
+    if (critical > 0) this.payer.payRun(def, this.factory.fromNumber(critical), this.factory.fromNumber(criticalScale));
+    for (const { targetActionId, count } of this.linked.settle(def.id, runs))
+      this.payer.payLinked(targetActionId, this.factory.fromNumber(count));
+  }
+
+  /** Adds the heat of the batch: one binomial draw for the runs that add heat (no draw at a chance of 1). */
+  private chargeRunHeat(def: ActionDefinition, runs: number, overclock: ReturnType<DerivedStats['activeOverclock']>): void {
+    const heatChance = Math.min(1, (def.heatChance ?? 1) * (overclock?.heatChanceFactor ?? 1));
+    const heatRuns = perRunEvents(runs, heatChance, this.random);
+    this.state.heat += heatRuns * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
+  }
+
+  /** Applies the completion effects of the action (every run), of the critical rule (every critical success) and of Overclock (every run). */
+  private applyEffects(
+    def: ActionDefinition,
+    runs: number,
+    critical: number,
+    rule: ReturnType<DerivedStats['criticalRule']>,
+    overclock: ReturnType<DerivedStats['activeOverclock']>,
+  ): void {
     applyCompletionEffects(def.completionEffects, this.state, runs, this.factory);
     if (critical > 0) applyCompletionEffects(rule.completionEffects, this.state, critical, this.factory);
     if (overclock) applyCompletionEffects(overclock.completionEffects, this.state, runs, this.factory);
-    const xpRuns = this.factory.fromNumber(plainRuns + critical * rule.xpMultiplier);
-    this.progression.recordRuns(this.state, def.id, this.stats.xpPerRun(def.id).mul(xpRuns), count);
   }
 }

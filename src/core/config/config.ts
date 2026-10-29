@@ -7,6 +7,7 @@ import { validateCorporationEffect } from '../corporation/corporationEffects';
 import { definitionOf, type EffectContext } from '../effects/effectRegistry';
 import { traitsOf } from '../effects/effectTraits';
 import { REWARD_KINDS, rewardOf } from '../actions/rewards';
+import { CURRENCY_IDS, isPointCurrency } from '../kernel/currencies';
 import type {
   EngineConfig,
   GameConfig,
@@ -75,8 +76,6 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
   };
 }
 
-const CURRENCIES: readonly string[] = ['credits', 'networkNodes', 'skillPoints', 'resleevePoints', 'automationPoints'];
-
 const positive = (v: number): boolean => Number.isFinite(v) && v > 0;
 const positiveInt = (v: number): boolean => Number.isInteger(v) && v >= 1;
 
@@ -97,7 +96,8 @@ function checkScaling(where: string, s: LevelScaling, errors: string[]): void {
 function checkActionRules(a: GameConfig['actions'][number], errors: string[]): void {
   const where = `action "${a.id}"`;
   if (a.startCost) {
-    if (!CURRENCIES.includes(a.startCost.currency)) errors.push(`${where}: startCost has an unknown currency`);
+    if (!CURRENCY_IDS.includes(a.startCost.currency)) errors.push(`${where}: startCost has an unknown currency`);
+    else if (isPointCurrency(a.startCost.currency)) errors.push(`${where}: startCost must be paid in a held currency`);
     const { amount, fractionOfBalance } = a.startCost;
     if (amount === undefined && fractionOfBalance === undefined) errors.push(`${where}: startCost needs an amount or a fractionOfBalance`);
     if (amount !== undefined && (!amount.isFinite() || amount.isNegative())) errors.push(`${where}: startCost amount must be >= 0`);
@@ -301,7 +301,7 @@ export function validateConfig(config: GameConfig): string[] {
     if (!b.cost.isFinite() || b.cost.isNegative()) errors.push(`buyable "${b.id}": cost must be >= 0`);
     if (traitsOf(b).needsAction && b.actionId === undefined) errors.push(`buyable "${b.id}": ${b.effect.kind} needs an actionId`);
     if (b.actionId !== undefined && !actionIds.has(b.actionId)) errors.push(`buyable "${b.id}": belongs to unknown action "${b.actionId}"`);
-    if (b.currency !== undefined && !CURRENCIES.includes(b.currency)) {
+    if (b.currency !== undefined && !CURRENCY_IDS.includes(b.currency)) {
       errors.push(`buyable "${b.id}": unknown currency`);
     }
     if (b.effect.kind === 'addsCorporationEffect') {
@@ -335,12 +335,7 @@ export function validateConfig(config: GameConfig): string[] {
         errors.push(`buyable "${b.id}": its parent "${p}" is in another branch (a parent must be in the same branch)`);
       }
     }
-    if (
-      (b.parents?.length ?? 0) > 0 &&
-      b.currency !== 'skillPoints' &&
-      b.currency !== 'resleevePoints' &&
-      b.currency !== 'automationPoints'
-    ) {
+    if ((b.parents?.length ?? 0) > 0 && !isPointCurrency(b.currency)) {
       errors.push(`buyable "${b.id}": only skills (paid in points) have parents`);
     }
     const resleeves = b.revealAfterResleeves ?? 0;

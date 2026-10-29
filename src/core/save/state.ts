@@ -7,6 +7,7 @@ import type { NumberFactory } from '../../numbers';
 import { createAutomationState } from '../automation/automation';
 import { createCorporationState } from '../corporation/corporationState';
 import { carryRetention, recordLastLife } from '../resleeve/resleeveCarry';
+import { CARRIED_OVER_CURRENCIES } from '../kernel/currencies';
 import { initialScalars } from '../kernel/fields';
 import type { ActionState, BuyableDefinition, Currency, GameConfig, GameState } from '../types';
 
@@ -38,7 +39,7 @@ type StateConfig = Pick<GameConfig, 'actions' | 'automation' | 'corporation' | '
  * The currencies whose buyables survive a re-sleeve: re-sleeve skills are permanent. Skills paid in skill points (and everything else
  * bought) reset with the sleeve.
  */
-export const CARRIED_OVER_BUYABLE_CURRENCIES = ['resleevePoints'] as const satisfies readonly Currency[];
+export const CARRIED_OVER_BUYABLE_CURRENCIES: readonly Currency[] = CARRIED_OVER_CURRENCIES;
 
 /** The buyable effect kinds whose buyables survive a re-sleeve: the sleeve-levels unlock is bought once, for good, and the corporate rank belongs to the corporation. */
 export const CARRIED_OVER_BUYABLE_EFFECTS = [

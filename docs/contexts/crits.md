@@ -6,7 +6,7 @@ Code: `src/core/crits/` (see `docs/review/file-map.md`). Text below is moved ver
 
 ## Interface, state and config (S4)
 
-- **`criticalCover.ts` (P1):** `criticalCover(state, items, actionId)` answers "can a Zero-day, an Admin key or a banked success make this action's next run critical?". `DerivedStats.criticalPossible` and `maxCritsPerRun` both ask it. The claim order when runs complete is unchanged and lives in `ActionRunner.completeRuns`: banked success, then Zero-day, then Admin key (each covers distinct runs).
+- **`criticalCover.ts` (P1):** `criticalCover(state, items, actionId)` answers "can a Zero-day, an Admin key or a banked success make this action's next run critical?". `DerivedStats.criticalPossible` and `maxCritsPerRun` both ask it. The claim order when runs complete is unchanged and lives in `ActionRunner.runBatch` (`settleCrits`): banked success, then Zero-day, then Admin key (each covers distinct runs).
 - **`CriticalSuccesses.maxPerRun(chance, extraChance, covered)` (P2):** the largest number of critical successes one run can have, next to `settle`, which draws with the same rules (whole part of the chance, one more for a fraction, one more for cover, doubled with an extra chance). A test checks seeded `settle` draws never exceed it.
 - **Decided 2026-10-29:** critical chance has no cap; only `criticalExtraChance` is capped at 1.
 - **State:** `zeroDaysOn`, `adminKeysOn`, `bankedCriticals` (unchanged). **Config:** `criticalSuccess`, `items.zeroDay`, `items.adminKey`, the `critical*` effect kinds (below).

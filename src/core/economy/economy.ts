@@ -5,7 +5,7 @@
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { heatTaxFactor } from '../heat/heat';
-import { rewardOf } from '../actions/rewards';
+import { rewardOf, wholeRunAmount } from '../actions/rewards';
 import type { ActionDefinition, GameConfig } from '../types';
 
 /**
@@ -72,7 +72,7 @@ export class Economy {
    * @param gross result of {@link Economy.grossReward}
    */
   payout(def: ActionDefinition, gross: BigNum): BigNum {
-    return rewardOf(def.rewardKind).wholePerRun ? gross.floor() : gross;
+    return wholeRunAmount(def.rewardKind, gross);
   }
 
   /**
@@ -96,9 +96,25 @@ export class Economy {
    * @param maxTaxShare the most the heat tax may take (default 1 = no cap)
    */
   passiveCreditsPerSecond(network: BigNum, heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0, maxTaxShare = 1): BigNum {
-    return network
-      .mul(this.passiveCreditsPerNode(payoutMultiplier, baseBonus))
-      .mul(this.factory.fromNumber(this.keepFactor(heat, reduction, maxTaxShare)));
+    return network.mul(this.taxedCreditsPerNode(heat, reduction, payoutMultiplier, baseBonus, maxTaxShare));
+  }
+
+  /**
+   * Credits ONE network node delivers per second after the heat tax: {@link Economy.passiveCreditsPerNode} times the share kept. The only
+   * place the tax is applied to income; the network's income is this times the number of nodes.
+   *
+   * Called by: {@link Economy.passiveCreditsPerSecond}, `IncomeStats`, `StartCosts` (Credit Siphon) through the stats.
+   *
+   * @param heat current heat (for the tax)
+   * @param reduction share of the heat's effect removed by ICE Rating (0..1)
+   * @param payoutMultiplier multiplier on what each node produces (from buyables; default 1)
+   * @param baseBonus credits per second added to the base of every node (earned by actions; default 0)
+   * @param maxTaxShare the most the heat tax may take (default 1 = no cap)
+   */
+  taxedCreditsPerNode(heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0, maxTaxShare = 1): BigNum {
+    return this.passiveCreditsPerNode(payoutMultiplier, baseBonus).mul(
+      this.factory.fromNumber(this.keepFactor(heat, reduction, maxTaxShare)),
+    );
   }
 
   /**

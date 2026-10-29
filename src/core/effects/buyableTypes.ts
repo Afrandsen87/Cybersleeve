@@ -17,18 +17,8 @@ export type { BuyableEffect } from './kinds';
 /** Identifier of a buyable (e.g. `"auto-run"`). Never shown to the player. */
 export type BuyableId = string;
 
-/**
- * What a buyable is paid with. `skillPoints` are not held: the points available are what the action levels have earned minus what the
- * owned skills cost (see `skills.ts`), so paying them spends nothing from the state.
- */
-export type Currency = 'credits' | 'networkNodes' | 'skillPoints' | 'resleevePoints' | 'automationPoints';
-
-/**
- * The currencies that are points, not held amounts: what the player can spend is what has been earned minus the cost of the buyables
- * owned. Skill points come from action levels; re-sleeve points come from re-sleeving (`resleeve.pointsPerResleeve` each); automation
- * points come from the `automationPoints` buyables and pay for the skills of the automation lanes.
- */
-export type PointCurrency = 'skillPoints' | 'resleevePoints' | 'automationPoints';
+import type { Currency } from '../kernel/currencies';
+export type { Currency, PointCurrency } from '../kernel/currencies';
 
 /** Static description of a purchase (one-time or repeatable). It is shown on its action's card, or in the Sleeve widget when it has no action. */
 export interface BuyableDefinition {

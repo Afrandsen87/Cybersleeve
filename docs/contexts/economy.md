@@ -4,6 +4,12 @@ Credits, network nodes, passive income, the shop and price growth, purchase reve
 
 Code: `src/core/economy/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+## Code structure (S6, 2026-10-29)
+
+- **Currencies are data:** `kernel/currencies.ts` has one `CurrencyDescriptor` per currency (`CURRENCIES`): where its balance is held (`held`), whole-unit prices (`wholeUnits`), the peak a reveal is judged against (`peak`), `alwaysRevealed`, `siphoned`, `carriedOverResleeve`, `archivedByReflex`. A new currency is one `Currency` member plus one entry; the compiler demands it. `Shop`, `StartCosts`, `config.ts` validation, `resleeveCarry`, `state.ts` (`CARRIED_OVER_BUYABLE_CURRENCIES`) and the UI (`isPointCurrency`) ask the descriptor and no longer compare currency names. Helpers: `heldBalance`, `spendHeld`, `isPointCurrency`, `currencyInfo`. The save keys `skillPoints`, `resleevePoints`, `automationPoints` are unchanged. Decision: the table lives in `kernel` (not `content/`) because the descriptors are mechanics, like `REWARDS`; the ids are still the content's literals.
+- **P14:** the heat tax on node income is applied in ONE place, `Economy.taxedCreditsPerNode`; `passiveCreditsPerSecond` is the node count times it, and `IncomeStats.taxedCreditsPerNode` (Credit Siphon) calls it.
+- **`IncomeStats`** (`economy/incomeStats.ts`) answers keep factor, per-node and per-second income and the growth rate for `DerivedStats`.
+
 ## Design (from DESIGN.md)
 
 ### 6. Network and passive income

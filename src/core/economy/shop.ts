@@ -6,6 +6,7 @@
 import type { BigNum, NumberFactory } from '../../numbers';
 import { BuyableCaps } from '../effects/buyableCaps';
 import { traitsOf } from '../effects/effectTraits';
+import { currencyInfo, heldBalance, isPointCurrency, spendHeld } from '../kernel/currencies';
 import { Snapshot } from '../kernel/snapshot';
 import type { BuyableDefinition, BuyableId, Currency, GameState, PointCurrency } from '../types';
 
@@ -98,9 +99,9 @@ export class Shop {
   isRevealed(state: GameState, id: BuyableId): boolean {
     if (!this.isAvailable(state, id)) return false;
     if (this.owned(state, id) > 0 || this.revealOrders === Infinity) return true;
-    const currency = this.currencyOf(id);
-    if (currency === 'skillPoints' || currency === 'automationPoints') return true;
-    const peak = currency === 'networkNodes' ? state.peakNetwork : state.peakCredits;
+    const { alwaysRevealed, peak: peakField } = currencyInfo(this.currencyOf(id));
+    if (alwaysRevealed || !peakField) return true;
+    const peak = state[peakField];
     // a peak below one counts as one, so a new game with nothing yet still shows the cheapest purchases
     const reference = peak.lt(this.factory.fromNumber(1)) ? this.factory.fromNumber(1) : peak;
     return this.costOf(state, id).lte(reference.mul(this.factory.fromNumber(10).pow(this.revealOrders)));
@@ -122,7 +123,7 @@ export class Shop {
     if (!b) throw new Error(`Unknown buyable: ${id}`);
     const growth = this.factory.fromNumber(b.costGrowth ?? 1).pow(this.owned(state, id));
     const price = b.cost.mul(growth).mul(this.factory.fromNumber(this.costMultiplier));
-    return b.currency === 'networkNodes' ? this.roundUp(price) : price;
+    return currencyInfo(b.currency).wholeUnits ? this.roundUp(price) : price;
   }
 
   /**
@@ -183,10 +184,8 @@ export class Shop {
     if (this.isMaxed(state, id)) return 'max-reached';
     const price = this.costOf(state, id);
     if (this.balance(state, id).lt(price)) return 'cannot-afford';
-    const currency = this.currencyOf(id);
-    if (currency === 'networkNodes') state.network = state.network.sub(price);
-    else if (currency === 'credits') state.credits = state.credits.sub(price);
     // points are not held: owning the copy is what spends them (see pointsAvailable)
+    spendHeld(state, this.currencyOf(id), price);
     state.purchased[id] = this.owned(state, id) + 1;
     this.onPurchased(this.byId.get(id)!);
     return 'purchased';
@@ -195,8 +194,6 @@ export class Shop {
   /** What the player holds of the buyable's currency. */
   private balance(state: GameState, id: BuyableId): BigNum {
     const currency = this.currencyOf(id);
-    if (currency === 'skillPoints' || currency === 'resleevePoints' || currency === 'automationPoints')
-      return this.factory.fromNumber(this.pointsAvailable(state, currency));
-    return currency === 'networkNodes' ? state.network : state.credits;
+    return isPointCurrency(currency) ? this.factory.fromNumber(this.pointsAvailable(state, currency)) : heldBalance(state, currency);
   }
 }

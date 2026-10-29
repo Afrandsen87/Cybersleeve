@@ -4,6 +4,20 @@ Actions: definitions, runner, toggles, speed, levels and XP, rewards, Overclock 
 
 Code: `src/core/actions/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+## Code structure (S5b, 2026-10-29)
+
+- **One reward-rounding owner (P6):** `rewards.ts` `wholeRunAmount(kind, gross)` floors a run's amount for whole-unit kinds (`wholePerRun`). `payReward` (what is paid) and `Economy.payout` (what is shown) both call it, so they cannot drift. Pinned by `rewardRounding.test.ts` (zero, fractions, huge, negative, NaN, Infinity).
+- **One pay path (P7):** `RewardPayer` (`rewardPayer.ts`) is the only code that turns a run into a payment: `payRun(def, runs, scale?)` (gross reward at the action's own multiplier, then `payReward` in its kind; the kind defaults to `DEFAULT_REWARD_KIND`) and `payLinked(targetId, runs)`. A critical run is `payRun` with `scale = rewardMultiplier`. `ActionRunner` no longer touches `Economy`.
+- **One linked-payout source list (P8):** `DerivedStats.paysActions(id)` returns Overclock's `alsoPays` as a rule with chance 1 (first), then the owned `paysActionReward` rules. `LinkedPayouts.settle` draws them all (chance 1 draws nothing) and the runner pays each through `payLinked`. Order of random draws is unchanged.
+- **`runBatch`** (was `completeRuns`) is a list of small steps: `settleCrits` (claim order banked -> Zero-day -> Admin key, settle, bank links, feed), `payBatch`, `chargeRunHeat` (one binomial draw), drops, `extendChain`, `applyEffects`, XP. The order fixes the order of random draws.
+- **`StartCosts`** (`startCosts.ts`) holds `costOf` / `canPay` / `pay` (with the Credit Siphon), moved out of `ActionRunner` to keep it under 15 KB; `ActionRunner.startCostOf` delegates.
+- **`progression.ts` split:** it stays the facade (`Progression`, the level queries). `xpReductions.ts` (`XpReductions`) owns the four reduction buyable kinds and `runsPerSleeveXp`; level lookups it needs are passed in. `sleeveXp.ts` owns `countRunsTowardSleeveXp` and `wholeCount`.
+- Tests: `batchingPay.test.ts` (one long tick equals many short ones through the direct, `paysActionReward` and Overclock `alsoPays` paths, with a whole-unit reward that floors per run).
+
+## Stats services (S6)
+
+`DerivedStats` (`engine/stats.ts`) is a facade; the actions-context questions are answered by `ToggleStats` (`toggleStats.ts`: auto-run, linked payouts, chain, start cost scale, siphon, level bonus, Overclock and Focus status) and `RunStats` (`runStats.ts`: speed, duration, reward multiplier, payout, XP). The other contexts own their own: `crits/critStats.ts`, `items/itemStats.ts`, `economy/incomeStats.ts`, `heat/heatStats.ts`. `engine/statsFacade.test.ts` checks the facade equals each service built on the same state.
+
 ## Design (from DESIGN.md)
 
 ### 3. Actions

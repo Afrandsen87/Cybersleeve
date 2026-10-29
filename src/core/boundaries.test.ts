@@ -37,9 +37,11 @@ const ALLOWED_EDGES: Readonly<Record<string, readonly string[]>> = {
   ],
   actions: ['(root)', 'crits', 'economy', 'effects', 'engine', 'items', 'kernel', 'resleeve', 'sleeve'],
   automation: ['(root)', 'items'],
-  config: ['(root)', 'actions', 'corporation', 'effects', 'items'],
+  // config -> kernel added in S6: validation reads the currency descriptors (downward edge to the lowest layer).
+  config: ['(root)', 'actions', 'corporation', 'effects', 'items', 'kernel'],
   corporation: ['(root)', 'actions', 'effects', 'items', 'kernel'],
-  crits: ['(root)', 'items', 'kernel'],
+  // crits -> effects and items -> effects added in S6: the stats services (CritStats, ItemStats) resolve owned buyable effects (downward edge, L3 to L2).
+  crits: ['(root)', 'effects', 'items', 'kernel'],
   economy: ['(root)', 'actions', 'effects', 'engine', 'heat', 'kernel', 'synth'],
   effects: ['(root)', 'actions', 'automation', 'corporation', 'heat', 'items', 'kernel', 'resleeve'],
   engine: [
@@ -59,7 +61,7 @@ const ALLOWED_EDGES: Readonly<Record<string, readonly string[]>> = {
   ],
   // heat -> kernel and sleeve -> kernel added in S3: both read the shared `kernel/curves` orders helper (downward edge to the lowest layer).
   heat: ['(root)', 'effects', 'kernel'],
-  items: ['(root)', 'actions', 'kernel'],
+  items: ['(root)', 'actions', 'effects', 'kernel'],
   kernel: ['(root)'],
   resleeve: ['(root)', 'actions', 'economy', 'effects', 'engine', 'kernel', 'save', 'synth'],
   save: ['(root)', 'actions', 'automation', 'corporation', 'effects', 'items', 'kernel', 'resleeve'],

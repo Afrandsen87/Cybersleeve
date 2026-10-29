@@ -1,50 +1,46 @@
 /**
  * @module core
  *
- * Derived values: everything that is computed from the state, the content and the tuning but changes nothing.
+ * Derived values: everything that is computed from the state, the content and the tuning but changes nothing. A facade over the
+ * per-context services that answer each question (`ToggleStats`, `RunStats`, `CritStats`, `ItemStats`, `IncomeStats`, `HeatStats`).
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import type { ActionLookup } from '../actions/actionLookup';
 import type { FocusStatus, ModeStatuses, OverclockStatus } from '../actions/actionToggles';
-import { augmentXpFactor, distinctAugmentRarities } from '../items/augments';
-import { CriticalSuccesses, criticalRuleFor } from '../crits/critical';
-import { criticalCover } from '../crits/criticalCover';
-import type { Economy } from '../economy/economy';
-import {
-  resolveDropChanceFactor,
-  resolveEffects,
-  resolveLevelBonus,
-  resolveNetworkGrowth,
-  resolveSleeveStats,
-  type SleeveStats,
-} from '../effects/effects';
-import { levelRewardFactor } from '../actions/levelRewardFactor';
-import { type BackChannelRule, resolveBackChannel, resolveRarityWeightBonus } from '../items/leverageEffects';
 import type { Progression } from '../actions/progression';
+import { RunStats } from '../actions/runStats';
+import type { SpeedFactor, SpeedModifier } from '../actions/speed';
+import { ToggleStats } from '../actions/toggleStats';
+import { CritStats } from '../crits/critStats';
+import { resolveSleeveStats, type SleeveStats } from '../effects/effects';
+import type { Economy } from '../economy/economy';
+import { IncomeStats } from '../economy/incomeStats';
+import { HeatStats } from '../heat/heatStats';
+import { distinctAugmentRarities } from '../items/augments';
+import { ItemStats } from '../items/itemStats';
+import type { BackChannelRule } from '../items/leverageEffects';
 import { Snapshot } from '../kernel/snapshot';
 import { bestSynthActionLevel } from '../synth/synthSleeves';
-import { wholeOrders } from '../kernel/curves';
-import { dropShare } from '../items/drops';
-import { shiftWeights } from '../items/rarityShift';
-import {
-  effectiveDurationMs,
-  type SpeedContext,
-  type SpeedFactor,
-  speedFactors,
-  speedMultiplier,
-  type SpeedModifier,
-} from '../actions/speed';
 import type { ActionId, CriticalSuccessRule, GameConfig, GameState, ItemDropRule, PaysActionRule } from '../types';
 
 /**
  * Read-only calculations over the game state: sleeve stats, speed, durations, rewards and passive income.
  *
  * @remarks
- * Holds no state of its own; it reads the `GameState` it was given every time, so it always reflects the current game.
+ * Holds no state of its own; it reads the `GameState` it was given every time, so it always reflects the current game. It computes the
+ * sleeve-wide stats once per snapshot and hands every other question to the service of the context that owns it; the methods here only
+ * delegate, so a question has one answer wherever it is asked.
  * Called by: `engine.ts`, `actionRunner.ts`, `network.ts`.
- * Calls: `resolveSleeveStats`, `resolveEffects`, `resolveLevelBonus`, {@link Progression}, {@link Economy}, `speedMultiplier`.
+ * Calls: `resolveSleeveStats`, {@link ToggleStats}, {@link RunStats}, {@link CritStats}, {@link ItemStats}, {@link IncomeStats}, {@link HeatStats}.
  */
 export class DerivedStats implements ModeStatuses {
+  private readonly toggles: ToggleStats;
+  private readonly run: RunStats;
+  private readonly crits: CritStats;
+  private readonly items: ItemStats;
+  private readonly income: IncomeStats;
+  private readonly heat: HeatStats;
+
   /**
    * Creates the unit.
    *
@@ -61,12 +57,32 @@ export class DerivedStats implements ModeStatuses {
     private readonly config: GameConfig,
     private readonly state: GameState,
     private readonly progression: Progression,
-    private readonly economy: Economy,
-    private readonly speedModifiers: readonly SpeedModifier[],
+    economy: Economy,
+    speedModifiers: readonly SpeedModifier[],
     private readonly factory: NumberFactory,
-    private readonly definition: ActionLookup,
+    definition: ActionLookup,
     private readonly snapshot: Snapshot = new Snapshot(),
-  ) {}
+  ) {
+    const sleeve = (): SleeveStats => this.sleeveStats();
+    this.toggles = new ToggleStats(config, state, factory, definition, progression, sleeve);
+    this.crits = new CritStats(config, state, factory, definition, sleeve);
+    this.run = new RunStats(
+      config,
+      state,
+      factory,
+      definition,
+      economy,
+      progression,
+      this.toggles,
+      sleeve,
+      this.crits,
+      speedModifiers,
+      (id) => bestSynthActionLevel(state, id),
+    );
+    this.items = new ItemStats(config, state, factory, sleeve);
+    this.income = new IncomeStats(config, state, economy, sleeve, (id) => progression.actionLevel(state, id));
+    this.heat = new HeatStats(config, state, this.toggles, () => sleeve().idleHeatCooldownActions);
+  }
 
   /** The global sleeve stats (access level, interface speed, heat, ...) after sleeve-wide purchases. */
   sleeveStats(): SleeveStats {
@@ -85,356 +101,171 @@ export class DerivedStats implements ModeStatuses {
 
   /** The share of node income kept after the heat tax (with the current ICE Rating). */
   creditKeepFactor(): number {
-    const stats = this.sleeveStats();
-    return this.economy.keepFactor(this.state.heat, stats.heatReduction, stats.heatTaxCap);
+    return this.income.creditKeepFactor();
   }
 
-  /**
-   * Multiplier on the action's own reward per run, from purchases and from Overclock while it is on and has a reward bonus
-   * (`1 + rewardBonus`). It scales that reward only.
-   */
+  /** See {@link RunStats.rewardMultiplier}. */
   rewardMultiplier(id: ActionId): BigNum {
-    const fromLevel = levelRewardFactor(this.config.buyables, this.state, id, (a) => this.progression.actionLevel(this.state, a));
-    const effects = resolveEffects(this.config.buyables, this.state, id, this.factory).rewardMultiplier;
-    const bought = fromLevel === 1 ? effects : effects.mul(this.factory.fromNumber(fromLevel));
-    const overclock = this.activeOverclock(id);
-    const bonus = (overclock?.rewardBonus ?? 0) + (overclock?.chain ? this.chainLinks(id) * overclock.chain.rewardPerLink : 0);
-    return bonus > 0 ? bought.mul(this.factory.fromNumber(1 + bonus)) : bought;
+    return this.run.rewardMultiplier(id);
   }
 
-  /**
-   * The items the action may drop per completed run, from its owned `itemDrop` buyables, with the rarity weights as they stand now:
-   * shifted towards the rarer rarities by Hacking Proficiency when a `rarityShiftFromProficiency` buyable of the action is owned,
-   * and with the drop chance raised by owned `itemDropChanceMultiplier` buyables (never above 1).
-   */
+  /** See {@link ItemStats.itemDrops}. */
   itemDrops(id: ActionId): readonly ItemDropRule[] {
-    const { drops, rarityShifts } = resolveEffects(this.config.buyables, this.state, id, this.factory);
-    const steps = rarityShifts.length === 0 ? 0 : wholeOrders(this.effectiveHackingProficiency());
-    const rarityIds = this.config.items.rarities.map((r) => r.id);
-    return drops.map((rule) => {
-      const base = rule.rarityWeights;
-      const factor = resolveDropChanceFactor(this.config.buyables, this.state, rule.itemId);
-      if (base === undefined) return { ...rule, chance: Math.min(1, rule.chance * factor) }; // an item without rarity has no ratios to shift
-      let weights = rarityIds.map((r) => base[r] ?? 0);
-      for (const fraction of rarityShifts) weights = shiftWeights(weights, steps, fraction);
-      const bonus = resolveRarityWeightBonus(this.config.buyables, this.state, rule.itemId, rarityIds); // added after the shift, per rarity
-      const bonused = bonus.some((b) => b > 0);
-      if (bonused) weights = weights.map((w, i) => w + bonus[i]!);
-      return {
-        ...rule,
-        chance: Math.min(1, rule.chance * factor),
-        rarityWeights: rarityShifts.length === 0 && !bonused ? base : Object.fromEntries(rarityIds.map((r, i) => [r, weights[i]!])),
-      };
-    });
+    return this.items.itemDrops(id);
   }
 
-  /**
-   * Where one stack of items can drop from right now: for each action that can drop the item, the chance that ONE completed run of it
-   * drops this item in this rarity. That is the drop chance (with the chance multipliers) times the share of the rarity in the drop
-   * ratios as they stand now (Hacking Proficiency shifts included); an item without rarity is one stack, so its share is 1. Actions
-   * that cannot drop it, and rarities with a share of 0, are left out.
-   *
-   * @param itemId the item
-   * @param rarityId the rarity of the stack (the first rarity for an item without rarity)
-   * @returns the actions in configuration order, with the chance of this stack per completed run of each (0..1)
-   */
+  /** See {@link ItemStats.dropSources}. */
   dropSources(itemId: string, rarityId: string): readonly { readonly actionId: ActionId; readonly chance: number }[] {
-    const first = this.config.items.rarities[0]?.id;
-    const sources: { actionId: ActionId; chance: number }[] = [];
-    for (const def of this.config.actions) {
-      let chance = 0;
-      for (const rule of this.itemDrops(def.id)) {
-        if (rule.itemId === itemId) chance += dropShare(rule, rarityId, first);
-      }
-      if (chance > 0) sources.push({ actionId: def.id, chance });
-    }
-    return sources;
+    return this.items.dropSources(itemId, rarityId);
   }
 
   /** Hacking Proficiency as it counts: the stored total times the factor of owned `hackingProficiencyMultiplier` buyables. */
   effectiveHackingProficiency(): BigNum {
-    const factor = this.sleeveStats().hackingProficiencyFactor;
-    return factor === 1 ? this.state.hackingProficiency : this.state.hackingProficiency.mul(this.factory.fromNumber(factor));
+    return this.items.effectiveHackingProficiency();
   }
 
   /** The back channel the player has unlocked (an owned `backChannel` buyable), or `null`. */
   backChannel(): BackChannelRule | null {
-    return resolveBackChannel(
-      this.config.buyables,
-      this.state,
-      this.config.items.rarities.map((r) => r.id),
-    );
+    return this.items.backChannel();
   }
 
   /** True when the action restarts itself (an owned, switched-on auto-run buyable). */
   isAutoRun(id: ActionId): boolean {
-    return resolveEffects(this.config.buyables, this.state, id, this.factory).autoRun;
+    return this.toggles.isAutoRun(id);
   }
 
   /** Chance (0..1) that a completed run is a critical success (owned `criticalChance` buyables). */
   criticalChance(): number {
-    return this.sleeveStats().criticalChance;
+    return this.crits.criticalChance();
   }
 
   /** What a critical success does for this action: the global rule with the action's own fields laid over it. @throws Error if the id is unknown */
   criticalRule(id: ActionId): CriticalSuccessRule {
-    const rule = criticalRuleFor(this.config.criticalSuccess, this.definition(id));
-    const factor = resolveEffects(this.config.buyables, this.state, id, this.factory).criticalFactor;
-    const rewardFactor = factor * this.sleeveStats().criticalRewardFactor;
-    return factor === 1 && rewardFactor === 1
-      ? rule
-      : { ...rule, xpMultiplier: rule.xpMultiplier * factor, rewardMultiplier: rule.rewardMultiplier * rewardFactor };
+    return this.crits.criticalRule(id);
   }
 
   /** Chance (0..1) that a critical success brings one extra, free critical success (owned `criticalExtraChance` buyables). */
   criticalExtraChance(): number {
-    return this.sleeveStats().criticalExtraChance;
+    return this.crits.criticalExtraChance();
   }
 
-  /** What each completed run of the action may also pay: one reward of another action, by chance (owned `paysActionReward` buyables). */
+  /** See {@link ToggleStats.paysActions}: Overclock's `alsoPays` first, then the owned `paysActionReward` rules. */
   paysActions(id: ActionId): readonly PaysActionRule[] {
-    return this.sleeveStats().paysActions.filter((rule) => rule.sourceActionId === id);
+    return this.toggles.paysActions(id);
   }
 
   /** The actions that every critical run of this action banks a guaranteed critical success for (owned `criticalLink` buyables). */
   criticalLinks(id: ActionId): readonly ActionId[] {
-    return resolveEffects(this.config.buyables, this.state, id, this.factory).criticalLinks;
+    return this.crits.criticalLinks(id);
   }
 
   /** True when a completed run of this action can be critical now: by chance, by a Zero-day that is switched on, or by a banked success. */
   criticalPossible(id: ActionId): boolean {
-    return this.criticalChance() > 0 || criticalCover(this.state, this.config.items, id);
+    return this.crits.criticalPossible(id);
   }
 
-  /**
-   * The most critical successes one completed run of this action can have now: the whole part of the chance, one more while a fraction of a
-   * chance remains, and one more while a Zero-day, Admin key or banked success can cover it. 0 when criticals are not possible.
-   * Doubled while a `criticalExtraChance` buyable is owned (one possible extra per success).
-   */
+  /** The most critical successes one completed run of this action can have now (see {@link CritStats.maxCritsPerRun}). */
   maxCritsPerRun(id: ActionId): number {
-    return CriticalSuccesses.maxPerRun(this.criticalChance(), this.criticalExtraChance(), criticalCover(this.state, this.config.items, id));
+    return this.crits.maxCritsPerRun(id);
   }
 
-  /**
-   * The chain links an action holds now: what its runs have built up while Overclock is on (0 when Overclock is off, the rule has no chain,
-   * or the chain is broken).
-   */
+  /** The chain links an action holds now (0 when Overclock is off, the rule has no chain, or the chain is broken). */
   chainLinks(id: ActionId): number {
-    const chain = this.activeOverclock(id)?.chain;
-    return chain ? Math.min(chain.maxLinks, this.state.chains[id] ?? 0) : 0;
+    return this.toggles.chainLinks(id);
   }
 
-  /**
-   * How the start cost share of an action is scaled now: `factor` is `(1 - perLevel)^level` for every owned `startCostReduction` buyable of
-   * the action, times `1 + links x nodesPerLink` while an Overclock chain is held; `atLeastOne` says a node cost that rounds down to 0 is
-   * raised to 1 (a reduction is owned, so the cost must never vanish).
-   */
+  /** How the start cost share of an action is scaled now (see {@link ToggleStats.startCostScale}). */
   startCostScale(id: ActionId): { readonly factor: number; readonly atLeastOne: boolean } {
-    const { startCostReductions } = resolveEffects(this.config.buyables, this.state, id, this.factory);
-    const level = this.progression.actionLevel(this.state, id);
-    let factor = 1;
-    for (const perLevel of startCostReductions) factor *= (1 - perLevel) ** level;
-    const chain = this.activeOverclock(id)?.chain;
-    if (chain) factor *= 1 + this.chainLinks(id) * chain.nodesPerLink;
-    return { factor, atLeastOne: startCostReductions.length > 0 };
+    return this.toggles.startCostScale(id);
   }
 
   /** Seconds of node income paid per node the start cost of this action destroys (0 without a Credit Siphon). */
   siphonSeconds(id: ActionId): number {
-    return resolveEffects(this.config.buyables, this.state, id, this.factory).siphonSeconds;
+    return this.toggles.siphonSeconds(id);
   }
 
-  /**
-   * True while an action is running overclocked with an Overclock that stops heat from cooling. Then the cooldown stands still and Burn
-   * leads cannot be used.
-   */
+  /** True while an action is running overclocked with an Overclock that stops heat from cooling (see {@link HeatStats.heatCoolingBlocked}). */
   heatCoolingBlocked(): boolean {
-    return this.config.actions.some(
-      (a) => this.state.actions[a.id]?.running === true && this.activeOverclock(a.id)?.blocksHeatCooling === true,
-    );
+    return this.heat.heatCoolingBlocked();
   }
 
-  /**
-   * True while no action is in progress, so heat cools at the idle pace (Quiet Hours). An action that is running without Overclock
-   * still counts as idle when an `idleHeatCooldownAction` buyable names it (Undercover). A manual action that has finished its run and
-   * waits is not running.
-   */
+  /** True while no action is in progress, so heat cools at the idle pace (see {@link HeatStats.heatIsIdle}). */
   heatIsIdle(): boolean {
-    const allowed = this.sleeveStats().idleHeatCooldownActions;
-    return !this.config.actions.some(
-      (a) => this.state.actions[a.id]?.running === true && !(allowed.includes(a.id) && this.activeOverclock(a.id) === null),
-    );
+    return this.heat.heatIsIdle();
   }
 
   /** Levels added to an action's level for speed by buyables; its XP progress is not affected. */
   levelBonus(id: ActionId): number {
-    return resolveLevelBonus(this.config.buyables, this.state, id, (source) => this.progression.sleeveLevel(this.state, source));
+    return this.toggles.levelBonus(id);
   }
 
-  /**
-   * Overclock for an action: its rule scaled by the strength of the owned Overclock upgrades, and whether the player has it on.
-   * @returns the status, or `null` while the action's Overclock is not unlocked or the action has no Overclock rule (then there is no toggle)
-   * @throws Error if the action id is unknown
-   */
+  /** Overclock for an action: its rule scaled by the upgrades, and whether the player has it on (see {@link ToggleStats.overclockStatus}). */
   overclockStatus(id: ActionId): OverclockStatus | null {
-    const rule = this.definition(id).overclock;
-    const owned = resolveEffects(this.config.buyables, this.state, id, this.factory);
-    if (!rule || !owned.overclockUnlocked) return null;
-    const chain = owned.chain;
-    const strength = this.sleeveStats().overclockStrength;
-    const on = this.state.overclocked[id] === true;
-    return {
-      on,
-      blocksHeatCooling: rule.stopsHeatCooling === true,
-      chain: chain
-        ? {
-            links: on ? Math.min(chain.maxLinks, this.state.chains[id] ?? 0) : 0,
-            maxLinks: chain.maxLinks,
-            rewardPerLink: chain.rewardPerLink * strength,
-            nodesPerLink: chain.nodesPerLink,
-          }
-        : null,
-      speedBonus: (rule.speedBonus ?? 0) * strength,
-      rewardBonus: (rule.rewardBonus ?? 0) * strength,
-      heatPerMinute: rule.heatPerMinute ?? 0,
-      heatPerRunFactor: Math.min(rule.heatPerRunFactor ?? 1, this.sleeveStats().overclockHeatFactors[id] ?? Infinity),
-      heatChanceFactor: rule.heatChanceFactor ?? 1,
-      completionEffects: rule.completionEffects ?? [],
-      alsoPays: rule.alsoPays ?? null,
-      strength,
-    };
+    return this.toggles.overclockStatus(id);
   }
 
-  /** Overclock for an action while the player has it switched on (what it does to the action now), or `null` while it is off or unavailable. */
+  /** Overclock for an action while the player has it switched on, or `null` while it is off or unavailable. */
   activeOverclock(id: ActionId): OverclockStatus | null {
-    if (this.state.overclocked[id] !== true) return null;
-    const status = this.overclockStatus(id);
-    return status?.on ? status : null;
+    return this.toggles.activeOverclock(id);
   }
 
-  /**
-   * Focus for an action: whether it is focused, and how many of the Focus slots are taken.
-   * @returns the status, or `null` while the action's Focus is not unlocked (then there is no toggle)
-   * @throws Error if the action id is unknown
-   */
+  /** Focus for an action: whether it is focused, and how many of the Focus slots are taken (see {@link ToggleStats.focusStatus}). */
   focusStatus(id: ActionId): FocusStatus | null {
-    this.definition(id);
-    if (!resolveEffects(this.config.buyables, this.state, id, this.factory).focusUnlocked) return null;
-    const { speedBonus, baseSlots } = this.config.focus;
-    const { extraFocusSlots, focusStacking } = this.sleeveStats();
-    const slots = baseSlots + extraFocusSlots;
-    const slotsOn = (actionId: ActionId): number =>
-      this.state.focused[actionId] === true ? 1 + (focusStacking ? (this.state.focusStacks[actionId] ?? 0) : 0) : 0;
-    const count = slotsOn(id);
-    const used = this.config.actions.reduce((n, a) => n + slotsOn(a.id), 0);
-    // every slot on the action multiplies its speed by the bonus again
-    return {
-      on: count > 0,
-      speedBonus: (1 + speedBonus) ** Math.max(1, count) - 1,
-      slots,
-      used,
-      canSwitchOn: count > 0 || used < slots,
-      count,
-      stacking: focusStacking,
-      canAdd: used < slots && (count === 0 || focusStacking),
-      canRemove: count > 0,
-    };
-  }
-
-  /** Everything the speed factors of an action read: its levels (action level including the level bonus), the interface speed and the toggles. */
-  private speedContext(id: ActionId): SpeedContext {
-    const overclock = this.activeOverclock(id);
-    const focus = this.state.focused[id] === true ? this.focusStatus(id) : null;
-    return {
-      actionId: id,
-      actionLevel: this.progression.actionLevel(this.state, id) + this.levelBonus(id),
-      sleeveLevel: this.progression.sleeveLevel(this.state, id),
-      interfaceSpeed: this.sleeveStats().interfaceSpeed,
-      overclockBonus: overclock?.speedBonus ?? 0,
-      focusBonus: focus?.speedBonus ?? 0,
-    };
+    return this.toggles.focusStatus(id);
   }
 
   /** Current speed multiplier of an action. */
   currentSpeed(id: ActionId): number {
-    return speedMultiplier(this.speedModifiers, this.speedContext(id));
+    return this.run.currentSpeed(id);
   }
 
   /** The factors the current speed of an action is made of (action level, sleeve level, interface speed, global lever). */
   speedFactors(id: ActionId): readonly SpeedFactor[] {
-    return speedFactors(this.speedModifiers, this.speedContext(id));
+    return this.run.speedFactors(id);
   }
 
   /** Current duration of one run of an action, after speed modifiers. @throws Error if the action id is unknown */
   currentDurationMs(id: ActionId): number {
-    return effectiveDurationMs(this.definition(id).baseDurationMs, this.currentSpeed(id), this.config.engine.minRunDurationMs);
+    return this.run.currentDurationMs(id);
   }
 
   /** Amount earned per completed run (heat does not tax it). @throws Error if the action id is unknown */
   rewardPerRun(id: ActionId): BigNum {
-    return this.economy.grossReward(this.definition(id), this.state.network, this.rewardMultiplier(id));
+    return this.run.rewardPerRun(id);
   }
 
-  /** What a completed run actually adds now: `rewardPerRun`, rounded down for whole-unit rewards. Heat does not tax it. @throws Error if unknown */
+  /** What a completed run actually adds now: `rewardPerRun`, rounded down for whole-unit rewards. @throws Error if unknown */
   payoutPerRun(id: ActionId): BigNum {
-    return this.economy.payout(this.definition(id), this.rewardPerRun(id));
+    return this.run.payoutPerRun(id);
   }
 
   /** Action XP gained per completed run now. @throws Error if the action id is unknown */
   xpPerRun(id: ActionId): BigNum {
-    const base = this.economy.xpPerRun(this.definition(id));
-    const bonus = this.config.items.augment?.xpBonusPerItem ?? 0;
-    const augments = bonus > 0 ? augmentXpFactor(this.state.actions[id]?.augments ?? {}, bonus) : 1;
-    const factor = augments * this.synthMirrorFactor(id);
-    return factor === 1 ? base : base.mul(this.factory.fromNumber(factor));
+    return this.run.xpPerRun(id);
   }
 
-  /**
-   * What Neural Mirror multiplies an action's XP per run by: its `factor` while the action's level is below the highest level a
-   * synthetic sleeve reached on it, otherwise 1.
-   */
-  private synthMirrorFactor(id: ActionId): number {
-    const factor = this.sleeveStats().synthXpFactor;
-    if (factor === 1) return 1;
-    return this.progression.actionLevel(this.state, id) < bestSynthActionLevel(this.state, id) ? factor : 1;
-  }
-
-  /**
-   * The most action XP one run can give now: `xpPerRun`, times the critical XP multiplier for each critical success the run can have at most. Used to
-   * size a batch of runs so that no level threshold is crossed before its last run. @throws Error if the id is unknown
-   */
+  /** The most action XP one run can give now (see {@link RunStats.maxXpPerRun}). @throws Error if the id is unknown */
   maxXpPerRun(id: ActionId): BigNum {
-    const base = this.xpPerRun(id);
-    const factor = Math.max(1, this.maxCritsPerRun(id) * this.criticalRule(id).xpMultiplier);
-    return factor > 1 ? base.mul(this.factory.fromNumber(factor)) : base;
+    return this.run.maxXpPerRun(id);
   }
 
-  /** Fraction of its size the network grows by per second right now (fixed rates plus level-based rates of the growth buyables). */
+  /** Fraction of its size the network grows by per second right now. */
   networkGrowthRate(): number {
-    return resolveNetworkGrowth(this.config.buyables, this.state, (id) => this.progression.actionLevel(this.state, id));
+    return this.income.networkGrowthRate();
   }
 
-  /** Credits one network node delivers per second right now, after the payout multiplier. The heat tax is not part of it (it applies to the income, see below). */
+  /** Credits one network node delivers per second right now, after the payout multiplier (the heat tax is not part of it). */
   passiveCreditsPerNode(): BigNum {
-    const stats = this.sleeveStats();
-    return this.economy.passiveCreditsPerNode(stats.nodePayoutMultiplier, stats.nodePayoutBonus);
+    return this.income.passiveCreditsPerNode();
   }
 
-  /** What one node delivers per second right now once the heat tax has taken its share: {@link DerivedStats.passiveCreditsPerNode} times the share kept. */
+  /** What one node delivers per second right now once the heat tax has taken its share. */
   taxedCreditsPerNode(): BigNum {
-    return this.passiveCreditsPerNode().mul(this.factory.fromNumber(this.creditKeepFactor()));
+    return this.income.taxedCreditsPerNode();
   }
 
-  /** Credits the network delivers per second right now: nodes times the per-node payout, then the heat tax on the whole. */
+  /** Credits the network delivers per second right now: nodes times the taxed per-node payout. */
   passiveCreditsPerSecond(): BigNum {
-    const stats = this.sleeveStats();
-    return this.economy.passiveCreditsPerSecond(
-      this.state.network,
-      this.state.heat,
-      stats.heatReduction,
-      stats.nodePayoutMultiplier,
-      stats.nodePayoutBonus,
-      stats.heatTaxCap,
-    );
+    return this.income.passiveCreditsPerSecond();
   }
 }

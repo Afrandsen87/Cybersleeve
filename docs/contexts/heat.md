@@ -7,7 +7,7 @@ Code: `src/core/heat/` (see `docs/review/file-map.md`). Text below is moved verb
 ## Interface, state and config (S4)
 
 - **`heatModel.ts` (P4, P5):** pure functions for the numbers the engine and the interface both need: `cycleMs(sleeve, legend)` (cooldown cycle before skills), `coolsNow(heat, amount)` (the cooldown waits for a whole amount), `heatTaxShare(heat, reduction, taxPerPoint, maxShare)` (share of income taxed, capped), `heatStopPoint(reduction, taxPerPoint, maxShare)` (heat at which the tax takes everything, `null` when it never does) and `moleSpeedFactor(bonusPerOrder, moles)` (Deep Cover). `cooldowns.ts` and `heatPace.ts` use them; `ui/view/sleeveView.ts` and `moleBonus.ts` only format their results (`heatModel.test.ts` checks the tip text equals the model values). `heatTaxFactor` (`heat.ts`) is the multiplier form of the same tax.
-- **P15 (documented, no change):** heat per second (tick, `ActionRunner` slices) and heat per run (`completeRuns`) stay separate: one is time based, the other run based. A shared `heatGained` function is only worth adding if a third heat source appears.
+- **P15 (documented, no change):** heat per second (tick, `ActionRunner` slices) and heat per run (`runBatch`, `chargeRunHeat`) stay separate: one is time based, the other run based. A shared `heatGained` function is only worth adding if a third heat source appears.
 - **Config variables:** `sleeve.heatCooldownMs`, `heatCooldownAmount`, `heatTaxPerPoint`, `legendHeatSpeedup`, `iceRatingReductionPerOrder`; skills `heatCooldownSpeed`, `idleHeatCooldown`, `moleAggregation`, `heatTaxCap`, `backChannel` (see `docs/CONFIG.md`).
 
 ## Decisions (from docs/DECISIONS.md)

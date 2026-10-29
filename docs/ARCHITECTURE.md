@@ -31,6 +31,10 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 
 **S4 (heat and crits).** `heat/heatModel.ts` holds the cooldown cycle, "cools now", tax share, stop point and Mole speed that `cooldowns.ts`, `heatPace.ts` and the Sleeve tips all use. `crits/criticalCover.ts` and `CriticalSuccesses.maxPerRun` replace two hand-written copies in `DerivedStats`. `testing/gameKit.ts` gained `seededGame`, used by the crit tests. Details: `docs/contexts/heat.md`, `docs/contexts/crits.md`.
 
+**S5b (actions and rewards).** `actions/rewards.ts` owns reward rounding (`wholeRunAmount`); `actions/rewardPayer.ts` (`RewardPayer`) is the one way a run is paid, own, critical or linked. Overclock's `alsoPays` and the `paysActionReward` buyables are one rule list (`DerivedStats.paysActions`) drawn by `LinkedPayouts`. `ActionRunner.completeRuns` became `runBatch` (small named steps), start costs moved to `actions/startCosts.ts`, and `progression.ts` (facade) delegates to `xpReductions.ts` and `sleeveXp.ts`. Details: `docs/contexts/actions.md`.
+
+**S6 (economy, currencies, stats).** `kernel/currencies.ts` holds the currency descriptors (see `docs/contexts/economy.md`). `engine/stats.ts` shrank from 21 KB to a 11 KB facade over `actions/toggleStats.ts`, `actions/runStats.ts`, `crits/critStats.ts`, `items/itemStats.ts`, `economy/incomeStats.ts` and `heat/heatStats.ts`; each takes only the narrow inputs it needs. The heat tax on income has one owner (`Economy.taxedCreditsPerNode`).
+
 ## Layering (dependencies point downwards only)
 
 *Moved to [contexts/_layering.md](contexts/_layering.md).*

@@ -8,7 +8,7 @@ import type { ActionId, PaysActionRule } from '../types';
 
 /** Where the linked-payout rules of an action come from (satisfied by `DerivedStats`). */
 export interface LinkedPayoutRules {
-  /** The rules of the action's owned `paysActionReward` buyables. */
+  /** The rules of the action: Overclock's `alsoPays` (chance 1) and its owned `paysActionReward` buyables. */
   paysActions(id: ActionId): readonly PaysActionRule[];
 }
 
@@ -28,7 +28,7 @@ export interface LinkedPayout {
  * per run), so a batch of a million runs costs as much as one. Each success is one WHOLE reward of the target action, never a fraction.
  * No random number is drawn while the action has no rule.
  *
- * Called by: `actionRunner.ts` (`ActionRunner.completeRuns`). Calls: `DerivedStats.paysActions`, `perRunEvents`.
+ * Called by: `actionRunner.ts` (`ActionRunner.payBatch`). Calls: `DerivedStats.paysActions`, `perRunEvents`.
  */
 export class LinkedPayouts {
   /**
