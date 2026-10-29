@@ -156,9 +156,9 @@ export const tipText: UiText['tips'] = {
       ...multipliers.map((t) => `${t.label} = x${t.value}`),
       `ICE Rating = ${total}`,
       '',
-      'Heat Reduction = Orders of Magnitude x Reduction per Order',
+      'Heat Reduction = Orders of Magnitude ICE Rating x Reduction per Order',
       '',
-      `Orders of Magnitude = ${orders}`,
+      `Orders of Magnitude ICE Rating = ${orders}`,
       `Reduction per Order = ${perOrderPercent}%`,
       '',
       `Heat Reduction = ${reductionPercent}%`,
@@ -169,7 +169,7 @@ export const tipText: UiText['tips'] = {
       `Chance per completed run = ${chancePercent}%`,
       '',
       `Each critical success gives ${xpMultiplier}x action XP and pays ${rewardMultiplier}x the reward`,
-      'Above 100% a run can have several critical successes: 150% is one for sure and a 50% chance of a second',
+      'Above 100% a run can have several critical successes: 150% is one guaranteed and a 50% chance of a second',
       'Some actions may have other effects as well',
     ].join('\n'),
   legend: ({ legend, baseSeconds, speedupPercent, cycleSeconds, decayMinutes }) =>
@@ -215,7 +215,7 @@ export const tipText: UiText['tips'] = {
       `XP per Run = ${[baseXp, ...applied.map((a) => `(1 + ${bonus} x ${a.count})`)].join(' x ')} = ${xpPerRun}`,
       '',
       selected === null ? `Select a rarity of ${item} in the Inventory first` : `Selected = ${selected} (${held} held)`,
-      'Click to apply one of the selected rarity to this action: its action levels come sooner',
+      'Click to apply one of the selected rarity to this action. It will boost its XP gain.',
     ].join('\n'),
   overclock: ({ on, strength, speed, reward, heatPerMinute, heatPerRunFactor, heatChanceFactor, nodesLost, alsoPays, holdsHeat, chain }) =>
     [
@@ -228,7 +228,7 @@ export const tipText: UiText['tips'] = {
       ...(reward === null ? [] : [`Reward Bonus = ${reward.percent}% (${reward.basePercent}% x Strength)`]),
       ...(alsoPays === null ? [] : [`Each completed run also pays the nodes of one ${alsoPays} run`]),
       ...(speed === null && reward === null && alsoPays === null ? [] : ['']),
-      ...(heatPerMinute === null ? [] : [`Costs ${heatPerMinute} heat per minute while this action runs`]),
+      ...(heatPerMinute === null ? [] : [`Causes ${heatPerMinute} heat per minute while this action runs`]),
       ...(heatPerRunFactor === null ? [] : [`Each run makes ${heatPerRunFactor}x as much heat`]),
       ...(heatChanceFactor === null ? [] : [`Each run is ${heatChanceFactor}x as likely to make heat`]),
       ...(nodesLost === null ? [] : [`Each completed run costs ${nodesLost} nodes`]),
@@ -264,7 +264,7 @@ export const tipText: UiText['tips'] = {
     [
       label,
       'Heat after Use = Heat x (1 - Share Removed)',
-      'Click the lead to use one; it leaves the Inventory',
+      'Click the lead to burn it',
       '',
       `Share Removed = ${sharePercent}% of the current heat`,
       `Heat now = ${heat}`,
@@ -299,10 +299,10 @@ export const tipText: UiText['tips'] = {
   skillShard: ({ label, levels, count, canUse, drops }) =>
     [
       label,
-      `Delays the XP scaling of a random unlocked action by ${levels} level${levels === '1' ? '' : 's'}: its next level costs stay at the first level's cost for longer`,
+      `Delays the XP scaling of a random unlocked action by ${levels} level${levels === '1' ? '' : 's'}`,
       '',
       ...dropChanceLines(drops),
-      canUse ? 'Click to use one; it leaves the Inventory' : 'Needs a shard and an unlocked action',
+      canUse ? 'Click to use one' : 'Needs a shard and an unlocked action',
       `Owned = ${count}`,
     ].join('\n'),
   stackKept: ({ label, count, drops }) =>

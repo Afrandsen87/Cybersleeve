@@ -345,7 +345,7 @@ export const uiText: UiText = {
   },
   sections: { rebuyable: 'Rebuyable', oneTime: 'One-time', nodes: 'Paid in nodes' },
   statLabels: {
-    access: 'Access level',
+    access: 'Access Level',
     interfaceSpeed: 'Interface speed',
     hackingProficiency: 'Hacking Proficiency',
     iceRating: 'ICE Rating',
@@ -383,8 +383,8 @@ export const uiText: UiText = {
     automationPoints: 'automation points',
   },
   lock: {
-    access: (level) => `Needs access level ${level}`,
-    poster: (level) => `Increase Access level to ${level} to unlock`,
+    access: (level) => `Requires Access Level ${level}`,
+    poster: (level) => `Requires Access Level ${level}`,
   },
   startCost: {
     amount: (amount, unit) => `${amount} ${unit}`,
@@ -412,7 +412,7 @@ export const uiText: UiText = {
   tips: tipText,
   resleeve: {
     idle: 'Re-sleeve',
-    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. Re-sleeve skills stay, and you gain a re-sleeve point.',
+    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a re-sleeve point.',
     cancel: 'Cancel',
   },
   notices: {
