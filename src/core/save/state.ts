@@ -4,12 +4,13 @@
  * Creation and resetting of {@link GameState}.
  */
 import type { NumberFactory } from '../../numbers';
+import { traitsOf } from '../effects/effectTraits';
 import { createAutomationState } from '../automation/automation';
 import { createCorporationState } from '../corporation/corporationState';
 import { carryRetention, recordLastLife } from '../resleeve/resleeveCarry';
 import { CARRIED_OVER_CURRENCIES } from '../kernel/currencies';
 import { initialScalars } from '../kernel/fields';
-import type { ActionState, BuyableDefinition, Currency, GameConfig, GameState, SleeveState, Wallet } from '../types';
+import type { ActionState, Currency, GameConfig, GameState, SleeveState, Wallet } from '../types';
 
 /** Config the state is created and reset from. */
 type StateConfig = Pick<GameConfig, 'actions' | 'automation' | 'corporation' | 'progression' | 'sleeve'>;
@@ -19,13 +20,6 @@ type StateConfig = Pick<GameConfig, 'actions' | 'automation' | 'corporation' | '
  * bought) reset with the sleeve.
  */
 export const CARRIED_OVER_BUYABLE_CURRENCIES: readonly Currency[] = CARRIED_OVER_CURRENCIES;
-
-/** The buyable effect kinds whose buyables survive a re-sleeve: the sleeve-levels unlock is bought once, for good, and the corporate rank belongs to the corporation. */
-export const CARRIED_OVER_BUYABLE_EFFECTS = [
-  'unlockSleeveLevels',
-  'corporateRank',
-  'addsCorporationEffect',
-] as const satisfies readonly BuyableDefinition['effect']['kind'][];
 
 /**
  * THE positive list of what survives a re-sleeve: these per-action fields. Nothing else carries over; everything not
@@ -141,7 +135,7 @@ export function resetForNewGame(state: GameState, config: StateConfig, factory: 
  * Starts from a fresh game state and carries over only what is named on the positive lists: {@link CARRIED_OVER_ACTION_FIELDS} (every
  * action's sleeve XP and its run counter towards the next sleeve-XP batch), {@link CARRIED_OVER_WALLET_FIELDS} (the record of finished runs, the
  * synthetic sleeves, the corporation, the all-time peaks), and the owned buyables paid in a currency of {@link CARRIED_OVER_BUYABLE_CURRENCIES} (the re-sleeve skills) or
- * with an effect of {@link CARRIED_OVER_BUYABLE_EFFECTS} (the sleeve-levels unlock).
+ * with an effect of a `carriedOverResleeve` effect trait (the sleeve-levels unlock, the corporate rank).
  * The retention skills add to that (see `resleeveCarry.ts`): a record of last life's action-card purchases, the Automation tab, and shares of
  * Hacking Proficiency and ICE Rating. Everything else resets, including fields added in the future (nothing has to be listed to be reset; to carry something over, add it
  * to a list).
@@ -161,10 +155,9 @@ export function resetForResleeve(state: GameState, config: StateConfig & Pick<Ga
   const keep = fresh.wallet as unknown as Record<string, unknown>;
   for (const key of CARRIED_OVER_WALLET_FIELDS) keep[key] = state.wallet[key];
   const carried = new Set<string>(CARRIED_OVER_BUYABLE_CURRENCIES);
-  const carriedEffects = new Set<string>(CARRIED_OVER_BUYABLE_EFFECTS);
   for (const b of config.buyables) {
     const owned = state.sleeve.purchased[b.id] ?? 0;
-    const kept = (b.currency !== undefined && carried.has(b.currency)) || carriedEffects.has(b.effect.kind);
+    const kept = (b.currency !== undefined && carried.has(b.currency)) || traitsOf(b).carriedOverResleeve === true;
     if (owned > 0 && kept) fresh.sleeve.purchased[b.id] = owned;
   }
   recordLastLife(state, fresh, config.buyables);

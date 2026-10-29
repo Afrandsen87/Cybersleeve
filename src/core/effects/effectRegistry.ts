@@ -21,7 +21,7 @@ import { SLEEVE_ENTRIES } from './entries/sleeveEntries';
 import { ECONOMY_ENTRIES } from './entries/economyEntries';
 import { AUTOMATION_ENTRIES } from './entries/automationEntries';
 import { HEAT_COOL_ENTRIES } from './entries/heatCoolEntries';
-import { corporate, none, sleeveWide } from './effectHelpers';
+import { corporateCarried, none, sleeveWide, sleeveWideCarried } from './effectHelpers';
 import type { EffectDefinition } from './effectTypes';
 
 export type * from './effectTypes';
@@ -38,11 +38,11 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
   ...AUTOMATION_ENTRIES,
   ...HEAT_COOL_ENTRIES,
   synthSleeves: { traits: sleeveWide, validate: none },
-  unlockSleeveLevels: { traits: sleeveWide, validate: none },
+  unlockSleeveLevels: { traits: sleeveWideCarried, validate: none },
   unlocksCorporation: { traits: sleeveWide, validate: none },
-  addsCorporationEffect: { traits: corporate, validate: none },
+  addsCorporationEffect: { traits: corporateCarried, validate: none },
   corporateRank: {
-    traits: corporate,
+    traits: corporateCarried,
     validate: (e, { where, errors }) => {
       if (!(Number.isInteger(e.amount) && e.amount >= 1)) errors.push(`${where}: corporate rank amount must be an integer >= 1`);
     },

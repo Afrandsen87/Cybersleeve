@@ -35,6 +35,10 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 
 **S6 (economy, currencies, stats).** `kernel/currencies.ts` holds the currency descriptors (see `docs/contexts/economy.md`). `engine/stats.ts` shrank from 21 KB to a 11 KB facade over `actions/toggleStats.ts`, `actions/runStats.ts`, `crits/critStats.ts`, `items/itemStats.ts`, `economy/incomeStats.ts` and `heat/heatStats.ts`; each takes only the narrow inputs it needs. The heat tax on income has one owner (`Economy.taxedCreditsPerNode`).
 
+**S8b (save parts).** `core/save/serialization.ts` only composes the save: each context writes and reads its own part through the `SavePart` hook (`kernel/savePart.ts`), listed in `save/saveParts.ts` in read order with the saved key order declared beside it. Details and the file list: `docs/contexts/save.md`.
+
+**S9 (resleeve and synth).** What a re-sleeve carries is registry data (`carriedOverResleeve` trait, `carry` hook). A second re-sleeve gate (`SleeveLevelGate`, content `resleeve.sleeveLevelsNeeded`) sits next to the Unlock purchase; the combined `ResleevePolicy` also states the shortfall for the button tip. `synthBoost` is the shared formula. Details: `docs/contexts/resleeve.md`, `docs/contexts/synth.md`.
+
 ## Layering (dependencies point downwards only)
 
 *Moved to [contexts/_layering.md](contexts/_layering.md).*

@@ -157,7 +157,7 @@ export function mountUi(
     actions.render(vm.actions);
     corporation.render(vm.corporation);
     sleeve.render(vm.sleeve);
-    resleeveRow.render({ canResleeve: vm.canResleeve, shown: vm.resleeveShown, buy: vm.resleeveBuy });
+    resleeveRow.render({ canResleeve: vm.canResleeve, shown: vm.resleeveShown, buy: vm.resleeveBuy, shortfall: vm.resleeveShortfall });
     debug?.render();
     tooltips.refresh();
   }

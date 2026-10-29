@@ -36,7 +36,8 @@ const ALLOWED_EDGES: Readonly<Record<string, readonly string[]>> = {
     'synth',
   ],
   actions: ['(root)', 'crits', 'economy', 'effects', 'engine', 'items', 'kernel', 'resleeve', 'sleeve'],
-  automation: ['(root)', 'items'],
+  // automation -> kernel, synth -> kernel and save -> crits/synth added in S8b: each context's save part uses kernel/savePart and kernel/readValues (downward), and save composes the parts.
+  automation: ['(root)', 'items', 'kernel'],
   // config -> kernel added in S6: validation reads the currency descriptors (downward edge to the lowest layer).
   config: ['(root)', 'actions', 'corporation', 'effects', 'items', 'kernel'],
   corporation: ['(root)', 'actions', 'effects', 'items', 'kernel'],
@@ -64,9 +65,9 @@ const ALLOWED_EDGES: Readonly<Record<string, readonly string[]>> = {
   items: ['(root)', 'actions', 'effects', 'kernel'],
   kernel: ['(root)'],
   resleeve: ['(root)', 'actions', 'economy', 'effects', 'engine', 'kernel', 'save', 'synth'],
-  save: ['(root)', 'actions', 'automation', 'corporation', 'effects', 'items', 'kernel', 'resleeve'],
+  save: ['(root)', 'actions', 'automation', 'corporation', 'crits', 'effects', 'items', 'kernel', 'resleeve', 'synth'],
   sleeve: ['kernel'],
-  synth: ['(root)', 'actions', 'effects'],
+  synth: ['(root)', 'actions', 'effects', 'kernel'],
 };
 
 /** @returns every `.ts` file under `dir` */

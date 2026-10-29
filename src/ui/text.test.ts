@@ -20,7 +20,7 @@ const shouting: UiText = {
   titles: { ...uiText.titles, sleeve: 'SLEEVE!', network: 'NETWORK!' },
   statLabels: { ...uiText.statLabels, heat: 'HEAT!' },
   action: { ...uiText.action, levelBar: (level) => `LEVEL ${level}`, reward: ({ amount }) => `PAYS ${amount}` },
-  resleeve: { idle: 'IDLE', armed: 'ARMED', cancel: 'NEVERMIND' },
+  resleeve: { idle: 'IDLE', armed: 'ARMED', cancel: 'NEVERMIND', needLevels: (h, n) => `NEED ${n} HAVE ${h}` },
   controls: { ...uiText.controls, resetSave: 'WIPE', speedToggle: (f) => `FAST ${f}` },
 };
 

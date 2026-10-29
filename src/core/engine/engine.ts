@@ -32,7 +32,7 @@ import type { NetworkSystem } from '../economy/network';
 import type { OverflowPolicy } from '../kernel/overflow';
 import { notePeaks } from '../economy/reveal';
 import type { Progression } from '../actions/progression';
-import type { ResleevePolicy } from '../resleeve/resleeve';
+import type { ResleevePolicy, ResleeveRequirement } from '../resleeve/resleeve';
 import type { ResleeveGate } from '../resleeve/resleeveGate';
 import type { Resleever } from '../resleeve/resleever';
 import type { PurchaseResult, Shop } from '../economy/shop';
@@ -729,6 +729,11 @@ export class GameEngine implements GameQueries, GameCommands {
   /** True when the player may re-sleeve right now. */
   canResleeve(): boolean {
     return this.resleevePolicy.canResleeve(this.state);
+  }
+
+  /** What the next re-sleeve is waiting for in sleeve levels (held and needed), or `null` when it needs none. */
+  resleeveRequirement(): ResleeveRequirement | null {
+    return this.resleevePolicy.requirement?.(this.state) ?? null;
   }
 
   // ---- time ----------------------------------------------------------------------------------------------------

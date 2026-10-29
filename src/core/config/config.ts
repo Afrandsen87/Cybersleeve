@@ -362,6 +362,12 @@ export function validateConfig(config: GameConfig): string[] {
 
   if (!positiveInt(config.resleeve.pointsPerResleeve)) errors.push('resleeve.pointsPerResleeve must be an integer >= 1');
   if (!positiveInt(config.resleeve.runsShown)) errors.push('resleeve.runsShown must be an integer >= 1');
+  const needed = config.resleeve.sleeveLevelsNeeded;
+  if (
+    needed !== undefined &&
+    !(Number.isFinite(needed.base) && needed.base >= 0 && Number.isFinite(needed.perResleeve) && needed.perResleeve >= 0)
+  )
+    errors.push('resleeve.sleeveLevelsNeeded base and perResleeve must be numbers >= 0');
   const lockout = config.resleeve.lockoutMs;
   if (lockout !== undefined && !(Number.isFinite(lockout) && lockout >= 0)) errors.push('resleeve.lockoutMs must be >= 0');
   if (config.buyables.filter((b) => b.effect.kind === 'unlockSleeveLevels').length > 1) {

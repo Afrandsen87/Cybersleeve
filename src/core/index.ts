@@ -75,7 +75,8 @@ export { Shop, type PurchaseListener, type PurchaseResult } from './economy/shop
 export { euphoriaReduction } from './sleeve/sleeveEuphoria';
 export { type SynthIncome, SynthSleeves, synthCreditsPerSecond } from './synth/synthSleeves';
 export { Resleever } from './resleeve/resleever';
-export { type ResleevePolicy, alwaysAllowResleeve } from './resleeve/resleeve';
+export { type ResleevePolicy, type ResleeveRequirement, alwaysAllowResleeve, allOf } from './resleeve/resleeve';
+export { SleeveLevelGate, sleeveLevelsNeeded } from './resleeve/sleeveLevelGate';
 export { ResleeveGate, sleeveLevelsGateId } from './resleeve/resleeveGate';
 export {
   CARRIED_OVER_ACTION_FIELDS,

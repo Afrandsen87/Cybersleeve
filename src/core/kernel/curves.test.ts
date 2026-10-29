@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { num } from '../../numbers';
-import { bigOrders, logScaled, orders, wholeOrders } from './curves';
+import { bigOrders, logScaled, orders, synthBoost, wholeOrders } from './curves';
 
 /** The hand-written forms these helpers replaced, kept here as the reference the outputs are pinned to. */
 const oldMoleOrders = (moles: number) => (moles > 1 ? Math.log10(moles) : 0);
@@ -67,5 +67,25 @@ describe('logScaled', () => {
     expect(logScaled(3, 0)).toBe(0);
     expect(logScaled(3, 99)).toBeCloseTo(6, 12);
     expect(logScaled(3, -2)).toBeNaN();
+  });
+});
+
+describe('synthBoost', () => {
+  it('equals the old inline form for both skills', () => {
+    for (const [perLn, n, copies] of [
+      [0.1, 0, 1],
+      [0.1, 5, 2],
+      [0.25, 1000, 3],
+      [0.5, 1e6, 1],
+    ] as const) {
+      expect(synthBoost(perLn, n, copies)).toBe((1 + perLn * Math.log1p(n)) ** copies);
+    }
+  });
+
+  it('is 1 with no synths or no copies, and grows with both', () => {
+    expect(synthBoost(0.3, 0, 4)).toBe(1);
+    expect(synthBoost(0.3, 10, 0)).toBe(1);
+    expect(synthBoost(0.3, 10, 2)).toBeGreaterThan(synthBoost(0.3, 10, 1));
+    expect(synthBoost(0.3, 100, 1)).toBeGreaterThan(synthBoost(0.3, 10, 1));
   });
 });

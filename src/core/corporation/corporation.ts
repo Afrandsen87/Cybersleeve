@@ -4,6 +4,7 @@
  * The Corporation: starting its actions and advancing their runs.
  */
 import { ownsKind } from '../effects/ownedOfKind';
+import { synthBoost } from '../kernel/curves';
 import { effectiveDurationMs, levelFactor } from '../actions/speed';
 import { applyCorporationEffect, type CorporationEffectContext } from './corporationEffects';
 import type { CorporationLevels } from './corporationLevels';
@@ -82,7 +83,7 @@ export class Corporation {
     for (const b of this.config.buyables) {
       const copies = this.state.sleeve.purchased[b.id] ?? 0;
       if (b.effect.kind === 'corporationSpeedPerLnSynths' && copies > 0) {
-        factor *= (1 + b.effect.perLn * Math.log1p(this.state.wallet.synths.length)) ** copies;
+        factor *= synthBoost(b.effect.perLn, this.state.wallet.synths.length, copies);
       }
     }
     return factor;

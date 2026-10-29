@@ -11,6 +11,7 @@
  * uses, so it can be tested against a small fake. A new question or command goes into the interface of its area.
  */
 import type { BigNum } from '../../numbers';
+import type { ResleeveRequirement } from '../resleeve/resleeve';
 import type { FocusStatus, OverclockStatus } from '../actions/actionToggles';
 import type { AutomationControls } from '../automation/automation';
 import type { SleeveStats } from '../effects/effects';
@@ -117,6 +118,8 @@ export interface SleeveQueries {
   synthCreditsPerSecond(): BigNum;
   /** True when the player may re-sleeve right now. */
   canResleeve(): boolean;
+  /** The sleeve levels the next re-sleeve needs and the player holds, or `null` when it needs none. */
+  resleeveRequirement(): ResleeveRequirement | null;
   /** True while heat cannot cool or be reduced at all (an action is running with an Overclock that stops heat cooling). */
   heatCoolingBlocked(): boolean;
 }

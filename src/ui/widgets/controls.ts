@@ -6,6 +6,7 @@
  * @remarks
  * Called by: `ui/dom.ts`. Calls: `ConfirmGate`, `GameCommands`.
  */
+import { formatBigNum, num } from '../../numbers';
 import { ConfirmGate } from '../confirmGate';
 import { type ChangelogEntry, buildChangelogModal } from './changelogModal';
 import { type UiContext, h, setText } from './domKit';
@@ -20,6 +21,8 @@ export interface ResleeveButtonState {
   readonly shown: boolean;
   /** The purchase to show on the button while it is not yet the Re-sleeve action; `null` hides the button. */
   readonly buy: ResleeveBuyView | null;
+  /** Sleeve levels held and needed while the next re-sleeve is short of them; `null` otherwise. Drives the button's tip. */
+  readonly shortfall: { readonly held: number; readonly needed: number } | null;
 }
 
 /** The re-sleeve button with its cancel button. */
@@ -58,7 +61,7 @@ export function buildResleeveRow(ctx: UiContext): ResleeveRow {
   root.append(button, cancel);
   return {
     root,
-    render({ canResleeve, shown, buy }) {
+    render({ canResleeve, shown, buy, shortfall }) {
       buyId = shown ? null : (buy?.id ?? null);
       root.hidden = !shown && buy === null;
       if (root.hidden || !shown) gate.cancel();
@@ -71,7 +74,8 @@ export function buildResleeveRow(ctx: UiContext): ResleeveRow {
       } else {
         button.disabled = !canResleeve;
         setText(button, armed ? text.resleeve.armed : text.resleeve.idle);
-        tips.set(button, null);
+        const tip = shortfall ? text.resleeve.needLevels(formatBigNum(num(shortfall.held)), formatBigNum(num(shortfall.needed))) : null;
+        tips.set(button, tip === null ? null : () => tip);
       }
       button.classList.toggle('armed', armed);
       cancel.hidden = !armed;

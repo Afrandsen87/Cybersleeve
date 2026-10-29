@@ -4,6 +4,7 @@
  * Creating, saving and reading the {@link CorporationState}.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
+import { isRecord } from '../kernel/readValues';
 import type { CorporationConfig, CorporationState } from './corporationTypes';
 
 /**
@@ -24,7 +25,7 @@ export function createCorporationState(config: CorporationConfig | undefined, fa
 /**
  * The part of a save that holds the corporation: plain data.
  *
- * Called by: `serialization.ts`.
+ * Called by: `corporationSave.ts`.
  *
  * @param state the corporation state
  */
@@ -44,7 +45,7 @@ export function writeCorporationState(state: CorporationState): {
  * Reads the corporation back from a save. Anything missing or unusable (a save from before the corporation existed, an action that
  * is no longer in the content, a progress outside 0..1) falls back to the idle state of that action.
  *
- * Called by: `serialization.ts` (`deserializeState`).
+ * Called by: `corporationSave.ts`.
  *
  * @param saved the stored value, whatever it is
  * @param config the corporation's content (decides which actions are read)
@@ -67,10 +68,6 @@ export function readCorporationState(saved: unknown, config: CorporationConfig |
     };
   }
   return state;
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
 /** Reads saved XP: a finite number or numeric string >= 0, otherwise 0. */

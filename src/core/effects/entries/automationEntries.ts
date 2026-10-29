@@ -9,7 +9,7 @@ type Kind = 'automationPoints' | 'unlocksAutomation';
 export const AUTOMATION_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<BuyableEffect, { kind: K }>> } = {
   automationPoints: {
     // read only by the Automation unit, which sums the copies itself
-    traits: sleeveWide,
+    traits: { ...sleeveWide, automationPurchase: true },
     validate: (e, { where, errors }) => {
       if (!(Number.isInteger(e.perCopy) && e.perCopy >= 1)) errors.push(`${where}: automationPoints perCopy must be an integer >= 1`);
     },

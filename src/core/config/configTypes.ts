@@ -146,6 +146,11 @@ export interface ResleeveConfig {
    * game with an `unlockSleeveLevels` buyable.
    */
   readonly lockoutMs?: number;
+  /**
+   * The total of all actions' sleeve levels the Nth re-sleeve needs: `base + perResleeve x (N - 1)`, where N counts the re-sleeve about to
+   * happen (sleeve levels carry over, so the total only grows). Both are numbers >= 0. Leave it out for a game whose re-sleeve needs no levels.
+   */
+  readonly sleeveLevelsNeeded?: { readonly base: number; readonly perResleeve: number };
 }
 
 /** The automation features and their starting values. Leave the section out for a game without automation. */

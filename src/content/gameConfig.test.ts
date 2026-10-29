@@ -9,7 +9,7 @@ import { createGame } from '../app/createGame';
 import { validateConfig } from '../core';
 import { num } from '../numbers';
 import { markResleeved, openResleeving } from '../testing/sleeveLevelsKit';
-import { setCredits } from '../testing/testConfig';
+import { setCredits, setSleeveXp } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
   ACCESS_UPGRADE,
@@ -251,6 +251,8 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(after.resleeveBuy).toBeNull();
     expect(after.canResleeve).toBe(false);
     g.tick(5_000);
+    expect(buildViewModel(g).canResleeve, 'the lockout is over but no sleeve level is held yet').toBe(false);
+    setSleeveXp(g, num('1e30'), gameConfig.actions[0]!.id);
     expect(buildViewModel(g).canResleeve).toBe(true);
   });
 

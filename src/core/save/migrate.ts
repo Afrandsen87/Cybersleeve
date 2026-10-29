@@ -13,8 +13,9 @@
 /** The version the migration writes (the current save version). */
 export const MIGRATED_VERSION = 7;
 
-/** Id of the only sleeve (and the only corporation) in a save: the migration of a v6 save writes everything under it. */
-export const DEFAULT_SLEEVE_ID = 'main';
+// The id of the only sleeve (and corporation) lives in the kernel, where the contexts' save parts can read it; the migration writes everything under it.
+export { DEFAULT_SLEEVE_ID } from '../kernel/savePart';
+import { DEFAULT_SLEEVE_ID } from '../kernel/savePart';
 
 const WALLET_KEYS = ['credits', 'inventory', 'runs', 'lastLifePurchases', 'synths', 'automation'] as const;
 const SLEEVE_KEYS = [

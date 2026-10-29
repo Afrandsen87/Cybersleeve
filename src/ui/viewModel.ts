@@ -17,7 +17,7 @@ import { inventoryView } from './view/inventoryView';
 import { networkView } from './view/networkView';
 import { automationView, runsView, skillsView, tabsView } from './view/panelViews';
 import { revealEverything } from './view/revealAll';
-import { resleeveBuyView, sleeveLevelsOpen } from './view/sleeveGate';
+import { resleeveBuyView, resleeveShortfallView, sleeveLevelsOpen } from './view/sleeveGate';
 import { sleeveView } from './view/sleeveView';
 import { NO_SELECTION, type ViewModel, type ViewSelection } from './view/viewTypes';
 import { type UiText, uiText as defaultText } from './uiText';
@@ -71,6 +71,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
     canResleeve: engine.canResleeve(),
     resleeveShown: sleeveLevelsOpen(state, config),
     resleeveBuy: resleeveBuyView(state, config, viewById),
+    resleeveShortfall: resleeveShortfallView(engine, state, config),
   };
   return revealAll ? revealEverything(vm) : vm;
 }

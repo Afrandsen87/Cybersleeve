@@ -62,3 +62,18 @@ export function wholeOrders(value: BigNum): number {
 export function logScaled(scale: number, amount: number): number {
   return scale * Math.log10(1 + amount);
 }
+
+/**
+ * The boost a synthetic-sleeve count gives: `(1 + perLn x ln(1 + synths)) ^ copies`. One definition for the interface-speed skill and the
+ * corporation-speed skill, so the two cannot drift apart.
+ *
+ * Called by: `resleeve/resleeveEffects.ts` (`interfaceSpeedPerLnSynths`), `corporation/corporation.ts` (`workersFactor`). Calls: nothing.
+ *
+ * @param perLn boost per natural-log step of the synth count (> 0)
+ * @param synths how many synthetic sleeves there are (>= 0)
+ * @param copies copies of the skill owned (>= 0)
+ * @returns the factor (1 with no synths or no copies)
+ */
+export function synthBoost(perLn: number, synths: number, copies: number): number {
+  return (1 + perLn * Math.log1p(synths)) ** copies;
+}

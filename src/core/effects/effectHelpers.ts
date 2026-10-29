@@ -11,6 +11,10 @@ import type { EffectContext, EffectTraits } from './effectTypes';
 
 export const sleeveWide: EffectTraits = { needsAction: false, toggleable: false };
 export const corporate: EffectTraits = { needsAction: false, toggleable: false, corporate: true };
+/** A sleeve-wide effect whose buyable survives a re-sleeve (bought once, for good). */
+export const sleeveWideCarried: EffectTraits = { needsAction: false, toggleable: false, carriedOverResleeve: true };
+/** A corporate effect whose buyable survives a re-sleeve (the corporation is not the character). */
+export const corporateCarried: EffectTraits = { needsAction: false, toggleable: false, corporate: true, carriedOverResleeve: true };
 export const perAction: EffectTraits = { needsAction: true, toggleable: false };
 
 /** `ln(n)`, but never below 0 (so a network of 0 or 1 nodes adds nothing). */

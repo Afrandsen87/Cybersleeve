@@ -7,6 +7,7 @@
  * These belong in {@link EFFECTS} like every other kind; they live in their own file only to keep `effectRegistry.ts` small. The
  * registry spreads {@link RESLEEVE_EFFECTS} into its table, so the compiler still demands an entry for every kind.
  */
+import { logScaled, synthBoost } from '../kernel/curves';
 import type { EffectDefinition } from '../effects/effectTypes';
 import type { ResleeveEffect } from './resleeveEffectTypes';
 
@@ -44,7 +45,7 @@ export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<
       if (!(Number.isFinite(e.perLn) && e.perLn > 0)) errors.push(`${where}: interfaceSpeedPerLnSynths perLn must be > 0`);
     },
     sleeve: (acc, e, { owned, state }) => {
-      acc.interfaceSkillFactor *= (1 + e.perLn * Math.log1p(state.wallet.synths.length)) ** owned;
+      acc.interfaceSkillFactor *= synthBoost(e.perLn, state.wallet.synths.length, owned);
     },
   },
   synthXpBoost: {
@@ -68,17 +69,39 @@ export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<
   unlocksSynthPurchase: { traits: sleeveWide, validate: () => {} },
   // read only by ReflexArchive and resleeveCarry.ts
   autoRepurchase: { traits: sleeveWide, validate: () => {} },
-  keepsAutomation: { traits: sleeveWide, validate: () => {} },
+  // Daemon Persistence: the automation state and the automation purchases are kept, so points earned minus points spent stays what it was
+  keepsAutomation: {
+    traits: sleeveWide,
+    validate: () => {},
+    carry: (_e, { old, fresh, buyables, traitsOf }) => {
+      fresh.wallet.automation = old.wallet.automation;
+      for (const b of buyables) {
+        const owned = old.sleeve.purchased[b.id] ?? 0;
+        if (owned > 0 && (b.currency === 'automationPoints' || traitsOf(b).automationPurchase === true))
+          fresh.sleeve.purchased[b.id] = owned;
+      }
+    },
+  },
   carriesProficiency: {
     traits: sleeveWide,
     validate: (e, { where, errors }) => {
       if (!(Number.isFinite(e.scale) && e.scale > 0)) errors.push(`${where}: carriesProficiency scale must be > 0`);
+    },
+    // Residual Proficiency: Hacking Proficiency starts at `scale x log10(1 + old)`
+    carry: (e, { old, fresh, factory }) => {
+      const kept = logScaled(e.scale, old.sleeve.hackingProficiency.toNumber());
+      if (Number.isFinite(kept) && kept > 0) fresh.sleeve.hackingProficiency = factory.fromNumber(kept);
     },
   },
   carriesIceRating: {
     traits: sleeveWide,
     validate: (e, { where, errors }) => {
       if (!(Number.isFinite(e.share) && e.share > 0 && e.share <= 1)) errors.push(`${where}: carriesIceRating share must be in (0, 1]`);
+    },
+    // Residual Firewall: ICE Rating starts at `old ^ share`, never below the starting value
+    carry: (e, { old, fresh }) => {
+      const kept = old.sleeve.iceRating.pow(e.share);
+      if (kept.gt(fresh.sleeve.iceRating)) fresh.sleeve.iceRating = kept;
     },
   },
 };

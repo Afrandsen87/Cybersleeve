@@ -15,6 +15,13 @@ export interface SynthIncome {
 }
 
 /**
+ * The action-level total one synthetic sleeve is measured against (the "current levels" of {@link synthCreditsPerSecond}).
+ * Each synthetic sleeve asks for its own, so a later layer can measure a sleeve against another sleeve than the live one; today every
+ * sleeve is measured against the live sleeve ({@link SynthSleeves.creditsPerSecond} passes the live total).
+ */
+export type SynthLevelInput = (synth: Readonly<{ runIndex: number }>) => number;
+
+/**
  * The credits per second one synthetic sleeve earns, given how far the current sleeve has come.
  *
  * @remarks
@@ -77,6 +84,7 @@ export class SynthSleeves implements SynthIncome {
    * @param factory number factory
    * @param networkIncome the credits per second the sleeve's own network earns now, after the heat tax and without synthetic income
    *   (read only while Perfect Copies is owned; default: nothing)
+   * @param levelInput the action-level total each synthetic sleeve is measured against (default: the live sleeve's total)
    */
   constructor(
     private readonly config: Pick<GameConfig, 'buyables'>,
@@ -84,7 +92,12 @@ export class SynthSleeves implements SynthIncome {
     private readonly progression: Progression,
     private readonly factory: NumberFactory,
     private readonly networkIncome: () => BigNum = () => factory.fromNumber(0),
-  ) {}
+    levelInput?: SynthLevelInput,
+  ) {
+    this.levelInput = levelInput ?? (() => this.progression.totalActionLevels(this.state));
+  }
+
+  private readonly levelInput: SynthLevelInput;
 
   /** True when the player owns a buyable with the given effect kind. */
   private owns(kind: BuyableDefinition['effect']['kind']): boolean {
@@ -119,12 +132,11 @@ export class SynthSleeves implements SynthIncome {
   creditsPerSecond(): BigNum {
     let total = this.factory.fromNumber(0);
     if (this.state.wallet.synths.length === 0) return total;
-    const levels = this.progression.totalActionLevels(this.state);
     const live = this.isPerfect() ? this.networkIncome() : null;
     for (const synth of this.state.wallet.synths) {
       const record = this.state.wallet.runs[synth.runIndex];
       if (!record) continue;
-      const own = synthCreditsPerSecond(record, levels, this.factory);
+      const own = synthCreditsPerSecond(record, this.levelInput(synth), this.factory);
       total = total.add(live?.gt(own) ? live : own);
     }
     return total;

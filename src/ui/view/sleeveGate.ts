@@ -6,7 +6,7 @@
  * @remarks
  * Called by: `viewModel.ts`, `actionView.ts`, `panelViews.ts`. Pure; reads the same rule as the game (`sleeveLevelsGateId`).
  */
-import { type GameConfig, sleeveLevelsGateId, type StateSliceView } from '../../core';
+import { type GameConfig, type GameQueries, sleeveLevelsGateId, type StateSliceView } from '../../core';
 import type { BuyableView, ResleeveBuyView } from './viewTypes';
 
 /**
@@ -55,4 +55,25 @@ export function resleeveBuyView(
   const view = id === null ? undefined : viewById.get(id);
   if (!id || !view || (state.sleeve.purchased[id] ?? 0) > 0 || !view.available) return null;
   return { id, text: `${view.name}: ${view.costText} ${view.costUnit}`, tip: view.tip, affordable: view.affordable };
+}
+
+/**
+ * The sleeve levels the next re-sleeve is short of, for the Re-sleeve button's tip.
+ *
+ * Called by: `viewModel.ts`. Calls: `GameQueries.resleeveRequirement`.
+ *
+ * @param engine the game's queries
+ * @param state the game state (reads `purchased`)
+ * @param config game configuration (finds the unlock buyable)
+ * @returns what is held and needed, or `null` when the unlock is not owned (nothing about sleeve levels is shown yet), the content has no
+ *   level rule, or the levels held are enough
+ */
+export function resleeveShortfallView(
+  engine: Pick<GameQueries, 'resleeveRequirement'>,
+  state: StateSliceView<'purchased'>,
+  config: Pick<GameConfig, 'buyables'>,
+): { readonly held: number; readonly needed: number } | null {
+  if (!sleeveLevelsOpen(state, config)) return null;
+  const need = engine.resleeveRequirement();
+  return need !== null && need.held < need.needed ? need : null;
 }

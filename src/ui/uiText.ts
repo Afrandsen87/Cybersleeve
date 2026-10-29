@@ -211,7 +211,13 @@ export interface UiText {
     synths(parts: SynthTipParts): string;
     networkGrowthValues(parts: NetworkGrowthValueParts): BuyableValues;
   };
-  readonly resleeve: { readonly idle: string; readonly armed: string; readonly cancel: string };
+  readonly resleeve: {
+    readonly idle: string;
+    readonly armed: string;
+    readonly cancel: string;
+    /** The tip of the disabled Re-sleeve button: how many sleeve levels (all actions together) are held and how many the next re-sleeve needs. */
+    needLevels(held: string, needed: string): string;
+  };
   /** Messages shown over the game. */
   readonly notices: { readonly otherTab: string; readonly taken: string };
   /** The buttons and messages for moving a save in and out as text. */
@@ -414,6 +420,7 @@ export const uiText: UiText = {
     idle: 'Re-sleeve',
     armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a re-sleeve point.',
     cancel: 'Cancel',
+    needLevels: (held, needed) => `Needs ${needed} sleeve levels in total across all actions to re-sleeve. You have ${held}.`,
   },
   notices: {
     otherTab: 'This game was opened in another tab, which now owns the save. Reload this page to play here instead.',

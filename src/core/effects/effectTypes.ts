@@ -9,7 +9,7 @@
  * the types without importing the registry that imports them. Called by: the entry files, `effectRegistry.ts`, `actionResolver.ts`, `sleeveResolver.ts`.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
-import type { ActionId, BuyableEffect, ChainRule, ItemDropRule, PaysActionRule, StateSlice } from '../types';
+import type { ActionId, BuyableDefinition, BuyableEffect, ChainRule, GameState, ItemDropRule, PaysActionRule, StateSlice } from '../types';
 
 /** Facts about one kind of effect. */
 export interface EffectTraits {
@@ -19,6 +19,10 @@ export interface EffectTraits {
   readonly toggleable: boolean;
   /** The buyable belongs to the corporation: it is shown in the Asset Acquisition widget, not in the Sleeve widgets. Default: false. */
   readonly corporate?: boolean;
+  /** The owned buyable survives a re-sleeve with all its copies (the positive list of buyables, next to the currencies in `kernel/currencies.ts`). Default: false. */
+  readonly carriedOverResleeve?: boolean;
+  /** The buyable belongs to the Automation tab: a retention skill that keeps automation keeps it too (the Automation core). Default: false. */
+  readonly automationPurchase?: boolean;
 }
 
 /** What owned effects add up to for one action (the running result of the action hooks). */
@@ -111,6 +115,20 @@ export interface SleeveHookContext {
   readonly augmentRaritiesHeld: () => number;
 }
 
+/** What a carry hook may look at besides the effect: both lives, the content and how many copies were owned. */
+export interface CarryContext {
+  /** Copies of the buyable owned in the life that ends (>= 1). */
+  readonly owned: number;
+  /** The state of the life that ends (read only). */
+  readonly old: GameState;
+  /** The state of the new life (the hook may change it). */
+  readonly fresh: GameState;
+  readonly buyables: readonly BuyableDefinition[];
+  readonly factory: NumberFactory;
+  /** The traits of a buyable's effect (passed in, because an entry file cannot import the registry that imports it). */
+  readonly traitsOf: (buyable: Pick<BuyableDefinition, 'effect'>) => EffectTraits;
+}
+
 /** What a validator may look at besides the effect itself. */
 export interface EffectContext {
   /** Prefix for messages, e.g. `buyable "x"`. */
@@ -134,4 +152,6 @@ export interface EffectDefinition<E extends BuyableEffect> {
   action?(acc: ActionAccumulator, effect: E, ctx: ActionHookContext): void;
   /** Adds one owned buyable of this kind (all its copies) to the sleeve's stats. */
   sleeve?(acc: SleeveAccumulator, effect: E, ctx: SleeveHookContext): void;
+  /** Carries something of one owned buyable of this kind (all its copies) from the life that ends into the new life (retention skills). */
+  carry?(effect: E, ctx: CarryContext): void;
 }

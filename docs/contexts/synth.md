@@ -4,6 +4,9 @@ Synthetic sleeves: copies of finished runs.
 
 Code: `src/core/synth/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+## Architecture (S9)
+`SynthSleeves` (`synth/synthSleeves.ts`) measures each synthetic sleeve against a level total it is given per sleeve (`SynthLevelInput`, constructor argument); the default is the live sleeve's total, so behaviour is unchanged, but a later layer can measure a sleeve against another sleeve. The Hive Interface and corporation-speed formula is `synthBoost` in `kernel/curves.ts`. The sleeves are saved by `synth/synthSave.ts` (a part of the save, see `contexts/save.md`). Tests: `synthLevelInput.test.ts`, `synthLane.test.ts`.
+
 ## Decisions (from docs/DECISIONS.md)
 
 
