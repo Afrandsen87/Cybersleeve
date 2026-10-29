@@ -75,7 +75,7 @@ describe('view model - unlocks, start costs and toggles', () => {
 
   it('shows ICE Rating, Legend and the heat tax after ICE Rating, each with an explaining tip', () => {
     const g = withNew();
-    const state = g.getState() as { heat: number; legend: number; iceRating: unknown };
+    const state = g.getState().sleeve as { heat: number; legend: number; iceRating: unknown };
     state.heat = 150;
     state.legend = 2;
     state.iceRating = num('1e100');
@@ -139,13 +139,13 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
     const g = game({ actions: [testConfig.actions[0]!, percentKillAction] });
     const text = () => buildViewModel(g).actions[1]!.startCostText;
     expect(text()).toBe('1% of nodes (0)');
-    (g.getState() as { network: unknown }).network = num(250);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(250);
     expect(text()).toBe('1% of nodes (2)');
   });
 
   it('shows the Legend cycle as a bar that is paused at 0 Legend', () => {
     const g = game();
-    const s = g.getState() as { legend: number; legendCooldownMs: number };
+    const s = g.getState().sleeve as { legend: number; legendCooldownMs: number };
     expect(statRow(buildViewModel(g).sleeve.stats, 'legend').bar!.running).toBe(false);
     s.legend = 2;
     s.legendCooldownMs = 300_000;
@@ -156,8 +156,8 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
 
   it('shows what one node really pays per second, with a tip that shows the calculation, and names the Push malware reward unit', () => {
     const g = game({ actions: [testConfig.actions[0]!, payoutAction] });
-    (g.getState() as { nodePayoutBonus: ReturnType<typeof num> }).nodePayoutBonus = num(0.5);
-    (g.getState() as { network: ReturnType<typeof num> }).network = num(100);
+    (g.getState() as unknown as { sleeve: { nodePayoutBonus: ReturnType<typeof num> } }).sleeve.nodePayoutBonus = num(0.5);
+    (g.getState() as unknown as { sleeve: { network: ReturnType<typeof num> } }).sleeve.network = num(100);
     const vm = buildViewModel(g);
     // test config: base 0.05 credits per node per second plus an action bonus of 0.5, no purchases, no heat: 0.55 per node, 55 for 100 nodes
     expect(statRow(vm.network.stats, 'payout').text).toBe('0.55/s');
@@ -197,7 +197,7 @@ describe('view model - sleeve widget', () => {
 
   it('never shows a tax above 100% even when heat is higher', () => {
     const g = game();
-    (g.getState() as { heat: number }).heat = 250;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 250;
     expect(statRow(buildViewModel(g).sleeve.stats, 'heat').text).toBe('250');
     expect(statRow(buildViewModel(g).sleeve.stats, 'heat').tip).toContain('Heat Tax = 100% of all credits earned from nodes');
   });
@@ -207,7 +207,7 @@ describe('view model - heat cooldown bar', () => {
   it('shows how far the 60 s cooldown cycle has progressed, and whether it is running', () => {
     const g = game();
     expect(statRow(buildViewModel(g).sleeve.stats, 'heat').bar!.running).toBe(false);
-    (g.getState() as { heat: number }).heat = 3;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 3;
     g.tick(15_000);
     const sleeve = buildViewModel(g).sleeve;
     expect(statRow(sleeve.stats, 'heat').bar!.running).toBe(true);
@@ -242,7 +242,7 @@ describe('view model - locked actions and heat', () => {
     const g = three();
     setCredits(g, num(1000));
     g.buy('access');
-    (g.getState() as { network: unknown }).network = num(10);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(10);
     expect(buildViewModel(g).actions.find((a) => a.id === 'mal')!.rewardText).toBe('10');
     g.startAction('mal');
     g.tick(6_000);
@@ -274,7 +274,7 @@ describe('view model', () => {
 
   it('shows the network size and its passive income', () => {
     const g = game();
-    (g.getState() as { network: unknown }).network = num(40);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(40);
     const vm = buildViewModel(g);
     expect(statRow(vm.network.stats, 'nodes').text).toBe('40');
     expect(statRow(vm.network.stats, 'income').text).toBe('+2');
@@ -350,7 +350,7 @@ describe('view model', () => {
 describe('view model - what one node pays', () => {
   const withNodes = (overrides = {}) => {
     const g = game(overrides);
-    (g.getState() as { network: ReturnType<typeof num> }).network = num(100);
+    (g.getState() as unknown as { sleeve: { network: ReturnType<typeof num> } }).sleeve.network = num(100);
     return g;
   };
   const payout = (g: ReturnType<typeof game>) => statRow(buildViewModel(g).network.stats, 'payout');
@@ -363,7 +363,7 @@ describe('view model - what one node pays', () => {
 
   it('is not taxed by heat: the tax is taken from the credits per second instead, and that tip says how much is kept', () => {
     const g = withNodes();
-    (g.getState() as { heat: number }).heat = 20; // 20 points x 1% = 20% tax in the test config
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 20; // 20 points x 1% = 20% tax in the test config
     expect(payout(g).text).toBe('0.05/s');
     expect(payout(g).tip).not.toContain('Heat Tax');
     const income = statRow(buildViewModel(g).network.stats, 'income');

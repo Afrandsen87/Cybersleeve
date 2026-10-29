@@ -8,7 +8,7 @@
  * The rules are data (`BRANCH_REVEAL_STAT`): gating another branch adds one entry. This overrides the "skills always show every node"
  * rule for the branches listed here, because their whole subject (heat) is not known to the player yet.
  */
-import type { GameConfig, GameStateView, SleeveStats } from '../../core';
+import type { GameConfig, SleeveStats, StateSliceView } from '../../core';
 import { BRANCH_ANONYMITY } from '../../content/ids';
 import { heatOrIceMoved, isStatHidden, type RevealableStat } from './statReveal';
 
@@ -27,12 +27,8 @@ export const BRANCH_REVEAL_STAT: Readonly<Record<string, RevealableStat>> = {
  * @param stats the sleeve stats now (access level, heat, ICE Rating)
  * @returns a function from a branch id to `true` when the branch must not be shown; branches without a rule are never hidden
  */
-export function branchHiddenFn(
-  config: GameConfig,
-  state: Pick<GameStateView, 'purchased'>,
-  stats: SleeveStats,
-): (branchId: string) => boolean {
-  const reveal = { config, accessLevel: stats.accessLevel, owned: (id: string): number => state.purchased[id] ?? 0 };
+export function branchHiddenFn(config: GameConfig, state: StateSliceView<'purchased'>, stats: SleeveStats): (branchId: string) => boolean {
+  const reveal = { config, accessLevel: stats.accessLevel, owned: (id: string): number => state.sleeve.purchased[id] ?? 0 };
   const moved = heatOrIceMoved(stats, config);
   return (branchId) => {
     const stat = BRANCH_REVEAL_STAT[branchId];

@@ -22,7 +22,7 @@ const harvest: BuyableDefinition = {
 const config = createConfig(testConfig, { buyables: [...testConfig.buyables, harvest] });
 
 const stock = (g: { getState(): unknown }, inventory: Record<string, Record<string, number>>): void => {
-  (g.getState() as { inventory: unknown }).inventory = inventory;
+  (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = inventory;
 };
 
 beforeEach(() => {
@@ -207,13 +207,13 @@ describe('inventory widget', () => {
     render();
     tiles()[1]!.click();
     button('Sell').click();
-    expect(game.getState().inventory['file']!['rare']).toBe(2);
-    expect(game.getState().credits.eq(num(100))).toBe(true);
+    expect(game.getState().wallet.inventory['file']!['rare']).toBe(2);
+    expect(game.getState().wallet.credits.eq(num(100))).toBe(true);
     expect(tiles()[1]!.querySelector('.item-count')!.textContent).toBe('2');
     expect(root.querySelector('.credits')!.textContent).toBe('Credits: 100');
     expect(tiles()[1]!.classList.contains('selected')).toBe(true); // still selected: sell more
     button('Sell all').click();
-    expect(game.getState().credits.eq(num(300))).toBe(true);
+    expect(game.getState().wallet.credits.eq(num(300))).toBe(true);
     expect(tiles()[1]!.querySelector('.item-count')!.textContent).toBe('0');
     expect(tiles()[1]!.classList.contains('selected')).toBe(false); // sold out: the selection is dropped
     expect(button('Sell all').disabled).toBe(true);
@@ -227,7 +227,7 @@ describe('inventory widget', () => {
     tiles()[1]!.click();
     expect(tiles().map((t) => t.classList.contains('selected'))).toEqual([false, true]);
     button('Sell').click();
-    expect(game.getState().inventory['file']).toEqual({ common: 1, rare: 0 });
+    expect(game.getState().wallet.inventory['file']).toEqual({ common: 1, rare: 0 });
   });
 
   it('the tile is named for assistive technology and the tip tells how to sell', () => {
@@ -266,7 +266,7 @@ describe('inventory widget', () => {
     button.click();
     expect(widget.hidden).toBe(false);
     expect(tiles().filter((t) => !t.classList.contains('empty'))).toHaveLength(1);
-    expect(game.getState().inventory['file']!['common']).toBe(1);
+    expect(game.getState().wallet.inventory['file']!['common']).toBe(1);
   });
 
   it('the button is left out with the other test aids when they are off', () => {

@@ -7,6 +7,7 @@ import { num, numberFactory } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { deserializeState, serializeState, validateConfig } from '..';
 import { loose, newGame, resleeveSkill, resleeveTimes, tryBuy, withBuyables } from '../../testing/resleeveSkillsKit';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 const chain = [
   resleeveSkill('syn', { kind: 'synthSleeves' }),
@@ -101,19 +102,19 @@ describe('Neural Mirror', () => {
     const g = newGame(config);
     loose(g).actions['a']!.xp = num(LEVEL_3_XP);
     g.resleeve();
-    expect(g.getState().runs[0]?.actionLevels).toMatchObject({ a: 3 });
+    expect(g.getState().wallet.runs[0]?.actionLevels).toMatchObject({ a: 3 });
     const loaded = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(loaded.runs[0]?.actionLevels).toMatchObject({ a: 3 });
+    expect(loaded.wallet.runs[0]?.actionLevels).toMatchObject({ a: 3 });
     expect(findInvariantViolations(loaded, config)).toEqual([]);
   });
 
   it('loads a record that has no levels (made before they were kept) as a run without any', () => {
     const g = newGame(config);
     g.resleeve();
-    const saved = JSON.parse(serializeState(g.getState())) as { runs: Record<string, unknown>[] };
+    const saved = flatSave(serializeState(g.getState())) as { runs: Record<string, unknown>[] };
     delete saved.runs[0]!['actionLevels'];
-    const loaded = deserializeState(JSON.stringify(saved), config, numberFactory)!;
-    expect(loaded.runs[0]?.actionLevels).toBeUndefined();
+    const loaded = deserializeState(asSave(saved), config, numberFactory)!;
+    expect(loaded.wallet.runs[0]?.actionLevels).toBeUndefined();
   });
 });
 
@@ -136,7 +137,7 @@ describe('Perfect Copies', () => {
     const g = newGame(config);
     loose(g).network = num(1000);
     g.resleeve(); // a run with a big network
-    const rich = g.getState().runs[0]!.creditsPerSecond.toNumber();
+    const rich = g.getState().wallet.runs[0]!.creditsPerSecond.toNumber();
     expect(rich).toBeGreaterThan(0);
     buyChain(g, 'perfect');
     loose(g).network = num(1);

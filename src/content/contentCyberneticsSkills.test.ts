@@ -66,7 +66,7 @@ describe('the cybernetics skills of the real content', () => {
 
   it('a skill below an unowned parent cannot be bought, even with points', () => {
     const g = createGame();
-    (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num('1e100');
+    (g.getState().sleeve.actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num('1e100');
     expect(g.skillPoints()).toBeGreaterThan(1);
     expect(g.canBuy(SKILL_NEURAL_ACCELERANT)).toBe(false);
     expect(g.buy(SKILL_OVERCLOCK)).toBe('purchased');

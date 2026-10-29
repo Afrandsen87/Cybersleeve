@@ -4,6 +4,7 @@ import { findInvariantViolations } from '../../testing/invariants';
 import { BuyableCaps } from './buyableCaps';
 import { deserializeState, serializeState, validateConfig } from '..';
 import { loose, newGame, plainBuyable, resleeveSkill, resleeveTimes, tryBuy, withBuyables } from '../../testing/resleeveSkillsKit';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 const wide = plainBuyable('wide', { kind: 'accessLevel', amount: 1 }, { maxPurchases: 2 });
 const bonus = resleeveSkill('bonus', { kind: 'buyableCapBonus', targetId: 'wide', extra: 1 });
@@ -34,7 +35,7 @@ describe('a buyableCapBonus skill in the shop', () => {
     expect(buyWide(g)).toBe('max-reached');
     resleeveTimes(g, 1);
     expect(tryBuy(g, 'bonus')).toBe('purchased');
-    expect(g.getState().purchased['wide'], 'a re-sleeve resets the plain purchases').toBeUndefined();
+    expect(g.getState().sleeve.purchased['wide'], 'a re-sleeve resets the plain purchases').toBeUndefined();
     for (let i = 0; i < 3; i++) expect(buyWide(g)).toBe('purchased');
     expect(buyWide(g)).toBe('max-reached');
   });
@@ -54,13 +55,13 @@ describe('a buyableCapBonus skill in the shop', () => {
     for (let i = 0; i < 3; i++) buyWide(g);
     const text = serializeState(g.getState());
     const loaded = deserializeState(text, config, numberFactory)!;
-    expect(loaded.purchased['wide']).toBe(3);
+    expect(loaded.sleeve.purchased['wide']).toBe(3);
     expect(findInvariantViolations(loaded, config)).toEqual([]);
 
-    const edited = JSON.parse(text) as { purchased: Record<string, number> };
+    const edited = flatSave(text) as { purchased: Record<string, number> };
     delete edited.purchased['bonus'];
-    const cut = deserializeState(JSON.stringify(edited), config, numberFactory)!;
-    expect(cut.purchased['wide']).toBe(2);
+    const cut = deserializeState(asSave(edited), config, numberFactory)!;
+    expect(cut.sleeve.purchased['wide']).toBe(2);
     expect(loose(g).runs).toHaveLength(1);
   });
 });

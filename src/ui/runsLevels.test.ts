@@ -17,7 +17,7 @@ describe('the Stats tab lists the level of every action in each run', () => {
   it('shows no per-action line for a run written down before levels were kept', () => {
     const g = newGame(withBuyables([]));
     g.resleeve();
-    const record = g.getState().runs[0] as { actionLevels?: unknown };
+    const record = g.getState().wallet.runs[0] as { actionLevels?: unknown };
     delete record.actionLevels;
     expect(buildViewModel(g).runs.rows[0]?.actionLevelTexts).toEqual([]);
   });

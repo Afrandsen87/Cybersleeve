@@ -31,7 +31,7 @@ export class CorporationLevels {
    */
   constructor(
     config: Pick<GameConfig, 'corporation' | 'progression'>,
-    private readonly state: { corporation: CorporationState },
+    private readonly state: { wallet: { corporation: CorporationState } },
     private readonly factory: NumberFactory,
   ) {
     this.rule = new LevelRule(config.progression.actionLevels, this.factory);
@@ -40,12 +40,12 @@ export class CorporationLevels {
   }
 
   private xp(id: CorporationActionId): BigNum {
-    return this.state.corporation.actions[id]?.xp ?? this.zero;
+    return this.state.wallet.corporation.actions[id]?.xp ?? this.zero;
   }
 
   /** Gives an action the XP of `runs` completed runs. Does nothing for an unknown action. */
   award(id: CorporationActionId, runs: number): void {
-    const action = this.state.corporation.actions[id];
+    const action = this.state.wallet.corporation.actions[id];
     const perRun = this.xpPerRun.get(id);
     if (action && perRun) action.xp = action.xp.add(perRun.mul(this.factory.fromNumber(runs)));
   }

@@ -204,7 +204,7 @@ describe('the second shape in the configuration', () => {
     expect(e2!).toBeLessThan(e1);
     const multiplier = (proficiency: number): number => {
       const g = createGame();
-      (g.getState() as { hackingProficiency: unknown }).hackingProficiency = num(proficiency);
+      (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(proficiency);
       return g.sleeveStats().hackingMultiplier;
     };
     const oldCurve = (x: number): number => 1 + concaveBonus(x, scale, e1);

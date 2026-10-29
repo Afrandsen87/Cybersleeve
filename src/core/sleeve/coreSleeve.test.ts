@@ -28,15 +28,16 @@ describe('resolveSleeveStats', () => {
     const stats = resolveSleeveStats(
       config.buyables,
       {
-        purchased: {},
-        heat: 4,
-        hackingProficiency: num(0),
-        network: num(0),
-        iceRating: num(1),
-        legend: 0,
-        nodePayoutBonus: num(0),
-        inventory: {},
-        synths: [],
+        wallet: { inventory: {}, synths: [] },
+        sleeve: {
+          purchased: {},
+          heat: 4,
+          hackingProficiency: num(0),
+          network: num(0),
+          iceRating: num(1),
+          legend: 0,
+          nodePayoutBonus: num(0),
+        },
       },
       config.sleeve,
       numberFactory,
@@ -48,15 +49,16 @@ describe('resolveSleeveStats', () => {
     const stats = resolveSleeveStats(
       [],
       {
-        purchased: {},
-        heat: 0,
-        hackingProficiency: num(0.25),
-        network: num(0),
-        iceRating: num(1),
-        legend: 0,
-        nodePayoutBonus: num(0),
-        inventory: {},
-        synths: [],
+        wallet: { inventory: {}, synths: [] },
+        sleeve: {
+          purchased: {},
+          heat: 0,
+          hackingProficiency: num(0.25),
+          network: num(0),
+          iceRating: num(1),
+          legend: 0,
+          nodePayoutBonus: num(0),
+        },
       },
       { ...config.sleeve, baseInterfaceSpeed: 0.5 },
       numberFactory,
@@ -66,14 +68,14 @@ describe('resolveSleeveStats', () => {
 
   it('a new game starts with the configured base heat', () => {
     const s = createInitialState(createConfig(config, { sleeve: { baseHeat: 6 } }), numberFactory);
-    expect(s.heat).toBe(6);
-    expect(s.heatCooldownMs).toBe(0);
+    expect(s.sleeve.heat).toBe(6);
+    expect(s.sleeve.heatCooldownMs).toBe(0);
   });
 });
 
 describe('resolveEffects', () => {
   const effects = (purchased: Record<string, number>, actionId = 'a') =>
-    resolveEffects(config.buyables, { purchased }, actionId, numberFactory);
+    resolveEffects(config.buyables, { wallet: {}, sleeve: { purchased } }, actionId, numberFactory);
 
   it('has no effects when nothing is owned', () => {
     const e = effects({});

@@ -27,7 +27,7 @@ export {
 export { type BoostedCooldownState, type HeatCooldownState, coolHeat, coolHeatBoosted, heatTaxFactor } from './heat/heat';
 export { coolsNow, cycleMs, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heat/heatModel';
 export { applyCompletionEffects } from './actions/completion';
-export { SCALAR_FIELDS, type ScalarField } from './kernel/fields';
+export { SCALAR_FIELDS, scalarValue, type ScalarField } from './kernel/fields';
 export { type RewardDescriptor, REWARDS, REWARD_KINDS, DEFAULT_REWARD_KIND, payReward, rewardOf, wholeRunAmount } from './actions/rewards';
 export { StartCosts } from './actions/startCosts';
 export { RewardPayer, type RewardMultipliers } from './actions/rewardPayer';
@@ -79,6 +79,7 @@ export { type ResleevePolicy, alwaysAllowResleeve } from './resleeve/resleeve';
 export { ResleeveGate, sleeveLevelsGateId } from './resleeve/resleeveGate';
 export {
   CARRIED_OVER_ACTION_FIELDS,
+  CARRIED_OVER_WALLET_FIELDS,
   CARRIED_OVER_BUYABLE_CURRENCIES,
   createInitialState,
   resetForNewGame,
@@ -115,3 +116,4 @@ export { coolDownHeat, decayLegend } from './heat/cooldowns';
 export { type ActionLookup, createActionLookup } from './actions/actionLookup';
 export { GameEngine, type EngineDependencies } from './engine/engine';
 export { SAVE_VERSION, serializeState, deserializeState } from './save/serialization';
+export { migrateSave, DEFAULT_SLEEVE_ID } from './save/migrate';

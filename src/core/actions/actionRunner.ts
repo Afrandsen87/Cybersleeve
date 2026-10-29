@@ -87,7 +87,7 @@ export class ActionRunner {
    * @returns true when the action is now running
    */
   start(id: ActionId): boolean {
-    const action = this.state.actions[id];
+    const action = this.state.sleeve.actions[id];
     if (!action || !this.isUnlocked(id)) return false;
     if (action.running) return true;
     if (!this.startCosts.pay(this.definition(id))) return false;
@@ -111,7 +111,7 @@ export class ActionRunner {
    */
   canStart(id: ActionId): boolean {
     if (!this.isUnlocked(id)) return false;
-    if (this.state.actions[id]?.running) return true;
+    if (this.state.sleeve.actions[id]?.running) return true;
     return this.startCosts.canPay(this.definition(id));
   }
 
@@ -139,10 +139,10 @@ export class ActionRunner {
   private tick(def: ActionDefinition, deltaMs: number): void {
     const ranMs = this.advance(def, deltaMs);
     if (!(ranMs > 0)) return;
-    this.state.heat += ((def.heatPerSecond ?? 0) * ranMs) / 1000;
-    if (this.state.overclocked[def.id] !== true) return;
+    this.state.sleeve.heat += ((def.heatPerSecond ?? 0) * ranMs) / 1000;
+    if (this.state.sleeve.overclocked[def.id] !== true) return;
     const overclock = this.stats.overclockStatus(def.id);
-    if (overclock?.on) this.state.heat += (overclock.heatPerMinute * ranMs) / 60_000;
+    if (overclock?.on) this.state.sleeve.heat += (overclock.heatPerMinute * ranMs) / 60_000;
   }
 
   /**
@@ -150,7 +150,7 @@ export class ActionRunner {
    * @returns how much of `deltaMs` the action was running (the rest was idle or discarded after a manual run completed)
    */
   private advance(def: ActionDefinition, deltaMs: number): number {
-    const action = this.state.actions[def.id];
+    const action = this.state.sleeve.actions[def.id];
     if (!action || !this.isUnlocked(def.id)) return 0;
     const auto = this.stats.isAutoRun(def.id);
     if (auto && !action.running) {
@@ -179,7 +179,7 @@ export class ActionRunner {
       this.runBatch(def, runs);
       if (!auto || (def.startCost && !this.startCosts.pay(def))) {
         action.running = false;
-        delete this.state.chains[def.id]; // a stopped action breaks its Overclock chain
+        delete this.state.sleeve.chains[def.id]; // a stopped action breaks its Overclock chain
       }
     }
     return deltaMs - remaining;
@@ -205,8 +205,8 @@ export class ActionRunner {
    */
   private extendChain(id: ActionId, runs: number): void {
     const chain = this.stats.activeOverclock(id)?.chain;
-    if (!chain) delete this.state.chains[id];
-    else this.state.chains[id] = Math.min(chain.maxLinks, (this.state.chains[id] ?? 0) + runs);
+    if (!chain) delete this.state.sleeve.chains[id];
+    else this.state.sleeve.chains[id] = Math.min(chain.maxLinks, (this.state.sleeve.chains[id] ?? 0) + runs);
   }
 
   /**
@@ -263,7 +263,7 @@ export class ActionRunner {
   private chargeRunHeat(def: ActionDefinition, runs: number, overclock: ReturnType<DerivedStats['activeOverclock']>): void {
     const heatChance = Math.min(1, (def.heatChance ?? 1) * (overclock?.heatChanceFactor ?? 1));
     const heatRuns = perRunEvents(runs, heatChance, this.random);
-    this.state.heat += heatRuns * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
+    this.state.sleeve.heat += heatRuns * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
   }
 
   /** Applies the completion effects of the action (every run), of the critical rule (every critical success) and of Overclock (every run). */

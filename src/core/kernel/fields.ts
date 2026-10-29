@@ -1,29 +1,36 @@
 /**
  * @module core
  *
- * The scalar fields of {@link GameState} (credits, network, heat, iceRating, ...) described once as data.
+ * The scalar fields of {@link GameState} (credits, network, heat, iceRating, ...) described once as data, each naming its owner (`wallet` or `sleeve`).
  *
  * @remarks
  * Everything that has to treat every scalar the same way is driven by {@link SCALAR_FIELDS}: creating the initial
  * state, re-sleeving, saving and loading, and repairing overflow. Adding a scalar to the game means adding it to
- * `GameState`/`GameStateView` and one entry here; none of those places needs another edit.
+ * `Wallet` or `SleeveState` and one entry here (with its `owner`); none of those places needs another edit.
  * Per-action progress (`actions`), owned buyables (`purchased`) and the two flag maps are not scalars and are
  * handled by their own code.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { INFINITY } from './infinity';
-import type { GameConfig, GameState } from '../types';
+import type { GameConfig, GameState, SleeveState, Wallet } from '../types';
 
-/** Keys of {@link GameState} whose value has type `T`. */
-type KeysOf<T> = { [K in keyof GameState]: GameState[K] extends T ? K : never }[keyof GameState];
+/** Where a scalar lives: the shared wallet or the live sleeve. */
+export type FieldOwner = 'wallet' | 'sleeve';
+
+/** Keys of {@link Wallet} and {@link SleeveState} whose value has type `T`. */
+type KeysOf<T> =
+  | { [K in keyof Wallet]: Wallet[K] extends T ? K : never }[keyof Wallet]
+  | { [K in keyof SleeveState]: SleeveState[K] extends T ? K : never }[keyof SleeveState];
 
 /** Config sections the initial values are derived from. */
 export type FieldConfig = Pick<GameConfig, 'progression' | 'sleeve'>;
 
 /** Properties shared by every scalar field. */
 interface FieldBase {
-  /** The field's name in `GameState` and in the save. */
+  /** The field's name in its owner and in the save. */
   readonly key: string;
+  /** Which part of the state holds it (and which part of the save). */
+  readonly owner: FieldOwner;
   /** A missing or invalid value rejects the save (the game cannot start without it). */
   readonly required?: boolean;
   /** Only whole values are kept (loaded values are rounded down). */
@@ -54,27 +61,32 @@ export interface NumField extends FieldBase {
 export type ScalarField = BigField | NumField;
 
 /**
- * Every scalar of the game state. All of them reset on re-sleeving: what survives a re-sleeve is per-action sleeve
- * progress, which is not a scalar.
+ * Every scalar of the game state. All of them reset on re-sleeving but the all-time peaks (statistics, carried by the wallet list in
+ * `state.ts`); what else survives a re-sleeve is not a scalar.
  */
 export const SCALAR_FIELDS: readonly ScalarField[] = [
-  { kind: 'big', key: 'credits', required: true, initial: (c, f) => f.fromNumber(c.progression.startingCredits) },
-  { kind: 'big', key: 'peakCredits', initial: (c, f) => f.fromNumber(c.progression.startingCredits) },
-  { kind: 'big', key: 'peakNetwork', whole: true, initial: (_c, f) => f.fromNumber(0) },
-  { kind: 'big', key: 'network', required: true, whole: true, initial: (_c, f) => f.fromNumber(0) },
-  { kind: 'num', key: 'heat', initial: (c) => c.sleeve.baseHeat },
-  { kind: 'num', key: 'heatCooldownMs', initial: () => 0 },
-  { kind: 'big', key: 'iceRating', atLeastInitial: true, initial: (c, f) => f.fromNumber(c.sleeve.baseIceRating) },
-  { kind: 'num', key: 'legend', whole: true, initial: () => 0 },
-  { kind: 'num', key: 'legendCooldownMs', initial: () => 0 },
-  { kind: 'num', key: 'moles', initial: () => 0 },
-  { kind: 'num', key: 'resleeveLockoutMs', initial: () => 0 },
-  { kind: 'num', key: 'networkRemainder', below: 1, initial: () => 0 },
-  { kind: 'big', key: 'nodePayoutBonus', initial: (_c, f) => f.fromNumber(0) },
-  { kind: 'big', key: 'hackingProficiency', initial: (_c, f) => f.fromNumber(0) },
+  { kind: 'big', owner: 'wallet', key: 'credits', required: true, initial: (c, f) => f.fromNumber(c.progression.startingCredits) },
+  { kind: 'big', owner: 'wallet', key: 'allTimePeakCredits', initial: (c, f) => f.fromNumber(c.progression.startingCredits) },
+  { kind: 'big', owner: 'wallet', key: 'allTimePeakNetwork', whole: true, initial: (_c, f) => f.fromNumber(0) },
+  { kind: 'big', owner: 'sleeve', key: 'peakCredits', initial: (c, f) => f.fromNumber(c.progression.startingCredits) },
+  { kind: 'big', owner: 'sleeve', key: 'peakNetwork', whole: true, initial: (_c, f) => f.fromNumber(0) },
+  { kind: 'big', owner: 'sleeve', key: 'network', required: true, whole: true, initial: (_c, f) => f.fromNumber(0) },
+  { kind: 'num', owner: 'sleeve', key: 'heat', initial: (c) => c.sleeve.baseHeat },
+  { kind: 'num', owner: 'sleeve', key: 'heatCooldownMs', initial: () => 0 },
+  { kind: 'big', owner: 'sleeve', key: 'iceRating', atLeastInitial: true, initial: (c, f) => f.fromNumber(c.sleeve.baseIceRating) },
+  { kind: 'num', owner: 'sleeve', key: 'legend', whole: true, initial: () => 0 },
+  { kind: 'num', owner: 'sleeve', key: 'legendCooldownMs', initial: () => 0 },
+  { kind: 'num', owner: 'sleeve', key: 'moles', initial: () => 0 },
+  { kind: 'num', owner: 'sleeve', key: 'resleeveLockoutMs', initial: () => 0 },
+  { kind: 'num', owner: 'sleeve', key: 'networkRemainder', below: 1, initial: () => 0 },
+  { kind: 'big', owner: 'sleeve', key: 'nodePayoutBonus', initial: (_c, f) => f.fromNumber(0) },
+  { kind: 'big', owner: 'sleeve', key: 'hackingProficiency', initial: (_c, f) => f.fromNumber(0) },
 ];
 
 const FIELDS_BY_KEY = new Map<string, ScalarField>(SCALAR_FIELDS.map((f) => [f.key, f]));
+
+/** The scalars of each part of the state, as plain bags of values. */
+export type ScalarBags = Record<FieldOwner, Record<string, BigNum | number>>;
 
 /** Loose view of the state for code that walks the fields generically. */
 type Bag = Record<string, BigNum | number>;
@@ -87,11 +99,11 @@ const bag = (state: object): Bag => state as unknown as Bag;
  *
  * @param config reads `progression.startingCredits` and the `sleeve` base values
  * @param factory number factory
- * @returns the initial value of every scalar, by key
+ * @returns the initial value of every scalar, by owner and key
  */
-export function initialScalars(config: FieldConfig, factory: NumberFactory): Record<string, BigNum | number> {
-  const out: Bag = {};
-  for (const f of SCALAR_FIELDS) out[f.key] = f.kind === 'big' ? f.initial(config, factory) : f.initial(config);
+export function initialScalars(config: FieldConfig, factory: NumberFactory): ScalarBags {
+  const out: ScalarBags = { wallet: {}, sleeve: {} };
+  for (const f of SCALAR_FIELDS) out[f.owner][f.key] = f.kind === 'big' ? f.initial(config, factory) : f.initial(config);
   return out;
 }
 
@@ -101,12 +113,12 @@ export function initialScalars(config: FieldConfig, factory: NumberFactory): Rec
  * Called by: `serialization.ts`.
  *
  * @param state state to read
- * @param into save object to add the entries to
+ * @param into the wallet and sleeve objects of the save to add the entries to
  */
-export function writeScalars(state: Readonly<Record<string, unknown>>, into: Record<string, unknown>): void {
+export function writeScalars(state: Readonly<Record<FieldOwner, object>>, into: Record<FieldOwner, Record<string, unknown>>): void {
   for (const f of SCALAR_FIELDS) {
-    const value = state[f.key] as BigNum | number;
-    into[f.key] = f.kind === 'big' ? (value as BigNum).toString() : value;
+    const value = bag(state[f.owner])[f.key] as BigNum | number;
+    into[f.owner][f.key] = f.kind === 'big' ? (value as BigNum).toString() : value;
   }
 }
 
@@ -165,7 +177,7 @@ export function readScalar(field: ScalarField, raw: unknown, config: FieldConfig
 export function addToScalar(state: GameState, key: string, amount: BigNum): void {
   const field = FIELDS_BY_KEY.get(key);
   if (!field) throw new Error(`Unknown scalar field: ${key}`);
-  const target = bag(state);
+  const target = bag(state[field.owner]);
   target[key] = field.kind === 'big' ? (target[key] as BigNum).add(amount) : (target[key] as number) + amount.toNumber();
 }
 
@@ -182,8 +194,8 @@ export function addToScalar(state: GameState, key: string, amount: BigNum): void
  */
 export function repairScalars(state: GameState, factory: NumberFactory): boolean {
   let changed = false;
-  const target = bag(state);
   for (const f of SCALAR_FIELDS) {
+    const target = bag(state[f.owner]);
     if (f.kind === 'big') {
       const fixed = repairBig(target[f.key] as BigNum, factory);
       if (fixed) {
@@ -197,6 +209,53 @@ export function repairScalars(state: GameState, factory: NumberFactory): boolean
     }
   }
   return changed;
+}
+
+/** The descriptor of a scalar. @throws Error if `key` is not a scalar field */
+function fieldOf(key: string): ScalarField {
+  const field = FIELDS_BY_KEY.get(key);
+  if (!field) throw new Error(`Unknown scalar field: ${key}`);
+  return field;
+}
+
+/**
+ * Reads any scalar of the state by its descriptor.
+ *
+ * Called by: `overflow.ts`, `testing/invariants.ts`.
+ *
+ * @param state state to read
+ * @param field the scalar's descriptor (from {@link SCALAR_FIELDS})
+ * @returns the current value
+ */
+export function scalarValue(state: Readonly<Record<FieldOwner, object>>, field: ScalarField): BigNum | number {
+  return bag(state[field.owner])[field.key] as BigNum | number;
+}
+
+/**
+ * Reads a {@link BigNum} scalar of the state by name, from whichever part of the state holds it.
+ *
+ * Called by: `currencies.ts`.
+ *
+ * @param state state to read (only the part that holds `key` is needed)
+ * @param key the scalar's name (a `big` field of {@link SCALAR_FIELDS})
+ * @throws Error if `key` is not a scalar field
+ */
+export function bigScalar(state: Readonly<Record<FieldOwner, object>>, key: string): BigNum {
+  return bag(state[fieldOf(key).owner])[key] as BigNum;
+}
+
+/**
+ * Replaces a {@link BigNum} scalar of the state by name.
+ *
+ * Called by: `currencies.ts`.
+ *
+ * @param state state to mutate
+ * @param key the scalar's name (a `big` field of {@link SCALAR_FIELDS})
+ * @param value the new value
+ * @throws Error if `key` is not a scalar field
+ */
+export function setBigScalar(state: Record<FieldOwner, object>, key: string, value: BigNum): void {
+  bag(state[fieldOf(key).owner])[key] = value;
 }
 
 /**

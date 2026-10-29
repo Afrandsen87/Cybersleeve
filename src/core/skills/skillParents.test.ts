@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { testConfig } from '../../testing/testConfig';
 import { type BuyableDefinition, createConfig, deserializeState, serializeState, validateConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /** A skill paid in re-sleeve points (a re-sleeve gives one), so a test can have as many points as it needs without playing. */
 const skill = (id: string, extra: Partial<BuyableDefinition> = {}): BuyableDefinition => ({
@@ -76,12 +77,12 @@ describe('skill parents: saves and configuration', () => {
     g.buy('root');
     g.buy('child');
     g.buy('grandchild');
-    const data = JSON.parse(serializeState(g.getState())) as { purchased: Record<string, number> };
+    const data = flatSave(serializeState(g.getState())) as { purchased: Record<string, number> };
     delete data.purchased['child'];
-    const loaded = deserializeState(JSON.stringify(data), config, numberFactory)!;
-    expect(loaded.purchased['root']).toBe(1);
-    expect(loaded.purchased['child']).toBeUndefined();
-    expect(loaded.purchased['grandchild']).toBeUndefined();
+    const loaded = deserializeState(asSave(data), config, numberFactory)!;
+    expect(loaded.sleeve.purchased['root']).toBe(1);
+    expect(loaded.sleeve.purchased['child']).toBeUndefined();
+    expect(loaded.sleeve.purchased['grandchild']).toBeUndefined();
   });
 
   it('a save in order loads unchanged', () => {
@@ -89,7 +90,7 @@ describe('skill parents: saves and configuration', () => {
     g.buy('root');
     g.buy('child');
     const loaded = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(loaded.purchased['child']).toBe(1);
+    expect(loaded.sleeve.purchased['child']).toBe(1);
   });
 
   const problems = (...extra: BuyableDefinition[]): string =>

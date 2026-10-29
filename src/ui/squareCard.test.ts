@@ -143,7 +143,7 @@ describe('the square on the screen', () => {
     expect(btn.disabled).toBe(false);
     btn.click();
     render();
-    expect(game.getState().actions[Object.keys(game.getState().actions)[0]!]!.running).toBe(true);
+    expect(game.getState().sleeve.actions[Object.keys(game.getState().sleeve.actions)[0]!]!.running).toBe(true);
     expect(btn.disabled).toBe(true); // greyed out until the run is over
   });
 
@@ -244,7 +244,7 @@ describe('the square on the screen', () => {
     expect(cell(0, 'augment').disabled).toBe(true); // nothing selected in the Inventory yet
     root.querySelector<HTMLButtonElement>('.item-tile[aria-label="Common File"]')!.click(); // select the common rarity
     cell(0, 'augment').click();
-    expect(game.getState().actions['a']!.augments).toEqual({ common: 1 });
+    expect(game.getState().sleeve.actions['a']!.augments).toEqual({ common: 1 });
     expect(cell(0, 'augment').disabled).toBe(true); // none left
   });
 

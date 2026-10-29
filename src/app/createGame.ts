@@ -93,8 +93,8 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
         : currency === 'automationPoints'
           ? config.automation === undefined
             ? 0
-            : automationPointsEarned(config.buyables, s.purchased)
-          : s.runs.length * config.resleeve.pointsPerResleeve,
+            : automationPointsEarned(config.buyables, s.sleeve.purchased)
+          : s.wallet.runs.length * config.resleeve.pointsPerResleeve,
     snapshot,
     config.reveal?.buyableOrders ?? Infinity,
     (buyable) => {

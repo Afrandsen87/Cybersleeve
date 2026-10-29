@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, serializeState, validateConfig, type GameConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /**
  * The test item `ak` is an Admin key (not sellable, one stack) and `sh` the Skill shard it may drop. The test action `a` pays 0.5
@@ -42,11 +43,11 @@ function game(config = configWith(), seed = 1, auto = 'auto') {
 type Game = ReturnType<typeof game>;
 
 const give = (g: Game, item: string, n: number): void => {
-  (g.getState() as { inventory: Record<string, Record<string, number>> }).inventory[item] = { common: n };
+  (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory[item] = { common: n };
 };
-const held = (g: Game, item: string): number => g.getState().inventory[item]?.['common'] ?? 0;
-const credits = (g: Game): number => g.getState().credits.toNumber();
-const xp = (g: Game, id = 'a'): number => g.getState().actions[id]!.xp.toNumber();
+const held = (g: Game, item: string): number => g.getState().wallet.inventory[item]?.['common'] ?? 0;
+const credits = (g: Game): number => g.getState().wallet.credits.toNumber();
+const xp = (g: Game, id = 'a'): number => g.getState().sleeve.actions[id]!.xp.toNumber();
 function run(g: Game, runs: number, id = 'a'): void {
   g.startAction(id);
   g.tick(10_000 * runs + 1);
@@ -57,7 +58,7 @@ describe('Admin keys: the toggle', () => {
     const g = game();
     expect(g.canToggleAdminKeys()).toBe(false);
     expect(g.toggleAdminKeys()).toBe(false);
-    expect(g.getState().adminKeysOn).toBe(false);
+    expect(g.getState().sleeve.keyToggles['adminKey']).not.toBe(true);
   });
 
   it('switches on with one held, and off again', () => {
@@ -72,7 +73,7 @@ describe('Admin keys: the toggle', () => {
     const g = game();
     give(g, 'ak', 1);
     g.toggleAdminKeys();
-    expect(g.getState().zeroDaysOn).toBe(false);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
     expect(g.canToggleZeroDays()).toBe(false);
   });
 });
@@ -96,7 +97,7 @@ describe('Admin keys: critical runs', () => {
     const before = credits(g);
     run(g, 10);
     expect(held(g, 'ak')).toBe(0);
-    expect(g.getState().adminKeysOn).toBe(false); // the last key switched it off
+    expect(g.getState().sleeve.keyToggles['adminKey']).not.toBe(true); // the last key switched it off
     expect(credits(g) - before).toBeCloseTo(3 * 0.5 * 3 + 7 * 0.5, 9);
     expect(xp(g)).toBe(3 * 2 + 7);
   });
@@ -137,7 +138,7 @@ describe('Admin keys: the Skill shard', () => {
     g.toggleAdminKeys();
     run(g, 4);
     expect(held(g, 'sh')).toBe(4);
-    expect(g.getState().inventory['sh']?.['rare']).toBeUndefined();
+    expect(g.getState().wallet.inventory['sh']?.['rare']).toBeUndefined();
   });
 
   it('with chance 0 none drops', () => {
@@ -188,16 +189,16 @@ describe('Admin keys: saving, configuration and invariants', () => {
     give(g, 'ak', 2);
     g.toggleAdminKeys();
     const restored = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(restored.adminKeysOn).toBe(true);
-    const json = JSON.parse(serializeState(g.getState()));
+    expect(restored.sleeve.keyToggles['adminKey']).toBe(true);
+    const json = flatSave(serializeState(g.getState()));
     json.inventory = {};
-    expect(deserializeState(JSON.stringify(json), config, numberFactory)!.adminKeysOn).toBe(false);
+    expect(deserializeState(asSave(json), config, numberFactory)!.sleeve.keyToggles['adminKey']).toBeUndefined();
   });
 
   it('flags the toggle on without a key as a broken state', () => {
     const g = game();
-    (g.getState() as { adminKeysOn: boolean }).adminKeysOn = true;
-    expect(findInvariantViolations(g.getState(), configWith())).toContain('adminKeysOn is switched on without an Admin key held');
+    (g.getState().sleeve as { keyToggles: Record<string, boolean> }).keyToggles['adminKey'] = true;
+    expect(findInvariantViolations(g.getState(), configWith())).toContain('the Admin key toggle is switched on without an Admin key held');
   });
 
   it('rejects bad references', () => {

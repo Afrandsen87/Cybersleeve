@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { seededRandom } from '../../testing/random';
 import { setCredits, testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, serializeState, validateConfig, type GameConfig } from '..';
+import { flatSave } from '../../testing/saveKit';
 
 /** The test item `lead`: not sellable, without rarity (one stack), dropped by the test action 5% of the time. Using one removes 5% of the heat. */
 function configWith(over: { chance?: number; heatFraction?: number } = {}): GameConfig {
@@ -34,12 +35,12 @@ function game(config = configWith(), seed = 1) {
 }
 
 const setHeat = (g: ReturnType<typeof game>, heat: number): void => {
-  (g.getState() as { heat: number }).heat = heat;
+  (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = heat;
 };
 const give = (g: ReturnType<typeof game>, rarity: string, n: number): void => {
-  (g.getState() as { inventory: Record<string, Record<string, number>> }).inventory['lead'] = { [rarity]: n };
+  (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory['lead'] = { [rarity]: n };
 };
-const leads = (g: ReturnType<typeof game>, rarity = 'common'): number => g.getState().inventory['lead']?.[rarity] ?? 0;
+const leads = (g: ReturnType<typeof game>, rarity = 'common'): number => g.getState().wallet.inventory['lead']?.[rarity] ?? 0;
 
 describe('Burn leads: dropping', () => {
   it('Grow-network-style drop: with chance 1 every completed run drops a common lead, and only a common one', () => {
@@ -56,7 +57,7 @@ describe('Burn leads: dropping', () => {
     const g = game(configWith({ chance: 1 }));
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().inventory).toEqual({});
+    expect(g.getState().wallet.inventory).toEqual({});
   });
 
   it('drops at the configured rate: about 5% of the completed runs', () => {
@@ -65,7 +66,7 @@ describe('Burn leads: dropping', () => {
     g.buy('auto');
     g.startAction('a');
     g.tick(10_000 * 2000 + 1);
-    const runs = g.getState().actions['a']!.xp.toNumber(); // 1 action XP per completed run (the action speeds up as it levels)
+    const runs = g.getState().sleeve.actions['a']!.xp.toNumber(); // 1 action XP per completed run (the action speeds up as it levels)
     expect(runs).toBeGreaterThan(2000);
     expect(leads(g) / runs).toBeGreaterThan(0.04);
     expect(leads(g) / runs).toBeLessThan(0.06);
@@ -78,7 +79,7 @@ describe('Burn leads: using one', () => {
     give(g, 'common', 3);
     setHeat(g, 10);
     expect(g.useBurnLead('common')).toBe(true);
-    expect(g.getState().heat).toBeCloseTo(9.5, 12);
+    expect(g.getState().sleeve.heat).toBeCloseTo(9.5, 12);
     expect(leads(g)).toBe(2);
   });
 
@@ -87,12 +88,12 @@ describe('Burn leads: using one', () => {
     give(hot, 'common', 1);
     setHeat(hot, 200);
     hot.useBurnLead('common');
-    expect(hot.getState().heat).toBeCloseTo(190, 12);
+    expect(hot.getState().sleeve.heat).toBeCloseTo(190, 12);
     const warm = game();
     give(warm, 'common', 1);
     setHeat(warm, 20);
     warm.useBurnLead('common');
-    expect(warm.getState().heat).toBeCloseTo(19, 12);
+    expect(warm.getState().sleeve.heat).toBeCloseTo(19, 12);
   });
 
   it('each lead takes 5% of what is left: three leads leave 0.95^3 of the heat', () => {
@@ -100,7 +101,7 @@ describe('Burn leads: using one', () => {
     give(g, 'common', 3);
     setHeat(g, 100);
     for (let i = 0; i < 3; i++) g.useBurnLead('common');
-    expect(g.getState().heat).toBeCloseTo(100 * 0.95 ** 3, 9);
+    expect(g.getState().sleeve.heat).toBeCloseTo(100 * 0.95 ** 3, 9);
   });
 
   it('leaves fractions of a point, which then wait for the cooldown to find a whole one', () => {
@@ -108,9 +109,9 @@ describe('Burn leads: using one', () => {
     give(g, 'common', 1);
     setHeat(g, 1);
     g.useBurnLead('common');
-    expect(g.getState().heat).toBeCloseTo(0.95, 12);
+    expect(g.getState().sleeve.heat).toBeCloseTo(0.95, 12);
     g.tick(600_000);
-    expect(g.getState().heat).toBeCloseTo(0.95, 12);
+    expect(g.getState().sleeve.heat).toBeCloseTo(0.95, 12);
   });
 
   it('is refused, and the lead kept, when there is no heat', () => {
@@ -127,7 +128,7 @@ describe('Burn leads: using one', () => {
     setHeat(g, 10);
     expect(g.canUseBurnLead('rare')).toBe(false);
     expect(g.useBurnLead('rare')).toBe(false);
-    expect(g.getState().heat).toBe(10);
+    expect(g.getState().sleeve.heat).toBe(10);
   });
 
   it('can be used when a lead is held and there is heat', () => {
@@ -142,7 +143,7 @@ describe('Burn leads: using one', () => {
     give(g, 'common', 2);
     expect(g.sellItems('lead', 'common', 'all')).toBe(0);
     expect(leads(g)).toBe(2);
-    expect(g.getState().credits.toNumber()).toBe(1000);
+    expect(g.getState().wallet.credits.toNumber()).toBe(1000);
   });
 
   it('does nothing in a game whose content has no Burn lead', () => {
@@ -150,14 +151,14 @@ describe('Burn leads: using one', () => {
     setHeat(g, 10);
     expect(g.canUseBurnLead('common')).toBe(false);
     expect(g.useBurnLead('common')).toBe(false);
-    expect(g.getState().heat).toBe(10);
+    expect(g.getState().sleeve.heat).toBe(10);
   });
 
   it('leads are lost by re-sleeving, with the rest of the inventory', () => {
     const g = game();
     give(g, 'common', 4);
     g.resleeve();
-    expect(g.getState().inventory).toEqual({});
+    expect(g.getState().wallet.inventory).toEqual({});
   });
 
   it('a used-up stack is not saved, so saving, loading and saving again gives the same text', () => {
@@ -165,9 +166,9 @@ describe('Burn leads: using one', () => {
     give(g, 'common', 1);
     setHeat(g, 10);
     g.useBurnLead('common');
-    expect(g.getState().inventory['lead']).toEqual({ common: 0 }); // the engine keeps the empty stack in memory
+    expect(g.getState().wallet.inventory['lead']).toEqual({ common: 0 }); // the engine keeps the empty stack in memory
     const saved = serializeState(g.getState());
-    expect(JSON.parse(saved).inventory).toEqual({});
+    expect(flatSave(saved)['inventory']).toEqual({});
     const restored = deserializeState(saved, configWith(), numberFactory)!;
     expect(serializeState(restored)).toBe(saved);
   });
@@ -176,7 +177,7 @@ describe('Burn leads: using one', () => {
     const g = game();
     give(g, 'common', 4);
     const restored = deserializeState(serializeState(g.getState()), configWith(), numberFactory)!;
-    expect(restored.inventory['lead']?.['common']).toBe(4);
+    expect(restored.wallet.inventory['lead']?.['common']).toBe(4);
   });
 });
 
@@ -187,7 +188,7 @@ describe('an item without rarity', () => {
     g.buy('auto');
     g.startAction('a');
     g.tick(10_000 * 4 + 1);
-    expect(Object.keys(g.getState().inventory['lead']!)).toEqual(['common']);
+    expect(Object.keys(g.getState().wallet.inventory['lead']!)).toEqual(['common']);
     expect(leads(g)).toBe(4);
   });
 
@@ -258,7 +259,7 @@ describe('validation of the Burn lead', () => {
       give(g, 'common', 1);
       setHeat(g, heat);
       expect(g.useBurnLead('common')).toBe(true);
-      expect(g.getState().heat).toBeCloseTo(heat - heat * 0.05, 9);
+      expect(g.getState().sleeve.heat).toBeCloseTo(heat - heat * 0.05, 9);
       expect(g.useBurnLead('common')).toBe(false); // the lead is gone
     }
   });

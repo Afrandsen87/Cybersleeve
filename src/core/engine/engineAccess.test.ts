@@ -16,7 +16,7 @@ describe('GameEngine - access level and Push malware', () => {
     expect(g.isUnlocked('a')).toBe(true);
     expect(g.startAction('mal')).toBe(false);
     g.tick(60_000);
-    expect(g.getState().actions['mal']!.xp.isZero()).toBe(true);
+    expect(g.getState().sleeve.actions['mal']!.xp.isZero()).toBe(true);
   });
 
   it('the access upgrade (level 2) unlocks it', () => {
@@ -31,14 +31,14 @@ describe('GameEngine - access level and Push malware', () => {
     const g = withMalware();
     setCredits(g, num(1000));
     g.buy('access');
-    (g.getState() as { network: unknown }).network = num(8);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(8);
     expect(g.rewardPerRun('mal').eq(num(8))).toBe(true);
     g.startAction('mal');
     g.tick(5_999);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
     g.tick(1);
-    expect(g.getState().credits.eq(num(8))).toBe(true);
-    expect(g.getState().heat).toBe(1);
+    expect(g.getState().wallet.credits.eq(num(8))).toBe(true);
+    expect(g.getState().sleeve.heat).toBe(1);
     expect(g.sleeveStats().heat).toBe(1);
   });
 
@@ -46,14 +46,14 @@ describe('GameEngine - access level and Push malware', () => {
     const g = withMalware();
     setCredits(g, num(1000));
     g.buy('access');
-    (g.getState() as { network: unknown }).network = num(100);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(100);
     g.startAction('mal');
-    const before = g.getState().credits.toNumber();
+    const before = g.getState().wallet.credits.toNumber();
     g.tick(6_000); // pays 100, then heat = 1
     g.startAction('mal');
     g.tick(6_000); // pays 100 again
-    expect(g.getState().credits.toNumber() - before).toBeGreaterThanOrEqual(200 - 1e-8);
-    expect(g.getState().heat).toBe(2);
+    expect(g.getState().wallet.credits.toNumber() - before).toBeGreaterThanOrEqual(200 - 1e-8);
+    expect(g.getState().sleeve.heat).toBe(2);
   });
 
   it('pays nothing with an empty network but still adds heat', () => {
@@ -62,8 +62,8 @@ describe('GameEngine - access level and Push malware', () => {
     g.buy('access');
     g.startAction('mal');
     g.tick(6_000);
-    expect(g.getState().credits.isZero()).toBe(true);
-    expect(g.getState().heat).toBe(1);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
+    expect(g.getState().sleeve.heat).toBe(1);
   });
 
   it('re-sleeving locks it again', () => {
@@ -84,9 +84,9 @@ describe('GameEngine - sleeve levels are per action', () => {
       g.startAction('a');
       g.tick(10_000);
     }
-    expect(g.getState().actions['a']!.sleeveXp.eq(num(1))).toBe(true);
-    expect(g.getState().actions['net']!.sleeveXp.isZero()).toBe(true);
-    expect(g.getState().actions['net']!.runsTowardSleeveXp).toBe(0);
+    expect(g.getState().sleeve.actions['a']!.sleeveXp.eq(num(1))).toBe(true);
+    expect(g.getState().sleeve.actions['net']!.sleeveXp.isZero()).toBe(true);
+    expect(g.getState().sleeve.actions['net']!.runsTowardSleeveXp).toBe(0);
   });
 
   it('a sleeve level speeds up only its own action', () => {
@@ -110,8 +110,8 @@ describe('time that is not a usable amount of time', () => {
     const g = game();
     g.startAction('a');
     for (const bad of [Number.NaN, -5, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) g.tick(bad);
-    expect(g.getState().actions['a']!.progress).toBe(0);
-    expect(g.getState().credits.isFinite()).toBe(true);
+    expect(g.getState().sleeve.actions['a']!.progress).toBe(0);
+    expect(g.getState().wallet.credits.isFinite()).toBe(true);
   });
 });
 

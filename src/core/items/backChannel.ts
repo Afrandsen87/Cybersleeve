@@ -43,7 +43,7 @@ export class BackChannel {
     const moles = channel?.itemId === itemId ? channel.molesByRarity[rarityId] : undefined;
     if (moles === undefined) return 0;
     const taken = this.inventory.take(itemId, rarityId, amount);
-    this.state.moles += taken * moles;
+    this.state.sleeve.moles += taken * moles;
     return taken;
   }
 }

@@ -34,15 +34,15 @@ describe('every level costs its full amount (the XP count starts again at each l
 
   it('a long batched stretch of runs lands on the same level as running them one by one', () => {
     const fast = createGame({ config: testConfig });
-    (fast.getState() as unknown as { credits: unknown }).credits = num(1e6);
+    (fast.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(1e6);
     fast.buy('auto');
     fast.tick(10_000 * 1_110); // 1110 auto-runs in one go
     const slow = createGame({ config: testConfig });
-    (slow.getState() as unknown as { credits: unknown }).credits = num(1e6);
+    (slow.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(1e6);
     slow.buy('auto');
     for (let i = 0; i < 1_110; i++) slow.tick(10_000);
     expect(fast.actionLevel('a')).toBe(slow.actionLevel('a'));
-    expect(fast.getState().actions['a']!.xp.eq(slow.getState().actions['a']!.xp)).toBe(true);
+    expect(fast.getState().sleeve.actions['a']!.xp.eq(slow.getState().sleeve.actions['a']!.xp)).toBe(true);
     expect(fast.actionLevel('a')).toBe(3); // 10 + 100 + 1000 = 1110 XP
   });
 });

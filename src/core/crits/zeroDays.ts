@@ -10,18 +10,12 @@ import type { ActionId, AdminKeyConfig, GameConfig, GameState, ZeroDayConfig } f
 /** Which of the two items a {@link ZeroDays} instance is for. */
 export type CriticalKeyKind = 'zeroDay' | 'adminKey';
 
-/** Where each kind keeps its rule and its toggle. */
-const KINDS = {
-  zeroDay: { toggle: 'zeroDaysOn' },
-  adminKey: { toggle: 'adminKeysOn' },
-} as const satisfies Record<CriticalKeyKind, { toggle: 'zeroDaysOn' | 'adminKeysOn' }>;
-
 /**
  * The toggle of one critical-key item and the keys a batch of completed runs uses up.
  *
  * @remarks
- * One instance serves one item: the Zero-day (`items.zeroDay`, toggle `zeroDaysOn`, Push malware) or the Admin key (`items.adminKey`,
- * toggle `adminKeysOn`, Practice Hacking). While the toggle is on, every completed run of the action named by the rule uses one key up
+ * One instance serves one item: the Zero-day (`items.zeroDay`, toggle `keyToggles.zeroDay`, Push malware) or the Admin key (`items.adminKey`,
+ * toggle `keyToggles.adminKey`, Practice Hacking). While the toggle is on, every completed run of the action named by the rule uses one key up
  * and is a critical success. A batch of runs is settled in one step (closed form): `min(runs, held)` of its runs are guaranteed critical,
  * and the rest are rolled as usual. When the last key is used the toggle switches itself off. The toggle cannot be switched on with
  * none held. The items are not sold (declared `sellable: false`).
@@ -37,7 +31,7 @@ export class ZeroDays {
    * Creates the unit.
    *
    * @param config reads the item's rule (`items.zeroDay` or `items.adminKey`) and `items.rarities` (the stack is kept under the first)
-   * @param state the live game state (mutated: `zeroDaysOn` or `adminKeysOn`)
+   * @param state the live game state (mutated: `sleeve.keyToggles`)
    * @param inventory where the keys are taken from and bonus items are put
    * @param kind which item this instance is for (default: the Zero-day)
    * @param random randomness for the bonus drop (default: `Math.random`)
@@ -57,11 +51,12 @@ export class ZeroDays {
 
   /** True when the toggle is on. */
   isOn(): boolean {
-    return this.state[KINDS[this.kind].toggle];
+    return this.state.sleeve.keyToggles[this.kind] === true;
   }
 
   private setOn(on: boolean): void {
-    this.state[KINDS[this.kind].toggle] = on;
+    if (on) this.state.sleeve.keyToggles[this.kind] = true;
+    else delete this.state.sleeve.keyToggles[this.kind];
   }
 
   /** Keys held (0 when the game has none). */

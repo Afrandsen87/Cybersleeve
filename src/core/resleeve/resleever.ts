@@ -54,7 +54,7 @@ export class Resleever {
       actionLevels: Object.fromEntries(this.config.actions.map((a) => [a.id, this.progression.actionLevel(this.state, a.id)])),
     };
     resetForResleeve(this.state, this.config, this.factory);
-    this.state.runs.push(record);
+    this.state.wallet.runs.push(record);
     if (this.synths.isUnlocked()) this.synths.addForResleeve();
   }
 }

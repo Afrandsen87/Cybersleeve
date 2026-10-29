@@ -5,6 +5,7 @@ import { num, numberFactory } from '../../numbers';
 import { seededRandom } from '../../testing/random';
 import { testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, serializeState, validateConfig, type GameConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /**
  * The test item `zd`: not sellable, without rarity (one stack), dropped by the test action `a`, which a Zero-day makes critical.
@@ -49,11 +50,11 @@ function game(config = configWith(), seed = 1) {
 
 type Game = ReturnType<typeof game>;
 const give = (g: Game, n: number): void => {
-  (g.getState() as { inventory: Record<string, Record<string, number>> }).inventory['zd'] = { common: n };
+  (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory['zd'] = { common: n };
 };
-const held = (g: Game): number => g.getState().inventory['zd']?.['common'] ?? 0;
-const credits = (g: Game): number => g.getState().credits.toNumber();
-const xp = (g: Game): number => g.getState().actions['a']!.xp.toNumber();
+const held = (g: Game): number => g.getState().wallet.inventory['zd']?.['common'] ?? 0;
+const credits = (g: Game): number => g.getState().wallet.credits.toNumber();
+const xp = (g: Game): number => g.getState().sleeve.actions['a']!.xp.toNumber();
 
 /** Runs `runs` completed runs of the auto-running test action. */
 function run(g: Game, runs: number): void {
@@ -67,7 +68,7 @@ describe('Zero-days: dropping', () => {
     g.buy('drops');
     run(g, 5);
     expect(held(g)).toBe(5);
-    expect(g.getState().inventory['zd']?.['rare']).toBeUndefined();
+    expect(g.getState().wallet.inventory['zd']?.['rare']).toBeUndefined();
   });
 });
 
@@ -76,7 +77,7 @@ describe('Zero-days: the toggle', () => {
     const g = game();
     expect(g.canToggleZeroDays()).toBe(false);
     expect(g.toggleZeroDays()).toBe(false);
-    expect(g.getState().zeroDaysOn).toBe(false);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
   });
 
   it('switches on with one held, and off again', () => {
@@ -84,19 +85,19 @@ describe('Zero-days: the toggle', () => {
     give(g, 3);
     expect(g.canToggleZeroDays()).toBe(true);
     expect(g.toggleZeroDays()).toBe(true);
-    expect(g.getState().zeroDaysOn).toBe(true);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).toBe(true);
     expect(g.toggleZeroDays()).toBe(false);
-    expect(g.getState().zeroDaysOn).toBe(false);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
     expect(held(g)).toBe(3); // switching does not use any up
   });
 
   it('starts off in a new game and after re-sleeving', () => {
     const g = game();
-    expect(g.getState().zeroDaysOn).toBe(false);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
     give(g, 2);
     g.toggleZeroDays();
     g.newGame();
-    expect(g.getState().zeroDaysOn).toBe(false);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
     expect(held(g)).toBe(0);
   });
 });
@@ -121,7 +122,7 @@ describe('Zero-days: guaranteed critical runs', () => {
     expect(held(g)).toBe(6);
     expect(credits(g) - before).toBeCloseTo(4 * 0.5 * 3, 9);
     expect(xp(g)).toBe(4 * 2);
-    expect(g.getState().zeroDaysOn).toBe(true);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).toBe(true);
   });
 
   it('keeps going as long as any are held, and switches itself off when the last one is used', () => {
@@ -131,7 +132,7 @@ describe('Zero-days: guaranteed critical runs', () => {
     const before = credits(g);
     run(g, 5); // 2 critical runs (3x), then 3 ordinary runs
     expect(held(g)).toBe(0);
-    expect(g.getState().zeroDaysOn).toBe(false);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
     expect(credits(g) - before).toBeCloseTo(2 * 0.5 * 3 + 3 * 0.5, 9);
     expect(xp(g)).toBe(2 * 2 + 3);
   });
@@ -143,7 +144,7 @@ describe('Zero-days: guaranteed critical runs', () => {
     g.startAction('a');
     g.tick(10_000 * 20 + 1); // one long tick: the runs complete in batches, the 3 Zero-days cover the first runs
     expect(held(g)).toBe(0);
-    expect(g.getState().zeroDaysOn).toBe(false);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
   });
 
   it('a Zero-day adds +100% on top of the normal chance: with chance 100% four runs and one Zero-day are five critical successes', () => {
@@ -168,7 +169,7 @@ describe('Zero-days: guaranteed critical runs', () => {
     g.startAction('b');
     g.tick(10_001);
     expect(held(g)).toBe(5);
-    expect(g.getState().actions['b']!.xp.toNumber()).toBe(1);
+    expect(g.getState().sleeve.actions['b']!.xp.toNumber()).toBe(1);
   });
 
   it('one long tick and many short ones use the same Zero-days and pay the same', () => {
@@ -194,26 +195,26 @@ describe('Zero-days: saving', () => {
     give(g, 2);
     g.toggleZeroDays();
     const back = deserializeState(serializeState(g.getState()), g.getConfig(), numberFactory)!;
-    expect(back.zeroDaysOn).toBe(true);
-    expect(back.inventory['zd']?.['common']).toBe(2);
+    expect(back.sleeve.keyToggles['zeroDay']).toBe(true);
+    expect(back.wallet.inventory['zd']?.['common']).toBe(2);
   });
 
   it('switches the toggle off when the save holds none, so a doctored save cannot arm an empty stack', () => {
     const g = game();
     give(g, 2);
     g.toggleZeroDays();
-    const data = JSON.parse(serializeState(g.getState())) as Record<string, unknown>;
+    const data = flatSave(serializeState(g.getState())) as Record<string, unknown>;
     data['inventory'] = {};
-    const back = deserializeState(JSON.stringify(data), g.getConfig(), numberFactory)!;
-    expect(back.zeroDaysOn).toBe(false);
+    const back = deserializeState(asSave(data), g.getConfig(), numberFactory)!;
+    expect(back.sleeve.keyToggles['zeroDay']).not.toBe(true);
   });
 
   it('reads a save without the field as off', () => {
     const g = game();
     give(g, 2);
-    const data = JSON.parse(serializeState(g.getState())) as Record<string, unknown>;
+    const data = flatSave(serializeState(g.getState())) as Record<string, unknown>;
     delete data['zeroDaysOn'];
-    expect(deserializeState(JSON.stringify(data), g.getConfig(), numberFactory)!.zeroDaysOn).toBe(false);
+    expect(deserializeState(asSave(data), g.getConfig(), numberFactory)!.sleeve.keyToggles['zeroDay']).toBeUndefined();
   });
 });
 

@@ -6,7 +6,7 @@
  * Called by: `engine/stats.ts`, `engine/engine.ts`. Calls: `ownedEffects`.
  */
 import { saturate } from '../kernel/infinity';
-import type { ActionId, BuyableDefinition, GameState } from '../types';
+import type { ActionId, BuyableDefinition, StateSlice } from '../types';
 import { ownedEffects } from './ownedOfKind';
 
 /**
@@ -24,12 +24,12 @@ import { ownedEffects } from './ownedOfKind';
  */
 export function resolveLevelBonus(
   buyables: readonly BuyableDefinition[],
-  state: Pick<GameState, 'purchased'>,
+  state: StateSlice<'purchased'>,
   actionId: ActionId,
   sleeveLevelOf: (actionId: ActionId) => number,
 ): number {
   let bonus = 0;
-  for (const { effect, owned } of ownedEffects(buyables, state.purchased, 'levelBonusFromSleeveLevel')) {
+  for (const { effect, owned } of ownedEffects(buyables, state.sleeve.purchased, 'levelBonusFromSleeveLevel')) {
     if (effect.targetActionId === actionId) bonus += sleeveLevelOf(effect.sourceActionId) * owned;
   }
   return bonus;
@@ -52,12 +52,12 @@ export function resolveLevelBonus(
  */
 export function resolveNetworkGrowth(
   buyables: readonly BuyableDefinition[],
-  state: Pick<GameState, 'purchased'>,
+  state: StateSlice<'purchased'>,
   actionLevelOf: (actionId: ActionId) => number,
 ): number {
   let rate = 0;
   for (const b of buyables) {
-    const owned = state.purchased[b.id] ?? 0;
+    const owned = state.sleeve.purchased[b.id] ?? 0;
     if (owned <= 0) continue;
     if (b.effect.kind === 'networkGrowth') rate += b.effect.ratePerSecond * owned;
     else if (b.effect.kind === 'networkGrowthFromActionLevel') {
@@ -77,13 +77,9 @@ export function resolveNetworkGrowth(
  * @param itemId the item whose drop chance is asked about
  * @returns a factor >= 1 (1 when none is owned)
  */
-export function resolveDropChanceFactor(
-  buyables: readonly BuyableDefinition[],
-  state: Pick<GameState, 'purchased'>,
-  itemId: string,
-): number {
+export function resolveDropChanceFactor(buyables: readonly BuyableDefinition[], state: StateSlice<'purchased'>, itemId: string): number {
   let factor = 1;
-  for (const { effect, owned } of ownedEffects(buyables, state.purchased, 'itemDropChanceMultiplier')) {
+  for (const { effect, owned } of ownedEffects(buyables, state.sleeve.purchased, 'itemDropChanceMultiplier')) {
     if (effect.itemId === itemId) factor *= effect.factor ** owned;
   }
   return saturate(factor);

@@ -38,10 +38,10 @@ function game(skills: BuyableDefinition[]) {
   return g;
 }
 const setHeat = (g: ReturnType<typeof game>, heat: number): void => {
-  (g.getState() as { heat: number }).heat = heat;
+  (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = heat;
 };
 const setMoles = (g: ReturnType<typeof game>, moles: number): void => {
-  (g.getState() as { moles: number }).moles = moles;
+  (g.getState() as unknown as { sleeve: { moles: number } }).sleeve.moles = moles;
 };
 
 const quiet = buyable('quiet', { kind: 'idleHeatCooldown', factor: 5 });
@@ -52,7 +52,7 @@ describe('Quiet Hours', () => {
     const g = game([quiet]);
     setHeat(g, 20);
     g.tick(60_000);
-    expect(g.getState().heat).toBe(15);
+    expect(g.getState().sleeve.heat).toBe(15);
   });
 
   it('heat cools at the normal pace while an action is running', () => {
@@ -60,17 +60,17 @@ describe('Quiet Hours', () => {
     g.startAction('long');
     setHeat(g, 20);
     g.tick(60_000);
-    expect(g.getState().heat).toBe(19);
+    expect(g.getState().sleeve.heat).toBe(19);
   });
 
   it('a manual action that has finished its run and waits does not count as in progress', () => {
     const g = game([quiet]);
     g.startAction('a');
     g.tick(10_000); // the run completes; the manual action stops and waits
-    expect(g.getState().actions['a']!.running).toBe(false);
+    expect(g.getState().sleeve.actions['a']!.running).toBe(false);
     setHeat(g, 20);
     g.tick(60_000);
-    expect(g.getState().heat).toBe(15);
+    expect(g.getState().sleeve.heat).toBe(15);
   });
 
   it('one long tick and many short ones cool the same', () => {
@@ -78,7 +78,7 @@ describe('Quiet Hours', () => {
       const g = game([quiet]);
       setHeat(g, 40);
       for (let t = 0; t < 360_000; t += slice) g.tick(slice);
-      return [g.getState().heat, Math.round(g.getState().heatCooldownMs)];
+      return [g.getState().sleeve.heat, Math.round(g.getState().sleeve.heatCooldownMs)];
     };
     expect(run(360_000)).toEqual(run(1_000));
     expect(run(360_000)).toEqual(run(50));
@@ -95,7 +95,7 @@ describe('Undercover', () => {
     withIt.startAction('long');
     setHeat(withIt, 20);
     withIt.tick(60_000);
-    expect([without.getState().heat, withIt.getState().heat]).toEqual([19, 15]);
+    expect([without.getState().sleeve.heat, withIt.getState().sleeve.heat]).toEqual([19, 15]);
   });
 
   it('an action that runs with Overclock does not count as idle', () => {
@@ -104,8 +104,8 @@ describe('Undercover', () => {
     expect(g.toggleOverclock('long')).toBe(true);
     setHeat(g, 20);
     g.tick(60_000);
-    expect(g.getState().heat).toBeGreaterThan(18.99);
-    expect(g.getState().heat).toBeLessThan(19.01);
+    expect(g.getState().sleeve.heat).toBeGreaterThan(18.99);
+    expect(g.getState().sleeve.heat).toBeLessThan(19.01);
   });
 
   it('names one action only: another running action keeps the normal pace', () => {
@@ -114,9 +114,9 @@ describe('Undercover', () => {
     g.startAction('a'); // runs 10 s, then waits
     setHeat(g, 20);
     g.tick(9_000);
-    expect(g.getState().heat).toBe(20); // 'a' is in progress: not idle, and not yet a full cooldown cycle
+    expect(g.getState().sleeve.heat).toBe(20); // 'a' is in progress: not idle, and not yet a full cooldown cycle
     g.tick(51_000); // 'a' has completed; only 'long' is left
-    expect(g.getState().heat).toBeLessThan(20);
+    expect(g.getState().sleeve.heat).toBeLessThan(20);
   });
 
   it('does nothing without Quiet Hours', () => {
@@ -124,7 +124,7 @@ describe('Undercover', () => {
     g.startAction('long');
     setHeat(g, 20);
     g.tick(60_000);
-    expect(g.getState().heat).toBe(19);
+    expect(g.getState().sleeve.heat).toBe(19);
   });
 });
 
@@ -137,8 +137,8 @@ describe('Deep Cover', () => {
     setHeat(g, 20);
     setMoles(g, 100);
     g.tick(120_000);
-    expect(g.getState().moles).toBe(100);
-    expect(g.getState().heat).toBeLessThan(20);
+    expect(g.getState().sleeve.moles).toBe(100);
+    expect(g.getState().sleeve.heat).toBeLessThan(20);
   });
 
   it('the Mole boost no longer applies: 100 Moles cool at 1.05^2 times the normal pace, not 3 times', () => {
@@ -146,17 +146,17 @@ describe('Deep Cover', () => {
     setHeat(g, 50);
     setMoles(g, 100);
     g.tick(60_000 / 1.05 ** 2 - 1); // just short of one cycle at the aggregated pace
-    expect(g.getState().heat).toBe(50);
+    expect(g.getState().sleeve.heat).toBe(50);
     g.tick(2);
-    expect(g.getState().heat).toBe(49);
-    expect(g.getState().moles).toBe(100);
+    expect(g.getState().sleeve.heat).toBe(49);
+    expect(g.getState().sleeve.moles).toBe(100);
   });
 
   it('without Moles it changes nothing', () => {
     const g = game([deep]);
     setHeat(g, 20);
     g.tick(60_000);
-    expect(g.getState().heat).toBe(19);
+    expect(g.getState().sleeve.heat).toBe(19);
   });
 });
 

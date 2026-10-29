@@ -84,7 +84,7 @@ export class ItemStats {
   /** Hacking Proficiency as it counts: the stored total times the factor of owned `hackingProficiencyMultiplier` buyables. */
   effectiveHackingProficiency(): BigNum {
     const factor = this.sleeveStats().hackingProficiencyFactor;
-    return factor === 1 ? this.state.hackingProficiency : this.state.hackingProficiency.mul(this.factory.fromNumber(factor));
+    return factor === 1 ? this.state.sleeve.hackingProficiency : this.state.sleeve.hackingProficiency.mul(this.factory.fromNumber(factor));
   }
 
   /** The back channel the player has unlocked (an owned `backChannel` buyable), or `null`. */

@@ -3,7 +3,11 @@ import { criticalCover } from './criticalCover';
 import { CriticalSuccesses } from './critical';
 
 const items = { zeroDay: { itemId: 'zd', actionId: 'mal' }, adminKey: { itemId: 'ak', actionId: 'kill' } } as never;
-const off = { zeroDaysOn: false, adminKeysOn: false, bankedCriticals: {} };
+const state = (keyToggles: Record<string, boolean> = {}, bankedCriticals: Record<string, number> = {}) => ({
+  wallet: {},
+  sleeve: { keyToggles, bankedCriticals },
+});
+const off = state();
 
 describe('criticalCover', () => {
   it('is false with nothing switched on or banked', () => {
@@ -11,22 +15,22 @@ describe('criticalCover', () => {
   });
 
   it('a Zero-day covers only its own action, and only while on', () => {
-    expect(criticalCover({ ...off, zeroDaysOn: true }, items, 'mal')).toBe(true);
-    expect(criticalCover({ ...off, zeroDaysOn: true }, items, 'kill')).toBe(false);
+    expect(criticalCover(state({ zeroDay: true }), items, 'mal')).toBe(true);
+    expect(criticalCover(state({ zeroDay: true }), items, 'kill')).toBe(false);
   });
 
   it('an Admin key covers only its own action, and only while on', () => {
-    expect(criticalCover({ ...off, adminKeysOn: true }, items, 'kill')).toBe(true);
-    expect(criticalCover({ ...off, adminKeysOn: true }, items, 'mal')).toBe(false);
+    expect(criticalCover(state({ adminKey: true }), items, 'kill')).toBe(true);
+    expect(criticalCover(state({ adminKey: true }), items, 'mal')).toBe(false);
   });
 
   it('a banked success covers its action; a zero count does not', () => {
-    expect(criticalCover({ ...off, bankedCriticals: { net: 1 } }, items, 'net')).toBe(true);
-    expect(criticalCover({ ...off, bankedCriticals: { net: 0 } }, items, 'net')).toBe(false);
+    expect(criticalCover(state({}, { net: 1 }), items, 'net')).toBe(true);
+    expect(criticalCover(state({}, { net: 0 }), items, 'net')).toBe(false);
   });
 
   it('copes with a game that has no Zero-day or Admin key', () => {
-    expect(criticalCover({ ...off, zeroDaysOn: true, adminKeysOn: true }, {} as never, 'mal')).toBe(false);
+    expect(criticalCover(state({ zeroDay: true, adminKey: true }), {} as never, 'mal')).toBe(false);
   });
 });
 

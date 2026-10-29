@@ -77,7 +77,7 @@ export function corporationView(
     synthPurchase: { title: text.titles.syntheticSleeves, visible: engine.synthPurchaseUnlocked() },
     buyables: buyableViews.filter((b) => isCorporate(config, b.id) && corporationActionOf(config, b.id) === undefined),
     actions: engine.corporationActions().map((def): CorporationActionView => {
-      const progress = state.corporation.actions[def.id];
+      const progress = state.wallet.corporation.actions[def.id];
       const running = progress?.running ?? false;
       const level = engine.corporationLevel(def.id);
       const duration = formatSeconds(engine.corporationRunMs(def.id), text);

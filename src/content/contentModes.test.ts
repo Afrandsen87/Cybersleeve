@@ -77,7 +77,7 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     g.toggleOverclock(GROW_NETWORK);
     g.startAction(GROW_NETWORK);
     g.tick(Math.min(10_000, g.currentDurationMs(GROW_NETWORK) - 1));
-    const heat = g.getState().heat;
+    const heat = g.getState().sleeve.heat;
     expect(heat).toBeGreaterThan(0);
     expect(heat).toBeLessThan(1);
   });
@@ -90,18 +90,18 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     const g = rich();
     while (!g.isUnlocked(PRACTICE_HACKING)) g.buy(ACCESS_UPGRADE);
     g.buy(overclockUnlockId(PRACTICE_HACKING));
-    (g.getState() as unknown as { network: unknown }).network = num(100);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(100);
     const run = (): number => {
       g.startAction(PRACTICE_HACKING);
       g.tick(g.currentDurationMs(PRACTICE_HACKING) + 1);
-      return g.getState().hackingProficiency.toNumber();
+      return g.getState().sleeve.hackingProficiency.toNumber();
     };
     const plain = run();
     g.toggleOverclock(PRACTICE_HACKING);
-    const before = g.getState().network.toNumber();
+    const before = g.getState().sleeve.network.toNumber();
     const gained = run() - plain;
     expect(gained).toBeCloseTo(plain * 3, 9);
-    expect(g.getState().network.toNumber()).toBe(before - 5);
+    expect(g.getState().sleeve.network.toNumber()).toBe(before - 5);
   });
 
   it('Push malware overclocked pays the nodes of a Grow network run and makes 3x the heat, end to end', () => {
@@ -114,14 +114,14 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
       g.tick(g.currentDurationMs(PUSH_MALWARE) + 1);
     };
     complete();
-    const plainHeat = g.getState().heat;
+    const plainHeat = g.getState().sleeve.heat;
     expect(plainHeat).toBeCloseTo(push.heatPerRun!, 9);
-    expect(g.getState().network.toNumber()).toBe(0);
-    (g.getState() as unknown as { heat: number }).heat = 0; // a run takes a minute, so the cooldown would take a point meanwhile
+    expect(g.getState().sleeve.network.toNumber()).toBe(0);
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 0; // a run takes a minute, so the cooldown would take a point meanwhile
     g.toggleOverclock(PUSH_MALWARE);
     complete();
-    expect(g.getState().heat).toBeCloseTo(plainHeat * 3, 9);
-    expect(g.getState().network.toNumber()).toBe(g.payoutPerRun(GROW_NETWORK).toNumber());
+    expect(g.getState().sleeve.heat).toBeCloseTo(plainHeat * 3, 9);
+    expect(g.getState().sleeve.network.toNumber()).toBe(g.payoutPerRun(GROW_NETWORK).toNumber());
   });
 
   it('every action has a Focus unlock of its own', () => {
@@ -147,8 +147,8 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     const upgrade = gameConfig.buyables.find((x) => x.id === FOCUS_UPGRADE)!;
     for (let i = 0; i < (upgrade.maxPurchases as number); i++) expect(g.buy(FOCUS_UPGRADE)).toBe('purchased');
     expect(g.buy(FOCUS_UPGRADE)).toBe('max-reached');
-    for (const a of gameConfig.actions) g.getState().focused[a.id] || g.toggleFocus(a.id);
-    expect(gameConfig.actions.every((a) => g.getState().focused[a.id])).toBe(true);
+    for (const a of gameConfig.actions) g.getState().sleeve.focused[a.id] || g.toggleFocus(a.id);
+    expect(gameConfig.actions.every((a) => g.getState().sleeve.focused[a.id])).toBe(true);
   });
 
   it('Focus makes the focused action faster', () => {
@@ -178,7 +178,9 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     const leads = gameConfig.buyables.find((b) => b.id === BURN_LEADS)!;
     expect(leads.effect.kind === 'itemDrop' && leads.effect.drop.rarityWeights).toBeUndefined();
     const g = rich();
-    (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[BURN_LEAD] = { common: 2 };
+    (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory[BURN_LEAD] = {
+      common: 2,
+    };
     const rows = buildViewModel(g).inventory.rows.filter((r) => r.itemId === BURN_LEAD);
     expect(rows.map((r) => r.label)).toEqual(['Burn lead']);
     expect(rows[0]!.tip).not.toMatch(/common|uncommon|rare|legendary|crisis/i);
@@ -194,26 +196,26 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === GROW_NETWORK)!;
     expect(card.buyables.map((b) => b.id)).toContain(BURN_LEADS);
     const g = rich();
-    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
     expect(g.buy(BURN_LEADS)).toBe('purchased');
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
-    const held = Object.values(g.getState().inventory[BURN_LEAD] ?? {}).reduce((sum, n) => sum + n, 0);
+    const held = Object.values(g.getState().wallet.inventory[BURN_LEAD] ?? {}).reduce((sum, n) => sum + n, 0);
     expect(held).toBeGreaterThanOrEqual(1);
   });
 
   it('using a Burn lead takes part of the heat away and uses the lead up, end to end', () => {
     const g = rich();
-    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
     g.buy(BURN_LEADS);
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
-    const rarity = Object.keys(g.getState().inventory[BURN_LEAD]!)[0]!;
-    const count = g.getState().inventory[BURN_LEAD]![rarity]!;
-    (g.getState() as { heat: number }).heat = 40;
+    const rarity = Object.keys(g.getState().wallet.inventory[BURN_LEAD]!)[0]!;
+    const count = g.getState().wallet.inventory[BURN_LEAD]![rarity]!;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 40;
     expect(g.useBurnLead(rarity)).toBe(true);
-    expect(g.getState().heat).toBeCloseTo(40 * (1 - gameConfig.items.burnLead!.heatFraction), 9);
-    expect(g.getState().inventory[BURN_LEAD]![rarity]).toBe(count - 1);
+    expect(g.getState().sleeve.heat).toBeCloseTo(40 * (1 - gameConfig.items.burnLead!.heatFraction), 9);
+    expect(g.getState().wallet.inventory[BURN_LEAD]![rarity]).toBe(count - 1);
   });
 });
 
@@ -238,7 +240,9 @@ describe('Zero-days (real content)', () => {
 
   it('the Inventory shows one toggleable row named "Zero-day", lit while the toggle is on, end to end', () => {
     const g = rich();
-    (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[ZERO_DAY] = { common: 2 };
+    (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory[ZERO_DAY] = {
+      common: 2,
+    };
     const row = () => buildViewModel(g).inventory.rows.find((r) => r.itemId === ZERO_DAY)!;
     expect(row()).toMatchObject({ label: 'Zero-day', toggleable: true, on: false, canUse: true, sellable: false });
     expect(g.toggleZeroDays()).toBe(true);
@@ -266,17 +270,19 @@ describe('Zero-days (real content)', () => {
     const g = rich();
     g.buy(CRITICAL_SUCCESS); // Ransomware waits for critical successes to exist
     g.buy(RANSOMWARE);
-    (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[ZERO_DAY] = { common: 1 };
+    (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory[ZERO_DAY] = {
+      common: 1,
+    };
     g.toggleZeroDays();
     g.startAction(PUSH_MALWARE);
     g.tick(g.currentDurationMs(PUSH_MALWARE) + 1);
-    expect(g.getState().bankedCriticals).toEqual({ [GROW_NETWORK]: 1 });
-    const nodes = g.getState().network.toNumber();
+    expect(g.getState().sleeve.bankedCriticals).toEqual({ [GROW_NETWORK]: 1 });
+    const nodes = g.getState().sleeve.network.toNumber();
     const reward = g.payoutPerRun(GROW_NETWORK).toNumber();
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
-    expect(g.getState().bankedCriticals).toEqual({});
-    expect(g.getState().network.toNumber() - nodes).toBeGreaterThanOrEqual(reward * gameConfig.criticalSuccess.rewardMultiplier);
+    expect(g.getState().sleeve.bankedCriticals).toEqual({});
+    expect(g.getState().sleeve.network.toNumber() - nodes).toBeGreaterThanOrEqual(reward * gameConfig.criticalSuccess.rewardMultiplier);
   });
 
   it('Obfuscation is a one-point skill that lowers the heat of Push malware Overclock from 3x to 2x', () => {
@@ -287,8 +293,8 @@ describe('Zero-days (real content)', () => {
     const g = rich();
     g.buy(overclockUnlockId(PUSH_MALWARE));
     expect(g.overclockStatus(PUSH_MALWARE)!.heatPerRunFactor).toBe(3);
-    (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
-    (g.getState().purchased as Record<string, number>)[SKILL_COLD_TRAIL] = 1; // Obfuscation grows from it
+    (g.getState().sleeve.actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
+    (g.getState().sleeve.purchased as Record<string, number>)[SKILL_COLD_TRAIL] = 1; // Obfuscation grows from it
     expect(g.buy(SKILL_OBFUSCATION)).toBe('purchased');
     expect(g.overclockStatus(PUSH_MALWARE)!.heatPerRunFactor).toBe(2);
   });
@@ -300,14 +306,19 @@ describe('Zero-days (real content)', () => {
 
   it('a switched-on Zero-day makes the next Push malware run critical and is used up', () => {
     const g = rich();
-    (g.getState() as unknown as { inventory: Record<string, Record<string, number>> }).inventory[ZERO_DAY] = { common: 1 };
+    (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory[ZERO_DAY] = {
+      common: 1,
+    };
     g.toggleZeroDays();
-    const xpBefore = g.getState().actions[PUSH_MALWARE]!.xp.toNumber();
+    const xpBefore = g.getState().sleeve.actions[PUSH_MALWARE]!.xp.toNumber();
     const xpPerRun = g.xpPerRun(PUSH_MALWARE).toNumber();
     g.startAction(PUSH_MALWARE);
     g.tick(g.currentDurationMs(PUSH_MALWARE) + 1);
-    expect(g.getState().inventory[ZERO_DAY]?.['common'] ?? 0).toBe(0);
-    expect(g.getState().zeroDaysOn).toBe(false);
-    expect(g.getState().actions[PUSH_MALWARE]!.xp.toNumber() - xpBefore).toBeCloseTo(xpPerRun * gameConfig.criticalSuccess.xpMultiplier, 9);
+    expect(g.getState().wallet.inventory[ZERO_DAY]?.['common'] ?? 0).toBe(0);
+    expect(g.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
+    expect(g.getState().sleeve.actions[PUSH_MALWARE]!.xp.toNumber() - xpBefore).toBeCloseTo(
+      xpPerRun * gameConfig.criticalSuccess.xpMultiplier,
+      9,
+    );
   });
 });

@@ -5,6 +5,7 @@ import { buy } from '../../testing/cyberneticsKit';
 import { findInvariantViolations } from '../../testing/invariants';
 import { testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, serializeState, validateConfig, type BuyableDefinition, type GameConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /**
  * Two test actions, `a` and `b`, each 10 s per run, paying 0.5 credits and 1 XP; criticals pay 3x and give 2x XP. Levels are out of
@@ -35,10 +36,10 @@ function game(config: GameConfig = configWith(), seed = 1) {
 }
 
 type Game = ReturnType<typeof game>;
-const xp = (g: Game, id: string): number => g.getState().actions[id]!.xp.toNumber();
-const credits = (g: Game): number => g.getState().credits.toNumber();
+const xp = (g: Game, id: string): number => g.getState().sleeve.actions[id]!.xp.toNumber();
+const credits = (g: Game): number => g.getState().wallet.credits.toNumber();
 const giveZeroDays = (g: Game, n: number): void => {
-  (g.getState() as { inventory: Record<string, Record<string, number>> }).inventory['zd'] = { common: n };
+  (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory['zd'] = { common: n };
 };
 
 describe('critical boost (Persistence)', () => {
@@ -94,26 +95,26 @@ describe('critical link (Ransomware)', () => {
     g.startAction('a');
     g.tick(10_000 * 3 + 1);
     g.toggleAutoRun('auto'); // `a` stays idle from here on
-    (g.getState().actions['a'] as { running: boolean }).running = false;
+    (g.getState().sleeve.actions['a'] as { running: boolean }).running = false;
   }
 
   it('banks one guaranteed critical for the target per critical run of its action', () => {
     const g = game(configWith([link]));
     g.buy('link');
     threeCriticalRunsOfA(g);
-    expect(g.getState().bankedCriticals).toEqual({ b: 3 });
+    expect(g.getState().sleeve.bankedCriticals).toEqual({ b: 3 });
   });
 
   it('banks nothing without the buyable, or from ordinary runs', () => {
     const without = game(configWith([link]));
     threeCriticalRunsOfA(without);
-    expect(without.getState().bankedCriticals).toEqual({});
+    expect(without.getState().sleeve.bankedCriticals).toEqual({});
     const ordinary = game(configWith([link]));
     ordinary.buy('link');
     ordinary.buy('auto');
     ordinary.startAction('a');
     ordinary.tick(10_000 * 3 + 1);
-    expect(ordinary.getState().bankedCriticals).toEqual({});
+    expect(ordinary.getState().sleeve.bankedCriticals).toEqual({});
   });
 
   it('the target next completed run is critical for sure, using one banked success', () => {
@@ -124,7 +125,7 @@ describe('critical link (Ransomware)', () => {
     g.startAction('b');
     g.tick(10_000 + 1);
     expect(credits(g) - before).toBeCloseTo(0.5 * 3, 9);
-    expect(g.getState().bankedCriticals).toEqual({ b: 2 });
+    expect(g.getState().sleeve.bankedCriticals).toEqual({ b: 2 });
   });
 
   it('runs of the target spend the bank first and the rest are ordinary: 3 critical runs, then 2 ordinary', () => {
@@ -137,7 +138,7 @@ describe('critical link (Ransomware)', () => {
       g.startAction('b');
       g.tick(10_000 + 1);
     }
-    expect(g.getState().bankedCriticals).toEqual({});
+    expect(g.getState().sleeve.bankedCriticals).toEqual({});
     expect(credits(g) - before).toBeCloseTo(3 * 0.5 * 3 + 2 * 0.5, 9);
     expect(xp(g, 'b') - xpBefore).toBe(3 * 2 + 2);
   });
@@ -147,10 +148,10 @@ describe('critical link (Ransomware)', () => {
     g.buy('link');
     threeCriticalRunsOfA(g);
     const back = deserializeState(serializeState(g.getState()), g.getConfig(), numberFactory)!;
-    expect(back.bankedCriticals).toEqual({ b: 3 });
-    const data = JSON.parse(serializeState(g.getState())) as Record<string, unknown>;
+    expect(back.sleeve.bankedCriticals).toEqual({ b: 3 });
+    const data = flatSave(serializeState(g.getState())) as Record<string, unknown>;
     data['bankedCriticals'] = { b: 2, ghost: 5, a: -1 };
-    expect(deserializeState(JSON.stringify(data), g.getConfig(), numberFactory)!.bankedCriticals).toEqual({ b: 2 });
+    expect(deserializeState(asSave(data), g.getConfig(), numberFactory)!.sleeve.bankedCriticals).toEqual({ b: 2 });
   });
 
   it('keeps every invariant, resets with a new game, and rejects an unknown target', () => {
@@ -159,7 +160,7 @@ describe('critical link (Ransomware)', () => {
     threeCriticalRunsOfA(g);
     expect(findInvariantViolations(g.getState(), g.getConfig())).toEqual([]);
     g.newGame();
-    expect(g.getState().bankedCriticals).toEqual({});
+    expect(g.getState().sleeve.bankedCriticals).toEqual({});
     const bad = configWith([buy({ id: 'bad', actionId: 'a', effect: { kind: 'criticalLink', targetActionId: 'ghost' } })]);
     expect(validateConfig(bad).join('|')).toContain('criticalLink refers to unknown action "ghost"');
   });
@@ -176,8 +177,8 @@ describe('critical link (Ransomware)', () => {
     }
     long.tick(10_000 * 6);
     for (let i = 0; i < 60; i++) short.tick(1_000);
-    expect(short.getState().bankedCriticals).toEqual(long.getState().bankedCriticals);
-    expect(long.getState().bankedCriticals).toEqual({ b: 4 });
+    expect(short.getState().sleeve.bankedCriticals).toEqual(long.getState().sleeve.bankedCriticals);
+    expect(long.getState().sleeve.bankedCriticals).toEqual({ b: 4 });
   });
 });
 
@@ -201,7 +202,7 @@ describe('Overclock heat factor (Obfuscation)', () => {
       g.toggleOverclock('a');
       g.startAction('a');
       g.tick(g.currentDurationMs('a') + 1);
-      return g.getState().heat;
+      return g.getState().sleeve.heat;
     };
     expect(heatAfterOneRun(false) - heatAfterOneRun(true)).toBeCloseTo(1, 9);
   });

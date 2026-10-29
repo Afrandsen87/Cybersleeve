@@ -32,7 +32,7 @@ describe('mountUi (smoke test against the real engine)', () => {
   it('clicking an action starts it; ticking and rendering shows progress and the payout', () => {
     const { root, game, render, click } = mount();
     click('.action-main');
-    expect(game.getState().actions['a']?.running).toBe(true);
+    expect(game.getState().sleeve.actions['a']?.running).toBe(true);
     game.tick(5_000);
     render();
     expect((root.querySelector('.bar-fill') as HTMLElement).style.transform).toBe('scaleX(0.5)');
@@ -78,13 +78,13 @@ describe('mountUi (smoke test against the real engine)', () => {
     setCredits(game, num(50));
     render();
     click('.resleeve');
-    expect(game.getState().credits.toNumber()).toBe(50);
+    expect(game.getState().wallet.credits.toNumber()).toBe(50);
     expect(root.querySelector('.resleeve')?.classList.contains('armed')).toBe(true);
     click('.resleeve-cancel');
     expect(root.querySelector('.resleeve')?.classList.contains('armed')).toBe(false);
     click('.resleeve');
     click('.resleeve');
-    expect(game.getState().credits.toNumber()).toBe(0);
+    expect(game.getState().wallet.credits.toNumber()).toBe(0);
   });
 
   it('the Reset save button calls the reset handler and repaints', () => {

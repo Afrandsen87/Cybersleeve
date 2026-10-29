@@ -47,26 +47,26 @@ describe('held balances', () => {
 
   it('reads and spends the balance the descriptor names', () => {
     const s = state();
-    s.credits = num(10);
-    s.network = num(7);
+    s.wallet.credits = num(10);
+    s.sleeve.network = num(7);
     expect(heldBalance(s, 'credits').toNumber()).toBe(10);
     expect(heldBalance(s, undefined).toNumber()).toBe(10);
     expect(heldBalance(s, 'networkNodes').toNumber()).toBe(7);
     spendHeld(s, 'networkNodes', num(3));
     spendHeld(s, undefined, num(4));
-    expect(s.network.toNumber()).toBe(4);
-    expect(s.credits.toNumber()).toBe(6);
+    expect(s.sleeve.network.toNumber()).toBe(4);
+    expect(s.wallet.credits.toNumber()).toBe(6);
   });
 
   it('points are not held: spending takes nothing, reading one is an error', () => {
     const s = state();
-    s.credits = num(10);
-    s.network = num(7);
+    s.wallet.credits = num(10);
+    s.sleeve.network = num(7);
     for (const c of POINTS) {
       spendHeld(s, c as Currency, num(5));
       expect(() => heldBalance(s, c)).toThrow();
     }
-    expect(s.credits.toNumber()).toBe(10);
-    expect(s.network.toNumber()).toBe(7);
+    expect(s.wallet.credits.toNumber()).toBe(10);
+    expect(s.sleeve.network.toNumber()).toBe(7);
   });
 });

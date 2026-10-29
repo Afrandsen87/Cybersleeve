@@ -105,7 +105,7 @@ export function buildActionViews(
 ): ActionView[] {
   const sleeveShown = sleeveLevelsOpen(state, config);
   return config.actions.map((def): ActionView => {
-    const s = state.actions[def.id];
+    const s = state.sleeve.actions[def.id];
     if (!s) throw new Error(`Missing state for action ${def.id}`);
     const duration = engine.currentDurationMs(def.id);
     const unlocked = engine.isUnlocked(def.id);

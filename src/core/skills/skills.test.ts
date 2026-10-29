@@ -51,8 +51,8 @@ describe('skill points as a currency', () => {
     mutable(g).credits = num(50);
     mutable(g).network = num(50);
     g.buy('s1');
-    expect(g.getState().credits.eq(num(50))).toBe(true);
-    expect(g.getState().network.eq(num(50))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(50))).toBe(true);
+    expect(g.getState().sleeve.network.eq(num(50))).toBe(true);
   });
 
   it('a skill is bought once only', () => {

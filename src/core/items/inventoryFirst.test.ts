@@ -19,7 +19,7 @@ describe('Inventory first-stack helpers', () => {
     const item = testConfig.items.definitions[0]!.id;
     inv.addFirst(item, 5);
     expect(inv.heldFirst(item)).toBe(5);
-    expect(state.inventory[item]?.[first]).toBe(5);
+    expect(state.wallet.inventory[item]?.[first]).toBe(5);
     expect(inv.takeFirst(item, 2)).toBe(2);
     expect(inv.takeFirst(item, 'all')).toBe(3);
     expect(inv.takeFirst(item, 1)).toBe(0);
@@ -37,7 +37,7 @@ describe('Inventory first-stack helpers', () => {
   });
 
   it('createGame still builds (the helpers are wired into the engine)', () => {
-    expect(createGame({ config: testConfig }).getState().inventory).toBeDefined();
+    expect(createGame({ config: testConfig }).getState().wallet.inventory).toBeDefined();
   });
 });
 

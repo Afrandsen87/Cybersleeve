@@ -12,9 +12,11 @@ import {
   createInitialState,
   deserializeState,
   serializeState,
+  SAVE_VERSION,
   validateConfig,
   type LevelRuleConfig,
 } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 const config = testConfig;
 const _rule = (c: LevelRuleConfig) => new LevelRule(c, numberFactory);
@@ -27,27 +29,27 @@ describe('Progression', () => {
   it('adds action xp and counts runs', () => {
     const s = createInitialState(config, numberFactory);
     record(s, 1, 1);
-    expect(s.actions['a']!.xp.eq(num(1))).toBe(true);
-    expect(s.actions['a']!.runsTowardSleeveXp).toBe(1);
+    expect(s.sleeve.actions['a']!.xp.eq(num(1))).toBe(true);
+    expect(s.sleeve.actions['a']!.runsTowardSleeveXp).toBe(1);
   });
 
   it('grants 1 sleeve xp per 100 runs and keeps the remainder', () => {
     const s = createInitialState(config, numberFactory);
     record(s, 99, 99);
-    expect(s.actions['a']!.sleeveXp.isZero()).toBe(true);
+    expect(s.sleeve.actions['a']!.sleeveXp.isZero()).toBe(true);
     record(s, 1, 1);
-    expect(s.actions['a']!.sleeveXp.eq(num(1))).toBe(true);
-    expect(s.actions['a']!.runsTowardSleeveXp).toBe(0);
+    expect(s.sleeve.actions['a']!.sleeveXp.eq(num(1))).toBe(true);
+    expect(s.sleeve.actions['a']!.runsTowardSleeveXp).toBe(0);
     record(s, 250, 250);
-    expect(s.actions['a']!.sleeveXp.eq(num(3))).toBe(true);
-    expect(s.actions['a']!.runsTowardSleeveXp).toBe(50);
+    expect(s.sleeve.actions['a']!.sleeveXp.eq(num(3))).toBe(true);
+    expect(s.sleeve.actions['a']!.runsTowardSleeveXp).toBe(50);
   });
 
   it('handles huge run counts without breaking (remainder dropped)', () => {
     const s = createInitialState(config, numberFactory);
     record(s, 1, '1e40');
-    expect(s.actions['a']!.sleeveXp.floorLog10()).toBe(38);
-    expect(s.actions['a']!.runsTowardSleeveXp).toBe(0);
+    expect(s.sleeve.actions['a']!.sleeveXp.floorLog10()).toBe(38);
+    expect(s.sleeve.actions['a']!.runsTowardSleeveXp).toBe(0);
   });
 
   it('sleeveXpPerGrant and runsPerSleeveXp come from the config', () => {
@@ -55,8 +57,8 @@ describe('Progression', () => {
     const p = new Progression(custom, numberFactory);
     const s = createInitialState(custom, numberFactory);
     p.recordRuns(s, 'a', num(25), num(25));
-    expect(s.actions['a']!.sleeveXp.eq(num(10))).toBe(true);
-    expect(s.actions['a']!.runsTowardSleeveXp).toBe(5);
+    expect(s.sleeve.actions['a']!.sleeveXp.eq(num(10))).toBe(true);
+    expect(s.sleeve.actions['a']!.runsTowardSleeveXp).toBe(5);
   });
 
   it('action level 1 at exactly 10 xp (10 runs)', () => {
@@ -116,74 +118,74 @@ describe('Shop', () => {
 
   it('refuses when credits are insufficient and changes nothing', () => {
     const s = fresh();
-    s.credits = num(9.99);
+    s.wallet.credits = num(9.99);
     expect(shop.canBuy(s, 'auto')).toBe(false);
     expect(shop.buy(s, 'auto')).toBe('cannot-afford');
-    expect(s.credits.eq(num(9.99))).toBe(true);
-    expect(s.purchased['auto']).toBeUndefined();
+    expect(s.wallet.credits.eq(num(9.99))).toBe(true);
+    expect(s.sleeve.purchased['auto']).toBeUndefined();
   });
 
   it('buys at exactly the cost and deducts it', () => {
     const s = fresh();
-    s.credits = num(12);
+    s.wallet.credits = num(12);
     expect(shop.buy(s, 'auto')).toBe('purchased');
-    expect(s.credits.eq(num(2))).toBe(true);
-    expect(s.purchased['auto']).toBe(1);
+    expect(s.wallet.credits.eq(num(2))).toBe(true);
+    expect(s.sleeve.purchased['auto']).toBe(1);
   });
 
   it('one-time buyables cannot be bought twice; unknown ids are rejected', () => {
     const s = fresh();
-    s.credits = num(100);
+    s.wallet.credits = num(100);
     shop.buy(s, 'auto');
     expect(shop.buy(s, 'auto')).toBe('max-reached');
     expect(shop.buy(s, 'ghost')).toBe('unknown');
-    expect(s.credits.eq(num(90))).toBe(true);
+    expect(s.wallet.credits.eq(num(90))).toBe(true);
   });
 
   it('a gated buyable is locked until its requirement is owned', () => {
     const s = fresh();
-    s.credits = num(1000);
+    s.wallet.credits = num(1000);
     expect(shop.isAvailable(s, 'dup')).toBe(false);
     expect(shop.buy(s, 'dup')).toBe('locked');
-    expect(s.credits.eq(num(1000))).toBe(true);
+    expect(s.wallet.credits.eq(num(1000))).toBe(true);
     shop.buy(s, 'dual');
     expect(shop.isAvailable(s, 'dup')).toBe(true);
   });
 
   it('a repeatable buyable costs 10x more each time, without limit (150, 1500, 15000, ...)', () => {
     const s = fresh();
-    s.credits = num('1e30');
+    s.wallet.credits = num('1e30');
     shop.buy(s, 'dual');
     for (let n = 0; n < 12; n++) {
       expect(shop.costOf(s, 'dup').eq(num(150).mul(num(10).pow(n)))).toBe(true);
       expect(shop.buy(s, 'dup')).toBe('purchased');
     }
-    expect(s.purchased['dup']).toBe(12);
+    expect(s.sleeve.purchased['dup']).toBe(12);
     expect(shop.isMaxed(s, 'dup')).toBe(false);
   });
 
   it('charges the price of the copy being bought and refuses when it cannot be paid', () => {
     const s = fresh();
-    s.credits = num(15 + 150 + 1000);
+    s.wallet.credits = num(15 + 150 + 1000);
     shop.buy(s, 'dual');
     expect(shop.buy(s, 'dup')).toBe('purchased'); // 150
-    expect(s.credits.eq(num(1000))).toBe(true);
+    expect(s.wallet.credits.eq(num(1000))).toBe(true);
     expect(shop.buy(s, 'dup')).toBe('cannot-afford'); // 1500 > 1000
-    expect(s.credits.eq(num(1000))).toBe(true);
+    expect(s.wallet.credits.eq(num(1000))).toBe(true);
   });
 
   it('the global cost multiplier scales every price', () => {
     const pricey = new Shop(config.buyables, numberFactory, 2);
     const s = fresh();
     expect(pricey.costOf(s, 'auto').eq(num(20))).toBe(true);
-    s.credits = num(19);
+    s.wallet.credits = num(19);
     expect(pricey.buy(s, 'auto')).toBe('cannot-afford');
   });
 
   it('maxPurchases limits repeatable buyables', () => {
     const limited = new Shop([{ ...config.buyables[0]!, maxPurchases: 2 }], numberFactory, 1);
     const s = fresh();
-    s.credits = num(100);
+    s.wallet.credits = num(100);
     expect(limited.buy(s, 'auto')).toBe('purchased');
     expect(limited.buy(s, 'auto')).toBe('purchased');
     expect(limited.buy(s, 'auto')).toBe('max-reached');
@@ -193,9 +195,9 @@ describe('Shop', () => {
 describe('serialization', () => {
   it('round-trips a state including huge numbers and copy counts', () => {
     const s = createInitialState(config, numberFactory);
-    s.credits = num('1.5e400');
-    s.network = num(33);
-    s.actions['a'] = {
+    s.wallet.credits = num('1.5e400');
+    s.sleeve.network = num(33);
+    s.sleeve.actions['a'] = {
       xp: num(77),
       sleeveXp: num(12),
       runsTowardSleeveXp: 42,
@@ -204,92 +206,94 @@ describe('serialization', () => {
       running: true,
       progress: 0.25,
     };
-    s.purchased['auto'] = 1;
-    s.purchased['dual'] = 1;
-    s.purchased['dup'] = 7;
+    s.sleeve.purchased['auto'] = 1;
+    s.sleeve.purchased['dual'] = 1;
+    s.sleeve.purchased['dup'] = 7;
 
     const restored = deserializeState(serializeState(s), config, numberFactory)!;
-    expect(restored.credits.eq(s.credits)).toBe(true);
-    expect(restored.network.eq(num(33))).toBe(true);
-    expect(restored.actions['a']!.sleeveXp.eq(num(12))).toBe(true);
-    expect(restored.actions['a']!.runsTowardSleeveXp).toBe(42);
-    expect(restored.actions['a']!.xp.eq(num(77))).toBe(true);
-    expect(restored.actions['a']!.running).toBe(true);
-    expect(restored.actions['a']!.progress).toBe(0.25);
-    expect(restored.purchased).toEqual({ auto: 1, dual: 1, dup: 7 });
+    expect(restored.wallet.credits.eq(s.wallet.credits)).toBe(true);
+    expect(restored.sleeve.network.eq(num(33))).toBe(true);
+    expect(restored.sleeve.actions['a']!.sleeveXp.eq(num(12))).toBe(true);
+    expect(restored.sleeve.actions['a']!.runsTowardSleeveXp).toBe(42);
+    expect(restored.sleeve.actions['a']!.xp.eq(num(77))).toBe(true);
+    expect(restored.sleeve.actions['a']!.running).toBe(true);
+    expect(restored.sleeve.actions['a']!.progress).toBe(0.25);
+    expect(restored.sleeve.purchased).toEqual({ auto: 1, dual: 1, dup: 7 });
   });
 
   it.each([0, 1, 2, 7, 99, '5', null])(
     'refuses a save of another format version (%j): the game starts over instead of guessing',
     (version) => {
-      const json = JSON.parse(serializeState(createInitialState(config, numberFactory)));
+      const json = flatSave(serializeState(createInitialState(config, numberFactory)));
       json.version = version;
-      expect(deserializeState(JSON.stringify(json), config, numberFactory)).toBeNull();
+      expect(deserializeState(asSave(json), config, numberFactory)).toBeNull();
     },
   );
 
   it('round-trips heat, and a save without heat loads with 0', () => {
     const s = createInitialState(config, numberFactory);
-    s.heat = 13;
-    s.heatCooldownMs = 42_000;
+    s.sleeve.heat = 13;
+    s.sleeve.heatCooldownMs = 42_000;
     const restored = deserializeState(serializeState(s), config, numberFactory)!;
-    expect(restored.heat).toBe(13);
-    expect(restored.heatCooldownMs).toBe(42_000);
-    const old = JSON.parse(serializeState(s));
+    expect(restored.sleeve.heat).toBe(13);
+    expect(restored.sleeve.heatCooldownMs).toBe(42_000);
+    const old = flatSave(serializeState(s));
     delete old.heat;
     delete old.heatCooldownMs;
-    const legacy = deserializeState(JSON.stringify(old), config, numberFactory)!;
-    expect(legacy.heat).toBe(0);
-    expect(legacy.heatCooldownMs).toBe(0);
+    const legacy = deserializeState(asSave(old), config, numberFactory)!;
+    expect(legacy.sleeve.heat).toBe(0);
+    expect(legacy.sleeve.heatCooldownMs).toBe(0);
   });
 
   it('keeps owned global buyables across save and load', () => {
     const s = createInitialState(config, numberFactory);
-    s.purchased['speed'] = 1;
-    s.purchased['access'] = 1;
+    s.sleeve.purchased['speed'] = 1;
+    s.sleeve.purchased['access'] = 1;
     const restored = deserializeState(serializeState(s), config, numberFactory)!;
-    expect(restored.purchased).toEqual({ speed: 1, access: 1 });
+    expect(restored.sleeve.purchased).toEqual({ speed: 1, access: 1 });
   });
 
   it("keeps each action's own sleeve xp in saved games", () => {
     const two = createConfig(config, { actions: [config.actions[0]!, { ...config.actions[0]!, id: 'b' }] });
     const s = createInitialState(two, numberFactory);
-    s.actions['a']!.sleeveXp = num(1);
-    s.actions['b']!.sleeveXp = num(2);
+    s.sleeve.actions['a']!.sleeveXp = num(1);
+    s.sleeve.actions['b']!.sleeveXp = num(2);
     const restored = deserializeState(serializeState(s), two, numberFactory)!;
-    expect(restored.actions['a']!.sleeveXp.eq(num(1))).toBe(true);
-    expect(restored.actions['b']!.sleeveXp.eq(num(2))).toBe(true);
+    expect(restored.sleeve.actions['a']!.sleeveXp.eq(num(1))).toBe(true);
+    expect(restored.sleeve.actions['b']!.sleeveXp.eq(num(2))).toBe(true);
   });
 
   it('caps stored copy counts at maxPurchases for one-time buyables', () => {
     const json = JSON.stringify({
-      version: 6,
-      credits: '0',
-      network: '0',
-      actions: {},
-      purchased: { auto: 5, dual: 1, dup: 3 },
+      version: SAVE_VERSION,
+      wallet: { credits: '0' },
+      sleeves: { main: { network: '0', actions: {}, purchased: { auto: 5, dual: 1, dup: 3 } } },
     });
-    expect(deserializeState(json, config, numberFactory)!.purchased).toEqual({ auto: 1, dual: 1, dup: 3 });
+    expect(deserializeState(json, config, numberFactory)!.sleeve.purchased).toEqual({ auto: 1, dual: 1, dup: 3 });
   });
 
   it('returns null for corrupt or incompatible input', () => {
     expect(deserializeState('not json', config, numberFactory)).toBeNull();
     expect(deserializeState('{"version":999}', config, numberFactory)).toBeNull();
-    expect(deserializeState('{"version":6,"credits":5}', config, numberFactory)).toBeNull();
+    expect(deserializeState(`{"version":${SAVE_VERSION},"wallet":{"credits":5}}`, config, numberFactory)).toBeNull();
   });
 
   it('ignores unknown ids and fills in missing ones', () => {
     const json = JSON.stringify({
-      version: 6,
-      credits: '5',
-      network: '0',
-      actions: { ghost: { xp: '9', sleeveXp: '0', runsTowardSleeveXp: 0, running: true, progress: 0.5 } },
-      purchased: { 'ghost-buyable': 1, dual: 1 },
+      version: SAVE_VERSION,
+      wallet: { credits: '5' },
+      sleeves: {
+        main: {
+          network: '0',
+          actions: { ghost: { xp: '9', sleeveXp: '0', runsTowardSleeveXp: 0, running: true, progress: 0.5 } },
+          purchased: { 'ghost-buyable': 1, dual: 1 },
+        },
+      },
     });
     const s = deserializeState(json, config, numberFactory)!;
-    expect(Object.keys(s.actions)).toEqual(['a']);
-    expect(s.actions['a']!.xp.isZero()).toBe(true);
-    expect(s.purchased).toEqual({ dual: 1 });
+    expect(Object.keys(s.sleeve.actions)).toEqual(['a']);
+    expect(s.sleeve.actions['a']!.xp.isZero()).toBe(true);
+    expect(s.sleeve.purchased).toEqual({ dual: 1 });
   });
 });
 
@@ -309,7 +313,7 @@ describe('config helpers', () => {
 
   it('startingCredits seeds a new game', () => {
     const c = createConfig(config, { progression: { startingCredits: 25 } });
-    expect(createInitialState(c, numberFactory).credits.eq(num(25))).toBe(true);
+    expect(createInitialState(c, numberFactory).wallet.credits.eq(num(25))).toBe(true);
   });
 
   it('reports every kind of invalid value', () => {

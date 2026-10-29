@@ -65,7 +65,7 @@ describe('the Re-sleeve button', () => {
     expect(button().textContent).toBe('Re-sleeve');
     expect(button().disabled).toBe(true);
     button().click(); // a double click does nothing
-    expect(game.getState().runs).toHaveLength(0);
+    expect(game.getState().wallet.runs).toHaveLength(0);
     game.tick(5_000);
     render();
     expect(button().disabled).toBe(false);
@@ -79,9 +79,9 @@ describe('the Re-sleeve button', () => {
     game.tick(5_000);
     render();
     button().click();
-    expect(game.getState().runs).toHaveLength(0);
+    expect(game.getState().wallet.runs).toHaveLength(0);
     expect(button().classList.contains('armed')).toBe(true);
     button().click();
-    expect(game.getState().runs).toHaveLength(1);
+    expect(game.getState().wallet.runs).toHaveLength(1);
   });
 });

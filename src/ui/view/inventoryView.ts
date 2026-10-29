@@ -93,7 +93,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
           (isZeroDay && engine.canToggleZeroDays()) ||
           (isAdminKey && engine.canToggleAdminKeys()),
         toggleable,
-        on: (isZeroDay && state.zeroDaysOn) || (isAdminKey && state.adminKeysOn),
+        on: (isZeroDay && state.sleeve.keyToggles['zeroDay'] === true) || (isAdminKey && state.sleeve.keyToggles['adminKey'] === true),
         backChannel,
         get backChannelTip() {
           return backChannel && channel && channelMoles !== undefined
@@ -128,10 +128,10 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
               label,
               drops,
               sharePercent: formatPlain(burnLead.heatFraction * 100),
-              heat: formatPlain(state.heat, HEAT_DECIMALS),
-              heatAfter: formatPlain(state.heat * (1 - burnLead.heatFraction), HEAT_DECIMALS),
+              heat: formatPlain(state.sleeve.heat, HEAT_DECIMALS),
+              heatAfter: formatPlain(state.sleeve.heat * (1 - burnLead.heatFraction), HEAT_DECIMALS),
               count: formatBigNum(factory.fromNumber(count)),
-              canUse: state.heat > 0,
+              canUse: state.sleeve.heat > 0,
             });
           }
           if (isAdminKey && adminKey && adminKeyAction) {
@@ -140,7 +140,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
               drops,
               actionName: adminKeyAction,
               count: formatBigNum(factory.fromNumber(count)),
-              on: state.adminKeysOn,
+              on: state.sleeve.keyToggles['adminKey'] === true,
               canToggle: engine.canToggleAdminKeys(),
               bonusName: adminKey.shard ? nameOf(adminKey.shard.itemId) : null,
               bonusPercent: formatPlain((adminKey.shard?.chance ?? 0) * 100),
@@ -152,7 +152,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
               drops,
               actionName: zeroDayAction,
               count: formatBigNum(factory.fromNumber(count)),
-              on: state.zeroDaysOn,
+              on: state.sleeve.keyToggles['zeroDay'] === true,
               canToggle: engine.canToggleZeroDays(),
             });
           }

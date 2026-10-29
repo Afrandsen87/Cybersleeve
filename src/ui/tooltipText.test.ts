@@ -1,3 +1,4 @@
+import { flat } from '../testing/flatState';
 import { game } from '../testing/gameKit';
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
@@ -9,7 +10,8 @@ import { buildViewModel, statRow } from './viewModel';
 
 const sleeveTip = (g: ReturnType<typeof game>, id: Parameters<typeof statRow>[1]): string =>
   statRow(buildViewModel(g).sleeve.stats, id).tip ?? '';
-const set = (g: ReturnType<typeof game>, patch: Record<string, unknown>): void => void Object.assign(g.getState(), patch);
+const set = (g: ReturnType<typeof game>, patch: Record<string, unknown>): void =>
+  void Object.assign(flat<Record<string, unknown>>(g), patch);
 
 describe('Access Level tooltip', () => {
   const locked = { ...testConfig.actions[0]!, id: 'b', name: 'Locked action', requiredAccessLevel: 3 };
@@ -241,7 +243,9 @@ describe('the tooltips of the real game follow one standard', () => {
       'Cost = 10B credits',
     ]);
     // At level 12 it is 0.012 percent: the numbers follow the game.
-    set(g, { actions: { ...g.getState().actions, 'grow-network': { ...g.getState().actions['grow-network']!, xp: num(1e10) } } });
+    set(g, {
+      actions: { ...g.getState().sleeve.actions, 'grow-network': { ...g.getState().sleeve.actions['grow-network']!, xp: num(1e10) } },
+    });
     const level = g.actionLevel('grow-network');
     expect(level).toBeGreaterThan(0);
     expect(tipNow()).toContain(`Action level = ${level}`);

@@ -10,24 +10,24 @@
  * interface ask, in one place, so `criticalPossible` and `maxCritsPerRun` cannot disagree.
  * Called by: `engine/stats.ts` (`DerivedStats.criticalPossible`, `DerivedStats.maxCritsPerRun`). Calls: nothing (pure).
  */
-import type { ActionId, GameConfig, GameState } from '../types';
+import type { ActionId, GameConfig, StateSlice } from '../types';
 
 /**
  * True when a Zero-day, an Admin key or a banked success can make a completed run of the action critical right now.
  *
- * @param state reads `zeroDaysOn`, `adminKeysOn` and `bankedCriticals`
+ * @param state reads `keyToggles` and `bankedCriticals`
  * @param items reads which action the Zero-day and the Admin key are for
  * @param actionId the action asked about
  * @returns whether the action's next run is covered
  */
 export function criticalCover(
-  state: Pick<GameState, 'zeroDaysOn' | 'adminKeysOn' | 'bankedCriticals'>,
+  state: StateSlice<'keyToggles' | 'bankedCriticals'>,
   items: Pick<GameConfig['items'], 'zeroDay' | 'adminKey'>,
   actionId: ActionId,
 ): boolean {
   return (
-    (state.zeroDaysOn && items.zeroDay?.actionId === actionId) ||
-    (state.adminKeysOn && items.adminKey?.actionId === actionId) ||
-    (state.bankedCriticals[actionId] ?? 0) > 0
+    (state.sleeve.keyToggles['zeroDay'] === true && items.zeroDay?.actionId === actionId) ||
+    (state.sleeve.keyToggles['adminKey'] === true && items.adminKey?.actionId === actionId) ||
+    (state.sleeve.bankedCriticals[actionId] ?? 0) > 0
   );
 }

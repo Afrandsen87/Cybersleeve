@@ -24,6 +24,7 @@ import {
   SKILL_NOSE_FOR_SECRETS,
   RARITY_REFINEMENT,
 } from './gameConfig';
+import { flat } from '../testing/flatState';
 
 describe('Rarity refinement (real content)', () => {
   it('is on the Practice Hacking card after the harvest, needs the harvest and costs 10,000', () => {
@@ -50,7 +51,7 @@ describe('Rarity refinement (real content)', () => {
 
   it('the tooltip just says that it raises the rarity of Kompromat drops with Hacking Proficiency', () => {
     const g = createGame();
-    (g.getState() as { hackingProficiency: unknown }).hackingProficiency = num(250);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(250);
     const tip = buildViewModel(g)
       .actions.find((a) => a.id === PRACTICE_HACKING)!
       .buyables.find((b) => b.id === RARITY_REFINEMENT)!.tip;
@@ -67,7 +68,7 @@ describe('Rarity refinement (real content)', () => {
 describe('Rarity refinement counts Hacking Proficiency the way the drops do (real content)', () => {
   const uncommonChance = (muscleMemory: boolean): number => {
     const g = createGame();
-    const state = g.getState() as unknown as { hackingProficiency: unknown; purchased: Record<string, number> };
+    const state = flat<{ hackingProficiency: unknown; purchased: Record<string, number> }>(g);
     state.hackingProficiency = num(9.6);
     state.purchased[KOMPROMAT_HARVEST] = 1;
     state.purchased[RARITY_REFINEMENT] = 1;
@@ -85,7 +86,7 @@ describe('item tooltips show the drop chance of the stack (real content)', () =>
   const tip = (g: ReturnType<typeof createGame>, itemId: string, rarityId: string): string =>
     buildViewModel(g).inventory.rows.find((r) => r.itemId === itemId && r.rarityId === rarityId)!.tip;
   const own = (g: ReturnType<typeof createGame>, ...ids: string[]): void => {
-    for (const id of ids) (g.getState() as unknown as { purchased: Record<string, number> }).purchased[id] = 1;
+    for (const id of ids) (g.getState() as unknown as { sleeve: { purchased: Record<string, number> } }).sleeve.purchased[id] = 1;
   };
 
   it('is 0% for every item before anything that drops it is bought', () => {
@@ -150,13 +151,13 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
     g.buy(INDUSTRIAL_ESPIONAGE);
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
-    const held = g.getState().inventory[AUGMENT_SCHEMATIC]!['common']!;
+    const held = g.getState().wallet.inventory[AUGMENT_SCHEMATIC]!['common']!;
     expect(held).toBeGreaterThanOrEqual(1);
     const target = PRACTICE_HACKING;
     expect(g.xpPerRun(target).toNumber()).toBe(1);
     expect(g.augmentAction(target, 'common')).toBe(true);
     expect(g.xpPerRun(target).toNumber()).toBeCloseTo(1 + gameConfig.items.augment!.xpBonusPerItem, 12);
-    expect(g.getState().inventory[AUGMENT_SCHEMATIC]!['common']).toBe(held - 1);
+    expect(g.getState().wallet.inventory[AUGMENT_SCHEMATIC]!['common']).toBe(held - 1);
   });
 
   it('every action card has the button, and the Augment schematic is a normal item in the Inventory', () => {
@@ -171,47 +172,49 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
 describe('Augment schematics are applied, never paid out (real content)', () => {
   it('cannot be sold, while Kompromat files can', () => {
     const g = createGame();
-    (g.getState() as unknown as { inventory: unknown }).inventory = {
+    (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = {
       [AUGMENT_SCHEMATIC]: { common: 4 },
       [KOMPROMAT]: { common: 4 },
     };
     expect(g.sellItems(AUGMENT_SCHEMATIC, 'common', 'all')).toBe(0);
-    expect(g.getState().inventory[AUGMENT_SCHEMATIC]!['common']).toBe(4);
+    expect(g.getState().wallet.inventory[AUGMENT_SCHEMATIC]!['common']).toBe(4);
     expect(g.sellItems(KOMPROMAT, 'common', 'all')).toBe(4);
   });
 
   it('the rarities multiply: 3 common, 3 uncommon and 3 rare give (1 + 3 x bonus) cubed', () => {
     const g = createGame();
     const bonus = gameConfig.items.augment!.xpBonusPerItem;
-    (g.getState() as unknown as { inventory: unknown }).inventory = { [AUGMENT_SCHEMATIC]: { common: 3, uncommon: 3, rare: 3 } };
+    (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = {
+      [AUGMENT_SCHEMATIC]: { common: 3, uncommon: 3, rare: 3 },
+    };
     for (const rarity of ['common', 'uncommon', 'rare']) {
       for (let i = 0; i < 3; i++) expect(g.augmentAction(PRACTICE_HACKING, rarity)).toBe(true);
     }
-    expect(g.getState().actions[PRACTICE_HACKING]!.augments).toEqual({ common: 3, uncommon: 3, rare: 3 });
+    expect(g.getState().sleeve.actions[PRACTICE_HACKING]!.augments).toEqual({ common: 3, uncommon: 3, rare: 3 });
     expect(g.xpPerRun(PRACTICE_HACKING).toNumber()).toBeCloseTo((1 + 3 * bonus) ** 3, 12);
   });
 
   it('only the chosen rarity is used up', () => {
     const g = createGame();
-    (g.getState() as unknown as { inventory: unknown }).inventory = { [AUGMENT_SCHEMATIC]: { common: 2, uncommon: 5 } };
+    (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { [AUGMENT_SCHEMATIC]: { common: 2, uncommon: 5 } };
     for (let i = 0; i < 3; i++) g.augmentAction(PRACTICE_HACKING, 'uncommon');
-    expect(g.getState().actions[PRACTICE_HACKING]!.augments).toEqual({ uncommon: 3 });
-    expect(g.getState().inventory[AUGMENT_SCHEMATIC]).toMatchObject({ common: 2, uncommon: 2 });
+    expect(g.getState().sleeve.actions[PRACTICE_HACKING]!.augments).toEqual({ uncommon: 3 });
+    expect(g.getState().wallet.inventory[AUGMENT_SCHEMATIC]).toMatchObject({ common: 2, uncommon: 2 });
   });
 });
 
 describe('Back Channel Deals (real content)', () => {
   it('Moles make heat cool 200% faster: three times the pace, one Mole per point of heat', () => {
     const g = createGame();
-    (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
-    (g.getState().purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
-    (g.getState().purchased as Record<string, number>)[SKILL_NOSE_FOR_SECRETS] = 1; // Back Channel Deals grows from it
-    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // Moles are heat: it waits for that Overclock
+    (g.getState().sleeve.actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
+    (g.getState().sleeve.purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[SKILL_NOSE_FOR_SECRETS] = 1; // Back Channel Deals grows from it
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // Moles are heat: it waits for that Overclock
     expect(g.buy(SKILL_BACK_CHANNEL)).toBe('purchased');
-    (g.getState() as unknown as { heat: number; moles: number }).heat = 20;
-    (g.getState() as unknown as { heat: number; moles: number }).moles = 5;
+    (g.getState() as unknown as { sleeve: { heat: number; moles: number } }).sleeve.heat = 20;
+    (g.getState() as unknown as { sleeve: { heat: number; moles: number } }).sleeve.moles = 5;
     g.tick(gameConfig.sleeve.heatCooldownMs / 3); // a third of a normal cycle: one boosted cycle at 3x
-    expect(g.getState().heat).toBe(19);
-    expect(g.getState().moles).toBe(4);
+    expect(g.getState().sleeve.heat).toBe(19);
+    expect(g.getState().sleeve.moles).toBe(4);
   });
 });

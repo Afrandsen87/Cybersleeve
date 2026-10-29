@@ -9,12 +9,12 @@
  */
 import type { Inventory } from '../items/inventory';
 import { multinomial, perRunEvents, type RandomSource } from '../kernel/sampling';
-import type { CorporationEffect, GameConfig, GameState } from '../types';
+import type { CorporationEffect, GameConfig, StateSlice } from '../types';
 
 /** What an effect handler may read and change. */
 export interface CorporationEffectContext {
   /** The live game state (an effect changes items through the units below, and the corporation's own figures directly). */
-  readonly state: Pick<GameState, 'inventory' | 'corporation'>;
+  readonly state: StateSlice<'inventory' | 'corporation'>;
   /** Moves items in and out of the inventory. */
   readonly inventory: Inventory;
   /** Randomness (inject a seeded one in tests). */
@@ -59,7 +59,7 @@ const upgradeRandomItem: CorporationEffectHandler<Extract<CorporationEffect, { k
     if (upgrades <= 0) return;
     // The highest rarity has nothing to be upgraded to, so it takes no part.
     const upgradable = rarityIds.slice(0, -1);
-    const held = upgradable.map((rarity) => state.inventory[effect.itemId]?.[rarity] ?? 0);
+    const held = upgradable.map((rarity) => state.wallet.inventory[effect.itemId]?.[rarity] ?? 0);
     const picks = multinomial(
       Math.min(
         upgrades,
@@ -89,7 +89,7 @@ const upgradeRandomItem: CorporationEffectHandler<Extract<CorporationEffect, { k
 /** `acquireStock`: the number of runs that acquire a stock is drawn from the binomial distribution, one stock each. */
 const acquireStock: CorporationEffectHandler<Extract<CorporationEffect, { kind: 'acquireStock' }>> = {
   apply(effect, runs, { state, random }) {
-    state.corporation.stocks += perRunEvents(runs, effect.chance, random);
+    state.wallet.corporation.stocks += perRunEvents(runs, effect.chance, random);
   },
   validate(effect, where, _items, errors) {
     if (!(Number.isFinite(effect.chance) && effect.chance > 0 && effect.chance <= 1)) {

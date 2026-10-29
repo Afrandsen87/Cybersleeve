@@ -33,10 +33,10 @@ describe('the eight skill effects', () => {
     for (const g of [plain, fast]) mutable(g).heat = 100;
     plain.tick(60_000);
     fast.tick(60_000);
-    expect(plain.getState().heat).toBe(99);
-    expect(fast.getState().heat).toBe(99); // one full cycle done in both
-    expect(fast.getState().heatCooldownMs).toBeGreaterThan(plain.getState().heatCooldownMs); // but 5% further into the next
-    expect(fast.getState().heatCooldownMs).toBeCloseTo(3_000, 6);
+    expect(plain.getState().sleeve.heat).toBe(99);
+    expect(fast.getState().sleeve.heat).toBe(99); // one full cycle done in both
+    expect(fast.getState().sleeve.heatCooldownMs).toBeGreaterThan(plain.getState().sleeve.heatCooldownMs); // but 5% further into the next
+    expect(fast.getState().sleeve.heatCooldownMs).toBeCloseTo(3_000, 6);
   });
 
   describe('a heat cooldown cycle that removes more heat per sleeve level of an action', () => {
@@ -63,9 +63,9 @@ describe('the eight skill effects', () => {
       const amount = g.sleeveStats().heatCooldownAmount;
       mutable(g).heat = 100;
       g.tick(testConfig.sleeve.heatCooldownMs - 1);
-      expect(g.getState().heat).toBe(100); // the cooldown is still in discrete steps: nothing until the cycle completes
+      expect(g.getState().sleeve.heat).toBe(100); // the cooldown is still in discrete steps: nothing until the cycle completes
       g.tick(1);
-      expect(g.getState().heat).toBe(100 - amount);
+      expect(g.getState().sleeve.heat).toBe(100 - amount);
     });
 
     it('comes online at once: the bigger step applies from the first cycle after the skill is bought', () => {
@@ -75,7 +75,7 @@ describe('the eight skill effects', () => {
       g.tick(testConfig.sleeve.heatCooldownMs / 2); // half a cycle in without the skill
       g.buy('purge');
       g.tick(testConfig.sleeve.heatCooldownMs / 2);
-      expect(g.getState().heat).toBe(100 - g.sleeveStats().heatCooldownAmount);
+      expect(g.getState().sleeve.heat).toBe(100 - g.sleeveStats().heatCooldownAmount);
     });
 
     it('the last cycle takes only the whole points that are left, so a big step never strands heat', () => {
@@ -83,7 +83,7 @@ describe('the eight skill effects', () => {
       const amount = g.sleeveStats().heatCooldownAmount;
       mutable(g).heat = amount - 0.5; // less than one full step, and a fraction on top
       g.tick(testConfig.sleeve.heatCooldownMs);
-      expect(g.getState().heat).toBe(0.5); // every whole point went; only the fraction stays, as before
+      expect(g.getState().sleeve.heat).toBe(0.5); // every whole point went; only the fraction stays, as before
     });
 
     it('a step of any size gives the same result in one long tick and many short ones', () => {
@@ -92,8 +92,8 @@ describe('the eight skill effects', () => {
       for (const g of [long, short]) mutable(g).heat = 1_000;
       long.tick(5 * testConfig.sleeve.heatCooldownMs + 7_000);
       for (let i = 0; i < 5 * 60 + 7; i++) short.tick(1_000);
-      expect(short.getState().heat).toBe(long.getState().heat);
-      expect(short.getState().heatCooldownMs).toBeCloseTo(long.getState().heatCooldownMs, 6);
+      expect(short.getState().sleeve.heat).toBe(long.getState().sleeve.heat);
+      expect(short.getState().sleeve.heatCooldownMs).toBeCloseTo(long.getState().sleeve.heatCooldownMs, 6);
     });
 
     it('rejects a rate that is not positive and an unknown action', () => {
@@ -112,7 +112,7 @@ describe('the eight skill effects', () => {
     // test config: straight line, so the multiplier is 1 + proficiency
     expect(before).toBeCloseTo(101, 8);
     expect(g.sleeveStats().hackingMultiplier).toBeCloseTo(1 + 105, 8);
-    expect(g.getState().hackingProficiency.eq(num(100))).toBe(true); // the stored value is unchanged
+    expect(g.getState().sleeve.hackingProficiency.eq(num(100))).toBe(true); // the stored value is unchanged
   });
 
   it('1% less XP for action levels: level 1 comes at 9.9 XP instead of 10, and the sleeve levels stay', () => {
@@ -175,7 +175,7 @@ describe('item skills', () => {
     g.buy('auto');
     g.startAction('a');
     g.tick(10_000 * 20_000);
-    return (g.getState().inventory['file']?.['common'] ?? 0) / g.getState().actions['a']!.xp.toNumber();
+    return (g.getState().wallet.inventory['file']?.['common'] ?? 0) / g.getState().sleeve.actions['a']!.xp.toNumber();
   };
 
   it('Double Kompromat base drop chance doubles the chance of a drop', () => {

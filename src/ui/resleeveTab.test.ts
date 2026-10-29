@@ -7,6 +7,7 @@ import { networkAction, testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel, statRow } from './viewModel';
 import { skillViews } from '../testing/skillViews';
+import { flat } from '../testing/flatState';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 
@@ -28,7 +29,7 @@ const tree = [
 const config = createConfig(testConfig, { actions: [testConfig.actions[0]!, networkAction], buyables: [...testConfig.buyables, ...tree] });
 
 type Loose = { network: unknown; actions: Record<string, { xp: unknown }> };
-const loose = (g: { getState(): unknown }): Loose => g.getState() as unknown as Loose;
+const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
 /** A game that has re-sleeved `times` times (each gives a re-sleeve point). */
 const resleeved = (times: number, c = config): ReturnType<typeof createGame> => {
@@ -65,10 +66,10 @@ describe('the Network entry for synthetic sleeves', () => {
     g.buy('eu');
     g.resleeve();
     g.buy('syn');
-    const state = g.getState() as unknown as {
+    const state = flat<{
       runs: { creditsPerSecond: unknown; actionLevelsTotal: number }[];
       synths: { runIndex: number }[];
-    };
+    }>(g);
     state.runs.push({ creditsPerSecond: num(40), actionLevelsTotal: 0 }, { creditsPerSecond: num(2), actionLevelsTotal: 0 });
     state.synths.push({ runIndex: 2 }, { runIndex: 3 });
     const stats = buildViewModel(g).network.stats;

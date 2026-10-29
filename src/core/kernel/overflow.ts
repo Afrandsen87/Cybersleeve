@@ -4,7 +4,7 @@
  * Reaction to numbers growing beyond the representable range.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
-import { repairBig, repairScalars, SCALAR_FIELDS } from './fields';
+import { repairBig, repairScalars, SCALAR_FIELDS, scalarValue } from './fields';
 import { INFINITY } from './infinity';
 import type { GameState } from '../types';
 
@@ -38,7 +38,7 @@ export function createClampOverflowPolicy(factory: NumberFactory, onInfinity: ()
   return {
     apply(state) {
       let changed = repairScalars(state, factory);
-      for (const action of Object.values(state.actions)) {
+      for (const action of Object.values(state.sleeve.actions)) {
         for (const key of ['xp', 'sleeveXp'] as const) {
           const fixed = repairBig(action[key], factory);
           if (fixed) {
@@ -55,9 +55,8 @@ export function createClampOverflowPolicy(factory: NumberFactory, onInfinity: ()
 
 /** True when any amount of the state (a big scalar, an action's XP or sleeve XP) is at or above the game's infinity. */
 function reachedInfinity(state: GameState, infinity: BigNum): boolean {
-  const bag = state as unknown as Record<string, BigNum | number>;
   for (const f of SCALAR_FIELDS) {
-    if (f.kind === 'big' && (bag[f.key] as BigNum).gte(infinity)) return true;
+    if (f.kind === 'big' && (scalarValue(state, f) as BigNum).gte(infinity)) return true;
   }
-  return Object.values(state.actions).some((a) => a.xp.gte(infinity) || a.sleeveXp.gte(infinity));
+  return Object.values(state.sleeve.actions).some((a) => a.xp.gte(infinity) || a.sleeveXp.gte(infinity));
 }

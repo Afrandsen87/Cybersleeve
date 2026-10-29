@@ -33,8 +33,8 @@ function setup() {
   g.startAction('a');
   g.tick(35_000);
   const state = g.getState() as GameState;
-  state.network = FACTORY.fromNumber(40);
-  state.heat = 12;
+  state.sleeve.network = FACTORY.fromNumber(40);
+  state.sleeve.heat = 12;
   const progression = new Progression(config, FACTORY);
   const economy = new Economy(config, FACTORY);
   const definition = createActionLookup(config.actions);
@@ -105,7 +105,7 @@ describe('DerivedStats equals the services it composes', () => {
     expect(big(s.facade.passiveCreditsPerNode())).toBe(big(s.income.passiveCreditsPerNode()));
     expect(s.facade.creditKeepFactor()).toBe(s.income.creditKeepFactor());
     expect(s.facade.networkGrowthRate()).toBe(s.income.networkGrowthRate());
-    const perSecond = s.income.taxedCreditsPerNode().toNumber() * s.state.network.toNumber();
+    const perSecond = s.income.taxedCreditsPerNode().toNumber() * s.state.sleeve.network.toNumber();
     expect(s.income.passiveCreditsPerSecond().toNumber()).toBeCloseTo(perSecond, 9);
   });
 

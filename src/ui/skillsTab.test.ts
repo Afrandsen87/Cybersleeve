@@ -7,6 +7,7 @@ import { testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel, statRow } from './viewModel';
 import { skillViews } from '../testing/skillViews';
+import { flat } from '../testing/flatState';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 
@@ -29,7 +30,7 @@ const inert = { id: 'z', name: 'Z', baseDurationMs: 1_000, reward: num(0), xpPer
 const config = createConfig(testConfig, { actions: [...testConfig.actions, inert], buyables: [...testConfig.buyables, ...skills] });
 
 type Loose = { inventory: unknown; moles: number; heat: number; actions: Record<string, { xp: unknown }> };
-const loose = (g: { getState(): unknown }): Loose => g.getState() as unknown as Loose;
+const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
 /** A game in which the first skill point has been earned (the inert action reached level 1). */
 const pointGame = (): ReturnType<typeof createGame> => {
@@ -254,8 +255,8 @@ describe('the screen', () => {
     root.querySelector<HTMLButtonElement>('.item-tile')!.click();
     expect(button.disabled).toBe(false);
     button.click();
-    expect(game.getState().inventory['file']!['common']).toBe(2);
-    expect(game.getState().moles).toBe(5);
+    expect(game.getState().wallet.inventory['file']!['common']).toBe(2);
+    expect(game.getState().sleeve.moles).toBe(5);
     const moles = [...root.querySelectorAll<HTMLElement>('.stat')].find((r) => r.textContent?.startsWith('Moles'))!;
     expect(moles.textContent).toBe('Moles5');
   });

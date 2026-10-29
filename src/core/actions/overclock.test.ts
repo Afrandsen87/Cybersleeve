@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { networkAction, setCredits, testConfig } from '../../testing/testConfig';
 import { coolHeat, createConfig, deserializeState, serializeState, validateConfig, type BuyableDefinition, type GameConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /** Overclock on the test action: 50% faster, 1 heat per minute. The second action ('net') has no Overclock rule. */
 const RULE = { speedBonus: 0.5, heatPerMinute: 1 };
@@ -73,7 +74,7 @@ describe('Overclock', () => {
     const g = game();
     expect(g.overclockStatus('a')).toBeNull();
     expect(g.toggleOverclock('a')).toBe(false);
-    expect(g.getState().overclocked).toEqual({});
+    expect(g.getState().sleeve.overclocked).toEqual({});
   });
 
   it('the upgrade alone does not unlock it', () => {
@@ -105,7 +106,7 @@ describe('Overclock', () => {
     buyTimes(g, 'oc-a');
     expect(g.overclockStatus('net')).toBeNull();
     expect(g.toggleOverclock('net')).toBe(false);
-    expect(g.getState().overclocked).toEqual({});
+    expect(g.getState().sleeve.overclocked).toEqual({});
   });
 
   it('every upgrade copy makes the gains 10% stronger: strength 1, 1.1, 1.2, 1.3 and a speed bonus of 50%, 55%, 60%, 65%', () => {
@@ -131,7 +132,7 @@ describe('Overclock', () => {
     expect(g.overclockStatus('a')!.on).toBe(true);
     expect(g.toggleOverclock('a')).toBe(false);
     expect(g.overclockStatus('a')!.on).toBe(false);
-    expect(g.getState().overclocked).toEqual({});
+    expect(g.getState().sleeve.overclocked).toEqual({});
   });
 
   it('while on, the action is 50% faster; while off, nothing changes', () => {
@@ -165,7 +166,7 @@ describe('Overclock', () => {
     buyTimes(g, 'oc-a');
     g.toggleOverclock('a');
     g.resleeve();
-    expect(g.getState().overclocked).toEqual({});
+    expect(g.getState().sleeve.overclocked).toEqual({});
   });
 });
 
@@ -181,15 +182,15 @@ describe('Overclock heat', () => {
   };
 
   it('adds heat in fractions: half a point after 30 s of running', () => {
-    expect(run(30_000).getState().heat).toBeCloseTo(0.5, 9);
+    expect(run(30_000).getState().sleeve.heat).toBeCloseTo(0.5, 9);
   });
 
   it('adds nothing while it is off', () => {
-    expect(run(30_000, false).getState().heat).toBe(0);
+    expect(run(30_000, false).getState().sleeve.heat).toBe(0);
   });
 
   it('adds one point per minute of running: 90 s gives 1.5 heat (the first cooldown cycle is not over yet)', () => {
-    expect(run(90_000).getState().heat).toBeCloseTo(1.5, 9);
+    expect(run(90_000).getState().sleeve.heat).toBeCloseTo(1.5, 9);
   });
 
   it('is charged only for the time the action ran: a manual run of 6.67 s on a 100 s tick', () => {
@@ -198,8 +199,8 @@ describe('Overclock heat', () => {
     g.toggleOverclock('a');
     g.startAction('a');
     g.tick(100_000);
-    expect(g.getState().actions['a']!.running).toBe(false);
-    expect(g.getState().heat).toBeCloseTo(10_000 / 1.5 / 60_000, 9);
+    expect(g.getState().sleeve.actions['a']!.running).toBe(false);
+    expect(g.getState().sleeve.heat).toBeCloseTo(10_000 / 1.5 / 60_000, 9);
   });
 
   it('is not charged to an action that is not running', () => {
@@ -207,7 +208,7 @@ describe('Overclock heat', () => {
     buyTimes(g, 'oc-a');
     g.toggleOverclock('a');
     g.tick(60_000);
-    expect(g.getState().heat).toBe(0);
+    expect(g.getState().sleeve.heat).toBe(0);
   });
 
   it('one long tick and many short ones add the same heat and pay the same credits', () => {
@@ -218,12 +219,12 @@ describe('Overclock heat', () => {
     many.toggleOverclock('a');
     many.startAction('a');
     for (let i = 0; i < 1800; i++) many.tick(50);
-    expect(many.getState().heat).toBeCloseTo(one.getState().heat, 6);
-    expect(many.getState().credits.toNumber()).toBeCloseTo(one.getState().credits.toNumber(), 6);
+    expect(many.getState().sleeve.heat).toBeCloseTo(one.getState().sleeve.heat, 6);
+    expect(many.getState().wallet.credits.toNumber()).toBeCloseTo(one.getState().wallet.credits.toNumber(), 6);
   });
 
   it('overclocking pays more runs in the same time: 15 runs in 100 s instead of 10', () => {
-    const credits = (g: ReturnType<typeof game>) => g.getState().credits.toNumber();
+    const credits = (g: ReturnType<typeof game>) => g.getState().wallet.credits.toNumber();
     const off = run(100_000, false);
     const on = run(100_000, true);
     expect(credits(on) - credits(off)).toBeCloseTo(5 * 0.5, 6); // both games bought the same things; 10 runs against 15 at 0.5 each
@@ -233,17 +234,17 @@ describe('Overclock heat', () => {
 describe('heat in fractions of a point', () => {
   it('does not cool below one whole point: 0.9 heat stays for ten minutes', () => {
     const g = game();
-    (g.getState() as { heat: number }).heat = 0.9;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 0.9;
     g.tick(600_000);
-    expect(g.getState().heat).toBeCloseTo(0.9, 12);
-    expect(g.getState().heatCooldownMs).toBe(0);
+    expect(g.getState().sleeve.heat).toBeCloseTo(0.9, 12);
+    expect(g.getState().sleeve.heatCooldownMs).toBe(0);
   });
 
   it('removes whole points only: 3.5 heat cools to 0.5 and stays there', () => {
     const g = game();
-    (g.getState() as { heat: number }).heat = 3.5;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 3.5;
     g.tick(60_000 * 10);
-    expect(g.getState().heat).toBeCloseTo(0.5, 12);
+    expect(g.getState().sleeve.heat).toBeCloseTo(0.5, 12);
   });
 
   it('starts cooling when the heat reaches 1: the cycle waits at 0 until then', () => {
@@ -266,9 +267,9 @@ describe('heat in fractions of a point', () => {
 
   it('survives a save with fractional heat', () => {
     const g = game();
-    (g.getState() as { heat: number }).heat = 1.25;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 1.25;
     const restored = deserializeState(serializeState(g.getState()), configWith(), numberFactory)!;
-    expect(restored.heat).toBe(1.25);
+    expect(restored.sleeve.heat).toBe(1.25);
   });
 });
 
@@ -326,10 +327,10 @@ describe('Focus', () => {
     expect(g.focusStatus('net')).toMatchObject({ used: 1, slots: 1, canSwitchOn: false });
     expect(g.toggleFocus('net')).toBe(false);
     expect(g.currentSpeed('net')).toBe(netSpeed); // the refused toggle changed nothing
-    expect(g.getState().focused).toEqual({ a: true });
+    expect(g.getState().sleeve.focused).toEqual({ a: true });
     expect(g.toggleFocus('a')).toBe(false); // switching off always works
     expect(g.toggleFocus('net')).toBe(true);
-    expect(g.getState().focused).toEqual({ net: true });
+    expect(g.getState().sleeve.focused).toEqual({ net: true });
   });
 
   it('each slot upgrade is one more slot: with a second slot two actions are focused at the same 25% each', () => {
@@ -366,7 +367,7 @@ describe('Focus', () => {
     g.toggleFocus('a');
     g.startAction('a');
     g.tick(120_000);
-    expect(g.getState().heat).toBe(0);
+    expect(g.getState().sleeve.heat).toBe(0);
   });
 
   it('is reset by re-sleeving', () => {
@@ -374,7 +375,7 @@ describe('Focus', () => {
     buyTimes(g, 'fo-a');
     g.toggleFocus('a');
     g.resleeve();
-    expect(g.getState().focused).toEqual({});
+    expect(g.getState().sleeve.focused).toEqual({});
   });
 });
 
@@ -390,26 +391,26 @@ describe('saving and loading the toggles', () => {
 
   it('round-trips both toggles', () => {
     const restored = deserializeState(serializeState(owned().getState()), configWith(), numberFactory)!;
-    expect(restored.overclocked).toEqual({ a: true });
-    expect(restored.focused).toEqual({ net: true });
+    expect(restored.sleeve.overclocked).toEqual({ a: true });
+    expect(restored.sleeve.focused).toEqual({ net: true });
   });
 
   it('a save without the toggle fields loads with both off', () => {
-    const json = JSON.parse(serializeState(owned().getState()));
+    const json = flatSave(serializeState(owned().getState()));
     delete json.overclocked;
     delete json.focused;
-    const restored = deserializeState(JSON.stringify(json), configWith(), numberFactory)!;
-    expect(restored.overclocked).toEqual({});
-    expect(restored.focused).toEqual({});
+    const restored = deserializeState(asSave(json), configWith(), numberFactory)!;
+    expect(restored.sleeve.overclocked).toEqual({});
+    expect(restored.sleeve.focused).toEqual({});
   });
 
   it('ignores a toggle whose unlock is not owned, that has no rule, or that names an unknown action', () => {
-    const json = JSON.parse(serializeState(game().getState()));
+    const json = flatSave(serializeState(game().getState()));
     json.overclocked = { a: true, net: true, ghost: true };
     json.focused = { a: true, net: true, ghost: true };
-    const restored = deserializeState(JSON.stringify(json), configWith(), numberFactory)!;
-    expect(restored.overclocked).toEqual({});
-    expect(restored.focused).toEqual({});
+    const restored = deserializeState(asSave(json), configWith(), numberFactory)!;
+    expect(restored.sleeve.overclocked).toEqual({});
+    expect(restored.sleeve.focused).toEqual({});
   });
 
   it('keeps no more focused actions than there are slots, and none whose unlock is missing', () => {
@@ -417,12 +418,12 @@ describe('saving and loading the toggles', () => {
     buyTimes(g, 'oc-a');
     buyTimes(g, 'fo-a');
     buyTimes(g, 'fo-net');
-    const json = JSON.parse(serializeState(g.getState()));
+    const json = flatSave(serializeState(g.getState()));
     json.focused = { a: true, net: true }; // one free slot only
     json.overclocked = { net: true, a: 'yes' };
-    const restored = deserializeState(JSON.stringify(json), configWith(), numberFactory)!;
-    expect(restored.focused).toEqual({ a: true });
-    expect(restored.overclocked).toEqual({});
+    const restored = deserializeState(asSave(json), configWith(), numberFactory)!;
+    expect(restored.sleeve.focused).toEqual({ a: true });
+    expect(restored.sleeve.overclocked).toEqual({});
   });
 
   it('a loaded game keeps every invariant', () => {

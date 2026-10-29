@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { seededRandom } from '../../testing/random';
 import { setCredits, setSleeveXp, testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, serializeState, validateConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /** Test content: the corporation is open; a purchase of action `c1` gives its runs a 100% (or `chance`) chance to acquire a stock. */
 const contentWith = (chance: number) =>
@@ -31,7 +32,7 @@ const contentWith = (chance: number) =>
 
 const open = (chance = 1) => {
   const g = createGame({ config: contentWith(chance), random: seededRandom(1) });
-  (g.getState().purchased as Record<string, number>)['inc'] = 1;
+  (g.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
   return g;
 };
 
@@ -88,15 +89,15 @@ describe('the stock a corporation run can acquire', () => {
     expect(g.ownedCount('stock')).toBe(1);
     expect(g.corporationStocks()).toBe(1);
     const back = deserializeState(serializeState(g.getState()), contentWith(1), numberFactory)!;
-    expect(back.corporation.stocks).toBe(1);
+    expect(back.wallet.corporation.stocks).toBe(1);
   });
 
   it('a save without stocks, or with a bad count, reads as 0', () => {
     const g = open();
-    const raw = JSON.parse(serializeState(g.getState()));
+    const raw = flatSave(serializeState(g.getState()));
     for (const bad of [undefined, -3, 1.5, 'x', null]) {
       raw.corporation.stocks = bad;
-      expect(deserializeState(JSON.stringify(raw), contentWith(1), numberFactory)!.corporation.stocks).toBe(0);
+      expect(deserializeState(asSave(raw), contentWith(1), numberFactory)!.wallet.corporation.stocks).toBe(0);
     }
   });
 

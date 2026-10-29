@@ -46,8 +46,8 @@ describe('the newer re-sleeve skills give the same result in one long tick and i
     const steps = 2_000; // 20 s each, shorter than a run (about 51 s)
     once.tick(total);
     for (let i = 0; i < steps; i++) stepped.tick(total / steps);
-    const a = once.getState().actions['a']!;
-    const b = stepped.getState().actions['a']!;
+    const a = once.getState().sleeve.actions['a']!;
+    const b = stepped.getState().sleeve.actions['a']!;
     expect(once.actionLevel('a'), 'the run crossed the level the bonus ends at').toBeGreaterThanOrEqual(2);
     expect(a.xp.toNumber()).toBeCloseTo(b.xp.toNumber(), 6);
     expect(once.actionLevel('a')).toBe(stepped.actionLevel('a'));

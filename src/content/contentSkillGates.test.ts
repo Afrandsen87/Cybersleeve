@@ -112,7 +112,10 @@ describe('sleeve levels and re-sleeving', () => {
   it('they are unavailable in a new game and available after one finished sleeve-run', () => {
     const g = createGame();
     for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(g.isBuyableAvailable(id), id).toBe(false);
-    (g.getState().runs as { creditsPerSecond: unknown; actionLevelsTotal: number }[]).push({ creditsPerSecond: 0, actionLevelsTotal: 0 });
+    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number }[]).push({
+      creditsPerSecond: 0,
+      actionLevelsTotal: 0,
+    });
     for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(g.isBuyableAvailable(id), id).toBe(true);
   });
 });
@@ -122,7 +125,7 @@ describe('the action speed tip', () => {
   it('does not mention the sleeve level before sleeve levels are unlocked, and does after', () => {
     const g = createGame();
     expect(tip(g)).not.toMatch(/sleeve/i);
-    (g.getState().purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
     expect(tip(g)).toMatch(/Sleeve Level/);
   });
 });

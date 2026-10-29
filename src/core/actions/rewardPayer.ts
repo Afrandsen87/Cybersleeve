@@ -48,7 +48,7 @@ export class RewardPayer {
    * @param scale optional extra factor on one run's amount (a critical success pays `rewardMultiplier` times); default none
    */
   payRun(def: ActionDefinition, runs: BigNum, scale?: BigNum): void {
-    const gross = this.economy.grossReward(def, this.state.network, this.multipliers.rewardMultiplier(def.id));
+    const gross = this.economy.grossReward(def, this.state.sleeve.network, this.multipliers.rewardMultiplier(def.id));
     payReward(this.state, def.rewardKind ?? DEFAULT_REWARD_KIND, scale ? gross.mul(scale) : gross, runs);
   }
 

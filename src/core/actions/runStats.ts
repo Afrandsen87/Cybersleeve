@@ -74,7 +74,7 @@ export class RunStats {
   /** Everything the speed factors of an action read: its levels (action level including the level bonus), the interface speed and the toggles. */
   private speedContext(id: ActionId): SpeedContext {
     const overclock = this.toggles.activeOverclock(id);
-    const focus = this.state.focused[id] === true ? this.toggles.focusStatus(id) : null;
+    const focus = this.state.sleeve.focused[id] === true ? this.toggles.focusStatus(id) : null;
     return {
       actionId: id,
       actionLevel: this.progression.actionLevel(this.state, id) + this.toggles.levelBonus(id),
@@ -102,7 +102,7 @@ export class RunStats {
 
   /** Amount earned per completed run (heat does not tax it). @throws Error if the action id is unknown */
   rewardPerRun(id: ActionId): BigNum {
-    return this.economy.grossReward(this.definition(id), this.state.network, this.rewardMultiplier(id));
+    return this.economy.grossReward(this.definition(id), this.state.sleeve.network, this.rewardMultiplier(id));
   }
 
   /** What a completed run actually adds now: `rewardPerRun`, rounded down for whole-unit rewards. Heat does not tax it. @throws Error if unknown */
@@ -114,7 +114,7 @@ export class RunStats {
   xpPerRun(id: ActionId): BigNum {
     const base = this.economy.xpPerRun(this.definition(id));
     const bonus = this.config.items.augment?.xpBonusPerItem ?? 0;
-    const augments = bonus > 0 ? augmentXpFactor(this.state.actions[id]?.augments ?? {}, bonus) : 1;
+    const augments = bonus > 0 ? augmentXpFactor(this.state.sleeve.actions[id]?.augments ?? {}, bonus) : 1;
     const factor = augments * this.synthMirrorFactor(id);
     return factor === 1 ? base : base.mul(this.factory.fromNumber(factor));
   }

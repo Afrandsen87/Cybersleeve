@@ -50,7 +50,7 @@ describe('the order on screen follows the base price in the content', () => {
       buyables: [item('cheap', 1, { actionId: 'a', costGrowth: 1_000, maxPurchases: 5 }), item('dear', 5, { actionId: 'a' })],
     });
     const g = createGame({ config });
-    (g.getState() as { credits: unknown }).credits = num(1e9);
+    (g.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(1e9);
     g.buy('cheap');
     g.buy('cheap');
     expect(buildViewModel(g).actions[0]!.buyables.map((v) => v.id)).toEqual(['cheap', 'dear']);

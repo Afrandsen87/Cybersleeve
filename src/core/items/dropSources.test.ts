@@ -105,7 +105,7 @@ describe('DerivedStats.dropSources', () => {
     };
     const g = game([drop('d', 'a', { chance: 1, rarityWeights: { common: 1 } }), shift]);
     expect(g.dropSources('file', 'rare')).toEqual([]);
-    (g.getState() as unknown as { hackingProficiency: unknown }).hackingProficiency = num(10); // one order of magnitude: one shift
+    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(10); // one order of magnitude: one shift
     expect(g.dropSources('file', 'common')).toEqual([{ actionId: 'a', chance: 0.5 }]);
     expect(g.dropSources('file', 'rare')).toEqual([{ actionId: 'a', chance: 0.5 }]);
   });

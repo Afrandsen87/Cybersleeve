@@ -57,7 +57,7 @@ export class Shop {
 
   /** Copies of a buyable owned (0 if none or unknown). */
   owned(state: GameState, id: BuyableId): number {
-    return state.purchased[id] ?? 0;
+    return state.sleeve.purchased[id] ?? 0;
   }
 
   /** True when owning the buyable lets the player switch its effect on and off (see `EFFECT_TRAITS`). False for unknown ids. */
@@ -75,9 +75,9 @@ export class Shop {
    */
   toggle(state: GameState, id: BuyableId): boolean {
     if (this.owned(state, id) <= 0 || !this.isToggleable(id)) return false;
-    if (state.autoRunOff[id]) delete state.autoRunOff[id];
-    else state.autoRunOff[id] = true;
-    return !state.autoRunOff[id];
+    if (state.sleeve.autoRunOff[id]) delete state.sleeve.autoRunOff[id];
+    else state.sleeve.autoRunOff[id] = true;
+    return !state.sleeve.autoRunOff[id];
   }
 
   /**
@@ -87,7 +87,7 @@ export class Shop {
   isAvailable(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
     if (!b) return false;
-    if (state.runs.length < (b.revealAfterResleeves ?? 0)) return false;
+    if (state.wallet.runs.length < (b.revealAfterResleeves ?? 0)) return false;
     return [...(b.requires ?? []), ...(b.parents ?? [])].every((r) => this.owned(state, r) > 0);
   }
 
@@ -101,7 +101,7 @@ export class Shop {
     if (this.owned(state, id) > 0 || this.revealOrders === Infinity) return true;
     const { alwaysRevealed, peak: peakField } = currencyInfo(this.currencyOf(id));
     if (alwaysRevealed || !peakField) return true;
-    const peak = state[peakField];
+    const peak = state.sleeve[peakField];
     // a peak below one counts as one, so a new game with nothing yet still shows the cheapest purchases
     const reference = peak.lt(this.factory.fromNumber(1)) ? this.factory.fromNumber(1) : peak;
     return this.costOf(state, id).lte(reference.mul(this.factory.fromNumber(10).pow(this.revealOrders)));
@@ -110,7 +110,7 @@ export class Shop {
   /** True when no further copy can be bought (`maxPurchases` plus any `buyableCapBonus` reached). */
   isMaxed(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
-    return !b || this.owned(state, id) >= this.caps.maxCopies(b, state.purchased);
+    return !b || this.owned(state, id) >= this.caps.maxCopies(b, state.sleeve.purchased);
   }
 
   /**
@@ -186,7 +186,7 @@ export class Shop {
     if (this.balance(state, id).lt(price)) return 'cannot-afford';
     // points are not held: owning the copy is what spends them (see pointsAvailable)
     spendHeld(state, this.currencyOf(id), price);
-    state.purchased[id] = this.owned(state, id) + 1;
+    state.sleeve.purchased[id] = this.owned(state, id) + 1;
     this.onPurchased(this.byId.get(id)!);
     return 'purchased';
   }

@@ -32,41 +32,41 @@ function afterLife(withSkill: boolean): ReturnType<typeof newGame> {
 describe('Reflex Archive', () => {
   it('writes down only the action-card purchases paid in credits, whether or not the skill is owned', () => {
     const g = afterLife(false);
-    expect(g.getState().lastLifePurchases).toEqual({ cheap: 2, mid: 1 });
+    expect(g.getState().wallet.lastLifePurchases).toEqual({ cheap: 2, mid: 1 });
   });
 
   it('buys nothing back without the skill, however many credits there are', () => {
     const g = afterLife(false);
     setCredits(g, num(1000));
     g.tick(1000);
-    expect(g.getState().purchased).toEqual({});
+    expect(g.getState().sleeve.purchased).toEqual({});
   });
 
   it('buys nothing back while the credits do not cover the cheapest', () => {
     const g = afterLife(true);
     g.tick(1000);
-    expect(g.getState().purchased['cheap']).toBeUndefined();
+    expect(g.getState().sleeve.purchased['cheap']).toBeUndefined();
   });
 
   it('buys back what is affordable, cheapest first, at the normal prices, and no more than last life had', () => {
     const g = afterLife(true);
     setCredits(g, num(2)); // the first cheap copy costs 1 and the second 2: only the first fits
     g.tick(1000);
-    expect(g.getState().purchased['cheap']).toBe(1);
-    expect(g.getState().purchased['mid']).toBeUndefined();
-    expect(g.getState().credits.toNumber()).toBeCloseTo(1, 9);
+    expect(g.getState().sleeve.purchased['cheap']).toBe(1);
+    expect(g.getState().sleeve.purchased['mid']).toBeUndefined();
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(1, 9);
     setCredits(g, num(1000));
     g.tick(1000);
-    expect(g.getState().purchased['cheap'], 'the 3rd copy was never owned').toBe(2);
-    expect(g.getState().purchased['mid']).toBe(1);
-    expect(g.getState().purchased['uplink'], 'a sleeve-wide purchase is not bought back').toBeUndefined();
-    expect(g.getState().credits.toNumber()).toBeCloseTo(1000 - 2 - 50, 9);
+    expect(g.getState().sleeve.purchased['cheap'], 'the 3rd copy was never owned').toBe(2);
+    expect(g.getState().sleeve.purchased['mid']).toBe(1);
+    expect(g.getState().sleeve.purchased['uplink'], 'a sleeve-wide purchase is not bought back').toBeUndefined();
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(1000 - 2 - 50, 9);
   });
 
   it('keeps the record through a save and a load', () => {
     const g = afterLife(true);
     const loaded = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(loaded.lastLifePurchases).toEqual({ cheap: 2, mid: 1 });
+    expect(loaded.wallet.lastLifePurchases).toEqual({ cheap: 2, mid: 1 });
     expect(findInvariantViolations(loaded, config)).toEqual([]);
   });
 
@@ -75,6 +75,6 @@ describe('Reflex Archive', () => {
     setCredits(g, num(2));
     g.tick(1000); // buys back one cheap copy only
     g.resleeve();
-    expect(g.getState().lastLifePurchases).toEqual({ cheap: 1 });
+    expect(g.getState().wallet.lastLifePurchases).toEqual({ cheap: 1 });
   });
 });

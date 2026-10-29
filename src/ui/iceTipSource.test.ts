@@ -21,7 +21,7 @@ describe('the ICE Rating tip', () => {
     const g = createGame({ config: createConfig(testConfig, { buyables: [...testConfig.buyables, hardened] }) });
     setCredits(g, num(1));
     g.buy('hardened');
-    (g.getState() as { actions: Record<string, { xp: unknown }> }).actions['a']!.xp = num(1e9); // some action levels for the per-level bonus
+    (g.getState() as unknown as { sleeve: { actions: Record<string, { xp: unknown }> } }).sleeve.actions['a']!.xp = num(1e9); // some action levels for the per-level bonus
     const tip = buildViewModel(g).sleeve.stats.find((s) => s.id === 'iceRating')!.tip!;
     expect(tip).toContain('(Earned + Hardened payload)');
     expect(tip).toContain('Hardened payload = ');

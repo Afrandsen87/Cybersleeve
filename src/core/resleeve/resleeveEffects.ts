@@ -44,7 +44,7 @@ export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<
       if (!(Number.isFinite(e.perLn) && e.perLn > 0)) errors.push(`${where}: interfaceSpeedPerLnSynths perLn must be > 0`);
     },
     sleeve: (acc, e, { owned, state }) => {
-      acc.interfaceSkillFactor *= (1 + e.perLn * Math.log1p(state.synths.length)) ** owned;
+      acc.interfaceSkillFactor *= (1 + e.perLn * Math.log1p(state.wallet.synths.length)) ** owned;
     },
   },
   synthXpBoost: {

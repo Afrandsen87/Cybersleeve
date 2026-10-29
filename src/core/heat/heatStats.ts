@@ -38,7 +38,7 @@ export class HeatStats {
    */
   heatCoolingBlocked(): boolean {
     return this.config.actions.some(
-      (a) => this.state.actions[a.id]?.running === true && this.overclocks.activeOverclock(a.id)?.blocksHeatCooling === true,
+      (a) => this.state.sleeve.actions[a.id]?.running === true && this.overclocks.activeOverclock(a.id)?.blocksHeatCooling === true,
     );
   }
 
@@ -50,7 +50,8 @@ export class HeatStats {
   heatIsIdle(): boolean {
     const allowed = this.idleActions();
     return !this.config.actions.some(
-      (a) => this.state.actions[a.id]?.running === true && !(allowed.includes(a.id) && this.overclocks.activeOverclock(a.id) === null),
+      (a) =>
+        this.state.sleeve.actions[a.id]?.running === true && !(allowed.includes(a.id) && this.overclocks.activeOverclock(a.id) === null),
     );
   }
 }

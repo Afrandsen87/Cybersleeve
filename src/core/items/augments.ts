@@ -5,7 +5,7 @@
  */
 import type { Inventory } from './inventory';
 import { itemCount } from './inventory';
-import type { ActionId, GameConfig, GameState, RarityId } from '../types';
+import type { ActionId, GameConfig, GameState, RarityId, SleeveState } from '../types';
 
 /**
  * The factor the augments applied to an action multiply its action XP per run by.
@@ -34,7 +34,7 @@ export function augmentXpFactor(applied: Readonly<Record<RarityId, number>>, bon
  * @param actions the state of every action (reads `augments`)
  * @returns a whole number, at most the number of rarities
  */
-export function distinctAugmentRarities(actions: Readonly<Record<ActionId, Pick<GameState['actions'][ActionId], 'augments'>>>): number {
+export function distinctAugmentRarities(actions: Readonly<Record<ActionId, Pick<SleeveState['actions'][ActionId], 'augments'>>>): number {
   const held = new Set<RarityId>();
   for (const action of Object.values(actions)) {
     for (const [rarity, count] of Object.entries(action.augments)) if (count > 0) held.add(rarity);
@@ -80,7 +80,7 @@ export class Augments {
    */
   applyMany(actionId: ActionId, count: number): number {
     const augment = this.config.items.augment;
-    const action = this.state.actions[actionId];
+    const action = this.state.sleeve.actions[actionId];
     if (!augment || !action) return 0;
     let applied = 0;
     for (const rarity of this.rarityIds) {
@@ -101,7 +101,7 @@ export class Augments {
    */
   apply(actionId: ActionId, rarityId: RarityId): boolean {
     const augment = this.config.items.augment;
-    const action = this.state.actions[actionId];
+    const action = this.state.sleeve.actions[actionId];
     if (!augment || !action || !this.rarityIds.includes(rarityId)) return false;
     if (itemCount(this.state, augment.itemId, rarityId) <= 0 || this.inventory.take(augment.itemId, rarityId, 1) <= 0) return false;
     action.augments[rarityId] = (action.augments[rarityId] ?? 0) + 1;

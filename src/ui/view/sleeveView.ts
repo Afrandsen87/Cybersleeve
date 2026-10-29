@@ -62,7 +62,7 @@ function iceBonusSource(config: GameConfig, ownedCount: (id: string) => number):
 
 /** The sleeve stat rows. */
 function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig, text: UiText): StatRowView[] {
-  const ownedCount = (id: string): number => state.purchased[id] ?? 0;
+  const ownedCount = (id: string): number => state.sleeve.purchased[id] ?? 0;
   const { sleeve } = config;
   const reveal = { config, accessLevel: stats.accessLevel, owned: ownedCount };
   // heat and ICE Rating appear together, so either having moved keeps both on show
@@ -79,7 +79,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
     // a second shape is only worth a line in the tip while it differs from the first
     ...(beyond && beyond.exponent !== sleeve.earnedSpeedExponent ? { beyond } : {}),
   };
-  const proficiency = state.hackingProficiency.mul(numberFactory.fromNumber(stats.hackingProficiencyFactor));
+  const proficiency = state.sleeve.hackingProficiency.mul(numberFactory.fromNumber(stats.hackingProficiencyFactor));
   const cooldownSpeed = stats.heatCooldownSpeed;
   const coolsNow = heatCoolsNow(stats.heat, stats.heatCooldownAmount);
   const heatTip = (): string =>
@@ -93,11 +93,11 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
       amount: formatPlain(stats.heatCooldownAmount),
       cycleSeconds: formatPlain(cycleMs / cooldownSpeed / 1000),
       moles:
-        state.moles > 0
+        state.sleeve.moles > 0
           ? {
-              moles: formatPlain(state.moles),
+              moles: formatPlain(state.sleeve.moles),
               boostPercent: formatPlain(stats.heatCooldownBoost * 100),
-              aggregatedPercent: aggregatedMoleText(stats.moleAggregation, state.moles),
+              aggregatedPercent: aggregatedMoleText(stats.moleAggregation, state.sleeve.moles),
             }
           : null,
     });
@@ -115,7 +115,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
         base: formatPlain(sleeve.baseInterfaceSpeed),
         boosts: formatPlain(stats.interfaceBoosts),
         networkFactor: stats.interfaceNetworkFactor === 1 ? null : formatPlain(stats.interfaceNetworkFactor),
-        nodes: formatBigNum(state.network),
+        nodes: formatBigNum(state.sleeve.network),
         hackingMultiplier: formatPlain(stats.hackingMultiplier, MULTIPLIER_DECIMALS),
         curve,
         skillFactor: stats.interfaceSkillFactor === 1 ? null : formatPlain(stats.interfaceSkillFactor, MULTIPLIER_DECIMALS),
@@ -155,7 +155,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
       heatTip,
       {
         label: text.bars.heat(coolsNow),
-        percent: Math.min(100, (state.heatCooldownMs / cycleMs) * 100),
+        percent: Math.min(100, (state.sleeve.heatCooldownMs / cycleMs) * 100),
         running: coolsNow,
       },
       isStatHidden('heat', reveal, heatOrIceShown),
@@ -174,7 +174,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
         }),
       {
         label: text.bars.legend(stats.legend > 0),
-        percent: Math.min(100, (state.legendCooldownMs / sleeve.legendDecayPeriodMs) * 100),
+        percent: Math.min(100, (state.sleeve.legendCooldownMs / sleeve.legendDecayPeriodMs) * 100),
         running: stats.legend > 0,
       },
       isStatHidden('legend', reveal, stats.legend > 0),

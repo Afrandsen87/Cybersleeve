@@ -10,7 +10,7 @@ import { type CurveBeyond, concaveBonus } from '../kernel/concaveBonus';
 import { bigOrders } from '../kernel/curves';
 import { definitionOf, type SleeveAccumulator } from './effectRegistry';
 import { INFINITY, saturate } from '../kernel/infinity';
-import type { ActionId, BuyableDefinition, GameState, SleeveConfig } from '../types';
+import type { ActionId, BuyableDefinition, SleeveConfig, StateSlice } from '../types';
 import type { FactorTerm, SleeveStats } from './sleeveStatsTypes';
 
 /**
@@ -53,8 +53,7 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
  */
 export function resolveSleeveStats(
   buyables: readonly BuyableDefinition[],
-  state: Pick<
-    GameState,
+  state: StateSlice<
     'purchased' | 'heat' | 'hackingProficiency' | 'network' | 'iceRating' | 'legend' | 'nodePayoutBonus' | 'inventory' | 'synths'
   >,
   sleeve: SleeveConfig,
@@ -93,7 +92,7 @@ export function resolveSleeveStats(
   const nodePayoutTerms: FactorTerm[] = [];
   const iceRatingTerms: FactorTerm[] = [];
   for (const b of buyables) {
-    const owned = state.purchased[b.id] ?? 0;
+    const owned = state.sleeve.purchased[b.id] ?? 0;
     if (owned <= 0) continue;
     const payoutBefore = acc.nodePayoutFactor;
     const iceBefore = acc.iceRatingFactor;
@@ -106,7 +105,7 @@ export function resolveSleeveStats(
     }
   }
   const { accessLevel, interfaceBoosts, interfaceNetworkFactor } = acc;
-  const iceRating = state.iceRating.add(acc.iceRatingBonus).mul(acc.iceRatingFactor);
+  const iceRating = state.sleeve.iceRating.add(acc.iceRatingBonus).mul(acc.iceRatingFactor);
   const interfaceSkillFactor = acc.interfaceSkillFactor;
   const hackingProficiencyFactor = acc.hackingProficiencyFactor;
   const nodePayoutBuyableFactor = acc.nodePayoutFactor;
@@ -117,13 +116,13 @@ export function resolveSleeveStats(
   const hackingMultiplier = saturate(
     1 +
       concaveBonus(
-        saturate(saturatingNumber(state.hackingProficiency) * saturate(hackingProficiencyFactor)),
+        saturate(saturatingNumber(state.sleeve.hackingProficiency) * saturate(hackingProficiencyFactor)),
         sleeve.earnedSpeedScale,
         sleeve.earnedSpeedExponent,
         earnedSpeedBeyond(sleeve),
       ),
   );
-  const nodePayoutBonus = saturatingNumber(state.nodePayoutBonus);
+  const nodePayoutBonus = saturatingNumber(state.sleeve.nodePayoutBonus);
   return {
     accessLevel,
     interfaceSpeed: saturate(
@@ -133,13 +132,13 @@ export function resolveSleeveStats(
     interfaceBoosts,
     interfaceNetworkFactor,
     hackingMultiplier,
-    heat: state.heat,
+    heat: state.sleeve.heat,
     iceRating,
-    iceRatingEarned: state.iceRating,
+    iceRatingEarned: state.sleeve.iceRating,
     iceRatingBonus: acc.iceRatingBonus,
     iceRatingTerms,
     heatReduction,
-    legend: state.legend,
+    legend: state.sleeve.legend,
     nodePayoutMultiplier: saturate(nodePayoutBuyableFactor),
     nodePayoutTerms,
     nodePayoutBonus,

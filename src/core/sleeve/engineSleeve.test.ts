@@ -5,6 +5,7 @@ import { game } from '../../testing/gameKit';
 import { describe, expect, it } from 'vitest';
 import { num } from '../../numbers';
 import { networkAction, practiceAction, setCredits, testConfig } from '../../testing/testConfig';
+import { flat } from '../../testing/flatState';
 
 describe('GameEngine - sleeve stats and global buyables', () => {
   it('start at the configured values: access level 1, interface speed (test config: 1), heat 0', () => {
@@ -24,7 +25,7 @@ describe('GameEngine - sleeve stats and global buyables', () => {
     expect(g.sleeveStats().accessLevel).toBe(1);
     expect(g.buy('access')).toBe('purchased');
     expect(g.sleeveStats().accessLevel).toBe(2);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
   });
 
   it('an access level buyable adds its amount to the base access level', () => {
@@ -107,9 +108,9 @@ describe('GameEngine - interface speed', () => {
     expect(g.currentDurationMs('a')).toBe(20_000);
     g.startAction('a');
     g.tick(19_999);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
     g.tick(1);
-    expect(g.getState().credits.eq(num(0.5))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(0.5))).toBe(true);
   });
 
   it('the interface boost speeds actions up: 0.5 + 0.05 = 0.55', () => {
@@ -121,7 +122,7 @@ describe('GameEngine - interface speed', () => {
 
   it('stacks with action level, sleeve level and the global lever', () => {
     const g = game({ sleeve: { baseInterfaceSpeed: 0.5 }, global: { speedMultiplier: 4 } });
-    (g.getState().actions['a'] as { xp: unknown }).xp = num(110); // action level 3 (10 + 100 XP)
+    (g.getState().sleeve.actions['a'] as { xp: unknown }).xp = num(110); // action level 3 (10 + 100 XP)
     expect(g.currentSpeed('a')).toBe(3 * 1 * 0.5 * 4);
   });
 });
@@ -129,7 +130,7 @@ describe('GameEngine - interface speed', () => {
 describe('GameEngine - heat tax', () => {
   const taxed = (heat: number) => {
     const g = game();
-    (g.getState() as { heat: number }).heat = heat;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = heat;
     return g;
   };
 
@@ -137,7 +138,7 @@ describe('GameEngine - heat tax', () => {
     const g = taxed(0);
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().credits.eq(num(0.5))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(0.5))).toBe(true);
   });
 
   it('13 heat subtracts 13 percent of the credits nodes produce, and nothing from a run reward', () => {
@@ -145,28 +146,28 @@ describe('GameEngine - heat tax', () => {
     expect(g.creditKeepFactor()).toBeCloseTo(0.87, 10);
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(0.5, 10); // the run pays in full
-    (g.getState() as { network: unknown }).network = num(20);
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(0.5, 10); // the run pays in full
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(20);
     expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(20 * 0.05 * 0.87, 10);
   });
 
   it('taxes passive network income', () => {
     const g = taxed(50);
-    (g.getState() as { network: unknown }).network = num(20);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(20);
     expect(g.passiveCreditsPerSecond().toNumber()).toBeCloseTo(0.5, 10); // 20 * 0.05 * 0.5
     g.tick(1_000);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(0.5, 10);
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(0.5, 10);
   });
 
   it('does not tax network nodes being built or run rewards; 100 heat stops only the credits nodes produce', () => {
     const both = game({ actions: [testConfig.actions[0]!, networkAction] });
-    (both.getState() as { heat: number }).heat = 100;
-    (both.getState() as { network: unknown }).network = num(20);
+    (both.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 100;
+    (both.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(20);
     both.startAction('net');
     both.startAction('a');
     both.tick(20_000);
-    expect(both.getState().network.eq(num(21))).toBe(true); // 20 + 1 built
-    expect(both.getState().credits.toNumber()).toBeCloseTo(0.5, 10); // the run paid in full, the 20 nodes paid nothing
+    expect(both.getState().sleeve.network.eq(num(21))).toBe(true); // 20 + 1 built
+    expect(both.getState().wallet.credits.toNumber()).toBeCloseTo(0.5, 10); // the run paid in full, the 20 nodes paid nothing
   });
 
   it('the base heat of the config counts as well', () => {
@@ -177,7 +178,7 @@ describe('GameEngine - heat tax', () => {
   it('re-sleeving resets the heat gained', () => {
     const g = taxed(40);
     g.resleeve();
-    expect(g.getState().heat).toBe(0);
+    expect(g.getState().sleeve.heat).toBe(0);
     expect(g.sleeveStats().heat).toBe(0);
   });
 });
@@ -190,12 +191,12 @@ describe('GameEngine - interface speed reward', () => {
     g.startAction('practice');
     g.tick(1_000);
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(1.001, 10);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
   });
 
   it('is not taxed by heat', () => {
     const g = practice();
-    (g.getState() as { heat: number }).heat = 100;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 100;
     g.startAction('practice');
     g.tick(1_000);
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(1.001, 10);
@@ -219,9 +220,9 @@ describe('GameEngine - interface speed reward', () => {
 
   it('is a multiplier with diminishing returns: 1000 runs double the speed, 3000 runs quadruple it', () => {
     const g = practice({ sleeve: { baseInterfaceSpeed: 0.1 } });
-    (g.getState() as { hackingProficiency: ReturnType<typeof num> }).hackingProficiency = num(1);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: ReturnType<typeof num> } }).sleeve.hackingProficiency = num(1);
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(0.2, 10);
-    (g.getState() as { hackingProficiency: ReturnType<typeof num> }).hackingProficiency = num(3);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: ReturnType<typeof num> } }).sleeve.hackingProficiency = num(3);
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(0.4, 10);
   });
 
@@ -230,7 +231,7 @@ describe('GameEngine - interface speed reward', () => {
       sleeve: { baseInterfaceSpeed: 1 },
       buyables: [{ id: 'b', name: 'B', description: '', cost: num(0), effect: { kind: 'interfaceSpeed', amount: 1 } }],
     });
-    (g.getState() as { hackingProficiency: ReturnType<typeof num> }).hackingProficiency = num(1);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: ReturnType<typeof num> } }).sleeve.hackingProficiency = num(1);
     g.buy('b');
     expect(g.sleeveStats().interfaceSpeed).toBeCloseTo(4, 10); // (1 + 1) * (1 + 1)
   });
@@ -247,62 +248,62 @@ describe('GameEngine - interface speed reward', () => {
 describe('GameEngine - heat cooldown', () => {
   const hot = (heat: number, overrides = {}) => {
     const g = game(overrides);
-    (g.getState() as { heat: number }).heat = heat;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = heat;
     return g;
   };
 
   it('removes 1 heat for every full 60 s that pass', () => {
     const g = hot(5);
     g.tick(59_999);
-    expect(g.getState().heat).toBe(5);
+    expect(g.getState().sleeve.heat).toBe(5);
     g.tick(1);
-    expect(g.getState().heat).toBe(4);
+    expect(g.getState().sleeve.heat).toBe(4);
     g.tick(60_000);
-    expect(g.getState().heat).toBe(3);
+    expect(g.getState().sleeve.heat).toBe(3);
   });
 
   it('the progress of a cycle builds up over many small ticks and is kept', () => {
     const g = hot(2);
     for (let i = 0; i < 1_199; i++) g.tick(50); // 59.95 s
-    expect(g.getState().heat).toBe(2);
-    expect(g.getState().heatCooldownMs).toBeCloseTo(59_950, 6);
+    expect(g.getState().sleeve.heat).toBe(2);
+    expect(g.getState().sleeve.heatCooldownMs).toBeCloseTo(59_950, 6);
     g.tick(50);
-    expect(g.getState().heat).toBe(1);
-    expect(g.getState().heatCooldownMs).toBeCloseTo(0, 6);
+    expect(g.getState().sleeve.heat).toBe(1);
+    expect(g.getState().sleeve.heatCooldownMs).toBeCloseTo(0, 6);
   });
 
   it('several cycles in one long tick all count', () => {
     const g = hot(5);
     g.tick(150_000); // 2 full cycles + 30 s
-    expect(g.getState().heat).toBe(3);
-    expect(g.getState().heatCooldownMs).toBe(30_000);
+    expect(g.getState().sleeve.heat).toBe(3);
+    expect(g.getState().sleeve.heatCooldownMs).toBe(30_000);
   });
 
   it('stops at 0 and does not go negative or bank time while there is no heat', () => {
     const g = hot(2);
     g.tick(10 * 60_000);
-    expect(g.getState().heat).toBe(0);
-    expect(g.getState().heatCooldownMs).toBe(0);
+    expect(g.getState().sleeve.heat).toBe(0);
+    expect(g.getState().sleeve.heatCooldownMs).toBe(0);
     g.tick(50_000);
-    expect(g.getState().heat).toBe(0);
-    expect(g.getState().heatCooldownMs).toBe(0);
+    expect(g.getState().sleeve.heat).toBe(0);
+    expect(g.getState().sleeve.heatCooldownMs).toBe(0);
   });
 
   it('starts again once heat rises above 0', () => {
     const g = hot(0);
     g.tick(120_000);
-    (g.getState() as { heat: number }).heat = 1;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 1;
     g.tick(59_000);
-    expect(g.getState().heat).toBe(1);
+    expect(g.getState().sleeve.heat).toBe(1);
     g.tick(1_000);
-    expect(g.getState().heat).toBe(0);
+    expect(g.getState().sleeve.heat).toBe(0);
   });
 
   it('cycle length and amount come from the config', () => {
     const g = hot(10, { sleeve: { heatCooldownMs: 1_000, heatCooldownAmount: 3 } });
     g.tick(2_500);
-    expect(g.getState().heat).toBe(4);
-    expect(g.getState().heatCooldownMs).toBe(500);
+    expect(g.getState().sleeve.heat).toBe(4);
+    expect(g.getState().sleeve.heatCooldownMs).toBe(500);
   });
 
   it('cooling lowers the tax', () => {
@@ -315,7 +316,7 @@ describe('GameEngine - heat cooldown', () => {
     const g = hot(5);
     g.tick(30_000);
     g.resleeve();
-    expect(g.getState().heatCooldownMs).toBe(0);
+    expect(g.getState().sleeve.heatCooldownMs).toBe(0);
   });
 });
 
@@ -335,7 +336,7 @@ describe('GameEngine - the credit multiplier scales credits only', () => {
       const g = game({ ...overrides, actions: [testConfig.actions[0]!, action] });
       g.startAction('x');
       g.tick(1_000);
-      const value = (g.getState() as unknown as Record<string, { toNumber?: () => number } | number>)[field];
+      const value = flat<Record<string, { toNumber?: () => number } | number>>(g)[field];
       return typeof value === 'number' ? value : value!.toNumber!();
     };
     expect(paid(lever)).toBe(paid({}));
@@ -344,7 +345,7 @@ describe('GameEngine - the credit multiplier scales credits only', () => {
   it('multiplies credits paid by a run and by passive income', () => {
     const g = game(lever);
     expect(g.rewardPerRun('a').eq(num(3.5))).toBe(true);
-    (g.getState() as { network: unknown }).network = num(20);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(20);
     expect(g.passiveCreditsPerSecond().eq(num(7))).toBe(true);
   });
 });

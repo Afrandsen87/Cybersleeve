@@ -95,11 +95,11 @@ export class XpReductions {
     let runs = this.baseRunsPerSleeveXp;
     let floor = 1;
     for (const { id, perCopy, minRuns } of this.runsSources) {
-      const copies = state.purchased[id] ?? 0;
+      const copies = state.sleeve.purchased[id] ?? 0;
       if (copies <= 0) continue;
       runs -= perCopy * copies;
       // a skill that allows more copies of this buyable lowers its floor with them, one run per extra copy
-      floor = Math.max(floor, minRuns - this.caps.bonusOf(state.purchased, id) * perCopy);
+      floor = Math.max(floor, minRuns - this.caps.bonusOf(state.sleeve.purchased, id) * perCopy);
     }
     return Math.min(this.baseRunsPerSleeveXp, Math.max(floor, runs));
   }
@@ -117,10 +117,10 @@ export class XpReductions {
    */
   actionXpReduction(state: GameState, sleeveLevel: () => number): number {
     let flat = 0;
-    for (const { id, amount } of this.actionSources) flat += amount * (state.purchased[id] ?? 0);
+    for (const { id, amount } of this.actionSources) flat += amount * (state.sleeve.purchased[id] ?? 0);
     let remaining = 1 - Math.min(flat, this.maxTotalReduction);
     for (const { id, remainingPerOrder, maxReduction } of this.euphoriaSources) {
-      if ((state.purchased[id] ?? 0) <= 0) continue;
+      if ((state.sleeve.purchased[id] ?? 0) <= 0) continue;
       remaining *= 1 - euphoriaReduction(sleeveLevel(), remainingPerOrder, maxReduction);
     }
     return 1 - remaining;
@@ -141,7 +141,7 @@ export class XpReductions {
   sleeveXpDivisor(state: GameState, actionId: ActionId, unreducedSleeveLevel: (id: ActionId) => number): number {
     let divisor = 1;
     for (const { id, effect } of this.sleeveSources) {
-      const copies = state.purchased[id] ?? 0;
+      const copies = state.sleeve.purchased[id] ?? 0;
       if (copies <= 0 || effect.sourceActionId === actionId) continue;
       const term = effect.perLevel * unreducedSleeveLevel(effect.sourceActionId) * copies;
       if (Number.isFinite(term) && term > 0) divisor *= 1 + term;

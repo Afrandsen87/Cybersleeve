@@ -25,7 +25,7 @@ describe('the heat tip with Blackout', () => {
 
   it('names the cap, shows the tax at the cap, and no longer says when credits stop', () => {
     const g = game(blackout);
-    (g.getState() as { heat: number }).heat = 500;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 500;
     const tip = statRow(buildViewModel(g).sleeve.stats, 'heat').tip;
     expect(tip).toContain('The Heat Tax takes at most 50%');
     expect(tip).toContain('Heat Tax = 50% of all credits earned from nodes');
@@ -34,7 +34,7 @@ describe('the heat tip with Blackout', () => {
 
   it('says nothing about a cap without the skill', () => {
     const g = game();
-    (g.getState() as { heat: number }).heat = 500;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 500;
     expect(statRow(buildViewModel(g).sleeve.stats, 'heat').tip).not.toContain('at most');
   });
 });
@@ -44,7 +44,7 @@ describe('the heat tip with Deep Cover', () => {
 
   it('says how much faster the Moles held make heat cool', () => {
     const g = game(deep);
-    (g.getState() as { moles: number }).moles = 100;
+    (g.getState() as unknown as { sleeve: { moles: number } }).sleeve.moles = 100;
     const tip = statRow(buildViewModel(g).sleeve.stats, 'heat').tip;
     expect(tip).toContain('100 Moles make it 10.25% faster'); // 1.05^2 - 1
   });

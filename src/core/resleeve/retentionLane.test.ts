@@ -89,9 +89,9 @@ describe('Residual Proficiency', () => {
     expect(tryBuy(g, 'prof')).toBe('purchased');
     loose(g).hackingProficiency = num(999);
     g.resleeve();
-    expect(g.getState().hackingProficiency.toNumber()).toBeCloseTo(3, 9);
+    expect(g.getState().sleeve.hackingProficiency.toNumber()).toBeCloseTo(3, 9);
     g.resleeve();
-    expect(g.getState().hackingProficiency.toNumber(), 'a log of a log: it keeps shrinking unless it is earned again').toBeCloseTo(
+    expect(g.getState().sleeve.hackingProficiency.toNumber(), 'a log of a log: it keeps shrinking unless it is earned again').toBeCloseTo(
       Math.log10(4),
       9,
     );
@@ -101,11 +101,11 @@ describe('Residual Proficiency', () => {
     const g = newGame(config);
     loose(g).hackingProficiency = num(999);
     g.resleeve();
-    expect(g.getState().hackingProficiency.toNumber()).toBe(0);
+    expect(g.getState().sleeve.hackingProficiency.toNumber()).toBe(0);
     resleeveTimes(g, 1);
     expect(tryBuy(g, 'prof')).toBe('purchased');
     g.resleeve();
-    expect(g.getState().hackingProficiency.toNumber()).toBe(0);
+    expect(g.getState().sleeve.hackingProficiency.toNumber()).toBe(0);
   });
 
   it('handles a huge proficiency without overflow', () => {
@@ -114,7 +114,7 @@ describe('Residual Proficiency', () => {
     tryBuy(g, 'prof');
     loose(g).hackingProficiency = num('1e300');
     g.resleeve();
-    expect(g.getState().hackingProficiency.toNumber()).toBeCloseTo(300, 6);
+    expect(g.getState().sleeve.hackingProficiency.toNumber()).toBeCloseTo(300, 6);
   });
 });
 
@@ -125,18 +125,18 @@ describe('Residual Firewall', () => {
     expect(tryBuy(g, 'ice')).toBe('purchased');
     loose(g).iceRating = num('1e100');
     g.resleeve();
-    expect(g.getState().iceRating.log10()).toBeCloseTo(50, 6);
+    expect(g.getState().sleeve.iceRating.log10()).toBeCloseTo(50, 6);
   });
 
   it('never starts below the normal start, and does nothing without the skill', () => {
     const g = newGame(config);
     loose(g).iceRating = num('1e100');
     g.resleeve();
-    expect(g.getState().iceRating.toNumber()).toBe(1);
+    expect(g.getState().sleeve.iceRating.toNumber()).toBe(1);
     resleeveTimes(g, 1);
     tryBuy(g, 'ice');
     g.resleeve();
-    expect(g.getState().iceRating.toNumber()).toBe(1);
+    expect(g.getState().sleeve.iceRating.toNumber()).toBe(1);
   });
 
   it('survives a save and passes the invariants', () => {
@@ -146,7 +146,7 @@ describe('Residual Firewall', () => {
     loose(g).iceRating = num('1e100');
     g.resleeve();
     const loaded = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(loaded.iceRating.log10()).toBeCloseTo(50, 6);
+    expect(loaded.sleeve.iceRating.log10()).toBeCloseTo(50, 6);
     expect(findInvariantViolations(loaded, config)).toEqual([]);
   });
 });

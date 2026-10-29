@@ -16,6 +16,8 @@ import {
   serializeState,
   validateConfig,
 } from '..';
+import { flat } from '../../testing/flatState';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 const free = (id: string, actionId: string | undefined, effect: BuyableDefinition['effect'], extra = {}): BuyableDefinition => ({
   id,
@@ -31,13 +33,13 @@ const autoOn = (actionId: string) => free('auto-' + actionId, actionId, { kind: 
 const game = (actions: (typeof testConfig.actions)[number][], buyables: BuyableDefinition[] = [], overrides = {}) =>
   createGame({ config: createConfig(testConfig, { actions, buyables, ...overrides }) });
 const mutable = (g: { getState(): unknown }) =>
-  g.getState() as {
+  flat<{
     network: ReturnType<typeof num>;
     heat: number;
     legend: number;
     iceRating: ReturnType<typeof num>;
     autoRunOff: Record<string, boolean>;
-  };
+  }>(g);
 
 describe('heat tax with ICE Rating', () => {
   it('removes a share of the heat effect: at 50% reduction credits stop at 200 heat, not 100', () => {
@@ -59,7 +61,7 @@ describe('heat tax with ICE Rating', () => {
     mutable(g).network = num(20);
     expect(g.sleeveStats().heatReduction).toBeCloseTo(0.5, 10);
     g.tick(1_000);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(0.25, 10); // 20 nodes x 0.05 credits/s x 25%
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(0.25, 10); // 20 nodes x 0.05 credits/s x 25%
   });
 
   it('and at 250 heat a 50% reduction leaves the nodes earning nothing', () => {
@@ -68,7 +70,7 @@ describe('heat tax with ICE Rating', () => {
     mutable(g).iceRating = num('1e100');
     mutable(g).network = num(20);
     g.tick(1_000);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
   });
 
   it('a run reward is paid in full even at 250 heat', () => {
@@ -76,7 +78,7 @@ describe('heat tax with ICE Rating', () => {
     mutable(g).heat = 250;
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(0.5, 10);
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(0.5, 10);
   });
 });
 
@@ -132,19 +134,19 @@ describe('action with a start cost (Kill servers)', () => {
     const g = kill();
     mutable(g).network = num(60);
     expect(g.startAction('kill')).toBe(true);
-    expect(g.getState().network.eq(num(10))).toBe(true);
+    expect(g.getState().sleeve.network.eq(num(10))).toBe(true);
     expect(g.startAction('kill')).toBe(true); // already running: nothing more is charged
-    expect(g.getState().network.eq(num(10))).toBe(true);
+    expect(g.getState().sleeve.network.eq(num(10))).toBe(true);
     g.tick(1_000);
-    expect(g.getState().iceRating.eq(num(2))).toBe(true);
+    expect(g.getState().sleeve.iceRating.eq(num(2))).toBe(true);
   });
 
   it('does not start without enough nodes and then charges nothing', () => {
     const g = kill();
     mutable(g).network = num(49);
     expect(g.startAction('kill')).toBe(false);
-    expect(g.getState().network.eq(num(49))).toBe(true);
-    expect(g.getState().actions['kill']!.running).toBe(false);
+    expect(g.getState().sleeve.network.eq(num(49))).toBe(true);
+    expect(g.getState().sleeve.actions['kill']!.running).toBe(false);
   });
 
   it('with auto-run pays for every run and stops when the nodes run out', () => {
@@ -153,12 +155,12 @@ describe('action with a start cost (Kill servers)', () => {
     setCredits(g, num(1));
     g.buy('auto-kill');
     g.tick(1_000); // pays 50, completes run 1, pays 50 for run 2
-    expect(g.getState().iceRating.eq(num(2))).toBe(true);
-    expect(g.getState().network.eq(num(20))).toBe(true);
+    expect(g.getState().sleeve.iceRating.eq(num(2))).toBe(true);
+    expect(g.getState().sleeve.network.eq(num(20))).toBe(true);
     g.tick(1_000); // completes run 2, cannot pay for run 3
-    expect(g.getState().iceRating.eq(num(3))).toBe(true);
-    expect(g.getState().actions['kill']!.running).toBe(false);
-    expect(g.getState().network.eq(num(20))).toBe(true);
+    expect(g.getState().sleeve.iceRating.eq(num(3))).toBe(true);
+    expect(g.getState().sleeve.actions['kill']!.running).toBe(false);
+    expect(g.getState().sleeve.network.eq(num(20))).toBe(true);
   });
 
   it('completes one run per batch with auto-run: 3 s of auto-running costs 3 runs of nodes', () => {
@@ -167,15 +169,15 @@ describe('action with a start cost (Kill servers)', () => {
     setCredits(g, num(1));
     g.buy('auto-kill');
     g.tick(3_000);
-    expect(g.getState().iceRating.eq(num(4))).toBe(true);
-    expect(g.getState().network.eq(num(500 - 4 * 50))).toBe(true); // 3 completed + 1 paid for the next
+    expect(g.getState().sleeve.iceRating.eq(num(4))).toBe(true);
+    expect(g.getState().sleeve.network.eq(num(500 - 4 * 50))).toBe(true); // 3 completed + 1 paid for the next
   });
 
   it('re-sleeving resets ICE Rating', () => {
     const g = kill();
     mutable(g).iceRating = num(50);
     g.resleeve();
-    expect(g.getState().iceRating.eq(num(1))).toBe(true);
+    expect(g.getState().sleeve.iceRating.eq(num(1))).toBe(true);
   });
 });
 
@@ -200,9 +202,9 @@ describe('action gated by access level with completion effects (Legend)', () => 
     mutable(g).heat = 10;
     g.startAction('legend');
     g.tick(1_000);
-    expect(g.getState().network.toNumber()).toBeCloseTo(750, 8);
-    expect(g.getState().heat).toBe(15); // 10 + 5 s/s x 1 s
-    expect(g.getState().legend).toBeCloseTo(1, 4); // minus the tiny decay of the tick
+    expect(g.getState().sleeve.network.toNumber()).toBeCloseTo(750, 8);
+    expect(g.getState().sleeve.heat).toBe(15); // 10 + 5 s/s x 1 s
+    expect(g.getState().sleeve.legend).toBeCloseTo(1, 4); // minus the tiny decay of the tick
   });
 
   it('several runs in one batch apply the effects that many times (2 runs: 1000 -> 750 -> 563 whole nodes)', () => {
@@ -212,9 +214,9 @@ describe('action gated by access level with completion effects (Legend)', () => 
     g.buy('auto-legend');
     mutable(g).network = num(1000);
     g.tick(2_000);
-    expect(g.getState().network.toNumber()).toBe(563);
-    expect(g.getState().legend).toBe(2);
-    expect(g.getState().heat).toBe(10); // 2 s running x 5 heat/s
+    expect(g.getState().sleeve.network.toNumber()).toBe(563);
+    expect(g.getState().sleeve.legend).toBe(2);
+    expect(g.getState().sleeve.heat).toBe(10); // 2 s running x 5 heat/s
   });
 
   it('adds heat on top of whatever there already is, however high', () => {
@@ -224,21 +226,21 @@ describe('action gated by access level with completion effects (Legend)', () => 
     mutable(g).heat = 900;
     g.startAction('legend');
     g.tick(1_000);
-    expect(g.getState().heat).toBe(905);
+    expect(g.getState().sleeve.heat).toBe(905);
   });
 });
 
 describe('applyCompletionEffects', () => {
   it('removes a quarter of the nodes per run, one run after the other', () => {
-    const state = { network: num(1000) };
+    const state = { wallet: {}, sleeve: { network: num(1000) } };
     applyCompletionEffects(legendAction.completionEffects, state, 2, numberFactory);
-    expect(state.network.toNumber()).toBe(563); // 1000 -> 750 -> 563 (each removal rounded down)
+    expect(state.sleeve.network.toNumber()).toBe(563); // 1000 -> 750 -> 563 (each removal rounded down)
   });
 
   it('does nothing without effects', () => {
-    const state = { network: num(10) };
+    const state = { wallet: {}, sleeve: { network: num(10) } };
     applyCompletionEffects(undefined, state, 5, numberFactory);
-    expect(state.network.eq(num(10))).toBe(true);
+    expect(state.sleeve.network.eq(num(10))).toBe(true);
   });
 
   it('heat is added by heatPerSecond, not by a completion effect', () => {
@@ -255,49 +257,49 @@ describe('Legend', () => {
     mutable(g).heat = 5;
     mutable(g).legend = 5;
     g.tick(39_000);
-    expect(g.getState().heat).toBe(5);
+    expect(g.getState().sleeve.heat).toBe(5);
     g.tick(1_000);
-    expect(g.getState().heat).toBe(4);
+    expect(g.getState().sleeve.heat).toBe(4);
   });
 
   it('without Legend a cycle is the normal 60 s', () => {
     const g = idle();
     mutable(g).heat = 5;
     g.tick(60_000);
-    expect(g.getState().heat).toBe(4);
+    expect(g.getState().sleeve.heat).toBe(4);
   });
 
   it('falls by exactly 1 each time a 10 minute cycle completes, never gradually', () => {
     const g = idle();
     mutable(g).legend = 3;
     g.tick(599_999);
-    expect(g.getState().legend).toBe(3);
-    expect(g.getState().legendCooldownMs).toBe(599_999);
+    expect(g.getState().sleeve.legend).toBe(3);
+    expect(g.getState().sleeve.legendCooldownMs).toBe(599_999);
     g.tick(1);
-    expect(g.getState().legend).toBe(2);
-    expect(g.getState().legendCooldownMs).toBe(0);
+    expect(g.getState().sleeve.legend).toBe(2);
+    expect(g.getState().sleeve.legendCooldownMs).toBe(0);
   });
 
   it('does not run the cycle while Legend is 0', () => {
     const g = idle();
     g.tick(900_000);
-    expect(g.getState().legendCooldownMs).toBe(0);
+    expect(g.getState().sleeve.legendCooldownMs).toBe(0);
   });
 
   it('falls by 1 every 10 minutes and never below 0', () => {
     const g = idle();
     mutable(g).legend = 3;
     g.tick(600_000);
-    expect(g.getState().legend).toBe(2);
+    expect(g.getState().sleeve.legend).toBe(2);
     g.tick(600_000 * 10);
-    expect(g.getState().legend).toBe(0);
+    expect(g.getState().sleeve.legend).toBe(0);
   });
 
   it('is reset by re-sleeving', () => {
     const g = idle();
     mutable(g).legend = 4;
     g.resleeve();
-    expect(g.getState().legend).toBe(0);
+    expect(g.getState().sleeve.legend).toBe(0);
   });
 });
 
@@ -325,14 +327,14 @@ describe('toggleable auto-run', () => {
     g.toggleAutoRun('auto');
     g.startAction('a');
     g.tick(25_000);
-    expect(g.getState().actions['a']!.running).toBe(false);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(4 + 0.5, 8); // 5 - 1 for auto, one run paid 0.5
+    expect(g.getState().sleeve.actions['a']!.running).toBe(false);
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(4 + 0.5, 8); // 5 - 1 for auto, one run paid 0.5
   });
 
   it('switched on, the action keeps running by itself', () => {
     const g = bought();
     g.tick(25_000);
-    expect(g.getState().actions['a']!.running).toBe(true);
+    expect(g.getState().sleeve.actions['a']!.running).toBe(true);
   });
 
   it('refuses to toggle what is not owned or not an auto-run, and changes nothing', () => {
@@ -382,38 +384,38 @@ describe('saving the newer stats', () => {
   });
   const withState = () => {
     const state = createInitialState(config, numberFactory);
-    state.iceRating = num(7);
-    state.legend = 3;
-    state.purchased['auto-a'] = 1;
-    state.autoRunOff['auto-a'] = true;
+    state.sleeve.iceRating = num(7);
+    state.sleeve.legend = 3;
+    state.sleeve.purchased['auto-a'] = 1;
+    state.sleeve.autoRunOff['auto-a'] = true;
     return state;
   };
 
   it('round-trips ICE Rating, Legend and auto-run switches', () => {
     const restored = deserializeState(serializeState(withState()), config, numberFactory)!;
-    expect(restored.iceRating.eq(num(7))).toBe(true);
-    expect(restored.legend).toBe(3);
-    expect(restored.autoRunOff).toEqual({ 'auto-a': true });
+    expect(restored.sleeve.iceRating.eq(num(7))).toBe(true);
+    expect(restored.sleeve.legend).toBe(3);
+    expect(restored.sleeve.autoRunOff).toEqual({ 'auto-a': true });
   });
 
   it('an older save without them loads with fresh-game values', () => {
-    const json = JSON.parse(serializeState(withState()));
+    const json = flatSave(serializeState(withState()));
     for (const key of ['iceRating', 'legend', 'autoRunOff']) delete json[key];
-    const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect(restored.iceRating.eq(num(1))).toBe(true);
-    expect(restored.legend).toBe(0);
-    expect(restored.autoRunOff).toEqual({});
+    const restored = deserializeState(asSave(json), config, numberFactory)!;
+    expect(restored.sleeve.iceRating.eq(num(1))).toBe(true);
+    expect(restored.sleeve.legend).toBe(0);
+    expect(restored.sleeve.autoRunOff).toEqual({});
   });
 
   it('sanitises tampered values', () => {
-    const json = JSON.parse(serializeState(withState()));
+    const json = flatSave(serializeState(withState()));
     json.legend = -3;
     json.iceRating = '0.5';
     json.autoRunOff = { 'auto-a': true, ghost: true };
-    const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect(restored.legend).toBe(0);
-    expect(restored.iceRating.eq(num(1))).toBe(true);
-    expect(restored.autoRunOff).toEqual({ 'auto-a': true });
+    const restored = deserializeState(asSave(json), config, numberFactory)!;
+    expect(restored.sleeve.legend).toBe(0);
+    expect(restored.sleeve.iceRating.eq(num(1))).toBe(true);
+    expect(restored.sleeve.autoRunOff).toEqual({ 'auto-a': true });
   });
 });
 

@@ -6,6 +6,7 @@ import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
 import { type SpeedControl, mountUi } from './dom';
 import { HALF_TILE, STEP_PX, TILE_PX } from './widgets/skillTree';
+import { flat } from '../testing/flatState';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 
@@ -31,7 +32,7 @@ const inert = { id: 'z', name: 'Z', baseDurationMs: 1_000, reward: num(0), xpPer
 const config = createConfig(testConfig, { actions: [...testConfig.actions, inert], buyables: [...testConfig.buyables, ...skills] });
 
 type Loose = { actions: Record<string, { xp: unknown }>; purchased: Record<string, number> };
-const loose = (g: { getState(): unknown }): Loose => g.getState() as unknown as Loose;
+const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
 beforeEach(() => {
   document.body.innerHTML = '';

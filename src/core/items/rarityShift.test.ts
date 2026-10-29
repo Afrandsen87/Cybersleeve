@@ -112,11 +112,11 @@ describe('rarity refinement buyable', () => {
     setCredits(g, num(100));
     g.buy('harvest');
     if (owned) expect(g.buy('refine')).toBe('purchased');
-    (g.getState() as { hackingProficiency: unknown }).hackingProficiency = num(proficiency);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(proficiency);
     return g;
   };
   const held = (g: { getState(): unknown }, rarity: string): number =>
-    (g.getState() as { inventory: Record<string, Record<string, number>> }).inventory['file']?.[rarity] ?? 0;
+    (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory['file']?.[rarity] ?? 0;
 
   it('is hidden until the harvest is owned', () => {
     const g = createGame({ config: createConfig(testConfig, { buyables: [...testConfig.buyables, drop, refine()] }) });
@@ -147,7 +147,7 @@ describe('rarity refinement buyable', () => {
   it('follows proficiency as it grows: the ratios move when a new order of magnitude is reached', () => {
     const g = game('9');
     g.dropTestItem();
-    (g.getState() as { hackingProficiency: unknown }).hackingProficiency = num(10);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(10);
     g.dropTestItem();
     expect([held(g, 'common'), held(g, 'rare')]).toEqual([1, 1]);
   });
@@ -156,7 +156,7 @@ describe('rarity refinement buyable', () => {
     const g = game('1000');
     g.resleeve();
     expect(g.ownedCount('refine')).toBe(0);
-    expect(g.getState().hackingProficiency.isZero()).toBe(true);
+    expect(g.getState().sleeve.hackingProficiency.isZero()).toBe(true);
   });
 
   it.each([0, -0.1, 1.5, Number.NaN])('a fractionPerOrder of %d is rejected', (fraction) => {

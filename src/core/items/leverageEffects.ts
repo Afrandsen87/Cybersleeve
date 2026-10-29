@@ -4,7 +4,7 @@
  * The effects of the leverage skills that are read by dedicated queries: the back channel (Moles for items) and the flat bonus to the
  * drop ratios of an item.
  */
-import type { BuyableDefinition, GameState } from '../types';
+import type { BuyableDefinition, StateSlice } from '../types';
 
 /** What the owned back channel buyables let the player do. */
 export interface BackChannelRule {
@@ -32,10 +32,10 @@ export interface BackChannelRule {
  */
 export function resolveBackChannel(
   buyables: readonly BuyableDefinition[],
-  state: Pick<GameState, 'purchased'>,
+  state: StateSlice<'purchased'>,
   rarityIds: readonly string[],
 ): BackChannelRule | null {
-  const owned = (b: BuyableDefinition): number => state.purchased[b.id] ?? 0;
+  const owned = (b: BuyableDefinition): number => state.sleeve.purchased[b.id] ?? 0;
   const channel = buyables.find((b) => owned(b) > 0 && b.effect.kind === 'backChannel')?.effect;
   if (channel?.kind !== 'backChannel') return null;
   const { itemId, rarityId, molesPerItem, cooldownBoost } = channel;
@@ -69,13 +69,13 @@ export function resolveBackChannel(
  */
 export function resolveRarityWeightBonus(
   buyables: readonly BuyableDefinition[],
-  state: Pick<GameState, 'purchased'>,
+  state: StateSlice<'purchased'>,
   itemId: string,
   rarityIds: readonly string[],
 ): number[] {
   const bonus = rarityIds.map(() => 0);
   for (const b of buyables) {
-    const copies = state.purchased[b.id] ?? 0;
+    const copies = state.sleeve.purchased[b.id] ?? 0;
     const e = b.effect;
     if (copies === 0 || e.kind !== 'rarityWeightBonus' || e.itemId !== itemId) continue;
     rarityIds.forEach((id, i) => {

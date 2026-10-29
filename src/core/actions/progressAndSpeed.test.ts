@@ -7,15 +7,16 @@ import { num, numberFactory } from '../../numbers';
 import { buildViewModel } from '../../ui/viewModel';
 import { testConfig } from '../../testing/testConfig';
 import { SAVE_VERSION, createConfig, deserializeState, serializeState } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 // Test config: action 'a' takes 10 s at interface speed 1, so 10 s at the start.
 const doubler = { id: 'boost', name: 'Boost', description: '', cost: num(1), effect: { kind: 'interfaceSpeed', amount: 1 } } as const;
 
 const game = () => createGame({ config: createConfig(testConfig, { buyables: [doubler], sleeve: { baseInterfaceSpeed: 1 } }) });
-const progressOf = (g: ReturnType<typeof game>): number => g.getState().actions['a']!.progress;
-const xpOf = (g: ReturnType<typeof game>): number => g.getState().actions['a']!.xp.toNumber();
+const progressOf = (g: ReturnType<typeof game>): number => g.getState().sleeve.actions['a']!.progress;
+const xpOf = (g: ReturnType<typeof game>): number => g.getState().sleeve.actions['a']!.xp.toNumber();
 const boost = (g: ReturnType<typeof game>): void => {
-  (g.getState() as { credits: unknown }).credits = num(1);
+  (g.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(1);
   expect(g.buy('boost')).toBe('purchased');
 };
 
@@ -48,7 +49,7 @@ describe('a change of speed in the middle of a run', () => {
     boost(g); // the whole run now takes 5 s, and 6 s have passed
     g.tick(1);
     expect(xpOf(g)).toBe(0);
-    expect(g.getState().actions['a']!.running).toBe(true);
+    expect(g.getState().sleeve.actions['a']!.running).toBe(true);
     expect(progressOf(g)).toBeCloseTo(0.6, 3);
     g.tick(1_900);
     expect(xpOf(g)).toBe(0); // 40% of 5 s = 2 s are needed
@@ -62,7 +63,7 @@ describe('a change of speed in the middle of a run', () => {
     g.startAction('a');
     g.tick(2_000); // 40% done
     expect(progressOf(g)).toBeCloseTo(0.4, 12);
-    (g.getState() as { purchased: Record<string, number> }).purchased['boost'] = 0; // back to speed 1: a run takes 10 s
+    (g.getState() as unknown as { sleeve: { purchased: Record<string, number> } }).sleeve.purchased['boost'] = 0; // back to speed 1: a run takes 10 s
     expect(g.currentDurationMs('a')).toBe(10_000);
     expect(progressOf(g)).toBeCloseTo(0.4, 12);
     g.tick(5_900);
@@ -104,22 +105,25 @@ describe('saving the progress of a run', () => {
 
   it('writes the share done and the current format version', () => {
     const { json } = saved();
-    const data = JSON.parse(json) as { version: number; actions: Record<string, { progress: number; progressMs?: number }> };
+    const data = JSON.parse(json) as {
+      version: number;
+      sleeves: Record<string, { actions: Record<string, { progress: number; progressMs?: number }> }>;
+    };
     expect(data.version).toBe(SAVE_VERSION);
-    expect(data.actions['a']!.progress).toBeCloseTo(0.4, 12);
-    expect(data.actions['a']!.progressMs).toBeUndefined();
+    expect(data.sleeves['main']!.actions['a']!.progress).toBeCloseTo(0.4, 12);
+    expect(data.sleeves['main']!.actions['a']!.progressMs).toBeUndefined();
   });
 
   it('restores it: a run saved at 40% continues from 40%', () => {
     const { json } = saved();
     const restored = deserializeState(json, testConfig, numberFactory)!;
-    expect(restored.actions['a']!.progress).toBeCloseTo(0.4, 12);
-    expect(restored.actions['a']!.running).toBe(true);
+    expect(restored.sleeve.actions['a']!.progress).toBeCloseTo(0.4, 12);
+    expect(restored.sleeve.actions['a']!.running).toBe(true);
   });
 
   it('refuses an older or unknown version', () => {
     const { json } = saved();
-    for (const version of [2, 3, 7, 'x']) {
+    for (const version of [2, 3, 6, 8, 'x']) {
       const data = { ...(JSON.parse(json) as object), version };
       expect(deserializeState(JSON.stringify(data), testConfig, numberFactory)).toBeNull();
     }
@@ -128,10 +132,10 @@ describe('saving the progress of a run', () => {
   it('treats a progress that is not a share (negative, 1 or more, not a number) as 0', () => {
     const { json } = saved();
     for (const bad of [-0.5, 1, 7, 'abc', null, Number.POSITIVE_INFINITY]) {
-      const data = JSON.parse(json) as { actions: Record<string, Record<string, unknown>> };
+      const data = flatSave(json) as { actions: Record<string, Record<string, unknown>> };
       data.actions['a']!['progress'] = bad;
-      const state = deserializeState(JSON.stringify(data), testConfig, numberFactory);
-      expect(state!.actions['a']!.progress, String(bad)).toBe(0);
+      const state = deserializeState(asSave(data), testConfig, numberFactory);
+      expect(state!.sleeve.actions['a']!.progress, String(bad)).toBe(0);
     }
   });
 });

@@ -13,44 +13,54 @@ const owned = (...skills: { id: string }[]) => Object.fromEntries(skills.map((s)
 
 describe('resolveBackChannel', () => {
   it('is null without a back channel, even with the other channel skills', () => {
-    expect(resolveBackChannel([channel, scaling, double], { purchased: owned(scaling, double) }, RARITIES)).toBeNull();
+    expect(
+      resolveBackChannel([channel, scaling, double], { wallet: {}, sleeve: { purchased: owned(scaling, double) } }, RARITIES),
+    ).toBeNull();
   });
 
   it('opens only its own rarity at molesPerItem', () => {
-    const rule = resolveBackChannel([channel], { purchased: owned(channel) }, RARITIES)!;
+    const rule = resolveBackChannel([channel], { wallet: {}, sleeve: { purchased: owned(channel) } }, RARITIES)!;
     expect(rule.molesByRarity).toEqual({ common: 5 });
     expect(rule.cooldownBoost).toBe(2);
   });
 
   it('with rarity scaling every rarity is open and worth molesPerItem times its position: common x1, uncommon x2, rare x3', () => {
-    const rule = resolveBackChannel([channel, scaling], { purchased: owned(channel, scaling) }, RARITIES)!;
+    const rule = resolveBackChannel([channel, scaling], { wallet: {}, sleeve: { purchased: owned(channel, scaling) } }, RARITIES)!;
     expect(rule.molesByRarity).toEqual({ common: 5, uncommon: 10, rare: 15, legendary: 20, crisis: 25 });
   });
 
   it('the multiplier doubles whatever each rarity pays, with or without scaling', () => {
-    const plain = resolveBackChannel([channel, double], { purchased: owned(channel, double) }, RARITIES)!;
+    const plain = resolveBackChannel([channel, double], { wallet: {}, sleeve: { purchased: owned(channel, double) } }, RARITIES)!;
     expect(plain.molesByRarity).toEqual({ common: 10 });
-    const both = resolveBackChannel([channel, scaling, double], { purchased: owned(channel, scaling, double) }, RARITIES)!;
+    const both = resolveBackChannel(
+      [channel, scaling, double],
+      { wallet: {}, sleeve: { purchased: owned(channel, scaling, double) } },
+      RARITIES,
+    )!;
     expect(both.molesByRarity).toEqual({ common: 10, uncommon: 20, rare: 30, legendary: 40, crisis: 50 });
   });
 
   it('ignores skills for another item', () => {
     const other = skill('o', { kind: 'backChannelMultiplier', itemId: 'other', factor: 2 }, 0);
-    expect(resolveBackChannel([channel, other], { purchased: owned(channel, other) }, RARITIES)!.molesByRarity).toEqual({ common: 5 });
+    expect(
+      resolveBackChannel([channel, other], { wallet: {}, sleeve: { purchased: owned(channel, other) } }, RARITIES)!.molesByRarity,
+    ).toEqual({ common: 5 });
   });
 });
 
 describe('resolveRarityWeightBonus', () => {
   it('adds the amount of every owned copy for the item, and nothing for another item', () => {
     const bonus = skill('b', { kind: 'rarityWeightBonus', itemId: 'file', amount: 0.01 });
-    expect(resolveRarityWeightBonus([bonus], { purchased: {} }, 'file', RARITIES)).toEqual([0, 0, 0, 0, 0]);
-    expect(resolveRarityWeightBonus([bonus], { purchased: { b: 1 } }, 'file', RARITIES)).toEqual([0.01, 0.01, 0.01, 0.01, 0.01]);
-    expect(resolveRarityWeightBonus([bonus], { purchased: { b: 1 } }, 'other', RARITIES)).toEqual([0, 0, 0, 0, 0]);
+    expect(resolveRarityWeightBonus([bonus], { wallet: {}, sleeve: { purchased: {} } }, 'file', RARITIES)).toEqual([0, 0, 0, 0, 0]);
+    expect(resolveRarityWeightBonus([bonus], { wallet: {}, sleeve: { purchased: { b: 1 } } }, 'file', RARITIES)).toEqual([
+      0.01, 0.01, 0.01, 0.01, 0.01,
+    ]);
+    expect(resolveRarityWeightBonus([bonus], { wallet: {}, sleeve: { purchased: { b: 1 } } }, 'other', RARITIES)).toEqual([0, 0, 0, 0, 0]);
   });
 
   it('with a rarityId it adds to that rarity only', () => {
     const bonus = skill('b', { kind: 'rarityWeightBonus', itemId: 'file', amount: 0.1, rarityId: 'rare' });
-    expect(resolveRarityWeightBonus([bonus], { purchased: { b: 1 } }, 'file', RARITIES)).toEqual([0, 0, 0.1, 0, 0]);
+    expect(resolveRarityWeightBonus([bonus], { wallet: {}, sleeve: { purchased: { b: 1 } } }, 'file', RARITIES)).toEqual([0, 0, 0.1, 0, 0]);
   });
 
   it('a rarityId must be a known rarity', () => {
@@ -84,7 +94,7 @@ describe('the leverage skills in a game', () => {
         buyables: [...testConfig.buyables, drop, ...skills],
       }),
     });
-    (g.getState().purchased as Record<string, number>)['drop'] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)['drop'] = 1;
     return g;
   };
 
@@ -106,9 +116,9 @@ describe('the leverage skills in a game', () => {
     g.buy('sc');
     g.buy('dbl');
     expect(g.giveUpForMoles('file', 'rare', 1)).toBe(1);
-    expect(g.getState().moles).toBe(30); // 5 x 3 (rare) x 2
+    expect(g.getState().sleeve.moles).toBe(30); // 5 x 3 (rare) x 2
     expect(g.giveUpForMoles('file', 'common', 'all')).toBe(2);
-    expect(g.getState().moles).toBe(50); // + 2 x 5 x 1 x 2
+    expect(g.getState().sleeve.moles).toBe(50); // + 2 x 5 x 1 x 2
   });
 
   it('validates its numbers and items', () => {

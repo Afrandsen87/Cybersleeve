@@ -39,7 +39,7 @@ export class SkillShards {
 
   /** The actions a shard can land on now. */
   private candidates(): ActionId[] {
-    return this.config.actions.filter((a) => this.state.actions[a.id] !== undefined && this.isUnlocked(a.id)).map((a) => a.id);
+    return this.config.actions.filter((a) => this.state.sleeve.actions[a.id] !== undefined && this.isUnlocked(a.id)).map((a) => a.id);
   }
 
   /** Shards held (0 when the game has none). */
@@ -64,7 +64,7 @@ export class SkillShards {
     if (!rule || candidates.length === 0) return null;
     if (this.inventory.takeFirst(rule.itemId, 1) <= 0) return null;
     const id = candidates[Math.min(candidates.length - 1, Math.floor(this.random() * candidates.length))]!;
-    const action = this.state.actions[id]!;
+    const action = this.state.sleeve.actions[id]!;
     action.skillShards += 1;
     return id;
   }

@@ -27,6 +27,7 @@ import {
   PRACTICE_HACKING,
   PUSH_MALWARE,
 } from './gameConfig';
+import { flat } from '../testing/flatState';
 
 describe('Malware payload (real content)', () => {
   it('is the cheapest purchase on the Push malware card (they are sorted by base price), rebuyable with a 100x price per copy', () => {
@@ -65,9 +66,9 @@ describe('Malware payload (real content)', () => {
     };
     const plain = run(0);
     const doubled = run(2);
-    expect(doubled.heat).toBe(plain.heat);
-    expect(doubled.heat).toBe(gameConfig.actions.find((a) => a.id === PUSH_MALWARE)!.heatPerRun);
-    expect(doubled.nodePayoutBonus.toNumber()).toBeCloseTo(plain.nodePayoutBonus.toNumber() * 4, 15);
+    expect(doubled.sleeve.heat).toBe(plain.sleeve.heat);
+    expect(doubled.sleeve.heat).toBe(gameConfig.actions.find((a) => a.id === PUSH_MALWARE)!.heatPerRun);
+    expect(doubled.sleeve.nodePayoutBonus.toNumber()).toBeCloseTo(plain.sleeve.nodePayoutBonus.toNumber() * 4, 15);
   });
 });
 
@@ -161,12 +162,12 @@ describe('Kill servers, Admin keys and Skill shards (real content)', () => {
 
   it('with the Black box recorder, Kill servers runs drop Admin keys, which can be switched on', () => {
     const g = createGame({ random: () => 0 }); // a draw of 0 is below every chance
-    const state = g.getState() as unknown as { network: unknown; inventory: Record<string, Record<string, number>> };
+    const state = flat<{ network: unknown; inventory: Record<string, Record<string, number>> }>(g);
     setCredits(g, num(1e300));
     g.buy(ACCESS_UPGRADE);
     g.buy(ACCESS_UPGRADE);
     g.buy(ACCESS_UPGRADE);
-    (g.getState().purchased as Record<string, number>)[CRITICAL_SUCCESS] = 1; // the reveal gate of the Black box recorder
+    (g.getState().sleeve.purchased as Record<string, number>)[CRITICAL_SUCCESS] = 1; // the reveal gate of the Black box recorder
     expect(g.buy(BLACK_BOX_RECORDER)).toBe('purchased');
     state.network = num(100_000);
     expect(g.isUnlocked(KILL_SERVERS)).toBe(true);

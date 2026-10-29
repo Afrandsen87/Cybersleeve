@@ -57,7 +57,7 @@ export class ToggleStats implements ModeStatuses {
    */
   chainLinks(id: ActionId): number {
     const chain = this.activeOverclock(id)?.chain;
-    return chain ? Math.min(chain.maxLinks, this.state.chains[id] ?? 0) : 0;
+    return chain ? Math.min(chain.maxLinks, this.state.sleeve.chains[id] ?? 0) : 0;
   }
 
   /**
@@ -96,13 +96,13 @@ export class ToggleStats implements ModeStatuses {
     if (!rule || !owned.overclockUnlocked) return null;
     const chain = owned.chain;
     const strength = this.sleeveStats().overclockStrength;
-    const on = this.state.overclocked[id] === true;
+    const on = this.state.sleeve.overclocked[id] === true;
     return {
       on,
       blocksHeatCooling: rule.stopsHeatCooling === true,
       chain: chain
         ? {
-            links: on ? Math.min(chain.maxLinks, this.state.chains[id] ?? 0) : 0,
+            links: on ? Math.min(chain.maxLinks, this.state.sleeve.chains[id] ?? 0) : 0,
             maxLinks: chain.maxLinks,
             rewardPerLink: chain.rewardPerLink * strength,
             nodesPerLink: chain.nodesPerLink,
@@ -121,7 +121,7 @@ export class ToggleStats implements ModeStatuses {
 
   /** Overclock for an action while the player has it switched on (what it does to the action now), or `null` while it is off or unavailable. */
   activeOverclock(id: ActionId): OverclockStatus | null {
-    if (this.state.overclocked[id] !== true) return null;
+    if (this.state.sleeve.overclocked[id] !== true) return null;
     const status = this.overclockStatus(id);
     return status?.on ? status : null;
   }
@@ -138,7 +138,7 @@ export class ToggleStats implements ModeStatuses {
     const { extraFocusSlots, focusStacking } = this.sleeveStats();
     const slots = baseSlots + extraFocusSlots;
     const slotsOn = (actionId: ActionId): number =>
-      this.state.focused[actionId] === true ? 1 + (focusStacking ? (this.state.focusStacks[actionId] ?? 0) : 0) : 0;
+      this.state.sleeve.focused[actionId] === true ? 1 + (focusStacking ? (this.state.sleeve.focusStacks[actionId] ?? 0) : 0) : 0;
     const count = slotsOn(id);
     const used = this.config.actions.reduce((n, a) => n + slotsOn(a.id), 0);
     // every slot on the action multiplies its speed by the bonus again

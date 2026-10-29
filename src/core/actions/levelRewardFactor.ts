@@ -3,7 +3,7 @@
  *
  * The reward multiplier an action gets from `rewardMultiplierFromActionLevel` buyables.
  */
-import type { ActionId, BuyableDefinition, GameState } from '../types';
+import type { ActionId, BuyableDefinition, StateSlice } from '../types';
 
 /**
  * The factor that `rewardMultiplierFromActionLevel` buyables multiply an action's reward by.
@@ -22,14 +22,15 @@ import type { ActionId, BuyableDefinition, GameState } from '../types';
  */
 export function levelRewardFactor(
   buyables: readonly BuyableDefinition[],
-  state: Pick<GameState, 'purchased'>,
+  state: StateSlice<'purchased'>,
   targetActionId: ActionId,
   actionLevelOf: (actionId: ActionId) => number,
 ): number {
   let factor = 1;
   for (const b of buyables) {
     const e = b.effect;
-    if (e.kind !== 'rewardMultiplierFromActionLevel' || e.targetActionId !== targetActionId || (state.purchased[b.id] ?? 0) <= 0) continue;
+    if (e.kind !== 'rewardMultiplierFromActionLevel' || e.targetActionId !== targetActionId || (state.sleeve.purchased[b.id] ?? 0) <= 0)
+      continue;
     factor *= 1 + e.coefficient * Math.log1p(Math.max(0, actionLevelOf(e.sourceActionId)) / e.scale);
   }
   return factor;

@@ -5,10 +5,11 @@ import { num } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { legendAction, testConfig } from '../../testing/testConfig';
 import { type BuyableDefinition, createConfig, effectiveDurationMs, heatTaxFactor, speedMultiplier, validateConfig } from '..';
+import { flat } from '../../testing/flatState';
 
 const game = (overrides = {}, actions = testConfig.actions, buyables: readonly BuyableDefinition[] = testConfig.buyables) =>
   createGame({ config: createConfig(testConfig, { actions, buyables, ...overrides }) });
-const mutable = (g: { getState(): unknown }) => g.getState() as Record<string, unknown> & { purchased: Record<string, number> };
+const mutable = (g: { getState(): unknown }) => flat<Record<string, unknown> & { purchased: Record<string, number> }>(g);
 
 describe('speed at astronomical scale', () => {
   it('a speed multiplier that overflows saturates instead of becoming Infinity', () => {
@@ -38,11 +39,11 @@ describe('speed at astronomical scale', () => {
     mutable(g).purchased['auto'] = 1;
     g.startAction('a');
     for (let i = 0; i < 20; i++) {
-      const before = g.getState().credits;
+      const before = g.getState().wallet.credits;
       g.tick(50);
-      expect(g.getState().credits.gte(before)).toBe(true);
+      expect(g.getState().wallet.credits.gte(before)).toBe(true);
     }
-    expect(g.getState().credits.isZero()).toBe(false);
+    expect(g.getState().wallet.credits.isZero()).toBe(false);
     expect(findInvariantViolations(g.getState(), testConfig)).toEqual([]);
   });
 
@@ -92,7 +93,7 @@ describe('Legend comes in whole points', () => {
       g.startAction('legend');
       g.tick(1_000);
     }
-    expect(g.getState().legend).toBe(3); // 1.5 per run rounded down to 1, three runs
+    expect(g.getState().sleeve.legend).toBe(3); // 1.5 per run rounded down to 1, three runs
   });
 });
 
@@ -127,7 +128,7 @@ describe('sleeve XP reduction cap and new settings are validated', () => {
     const second = { id: 'b', name: 'B', baseDurationMs: 1_000, reward: num(1), xpPerRun: num(1) };
     const g = game({ progression: { maxSleeveXpReduction: 0.3 } }, [testConfig.actions[0]!, second], [...testConfig.buyables, reduce]);
     mutable(g).purchased['study'] = 1;
-    (g.getState().actions['a'] as { sleeveXp: unknown }).sleeveXp = num(1e6);
+    (g.getState().sleeve.actions['a'] as { sleeveXp: unknown }).sleeveXp = num(1e6);
     expect(g.sleeveXpReduction('b')).toBeGreaterThan(0.3);
   });
 

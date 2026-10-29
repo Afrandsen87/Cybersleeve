@@ -8,6 +8,7 @@ import { createGame } from '../app/createGame';
 import { num } from '../numbers';
 import { setCredits, testConfig } from './testConfig';
 import { type BuyableDefinition, type GameConfig, createConfig } from '../core';
+import { flat } from './flatState';
 
 /** A re-sleeve skill that costs `cost` points (default 1), belongs to no action and has the given tree parents. */
 export const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], cost = 1, parents?: string[]): BuyableDefinition => ({
@@ -49,7 +50,7 @@ export type Loose = {
 };
 
 /** The state of a game, writable (tests only). */
-export const loose = (g: { getState(): unknown }): Loose => g.getState() as unknown as Loose;
+export const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
 /** A new game on `config`. */
 export const newGame = (config: GameConfig): ReturnType<typeof createGame> => createGame({ config });

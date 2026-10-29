@@ -19,7 +19,8 @@ const parasite = (
     },
   });
 
-const factorAt = (level: number, owned = 1): number => levelRewardFactor([parasite()], { purchased: { bp: owned } }, 'net', () => level);
+const factorAt = (level: number, owned = 1): number =>
+  levelRewardFactor([parasite()], { wallet: {}, sleeve: { purchased: { bp: owned } } }, 'net', () => level);
 
 describe('levelRewardFactor (Backbone Parasite curve)', () => {
   it('is exactly 1 at level 0 and when the buyable is not owned', () => {
@@ -45,10 +46,12 @@ describe('levelRewardFactor (Backbone Parasite curve)', () => {
   });
 
   it('ignores the level of other actions and the reward of other actions', () => {
-    expect(levelRewardFactor([parasite({ sourceActionId: 'a' })], { purchased: { bp: 1 } }, 'net', (id) => (id === 'net' ? 50 : 0))).toBe(
-      1,
-    );
-    expect(levelRewardFactor([parasite()], { purchased: { bp: 1 } }, 'a', () => 50)).toBe(1);
+    expect(
+      levelRewardFactor([parasite({ sourceActionId: 'a' })], { wallet: {}, sleeve: { purchased: { bp: 1 } } }, 'net', (id) =>
+        id === 'net' ? 50 : 0,
+      ),
+    ).toBe(1);
+    expect(levelRewardFactor([parasite()], { wallet: {}, sleeve: { purchased: { bp: 1 } } }, 'a', () => 50)).toBe(1);
   });
 
   it('treats a negative level as 0', () => {
@@ -61,7 +64,7 @@ describe('Backbone Parasite in the game', () => {
     const g = cyberneticsGame(cyberneticsConfig([parasite({ coefficient: 1, scale: 1 })]));
     g.buy('bp');
     expect(g.rewardMultiplier('net').toNumber()).toBe(1); // level 0
-    (g.getState().actions['net'] as { xp: unknown }).xp = num(1e12); // level 1 (the kit's first level needs 1e12 XP)
+    (g.getState().sleeve.actions['net'] as { xp: unknown }).xp = num(1e12); // level 1 (the kit's first level needs 1e12 XP)
     expect(g.actionLevel('net')).toBe(1);
     expect(g.rewardMultiplier('net').toNumber()).toBeCloseTo(1 + Math.log(2), 9);
     expect(g.rewardMultiplier('a').toNumber()).toBe(1);

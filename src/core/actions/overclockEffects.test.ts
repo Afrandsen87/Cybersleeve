@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { networkAction, payoutAction, practiceAction, setCredits, testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, serializeState, validateConfig, type BuyableDefinition, type GameConfig } from '..';
+import { flat } from '../../testing/flatState';
 
 /** Practice-style rule: pays 200% more, costs 5 nodes per completed run. */
 const PRACTICE_RULE = { rewardBonus: 2, completionEffects: [{ kind: 'removeNodes', amount: 5 }] } as const;
@@ -64,11 +65,11 @@ function game(config = configWith()) {
 
 type Mutable = { network: unknown; heat: number };
 const setNodes = (g: ReturnType<typeof game>, n: number): void => {
-  (g.getState() as unknown as Mutable).network = num(n);
+  flat<Mutable>(g).network = num(n);
 };
-const nodes = (g: ReturnType<typeof game>): number => g.getState().network.toNumber();
-const proficiency = (g: ReturnType<typeof game>): number => g.getState().hackingProficiency.toNumber();
-const runs = (g: ReturnType<typeof game>, id: string): number => g.getState().actions[id]!.xp.toNumber();
+const nodes = (g: ReturnType<typeof game>): number => g.getState().sleeve.network.toNumber();
+const proficiency = (g: ReturnType<typeof game>): number => g.getState().sleeve.hackingProficiency.toNumber();
+const runs = (g: ReturnType<typeof game>, id: string): number => g.getState().sleeve.actions[id]!.xp.toNumber();
 
 /** Runs an action for a whole number of its 1 s runs (auto-run, so the batch maths is the one under test). */
 function run(g: ReturnType<typeof game>, id: string, seconds: number): void {
@@ -183,7 +184,7 @@ describe('Overclock that also pays another action and multiplies heat (Push malw
   it('off: the action adds its own heat and pays no nodes', () => {
     const g = make();
     run(g, 'push', 5);
-    expect(g.getState().heat).toBeCloseTo(5, 9);
+    expect(g.getState().sleeve.heat).toBeCloseTo(5, 9);
     expect(nodes(g)).toBe(0);
   });
 
@@ -193,7 +194,7 @@ describe('Overclock that also pays another action and multiplies heat (Push malw
     run(g, 'push', 5);
     expect(runs(g, 'push')).toBe(5);
     expect(nodes(g)).toBe(5);
-    expect(g.getState().heat).toBeCloseTo(15, 9);
+    expect(g.getState().sleeve.heat).toBeCloseTo(15, 9);
   });
 
   it('pays the other action as if it had completed: its reward multipliers count, its XP and runs do not', () => {
@@ -203,7 +204,7 @@ describe('Overclock that also pays another action and multiplies heat (Push malw
     run(g, 'push', 5);
     expect(nodes(g)).toBe(10);
     expect(runs(g, 'net')).toBe(0);
-    expect(g.getState().actions['net']!.running).toBe(false);
+    expect(g.getState().sleeve.actions['net']!.running).toBe(false);
   });
 
   it('does not change what the action itself pays or its speed', () => {
@@ -223,7 +224,7 @@ describe('Overclock that also pays another action and multiplies heat (Push malw
     g.toggleOverclock('push');
     run(g, 'push', 5);
     expect(nodes(g)).toBe(5);
-    expect(g.getState().heat).toBeCloseTo(15, 9);
+    expect(g.getState().sleeve.heat).toBeCloseTo(15, 9);
   });
 
   it('switched off again, the next runs are ordinary', () => {
@@ -232,7 +233,7 @@ describe('Overclock that also pays another action and multiplies heat (Push malw
     g.toggleOverclock('push');
     run(g, 'push', 4);
     expect(nodes(g)).toBe(0);
-    expect(g.getState().heat).toBeCloseTo(4, 9);
+    expect(g.getState().sleeve.heat).toBeCloseTo(4, 9);
   });
 
   it('one long tick and many short ones give the same nodes and heat', () => {
@@ -245,7 +246,7 @@ describe('Overclock that also pays another action and multiplies heat (Push malw
     many.startAction('push');
     for (let i = 0; i < 1_200; i++) many.tick(50);
     expect(nodes(many)).toBe(nodes(one));
-    expect(many.getState().heat).toBeCloseTo(one.getState().heat, 4);
+    expect(many.getState().sleeve.heat).toBeCloseTo(one.getState().sleeve.heat, 4);
   });
 });
 
@@ -266,7 +267,7 @@ describe('every action keeps its own Overclock', () => {
     g.buy('oc-push');
     g.toggleOverclock('push');
     const restored = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(restored.overclocked).toEqual({ push: true });
+    expect(restored.sleeve.overclocked).toEqual({ push: true });
   });
 });
 

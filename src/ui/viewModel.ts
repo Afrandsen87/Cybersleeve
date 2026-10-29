@@ -57,12 +57,12 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
   const viewById = new Map(buyableViews.map((v) => [v.id, v]));
 
   const vm: ViewModel = {
-    creditsText: formatBigNum(state.credits),
-    creditsLine: text.credits(formatBigNum(state.credits)),
+    creditsText: formatBigNum(state.wallet.credits),
+    creditsLine: text.credits(formatBigNum(state.wallet.credits)),
     network: networkView(engine, config, state, stats, text),
     tabs: tabsView(engine, state, config, text),
     skills: skillsView(engine, state, config, viewById, stats, text, revealAll),
-    runs: runsView(state.runs, config, text),
+    runs: runsView(state.wallet.runs, config, text),
     automation: automationView(engine, config, viewById, text, revealAll),
     corporation: corporationView(engine, config, buyableViews, text),
     inventory: inventoryView(engine, factory, text),

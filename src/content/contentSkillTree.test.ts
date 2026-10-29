@@ -125,7 +125,7 @@ describe('what a new game shows of the skill tree', () => {
 
   it('owning Kompromat harvest reveals the Leverage branch, except Back channel which also waits for heat', () => {
     const g = createGame();
-    (g.getState().purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[KOMPROMAT_HARVEST] = 1;
     expect(masked(g)).not.toContain(SKILL_NOSE_FOR_SECRETS);
     expect(masked(g)).not.toContain(SKILL_EXPLOIT_KOMPROMAT);
     expect(masked(g)).toContain(SKILL_BACK_CHANNEL); // Moles are heat: it also waits for the Push malware Overclock
@@ -135,16 +135,16 @@ describe('what a new game shows of the skill tree', () => {
 
   it('owning the Push malware Overclock reveals Obfuscation, and Purge Protocol with it, because its parent now reads', () => {
     const g = createGame();
-    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1;
     expect(masked(g)).not.toContain(SKILL_OBFUSCATION);
     expect(masked(g)).toContain(SKILL_PURGE_PROTOCOL); // it talks about sleeve levels: it waits for re-sleeving to be unlocked
-    (g.getState().purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
     expect(masked(g)).not.toContain(SKILL_PURGE_PROTOCOL);
   });
 
   it('a skill that reads but whose parent is not owned is dimmed and cannot be bought yet', () => {
     const g = createGame();
-    (g.getState().purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1;
     const obfuscation = buildViewModel(g)
       .skills.lanes.flatMap((l) => l.nodes)
       .find((n) => n.view.id === SKILL_OBFUSCATION)!;

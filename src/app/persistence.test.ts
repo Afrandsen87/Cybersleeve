@@ -13,7 +13,7 @@ describe('SaveGame', () => {
     g.startAction('a');
     g.tick(10_000);
     expect(save.save(g.getState())).toBe(true);
-    expect(save.load()!.credits.eq(num(0.5))).toBe(true);
+    expect(save.load()!.wallet.credits.eq(num(0.5))).toBe(true);
   });
 
   it('returns null with no save and does not create a backup', () => {
@@ -50,10 +50,10 @@ describe('SaveGame', () => {
     const g = game();
     setCredits(g, num(7));
     save.save(g.getState());
-    expect(save.load()!.credits.eq(num(7))).toBe(true); // a good load remembers the save
+    expect(save.load()!.wallet.credits.eq(num(7))).toBe(true); // a good load remembers the save
     store.setItem(SAVE_KEY, '{broken');
     const restored = save.load();
-    expect(restored!.credits.eq(num(7))).toBe(true);
+    expect(restored!.wallet.credits.eq(num(7))).toBe(true);
     expect(store.getItem(BACKUP_KEY)).toBe('{broken'); // the broken one is still kept for inspection
   });
 
@@ -69,7 +69,7 @@ describe('SaveGame', () => {
       save.importText(`  ${text}
 `),
     ).toBe(true);
-    expect(save.load()!.credits.eq(num(12))).toBe(true);
+    expect(save.load()!.wallet.credits.eq(num(12))).toBe(true);
   });
 
   it('clearing the save also forgets the previous known-good one, so a reset game does not come back', () => {
@@ -138,10 +138,10 @@ describe('createNewGameHandler (the temporary "Reset save" button)', () => {
     createNewGameHandler(g, save)();
 
     const s = g.getState();
-    expect(s.credits.isZero()).toBe(true);
-    expect(s.purchased).toEqual({});
-    expect(s.actions['a']).toMatchObject({ running: false, progress: 0, runsTowardSleeveXp: 0 });
-    expect(s.actions['a']!.sleeveXp.isZero()).toBe(true);
+    expect(s.wallet.credits.isZero()).toBe(true);
+    expect(s.sleeve.purchased).toEqual({});
+    expect(s.sleeve.actions['a']).toMatchObject({ running: false, progress: 0, runsTowardSleeveXp: 0 });
+    expect(s.sleeve.actions['a']!.sleeveXp.isZero()).toBe(true);
     expect(store.getItem(SAVE_KEY)).toBeNull();
     expect(g.sleeveLevel('a')).toBe(0);
   });
@@ -153,6 +153,6 @@ describe('createNewGameHandler (the temporary "Reset save" button)', () => {
     g.newGame();
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().credits.eq(num(0.5))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(0.5))).toBe(true);
   });
 });

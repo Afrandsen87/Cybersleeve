@@ -50,18 +50,18 @@ export class ReflexArchive implements Steppable {
 
   /** True while the player owns a buyable with the `autoRepurchase` effect. */
   isActive(): boolean {
-    return ownsKind(this.buyables, this.state.purchased, 'autoRepurchase');
+    return ownsKind(this.buyables, this.state.sleeve.purchased, 'autoRepurchase');
   }
 
   /** Buys back everything that is affordable now. Called every slice. */
   step(): void {
-    const wanted = this.state.lastLifePurchases;
+    const wanted = this.state.wallet.lastLifePurchases;
     if (!this.isActive() || Object.keys(wanted).length === 0) return;
     let bought = true;
     while (bought) {
       bought = false;
       for (const b of this.candidates) {
-        if ((this.state.purchased[b.id] ?? 0) >= (wanted[b.id] ?? 0) || !this.shop.canBuy(this.state, b.id)) continue;
+        if ((this.state.sleeve.purchased[b.id] ?? 0) >= (wanted[b.id] ?? 0) || !this.shop.canBuy(this.state, b.id)) continue;
         bought = this.shop.buy(this.state, b.id) === 'purchased';
         if (bought) break; // start again from the cheapest: a purchase may have opened another one
       }

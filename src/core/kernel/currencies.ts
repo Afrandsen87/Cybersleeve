@@ -5,7 +5,8 @@
  * are whole units, whether purchases survive a re-sleeve, how its reveal is judged) is read from here, never from a currency name.
  */
 import type { BigNum } from '../../numbers';
-import type { GameState } from '../types';
+import type { StateSlice } from '../types';
+import { bigScalar, setBigScalar } from './fields';
 
 /** The state scalars a held currency is kept in. */
 type HeldField = 'credits' | 'network';
@@ -79,10 +80,10 @@ export function isPointCurrency(currency: Currency | undefined): currency is Poi
  * @param currency a held currency (`undefined` means the default one)
  * @throws Error for a points currency, which has no held balance
  */
-export function heldBalance(state: Pick<GameState, HeldField>, currency: Currency | undefined): BigNum {
+export function heldBalance(state: StateSlice<HeldField>, currency: Currency | undefined): BigNum {
   const field = currencyInfo(currency).held;
   if (field === undefined) throw new Error(`${currency} is a points currency: it has no held balance`);
-  return state[field];
+  return bigScalar(state, field);
 }
 
 /**
@@ -91,9 +92,9 @@ export function heldBalance(state: Pick<GameState, HeldField>, currency: Currenc
  *
  * Called by: `shop.ts`, `startCosts.ts`.
  */
-export function spendHeld(state: Pick<GameState, HeldField>, currency: Currency | undefined, amount: BigNum): void {
+export function spendHeld(state: StateSlice<HeldField>, currency: Currency | undefined, amount: BigNum): void {
   const field = currencyInfo(currency).held;
-  if (field !== undefined) state[field] = state[field].sub(amount);
+  if (field !== undefined) setBigScalar(state, field, bigScalar(state, field).sub(amount));
 }
 
 /** The currencies whose buyables survive a re-sleeve. */

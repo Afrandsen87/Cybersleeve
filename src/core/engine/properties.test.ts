@@ -24,6 +24,7 @@ import {
   type GameConfig,
   type GameEngine,
 } from '..';
+import { flat } from '../../testing/flatState';
 
 const buyable = (b: Partial<BuyableDefinition> & Pick<BuyableDefinition, 'id' | 'effect'>): BuyableDefinition => ({
   name: b.id,
@@ -148,7 +149,7 @@ function maybeBuy(g: GameEngine, config: GameConfig, random: Random, kind: Buyab
 
 /** Does one random thing to the game: a command, a tick, or a gift of credits, nodes, heat or Legend. */
 function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
-  const state = g.getState() as unknown as Mutable;
+  const state = flat<Mutable>(g);
   const roll = random();
   if (roll < 0.25) g.startAction(pick(random, config.actions).id);
   else if (roll < 0.5) g.activateBuyable(pick(random, config.buyables).id);
@@ -216,7 +217,7 @@ describe('tick size does not matter', () => {
     const setup = (): GameEngine => {
       const random = seededRandom(seed);
       const g = createGame({ config: richTestConfig, random: seededRandom(seed + 5_000) });
-      const state = g.getState() as unknown as Mutable;
+      const state = flat<Mutable>(g);
       state.credits = num(10 ** (3 + randomInt(random, 6)));
       state.network = num(randomInt(random, 3_000));
       for (const b of richTestConfig.buyables) if (random() < 0.5) g.activateBuyable(b.id);
@@ -238,13 +239,13 @@ describe('tick size does not matter', () => {
     };
     const a = once.getState();
     const b = stepped.getState();
-    close(a.credits, b.credits, 'credits');
-    close(a.network, b.network, 'network');
-    close(a.iceRating, b.iceRating, 'iceRating');
-    close(a.hackingProficiency, b.hackingProficiency, 'hacking proficiency');
-    close(a.nodePayoutBonus, b.nodePayoutBonus, 'node payout bonus');
-    expect(a.heat).toBeCloseTo(b.heat, 6);
-    expect(a.legend).toBe(b.legend);
-    for (const action of richTestConfig.actions) close(a.actions[action.id]!.xp, b.actions[action.id]!.xp, `${action.id} xp`);
+    close(a.wallet.credits, b.wallet.credits, 'credits');
+    close(a.sleeve.network, b.sleeve.network, 'network');
+    close(a.sleeve.iceRating, b.sleeve.iceRating, 'iceRating');
+    close(a.sleeve.hackingProficiency, b.sleeve.hackingProficiency, 'hacking proficiency');
+    close(a.sleeve.nodePayoutBonus, b.sleeve.nodePayoutBonus, 'node payout bonus');
+    expect(a.sleeve.heat).toBeCloseTo(b.sleeve.heat, 6);
+    expect(a.sleeve.legend).toBe(b.sleeve.legend);
+    for (const action of richTestConfig.actions) close(a.sleeve.actions[action.id]!.xp, b.sleeve.actions[action.id]!.xp, `${action.id} xp`);
   });
 });

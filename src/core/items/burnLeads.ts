@@ -46,7 +46,7 @@ export class BurnLeads {
    */
   leadsNeeded(target: number): number {
     const lead = this.config.items.burnLead;
-    const heat = this.state.heat;
+    const heat = this.state.sleeve.heat;
     if (!lead || !(heat > target)) return 0;
     const keep = 1 - lead.heatFraction;
     const flat = this.flatHeat();
@@ -64,7 +64,7 @@ export class BurnLeads {
    */
   canUse(rarityId: RarityId): boolean {
     const lead = this.config.items.burnLead;
-    return lead !== undefined && !this.blocked() && this.state.heat > 0 && itemCount(this.state, lead.itemId, rarityId) > 0;
+    return lead !== undefined && !this.blocked() && this.state.sleeve.heat > 0 && itemCount(this.state, lead.itemId, rarityId) > 0;
   }
 
   /**
@@ -83,7 +83,7 @@ export class BurnLeads {
       const flat = this.flatHeat();
       // k leads: h -> h x keep^k - flat x (1 - keep^k) / fraction (the flat part of each lead is itself reduced by the leads after it)
       const removedFlat = flat > 0 && lead.heatFraction > 0 ? (flat * (1 - keep)) / lead.heatFraction : flat * used;
-      this.state.heat = Math.max(0, this.state.heat * keep - removedFlat);
+      this.state.sleeve.heat = Math.max(0, this.state.sleeve.heat * keep - removedFlat);
     }
     return used;
   }

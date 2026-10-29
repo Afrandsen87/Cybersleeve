@@ -24,7 +24,7 @@ const boost: BuyableDefinition = {
 };
 const gameWith = (buyables: BuyableDefinition[]) => createGame({ config: createConfig(testConfig, { buyables }) });
 const setActionXp = (g: ReturnType<typeof gameWith>, xp: number) => {
-  (g.getState().actions['a'] as { xp: unknown }).xp = num(xp);
+  (g.getState().sleeve.actions['a'] as { xp: unknown }).xp = num(xp);
 };
 const buy = (g: ReturnType<typeof gameWith>, id: string) => {
   setCredits(g, num(10));

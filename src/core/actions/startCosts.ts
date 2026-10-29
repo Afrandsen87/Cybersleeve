@@ -87,6 +87,6 @@ export class StartCosts {
     const seconds = this.stats.siphonSeconds(id);
     if (!(seconds > 0)) return;
     const perNode = this.stats.taxedCreditsPerNode();
-    this.state.credits = this.state.credits.add(destroyed.mul(perNode).mul(this.factory.fromNumber(seconds)));
+    this.state.wallet.credits = this.state.wallet.credits.add(destroyed.mul(perNode).mul(this.factory.fromNumber(seconds)));
   }
 }

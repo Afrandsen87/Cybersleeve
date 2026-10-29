@@ -55,8 +55,8 @@ function twins(cfg: ReturnType<typeof config>, buys: string[], totalMs: number, 
 function expectSamePayout(once: ReturnType<typeof prepared>, stepped: ReturnType<typeof prepared>) {
   const a = once.getState();
   const b = stepped.getState();
-  expect(a.network.toNumber()).toBe(b.network.toNumber());
-  expect(a.credits.toNumber()).toBeCloseTo(b.credits.toNumber(), 6);
+  expect(a.sleeve.network.toNumber()).toBe(b.sleeve.network.toNumber());
+  expect(a.wallet.credits.toNumber()).toBeCloseTo(b.wallet.credits.toNumber(), 6);
 }
 
 // An end time that is not an exact run boundary, where float rounding could tip one twin over.
@@ -73,13 +73,13 @@ describe('direct reward path', () => {
     stepped.startAction('net');
     once.tick(TOTAL);
     for (let i = 0; i < STEPS; i++) stepped.tick(TOTAL / STEPS);
-    expect(once.getState().network.toNumber()).toBe(200);
+    expect(once.getState().sleeve.network.toNumber()).toBe(200);
     expectSamePayout(once, stepped);
   });
 
   it('credits from fractional rewards add up the same in one tick or many', () => {
     const { once, stepped } = twins(config([]), ['a-auto', 'dual'], TOTAL, STEPS);
-    expect(once.getState().credits.toNumber()).toBeGreaterThan(1e9);
+    expect(once.getState().wallet.credits.toNumber()).toBeGreaterThan(1e9);
     expectSamePayout(once, stepped);
   });
 });
@@ -87,7 +87,7 @@ describe('direct reward path', () => {
 describe('linked payout path', () => {
   it('paysActionReward at 100%: 200 runs of the source pay 200 whole rewards of the target, in one tick or many', () => {
     const { once, stepped } = twins(config([TAP]), ['net-x1.5', 'a-auto', 'tap'], TOTAL, STEPS);
-    expect(once.getState().network.toNumber()).toBe(200);
+    expect(once.getState().sleeve.network.toNumber()).toBe(200);
     expectSamePayout(once, stepped);
   });
 
@@ -95,14 +95,14 @@ describe('linked payout path', () => {
     const cfg = config([OVERCLOCK], { speedBonus: 0.0001, alsoPays: 'net' });
     const { once, stepped } = twins(cfg, ['net-x1.5', 'a-auto', 'oc-a'], 100_000.5, STEPS, true);
     // the Overclock speed bonus is tiny, so close to 100 runs: the count is exact in both, and equal
-    expect(once.getState().network.toNumber()).toBeGreaterThanOrEqual(100);
+    expect(once.getState().sleeve.network.toNumber()).toBeGreaterThanOrEqual(100);
     expectSamePayout(once, stepped);
   });
 
   it('both sources together pay each target reward once per source (two per run)', () => {
     const cfg = config([TAP, OVERCLOCK], { speedBonus: 0.0001, alsoPays: 'net' });
     const { once, stepped } = twins(cfg, ['net-x1.5', 'a-auto', 'tap', 'oc-a'], 100_000.5, STEPS, true);
-    expect(once.getState().network.toNumber()).toBeGreaterThanOrEqual(200);
+    expect(once.getState().sleeve.network.toNumber()).toBeGreaterThanOrEqual(200);
     expectSamePayout(once, stepped);
   });
 });

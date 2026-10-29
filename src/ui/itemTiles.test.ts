@@ -147,11 +147,11 @@ describe('the Admin key and Skill shard tiles', () => {
     render();
     expect(tile('Admin key').disabled).toBe(false);
     tile('Admin key').click();
-    expect(game.getState().adminKeysOn).toBe(true);
-    expect(game.getState().zeroDaysOn).toBe(false);
+    expect(game.getState().sleeve.keyToggles['adminKey']).toBe(true);
+    expect(game.getState().sleeve.keyToggles['zeroDay']).not.toBe(true);
     expect(view(game, 'Admin key')).toMatchObject({ toggleable: true, on: true });
     tile('Admin key').click();
-    expect(game.getState().adminKeysOn).toBe(false);
+    expect(game.getState().sleeve.keyToggles['adminKey']).not.toBe(true);
   });
 
   it('the Skill shard tile is used by clicking it: one shard lands on an unlocked action', () => {
@@ -161,7 +161,7 @@ describe('the Admin key and Skill shard tiles', () => {
     expect(tile('Skill shard').disabled).toBe(false);
     tile('Skill shard').click();
     expect(state(game).inventory['sh']!['common']).toBe(1);
-    expect(game.getState().actions['a']!.skillShards).toBe(1);
+    expect(game.getState().sleeve.actions['a']!.skillShards).toBe(1);
     expect(view(game, 'Skill shard')).toMatchObject({ usable: true, toggleable: false });
   });
 

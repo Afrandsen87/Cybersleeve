@@ -31,8 +31,8 @@ function game(config: GameConfig, copies: number, seed = 1) {
   return seededGame(config, seed, [...Array<string>(copies).fill('crit'), 'auto']);
 }
 
-const credits = (g: ReturnType<typeof game>): number => g.getState().credits.toNumber();
-const xp = (g: ReturnType<typeof game>): number => g.getState().actions['a']!.xp.toNumber();
+const credits = (g: ReturnType<typeof game>): number => g.getState().wallet.credits.toNumber();
+const xp = (g: ReturnType<typeof game>): number => g.getState().sleeve.actions['a']!.xp.toNumber();
 
 describe('critical chance', () => {
   it('is 0 before the buyable is owned', () => {
@@ -104,8 +104,8 @@ describe('critical successes', () => {
     const g = game(configWith({ chance: 1, action: { heatPerRun: 2 } }), 1);
     g.startAction('a');
     g.tick(10_000 * 3 + 1);
-    expect(g.getState().heat).toBe(6);
-    expect(g.getState().actions['a']!.runsTowardSleeveXp).toBe(3);
+    expect(g.getState().sleeve.heat).toBe(6);
+    expect(g.getState().sleeve.actions['a']!.runsTowardSleeveXp).toBe(3);
   });
 
   it('a long batch splits into ordinary and critical runs that add up: credits = 0.5 x (runs + 2 x criticals), XP = runs + criticals', () => {
@@ -132,10 +132,10 @@ describe('critical successes', () => {
   it('an action can give a critical success its own completion effect, applied once per critical run', () => {
     const rule = { completionEffects: [{ kind: 'removeNodesFraction' as const, fraction: 0.5 }] };
     const g = game(configWith({ chance: 1, action: { criticalSuccess: rule } }), 1);
-    (g.getState() as { network: unknown }).network = num(1000);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(1000);
     g.startAction('a');
     g.tick(10_000 + 1);
-    expect(g.getState().network.toNumber()).toBe(500);
+    expect(g.getState().sleeve.network.toNumber()).toBe(500);
   });
 
   it('stacks with a reward multiplier from a buyable: x2 and critical x3 give x6', () => {

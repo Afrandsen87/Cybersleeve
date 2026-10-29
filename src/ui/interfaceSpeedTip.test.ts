@@ -34,11 +34,11 @@ interface Setup {
 const gameWith = (opts: Setup = {}) => {
   const buyables = [...testConfig.buyables.filter((b) => b.id !== 'speed'), boost, ...(opts.withSynergy ? [synergy] : [])];
   const g = createGame({ config: createConfig(testConfig, { buyables, sleeve: { baseInterfaceSpeed: 1, ...opts.sleeve } }) });
-  (g.getState() as { credits: unknown }).credits = num(100);
+  (g.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(100);
   for (let i = 0; i < (opts.boosts ?? 0); i++) g.buy('boost');
   if (opts.withSynergy) g.buy('syn');
-  (g.getState() as { hackingProficiency: unknown }).hackingProficiency = num(opts.proficiency ?? 0);
-  if (opts.nodes !== undefined) (g.getState() as { network: unknown }).network = num(opts.nodes);
+  (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(opts.proficiency ?? 0);
+  if (opts.nodes !== undefined) (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(opts.nodes);
   return g;
 };
 const sleeveTip = (id: 'interfaceSpeed' | 'hackingProficiency', opts?: Setup): string =>
@@ -144,7 +144,7 @@ describe('Hacking Proficiency as a Sleeve attribute', () => {
     for (let run = 1; run <= 3; run++) {
       g.startAction(practiceAction.id);
       g.tick(1_000);
-      expect(g.getState().hackingProficiency.toNumber()).toBeCloseTo(run * 0.001, 12); // each completed run adds 0.001
+      expect(g.getState().sleeve.hackingProficiency.toNumber()).toBeCloseTo(run * 0.001, 12); // each completed run adds 0.001
     }
     const card = buildViewModel(g).actions[0]!;
     expect(card.rewardUnit).toBe('hacking proficiency');

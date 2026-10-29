@@ -14,6 +14,7 @@ import {
   type ItemDropRule,
 } from '..';
 import { numberFactory } from '../../numbers';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /** A drop rule for the test item: 5% of runs, 90 / 10 over the two rarities. */
 const rule = (over: Partial<ItemDropRule> = {}): ItemDropRule => ({
@@ -44,19 +45,19 @@ function farm(config: GameConfig, seed = 1) {
 }
 
 const held = (g: { getState(): unknown }, rarity: string): number =>
-  (g.getState() as { inventory: Record<string, Record<string, number>> }).inventory['file']?.[rarity] ?? 0;
+  (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory['file']?.[rarity] ?? 0;
 
 /** Runs completed so far (1 action XP per run). */
-const runsDone = (g: { getState(): { actions: Record<string, { xp: { toNumber(): number } }> } }): number =>
-  g.getState().actions['a']!.xp.toNumber();
+const runsDone = (g: { getState(): { sleeve: { actions: Record<string, { xp: { toNumber(): number } }> } } }): number =>
+  g.getState().sleeve.actions['a']!.xp.toNumber();
 
 describe('item drops', () => {
   it('drop nothing before the drop buyable is owned', () => {
     const g = createGame({ config: withHarvest(rule({ chance: 1 })), random: seededRandom(1) });
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().actions['a']!.xp.eq(num(1))).toBe(true);
-    expect(g.getState().inventory).toEqual({});
+    expect(g.getState().sleeve.actions['a']!.xp.eq(num(1))).toBe(true);
+    expect(g.getState().wallet.inventory).toEqual({});
   });
 
   it('with chance 1 every completed run drops one item of the only weighted rarity', () => {
@@ -71,7 +72,7 @@ describe('item drops', () => {
     const g = farm(withHarvest(rule({ chance: 0 })));
     g.startAction('a');
     g.tick(10_000_000);
-    expect(g.getState().inventory).toEqual({});
+    expect(g.getState().wallet.inventory).toEqual({});
   });
 
   it('a rarity left out of the weights, or weighted 0, never drops', () => {
@@ -145,8 +146,8 @@ describe('item drops', () => {
     g.buy('harvest');
     g.startAction('b');
     g.tick(5_000);
-    expect(g.getState().actions['b']!.xp.gte(num(1))).toBe(true);
-    expect(g.getState().inventory).toEqual({});
+    expect(g.getState().sleeve.actions['b']!.xp.gte(num(1))).toBe(true);
+    expect(g.getState().wallet.inventory).toEqual({});
   });
 });
 
@@ -155,10 +156,10 @@ describe('double credits (test aid)', () => {
     const g = createGame({ config: withHarvest(rule({ chance: 0 })), random: seededRandom(4) });
     setCredits(g, num(100));
     g.doubleCredits();
-    expect((g.getState() as { credits: { toNumber(): number } }).credits.toNumber()).toBe(200);
+    expect((g.getState() as unknown as { wallet: { credits: { toNumber(): number } } }).wallet.credits.toNumber()).toBe(200);
     setCredits(g, num(0));
     g.doubleCredits();
-    expect((g.getState() as { credits: { toNumber(): number } }).credits.toNumber()).toBe(0);
+    expect((g.getState() as unknown as { wallet: { credits: { toNumber(): number } } }).wallet.credits.toNumber()).toBe(0);
   });
 });
 
@@ -200,14 +201,14 @@ describe('test drop (test aid)', () => {
   it('does nothing when the game has no drop rule at all', () => {
     const g = createGame({ config: testConfig });
     g.dropTestItem();
-    expect(g.getState().inventory).toEqual({});
+    expect(g.getState().wallet.inventory).toEqual({});
   });
 });
 
 describe('selling items', () => {
   const stocked = () => {
     const g = createGame({ config: testConfig });
-    (g.getState() as { inventory: unknown }).inventory = { file: { common: 5, rare: 2 } };
+    (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { file: { common: 5, rare: 2 } };
     return g;
   };
 
@@ -215,20 +216,20 @@ describe('selling items', () => {
     const g = stocked();
     expect(g.sellItems('file', 'common', 1)).toBe(1);
     expect(held(g, 'common')).toBe(4);
-    expect(g.getState().credits.eq(num(10))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(10))).toBe(true);
   });
 
   it('sells a whole stack', () => {
     const g = stocked();
     expect(g.sellItems('file', 'rare', 'all')).toBe(2);
     expect(held(g, 'rare')).toBe(0);
-    expect(g.getState().credits.eq(num(200))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(200))).toBe(true);
   });
 
   it('asking for more than is held sells what is held', () => {
     const g = stocked();
     expect(g.sellItems('file', 'common', 99)).toBe(5);
-    expect(g.getState().credits.eq(num(50))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(50))).toBe(true);
   });
 
   it('sells nothing for an empty stack, an unknown stack, or a nonsense amount', () => {
@@ -238,16 +239,16 @@ describe('selling items', () => {
     expect(g.sellItems('file', 'common', Number.NaN)).toBe(0);
     expect(g.sellItems('file', 'nope', 'all')).toBe(0);
     expect(g.sellItems('nope', 'common', 'all')).toBe(0);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
     expect(held(g, 'common')).toBe(5);
   });
 
   it('a sale pays in full: the heat tax and the credit lever do not touch it', () => {
     const g = createGame({ config: createConfig(testConfig, { global: { creditMultiplier: 3 } }) });
-    (g.getState() as { inventory: unknown; heat: number }).inventory = { file: { common: 1 } };
-    (g.getState() as { heat: number }).heat = 50;
+    (g.getState() as unknown as { wallet: { inventory: unknown; heat: number } }).wallet.inventory = { file: { common: 1 } };
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 50;
     g.sellItems('file', 'common', 'all');
-    expect(g.getState().credits.eq(num(10))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(10))).toBe(true);
   });
 
   it('every rarity sells for three orders of magnitude more than the one before, in the real content', async () => {
@@ -261,44 +262,44 @@ describe('selling items', () => {
 describe('inventory in saves and resets', () => {
   const stocked = () => {
     const g = createGame({ config: testConfig });
-    (g.getState() as { inventory: unknown }).inventory = { file: { common: 5, rare: 2 } };
+    (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { file: { common: 5, rare: 2 } };
     return g;
   };
 
   it('survives a save and load', () => {
     const restored = deserializeState(serializeState(stocked().getState()), testConfig, numberFactory)!;
-    expect(restored.inventory).toEqual({ file: { common: 5, rare: 2 } });
+    expect(restored.wallet.inventory).toEqual({ file: { common: 5, rare: 2 } });
   });
 
   it('an older save without an inventory loads with an empty one', () => {
-    const json = JSON.parse(serializeState(stocked().getState()));
+    const json = flatSave(serializeState(stocked().getState()));
     delete json.inventory;
-    expect(deserializeState(JSON.stringify(json), testConfig, numberFactory)!.inventory).toEqual({});
+    expect(deserializeState(asSave(json), testConfig, numberFactory)!.wallet.inventory).toEqual({});
   });
 
   it('loading drops unknown items and rarities and repairs bad counts', () => {
-    const json = JSON.parse(serializeState(stocked().getState()));
+    const json = flatSave(serializeState(stocked().getState()));
     json.inventory = { file: { common: 3.5, rare: -4, epic: 9 }, ghost: { common: 1 } };
-    expect(deserializeState(JSON.stringify(json), testConfig, numberFactory)!.inventory).toEqual({});
+    expect(deserializeState(asSave(json), testConfig, numberFactory)!.wallet.inventory).toEqual({});
     json.inventory = { file: { common: 4, rare: 'x', epic: 9 }, ghost: { common: 1 } };
-    expect(deserializeState(JSON.stringify(json), testConfig, numberFactory)!.inventory).toEqual({ file: { common: 4 } });
+    expect(deserializeState(asSave(json), testConfig, numberFactory)!.wallet.inventory).toEqual({ file: { common: 4 } });
     json.inventory = 'junk';
-    expect(deserializeState(JSON.stringify(json), testConfig, numberFactory)!.inventory).toEqual({});
+    expect(deserializeState(asSave(json), testConfig, numberFactory)!.wallet.inventory).toEqual({});
   });
 
   it('re-sleeving and a new game empty the inventory', () => {
     const a = stocked();
     expect(a.resleeve()).toBe(true);
-    expect(a.getState().inventory).toEqual({});
+    expect(a.getState().wallet.inventory).toEqual({});
     const b = stocked();
     b.newGame();
-    expect(b.getState().inventory).toEqual({});
+    expect(b.getState().wallet.inventory).toEqual({});
   });
 
   it('a state with a broken stack is reported by the invariants', () => {
     const g = stocked();
     expect(findInvariantViolations(g.getState(), g.getConfig())).toEqual([]);
-    (g.getState() as { inventory: Record<string, Record<string, number>> }).inventory['file']!['common'] = -1;
+    (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory['file']!['common'] = -1;
     expect(findInvariantViolations(g.getState(), g.getConfig()).join()).toContain('file/common');
   });
 });

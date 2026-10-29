@@ -256,7 +256,7 @@ export class GameEngine implements GameQueries, GameCommands {
    * Called by: `ui/dom.ts` (the "Double credits" debug button). Calls: {@link OverflowPolicy}.
    */
   doubleCredits(): void {
-    this.state.credits = this.state.credits.add(this.state.credits);
+    this.state.wallet.credits = this.state.wallet.credits.add(this.state.wallet.credits);
     this.overflowPolicy.apply(this.state);
     notePeaks(this.state);
   }
@@ -603,7 +603,7 @@ export class GameEngine implements GameQueries, GameCommands {
 
   /** Stocks of competitors the corporation holds. */
   corporationStocks(): number {
-    return this.state.corporation.stocks;
+    return this.state.wallet.corporation.stocks;
   }
 
   /** The action level of a corporation action. */
@@ -723,7 +723,7 @@ export class GameEngine implements GameQueries, GameCommands {
 
   /** True when an owned auto-run buyable is switched on (false when off, not owned or not an auto-run). */
   isAutoRunEnabled(id: BuyableId): boolean {
-    return this.ownedCount(id) > 0 && !this.state.autoRunOff[id];
+    return this.ownedCount(id) > 0 && !this.state.sleeve.autoRunOff[id];
   }
 
   /** True when the player may re-sleeve right now. */
@@ -775,7 +775,7 @@ export class GameEngine implements GameQueries, GameCommands {
       const pace = coolingPace({
         speed: sleeve.heatCooldownSpeed,
         boost: sleeve.heatCooldownBoost,
-        moles: this.state.moles,
+        moles: this.state.sleeve.moles,
         idle: this.stats.heatIsIdle(),
         idleFactor: sleeve.idleHeatCooldown,
         moleAggregation: sleeve.moleAggregation,

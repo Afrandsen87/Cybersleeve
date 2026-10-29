@@ -35,7 +35,7 @@ export function augmentView(
   const state = engine.getState();
   const chosen = config.items.rarities.find((r) => r.id === selection.augmentRarityId);
   const held = chosen ? itemCount(state, augment.itemId, chosen.id) : 0;
-  const appliedByRarity = state.actions[actionId]?.augments ?? {};
+  const appliedByRarity = state.sleeve.actions[actionId]?.augments ?? {};
   const applied = config.items.rarities.flatMap((r) =>
     (appliedByRarity[r.id] ?? 0) > 0 ? [{ rarity: r.name, count: String(appliedByRarity[r.id]) }] : [],
   );

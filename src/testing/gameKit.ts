@@ -3,7 +3,7 @@
  *
  * Purpose: one definition of the "engine on `testConfig` with a few overrides" helper that ten test files each copied.
  * Kits in this folder (see each file's header): `testConfig` (config, `setCredits`, `setSleeveXp`), `gameKit` (this file),
- * `cyberneticsKit` (`buy`, actions `a`/`net`), `automationKit`, `sleeveLevelsKit`, `skillViews`, `invariants`, `random`, `fakes`, `hover`.
+ * `cyberneticsKit` (`buy`, actions `a`/`net`), `automationKit`, `sleeveLevelsKit`, `skillViews`, `invariants`, `random`, `fakes`, `hover`, `flatState` (`flat<T>(engine)`: set one state field without caring whether the wallet or the sleeve holds it), `saveKit` (`flatSave`/`asSave`: edit saved data as one flat object).
  * Called by: tests. Calls: `createGame`, `createConfig`.
  */
 import { createGame } from '../app/createGame';

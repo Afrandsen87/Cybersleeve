@@ -69,3 +69,6 @@ Every decision entry now lives in the doc of the context it decides (section "De
 | [skills](contexts/skills.md) | 4 |
 | [synth](contexts/synth.md) | 1 |
 | [ui](contexts/ui.md) | 8 |
+
+*Group: Decided 2026-10-29/30 (by the user, S8 state and save)*
+- **Wallet / sleeve split, save v7.** `GameState = { wallet, sleeve }`. Wallet: credits, inventory, runs, synths, lastLifePurchases, automation (unchanged; a rework is planned), the corporation, and new all-time peak statistics. Sleeve: purchases, per-action state, network, heat, ICE Rating, Legend, Moles, `peakCredits`/`peakNetwork` (they drive the purchase reveal), the toggles, `keyToggles`. One migration function (flat v6 in, nested v7 out); only v7 is read afterwards. In memory there is one `state.sleeve` and one `wallet.corporation`; the SAVE already keeps them as keyed maps with one entry (`sleeves.main`, `wallet.corporations.main`), so a second sleeve or corporation needs no new save version. No assignment rule, no UI. The pre-migration save text is kept under `cybersleeve.save.premigration` until the next successful v7 save.

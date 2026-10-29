@@ -35,7 +35,7 @@ export function networkView(
   return {
     title: text.titles.network,
     stats: [
-      row('nodes', text, formatBigNum(state.network)),
+      row('nodes', text, formatBigNum(state.sleeve.network)),
       row('payout', text, text.perSecond(formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS)), () =>
         text.tips.payout({
           base: formatPlain(config.network.creditsPerNodePerSecond),
@@ -43,7 +43,7 @@ export function networkView(
           purchases: namedTerms(
             stats.nodePayoutTerms,
             config,
-            (id) => state.purchased[id] ?? 0,
+            (id) => state.sleeve.purchased[id] ?? 0,
             (f) => formatPlain(f, MULTIPLIER_DECIMALS),
           ),
           actionBonus: formatPlain(stats.nodePayoutBonus, ACTION_BONUS_DECIMALS),
@@ -52,10 +52,10 @@ export function networkView(
       ),
       row('income', text, text.format.income(formatBigNum(engine.passiveCreditsPerSecond())), () =>
         text.tips.income({
-          nodes: formatBigNum(state.network),
+          nodes: formatBigNum(state.sleeve.network),
           perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
           keepPercent: keep >= 1 ? null : formatPlain(keep * 100),
-          gross: formatBigNum(engine.passiveCreditsPerNode().mul(state.network)),
+          gross: formatBigNum(engine.passiveCreditsPerNode().mul(state.sleeve.network)),
           total: formatBigNum(engine.passiveCreditsPerSecond()),
         }),
       ),
@@ -78,15 +78,15 @@ export function networkView(
       row(
         'moles',
         text,
-        formatPlain(state.moles),
+        formatPlain(state.sleeve.moles),
         () =>
           text.tips.moles({
-            moles: formatPlain(state.moles),
+            moles: formatPlain(state.sleeve.moles),
             boostPercent: formatPlain(stats.heatCooldownBoost * 100),
-            aggregatedPercent: aggregatedMoleText(stats.moleAggregation, state.moles),
+            aggregatedPercent: aggregatedMoleText(stats.moleAggregation, state.sleeve.moles),
           }),
         null,
-        engine.backChannel() === null && !(state.moles > 0), // the counter appears with the skill that gives Moles
+        engine.backChannel() === null && !(state.sleeve.moles > 0), // the counter appears with the skill that gives Moles
       ),
     ],
   };

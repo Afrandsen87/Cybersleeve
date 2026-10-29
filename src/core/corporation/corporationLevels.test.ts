@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { seededRandom } from '../../testing/random';
 import { testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, serializeState, validateConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /** Test content: the corporation is open; one action of 1 second gives 4 XP per run; levels follow the test rule (see below). */
 const config = createConfig(testConfig, {
@@ -13,7 +14,7 @@ const config = createConfig(testConfig, {
 
 const open = () => {
   const g = createGame({ config, random: seededRandom(1) });
-  (g.getState().purchased as Record<string, number>)['inc'] = 1;
+  (g.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
   return g;
 };
 
@@ -59,28 +60,28 @@ describe('corporation action levels', () => {
     expect(g.corporationRunMs('c1')).toBe(500);
     g.startCorporationAction('c1');
     g.tick(499);
-    expect(g.getState().corporation.actions['c1']!.running).toBe(true);
+    expect(g.getState().wallet.corporation.actions['c1']!.running).toBe(true);
     g.tick(1);
-    expect(g.getState().corporation.actions['c1']!.running).toBe(false);
-    expect(Object.values(g.getState().actions).every((a) => a.sleeveXp.toNumber() === 0)).toBe(true);
+    expect(g.getState().wallet.corporation.actions['c1']!.running).toBe(false);
+    expect(Object.values(g.getState().sleeve.actions).every((a) => a.sleeveXp.toNumber() === 0)).toBe(true);
   });
 
   it('is saved and read back, and a save without XP reads as 0', () => {
     const g = open();
     run(g, 3);
     const back = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(back.corporation.actions['c1']!.xp.toNumber()).toBe(12);
-    const raw = JSON.parse(serializeState(g.getState()));
+    expect(back.wallet.corporation.actions['c1']!.xp.toNumber()).toBe(12);
+    const raw = flatSave(serializeState(g.getState()));
     delete raw.corporation.actions.c1.xp;
-    expect(deserializeState(JSON.stringify(raw), config, numberFactory)!.corporation.actions['c1']!.xp.toNumber()).toBe(0);
+    expect(deserializeState(asSave(raw), config, numberFactory)!.wallet.corporation.actions['c1']!.xp.toNumber()).toBe(0);
     raw.corporation.actions.c1.xp = 'garbage';
-    expect(deserializeState(JSON.stringify(raw), config, numberFactory)!.corporation.actions['c1']!.xp.toNumber()).toBe(0);
+    expect(deserializeState(asSave(raw), config, numberFactory)!.wallet.corporation.actions['c1']!.xp.toNumber()).toBe(0);
   });
 
   it('XP per run defaults to 1 and must be > 0', () => {
     const plain = createConfig(config, { corporation: { actions: [{ id: 'c1', name: 'C1', baseDurationMs: 1000, effects: [] }] } });
     const g = createGame({ config: plain });
-    (g.getState().purchased as Record<string, number>)['inc'] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
     g.startCorporationAction('c1');
     g.tick(1000);
     expect(g.corporationXpIntoLevel('c1').toNumber()).toBe(1);

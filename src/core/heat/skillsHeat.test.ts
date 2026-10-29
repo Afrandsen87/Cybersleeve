@@ -17,18 +17,18 @@ describe('Back Channel Deals and Moles', () => {
   it('does nothing before the skill is owned', () => {
     const g = game();
     expect(g.giveUpForMoles('file', 'common', 1)).toBe(0);
-    expect(g.getState().moles).toBe(0);
-    expect(g.getState().inventory['file']!['common']).toBe(3);
+    expect(g.getState().sleeve.moles).toBe(0);
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(3);
   });
 
   it('each common file given up gives 5 Moles', () => {
     const g = game();
     g.buy('bc');
     expect(g.giveUpForMoles('file', 'common', 1)).toBe(1);
-    expect(g.getState().moles).toBe(5);
-    expect(g.getState().inventory['file']!['common']).toBe(2);
+    expect(g.getState().sleeve.moles).toBe(5);
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(2);
     expect(g.giveUpForMoles('file', 'common', 'all')).toBe(2);
-    expect(g.getState().moles).toBe(15);
+    expect(g.getState().sleeve.moles).toBe(15);
   });
 
   it('only the named rarity can be given up, and an empty stack gives nothing', () => {
@@ -38,7 +38,7 @@ describe('Back Channel Deals and Moles', () => {
     expect(g.giveUpForMoles('ghost', 'common', 1)).toBe(0);
     g.giveUpForMoles('file', 'common', 'all');
     expect(g.giveUpForMoles('file', 'common', 1)).toBe(0);
-    expect(g.getState().moles).toBe(15);
+    expect(g.getState().sleeve.moles).toBe(15);
     expect(g.giveUpForMoles('file', 'common', -3)).toBe(0);
     expect(g.giveUpForMoles('file', 'common', Number.NaN)).toBe(0);
   });
@@ -49,8 +49,8 @@ describe('Back Channel Deals and Moles', () => {
     mutable(g).heat = 20;
     mutable(g).moles = 5;
     g.tick(40_000); // boosted cycles last 40 s: one point per 40 s
-    expect(g.getState().heat).toBe(19);
-    expect(g.getState().moles).toBe(4);
+    expect(g.getState().sleeve.heat).toBe(19);
+    expect(g.getState().sleeve.moles).toBe(4);
   });
 
   it('the boost ends exactly when the Moles run out: 5 Moles cool 5 points in 200 s, then the normal pace', () => {
@@ -59,10 +59,10 @@ describe('Back Channel Deals and Moles', () => {
     mutable(g).heat = 20;
     mutable(g).moles = 5;
     g.tick(200_000);
-    expect(g.getState().heat).toBe(15);
-    expect(g.getState().moles).toBe(0);
+    expect(g.getState().sleeve.heat).toBe(15);
+    expect(g.getState().sleeve.moles).toBe(0);
     g.tick(60_000); // normal pace now: one point per minute
-    expect(g.getState().heat).toBe(14);
+    expect(g.getState().sleeve.heat).toBe(14);
   });
 
   it('one long tick and many short ones give the same heat and Moles', () => {
@@ -72,7 +72,7 @@ describe('Back Channel Deals and Moles', () => {
       mutable(g).heat = 30;
       mutable(g).moles = 8;
       for (let t = 0; t < 600_000; t += slice) g.tick(slice);
-      return [g.getState().heat, g.getState().moles, Math.round(g.getState().heatCooldownMs)];
+      return [g.getState().sleeve.heat, g.getState().sleeve.moles, Math.round(g.getState().sleeve.heatCooldownMs)];
     };
     expect(run(600_000)).toEqual(run(1_000));
     expect(run(600_000)).toEqual(run(50));
@@ -83,8 +83,8 @@ describe('Back Channel Deals and Moles', () => {
     g.buy('bc');
     mutable(g).moles = 5;
     g.tick(600_000);
-    expect(g.getState().moles).toBe(5);
-    expect(g.getState().heat).toBe(0);
+    expect(g.getState().sleeve.moles).toBe(5);
+    expect(g.getState().sleeve.heat).toBe(0);
   });
 
   it('Moles left over when the heat is gone are not spent on more than the heat they covered', () => {
@@ -93,8 +93,8 @@ describe('Back Channel Deals and Moles', () => {
     mutable(g).heat = 2;
     mutable(g).moles = 10;
     g.tick(1_000_000);
-    expect(g.getState().heat).toBe(0);
-    expect(g.getState().moles).toBe(8);
+    expect(g.getState().sleeve.heat).toBe(0);
+    expect(g.getState().sleeve.moles).toBe(8);
   });
 
   it('Moles are reset by re-sleeving', () => {
@@ -102,7 +102,7 @@ describe('Back Channel Deals and Moles', () => {
     g.buy('bc');
     g.giveUpForMoles('file', 'common', 'all');
     g.resleeve();
-    expect(g.getState().moles).toBe(0);
+    expect(g.getState().sleeve.moles).toBe(0);
   });
 });
 
@@ -185,6 +185,6 @@ it('save and load keeps the skills, the Moles and the points they leave', async 
   g.buy('s1');
   mutable(g).moles = 12;
   const restored = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-  expect(restored.purchased['s1']).toBe(1);
-  expect(restored.moles).toBe(12);
+  expect(restored.sleeve.purchased['s1']).toBe(1);
+  expect(restored.sleeve.moles).toBe(12);
 });

@@ -62,7 +62,7 @@ describe('GameEngine.snapshot', () => {
   it('sees the state as it is when a new scope opens (nothing is kept between scopes)', () => {
     const game = createGame({ config: testConfig });
     const before = game.snapshot(() => game.sleeveStats().heat);
-    (game.getState() as { heat: number }).heat = before + 5;
+    (game.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = before + 5;
     expect(game.snapshot(() => game.sleeveStats().heat)).toBe(before + 5);
   });
 });

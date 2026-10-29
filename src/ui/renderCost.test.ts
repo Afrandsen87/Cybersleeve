@@ -64,7 +64,7 @@ describe('tooltips are built when they are shown, not when the screen is built',
     heat.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     const box = [...document.querySelectorAll<HTMLElement>('.tooltip')].at(-1)!;
     const before = box.textContent;
-    (game.getState() as { heat: number }).heat = 30;
+    (game.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 30;
     render();
     expect(box.hidden).toBe(false);
     expect(box.textContent).not.toBe(before);

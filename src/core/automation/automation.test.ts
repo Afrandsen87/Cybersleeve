@@ -13,6 +13,8 @@ import {
   validateConfig,
   type GameConfig,
 } from '..';
+import { flat } from '../../testing/flatState';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /**
  * Test content: `file` is sold (Common 10, Rare 100 credits), `schem` is the Augment schematic, `lead` the Burn lead (5% of the heat).
@@ -51,7 +53,7 @@ type Loose = {
   inventory: Record<string, Record<string, number>>;
   actions: Record<string, { xp: unknown; augments: Record<string, number> }>;
 };
-const loose = (g: { getState(): unknown }): Loose => g.getState() as unknown as Loose;
+const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
 /** A game that owns `points` automation points. */
 const game = (points = 3, c: GameConfig = config) => {
@@ -182,7 +184,7 @@ describe('Kompromat autosale', () => {
     g.tick(1);
     expect(loose(g).inventory['file']!['common'] ?? 0).toBe(0);
     expect(loose(g).inventory['file']!['rare']).toBe(2);
-    expect(g.getState().credits.eq(num(3 * 10))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(3 * 10))).toBe(true);
   });
 
   it('one unlock covers every rarity, and a switched-off rarity is kept', () => {
@@ -192,7 +194,7 @@ describe('Kompromat autosale', () => {
     g.automation().setAutosale('common', false);
     g.tick(1);
     expect(loose(g).inventory['file']!['common']).toBe(3);
-    expect(g.getState().credits.eq(num(2 * 100))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(2 * 100))).toBe(true);
   });
 
   it('never sells items that cannot be sold (schematics, leads)', () => {
@@ -308,11 +310,11 @@ describe('automation is saved and keeps every invariant', () => {
 
   it('a save restores the unlocks and every setting', () => {
     const restored = deserializeState(serializeState(setup().getState()), config, numberFactory)!;
-    expect(AUTOMATION_FEATURES.every((f) => isFeatureUnlocked(config.buyables, restored.purchased, f))).toBe(true);
-    expect(restored.automation.autoBurnOn).toBe(true);
-    expect(restored.automation.autoBurnCeiling).toBe(42);
-    expect(restored.automation.autosale).toEqual({ rare: true });
-    expect(restored.automation.dispersal).toEqual({ b: 30 });
+    expect(AUTOMATION_FEATURES.every((f) => isFeatureUnlocked(config.buyables, restored.sleeve.purchased, f))).toBe(true);
+    expect(restored.wallet.automation.autoBurnOn).toBe(true);
+    expect(restored.wallet.automation.autoBurnCeiling).toBe(42);
+    expect(restored.wallet.automation.autosale).toEqual({ rare: true });
+    expect(restored.wallet.automation.dispersal).toEqual({ b: 30 });
     expect(findInvariantViolations(restored, config)).toEqual([]);
   });
 
@@ -322,24 +324,24 @@ describe('automation is saved and keeps every invariant', () => {
   });
 
   it('a save cannot set what is not unlocked', () => {
-    const data = JSON.parse(serializeState(setup().getState()));
+    const data = flatSave(serializeState(setup().getState()));
     data.purchased = { core: 1, [laneSkillId('autoBurn', 1)]: 1 }; // only Auto Burn is unlocked
     data.automation.autoBurnCeiling = -5;
     data.automation.dispersal = { b: 30, nope: 10 };
-    const restored = deserializeState(JSON.stringify(data), config, numberFactory)!;
-    expect(AUTOMATION_FEATURES.filter((f) => isFeatureUnlocked(config.buyables, restored.purchased, f))).toEqual(['autoBurn']);
-    expect(restored.automation.autoBurnCeiling).toBe(10); // the bad value is ignored: the default stays
-    expect(restored.automation.autosale).toEqual({});
-    expect(restored.automation.dispersal).toEqual({});
+    const restored = deserializeState(asSave(data), config, numberFactory)!;
+    expect(AUTOMATION_FEATURES.filter((f) => isFeatureUnlocked(config.buyables, restored.sleeve.purchased, f))).toEqual(['autoBurn']);
+    expect(restored.wallet.automation.autoBurnCeiling).toBe(10); // the bad value is ignored: the default stays
+    expect(restored.wallet.automation.autosale).toEqual({});
+    expect(restored.wallet.automation.dispersal).toEqual({});
     expect(findInvariantViolations(restored, config)).toEqual([]);
   });
 
   it('an old save without the entry loads with nothing unlocked', () => {
-    const data = JSON.parse(serializeState(game(0).getState()));
+    const data = flatSave(serializeState(game(0).getState()));
     delete data.automation;
-    const restored = deserializeState(JSON.stringify(data), config, numberFactory)!;
-    expect(AUTOMATION_FEATURES.some((f) => isFeatureUnlocked(config.buyables, restored.purchased, f))).toBe(false);
-    expect(restored.automation.autoBurnOn).toBe(false);
+    const restored = deserializeState(asSave(data), config, numberFactory)!;
+    expect(AUTOMATION_FEATURES.some((f) => isFeatureUnlocked(config.buyables, restored.sleeve.purchased, f))).toBe(false);
+    expect(restored.wallet.automation.autoBurnOn).toBe(false);
   });
 
   it('one long tick and many short ones sell and burn the same', () => {

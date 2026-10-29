@@ -55,7 +55,7 @@ describe('hidden stats', () => {
 
   it('a stat that already moved off its start is never hidden (a loaded save)', () => {
     const g = game();
-    (g.getState() as { heat: number }).heat = 3;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 3;
     expect(shown(g)).toContain('heat');
   });
 });

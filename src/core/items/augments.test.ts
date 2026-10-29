@@ -4,6 +4,8 @@ import { num, numberFactory } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { setCredits, testConfig } from '../../testing/testConfig';
 import { augmentXpFactor, createConfig, deserializeState, serializeState, validateConfig, type GameConfig } from '..';
+import { flat } from '../../testing/flatState';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /** The test content with an Augment schematic: item `file`, worth 1% of the action XP each. */
 const config: GameConfig = createConfig(testConfig, {
@@ -15,7 +17,7 @@ type Loose = {
   inventory: Record<string, Record<string, number>>;
   actions: Record<string, { xp: unknown; augments: Record<string, number> }>;
 };
-const loose = (g: { getState(): unknown }): Loose => g.getState() as unknown as Loose;
+const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
 /** A game holding schematics: `common` and `rare` files. */
 const game = (held: { common?: number; rare?: number } = { common: 5, rare: 2 }, c: GameConfig = config) => {
@@ -28,58 +30,58 @@ describe('applying an Augment schematic', () => {
   it('does nothing without a schematic', () => {
     const g = game({});
     expect(g.augmentAction('a', 'common')).toBe(false);
-    expect(g.getState().actions['a']!.augments).toEqual({});
+    expect(g.getState().sleeve.actions['a']!.augments).toEqual({});
   });
 
   it('uses up one schematic and counts it on the action, under its rarity', () => {
     const g = game({ common: 5 });
     expect(g.augmentAction('a', 'common')).toBe(true);
-    expect(g.getState().actions['a']!.augments).toEqual({ common: 1 });
-    expect(g.getState().inventory['file']!['common']).toBe(4);
+    expect(g.getState().sleeve.actions['a']!.augments).toEqual({ common: 1 });
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(4);
   });
 
   it('uses up exactly the rarity chosen: the others are not touched, whatever is held', () => {
     const g = game({ common: 1, rare: 2 });
     expect(g.augmentAction('a', 'rare')).toBe(true);
-    expect(g.getState().inventory['file']!['common']).toBe(1);
-    expect(g.getState().inventory['file']!['rare']).toBe(1);
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(1);
+    expect(g.getState().wallet.inventory['file']!['rare']).toBe(1);
     expect(g.augmentAction('a', 'common')).toBe(true);
-    expect(g.getState().inventory['file']!['common']).toBe(0);
-    expect(g.getState().actions['a']!.augments).toEqual({ common: 1, rare: 1 });
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(0);
+    expect(g.getState().sleeve.actions['a']!.augments).toEqual({ common: 1, rare: 1 });
   });
 
   it('refuses a rarity of which none is held, even when others are, and a rarity that does not exist', () => {
     const g = game({ common: 3 });
     expect(g.augmentAction('a', 'rare')).toBe(false);
     expect(g.augmentAction('a', 'ghost')).toBe(false);
-    expect(g.getState().inventory['file']!['common']).toBe(3);
-    expect(g.getState().actions['a']!.augments).toEqual({});
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(3);
+    expect(g.getState().sleeve.actions['a']!.augments).toEqual({});
   });
 
   it('stops when the schematics run out', () => {
     const g = game({ common: 1 });
     expect(g.augmentAction('a', 'common')).toBe(true);
     expect(g.augmentAction('a', 'common')).toBe(false);
-    expect(g.getState().actions['a']!.augments).toEqual({ common: 1 });
+    expect(g.getState().sleeve.actions['a']!.augments).toEqual({ common: 1 });
   });
 
   it('only changes the action it was applied to', () => {
     const g = game();
     g.augmentAction('a', 'common');
-    expect(g.getState().actions['b']!.augments).toEqual({});
+    expect(g.getState().sleeve.actions['b']!.augments).toEqual({});
     expect(g.xpPerRun('b').eq(num(1))).toBe(true);
   });
 
   it('an unknown action takes nothing', () => {
     const g = game({ common: 3 });
     expect(g.augmentAction('ghost', 'common')).toBe(false);
-    expect(g.getState().inventory['file']!['common']).toBe(3);
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(3);
   });
 
   it('is not possible in a game whose content has no schematic', () => {
     const g = game({ common: 3 }, testConfig);
     expect(g.augmentAction('a', 'common')).toBe(false);
-    expect(g.getState().inventory['file']!['common']).toBe(3);
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(3);
   });
 });
 
@@ -99,7 +101,7 @@ describe('what an augment does to the XP', () => {
       g.augmentAction('a', 'common');
       g.augmentAction('a', 'rare');
     }
-    expect(g.getState().actions['a']!.augments).toEqual({ common: 3, rare: 3 });
+    expect(g.getState().sleeve.actions['a']!.augments).toEqual({ common: 3, rare: 3 });
     expect(g.xpPerRun('a').toNumber()).toBeCloseTo(1.03 * 1.03, 12);
     expect(g.xpPerRun('a').toNumber()).toBeGreaterThan(1 + 0.06); // more than six augments of one rarity would give
   });
@@ -118,7 +120,7 @@ describe('what an augment does to the XP', () => {
     for (let i = 0; i < 100; i++) g.augmentAction('a', 'common'); // +100%: 2 XP a run
     g.startAction('a');
     g.tick(10_000);
-    expect(g.getState().actions['a']!.xp.toNumber()).toBe(2);
+    expect(g.getState().sleeve.actions['a']!.xp.toNumber()).toBe(2);
   });
 
   it('the levels come sooner: with +100% level 1 (10 XP) arrives after 5 runs instead of 10', () => {
@@ -141,13 +143,13 @@ describe('what an augment does to the XP', () => {
     const sleeveAfter100Runs = (augments: number) => {
       const g = game({ common: augments });
       for (let i = 0; i < augments; i++) g.augmentAction('a', 'common');
-      (g.getState() as unknown as { credits: unknown }).credits = num(100);
+      (g.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(100);
       g.buy('auto');
       g.startAction('a');
       // enough time for plenty of runs; compare after exactly as many runs as the unaugmented game needs for 100
       let guard = 0;
-      while (g.getState().actions['a']!.sleeveXp.isZero() && guard++ < 100_000) g.tick(g.currentDurationMs('a'));
-      return g.getState().actions['a']!;
+      while (g.getState().sleeve.actions['a']!.sleeveXp.isZero() && guard++ < 100_000) g.tick(g.currentDurationMs('a'));
+      return g.getState().sleeve.actions['a']!;
     };
     const plain = sleeveAfter100Runs(0);
     const augmented = sleeveAfter100Runs(50);
@@ -162,7 +164,7 @@ describe('what an augment does to the XP', () => {
     const make = () => {
       const g = game({ common: 30 });
       for (let i = 0; i < 30; i++) g.augmentAction('a', 'common');
-      (g.getState() as unknown as { credits: unknown }).credits = num(100);
+      (g.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(100);
       g.buy('auto');
       g.startAction('a');
       return g;
@@ -173,7 +175,7 @@ describe('what an augment does to the XP', () => {
     for (let i = 0; i < 700; i++) stepped.tick(10_000);
     stepped.tick(321);
     expect(once.actionLevel('a')).toBe(stepped.actionLevel('a'));
-    expect(once.getState().actions['a']!.xp.toNumber()).toBeCloseTo(stepped.getState().actions['a']!.xp.toNumber(), 6);
+    expect(once.getState().sleeve.actions['a']!.xp.toNumber()).toBeCloseTo(stepped.getState().sleeve.actions['a']!.xp.toNumber(), 6);
   });
 
   it('keeps the state sound', () => {
@@ -190,11 +192,11 @@ describe('augments in saves and resets', () => {
     const a = game();
     a.augmentAction('a', 'common');
     a.resleeve();
-    expect(a.getState().actions['a']!.augments).toEqual({});
+    expect(a.getState().sleeve.actions['a']!.augments).toEqual({});
     const b = game();
     b.augmentAction('a', 'common');
     b.newGame();
-    expect(b.getState().actions['a']!.augments).toEqual({});
+    expect(b.getState().sleeve.actions['a']!.augments).toEqual({});
   });
 
   it('survive a save and load', () => {
@@ -202,15 +204,15 @@ describe('augments in saves and resets', () => {
     g.augmentAction('a', 'common');
     g.augmentAction('a', 'common');
     const restored = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(restored.actions['a']!.augments).toEqual({ common: 2 });
-    expect(restored.actions['b']!.augments).toEqual({});
+    expect(restored.sleeve.actions['a']!.augments).toEqual({ common: 2 });
+    expect(restored.sleeve.actions['b']!.augments).toEqual({});
   });
 
   it('an older save without them loads with none, and bad values are repaired', () => {
     const g = game();
     g.augmentAction('a', 'common');
-    const json = JSON.parse(serializeState(g.getState()));
-    const load = () => deserializeState(JSON.stringify(json), config, numberFactory)!.actions['a']!.augments;
+    const json = flatSave(serializeState(g.getState()));
+    const load = () => deserializeState(asSave(json), config, numberFactory)!.sleeve.actions['a']!.augments;
     delete json.actions.a.augments;
     expect(load()).toEqual({});
     for (const bad of [3, -3, 'x', null, [1]]) {
@@ -256,8 +258,8 @@ describe('items that cannot be paid out', () => {
     const g = game({ common: 3 }, keptConfig);
     expect(g.sellItems('file', 'common', 'all')).toBe(0);
     expect(g.sellItems('file', 'common', 1)).toBe(0);
-    expect(g.getState().inventory['file']!['common']).toBe(3);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(3);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
   });
 
   it('can still be applied', () => {

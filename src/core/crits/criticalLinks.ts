@@ -46,11 +46,11 @@ export class CriticalLinks {
    * @returns how many of the runs are guaranteed critical (`min(runs, banked)`; 0 when none are banked)
    */
   claim(actionId: ActionId, runs: number): number {
-    const banked = this.state.bankedCriticals[actionId] ?? 0;
+    const banked = this.state.sleeve.bankedCriticals[actionId] ?? 0;
     const used = Math.min(runs, banked);
     if (!(used > 0)) return 0;
-    if (banked - used > 0) this.state.bankedCriticals[actionId] = banked - used;
-    else delete this.state.bankedCriticals[actionId];
+    if (banked - used > 0) this.state.sleeve.bankedCriticals[actionId] = banked - used;
+    else delete this.state.sleeve.bankedCriticals[actionId];
     return used;
   }
 
@@ -63,7 +63,7 @@ export class CriticalLinks {
   bank(actionId: ActionId, critical: number): void {
     if (!(critical > 0)) return;
     for (const target of this.source.criticalLinks(actionId)) {
-      this.state.bankedCriticals[target] = Math.min(MAX_BANKED, (this.state.bankedCriticals[target] ?? 0) + critical);
+      this.state.sleeve.bankedCriticals[target] = Math.min(MAX_BANKED, (this.state.sleeve.bankedCriticals[target] ?? 0) + critical);
     }
   }
 }

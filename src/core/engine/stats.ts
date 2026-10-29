@@ -94,7 +94,7 @@ export class DerivedStats implements ModeStatuses {
         this.factory,
         (id) => this.progression.actionLevel(this.state, id),
         (id) => this.progression.sleeveLevel(this.state, id),
-        () => distinctAugmentRarities(this.state.actions),
+        () => distinctAugmentRarities(this.state.sleeve.actions),
       ),
     );
   }

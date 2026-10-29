@@ -30,7 +30,7 @@ const config = createConfig(testConfig, {
 });
 
 const own = (g: ReturnType<typeof createGame>): void => {
-  (g.getState().purchased as Record<string, number>)['inc'] = 1;
+  (g.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
 };
 
 beforeEach(() => {
@@ -181,7 +181,7 @@ describe('the Corporation tab on the screen', () => {
     expect(card.querySelector('.xp-sleeve')).toBeNull(); // and no sleeve level
     expect(card.querySelector('.upgrades')).not.toBeNull(); // the row for the action's purchases
     card.querySelector<HTMLButtonElement>('.action-main')!.click();
-    expect(game.getState().corporation.actions['c1']!.running).toBe(true);
+    expect(game.getState().wallet.corporation.actions['c1']!.running).toBe(true);
     game.tick(15_000);
     render();
     expect(card.classList.contains('running')).toBe(true);
@@ -192,7 +192,7 @@ describe('the Corporation tab on the screen', () => {
     expect(card.classList.contains('running')).toBe(false);
     expect(card.querySelector<HTMLButtonElement>('.start-run')!.disabled).toBe(false);
     card.querySelector<HTMLButtonElement>('.start-run')!.click();
-    expect(game.getState().corporation.actions['c1']!.running).toBe(true);
+    expect(game.getState().wallet.corporation.actions['c1']!.running).toBe(true);
   });
 
   it('shows the hover text of the action', () => {

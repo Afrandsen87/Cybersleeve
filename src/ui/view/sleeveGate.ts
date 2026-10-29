@@ -6,7 +6,7 @@
  * @remarks
  * Called by: `viewModel.ts`, `actionView.ts`, `panelViews.ts`. Pure; reads the same rule as the game (`sleeveLevelsGateId`).
  */
-import { type GameConfig, type GameStateView, sleeveLevelsGateId } from '../../core';
+import { type GameConfig, sleeveLevelsGateId, type StateSliceView } from '../../core';
 import type { BuyableView, ResleeveBuyView } from './viewTypes';
 
 /**
@@ -18,9 +18,9 @@ import type { BuyableView, ResleeveBuyView } from './viewTypes';
  * @param config game configuration (finds the unlock buyable)
  * @returns `true` when sleeve levels and re-sleeving are open: the unlock is owned, or the content has no such unlock
  */
-export function sleeveLevelsOpen(state: Pick<GameStateView, 'purchased'>, config: Pick<GameConfig, 'buyables'>): boolean {
+export function sleeveLevelsOpen(state: StateSliceView<'purchased'>, config: Pick<GameConfig, 'buyables'>): boolean {
   const id = sleeveLevelsGateId(config.buyables);
-  return id === null || (state.purchased[id] ?? 0) > 0;
+  return id === null || (state.sleeve.purchased[id] ?? 0) > 0;
 }
 
 /**
@@ -32,8 +32,8 @@ export function sleeveLevelsOpen(state: Pick<GameStateView, 'purchased'>, config
  * @param config game configuration
  * @returns `true` when the re-sleeve skill tree shows: the unlock is owned; in a game without that unlock, once a sleeve-run has finished
  */
-export function resleeveSkillsShown(state: Pick<GameStateView, 'purchased' | 'runs'>, config: Pick<GameConfig, 'buyables'>): boolean {
-  return sleeveLevelsGateId(config.buyables) === null ? state.runs.length > 0 : sleeveLevelsOpen(state, config);
+export function resleeveSkillsShown(state: StateSliceView<'purchased' | 'runs'>, config: Pick<GameConfig, 'buyables'>): boolean {
+  return sleeveLevelsGateId(config.buyables) === null ? state.wallet.runs.length > 0 : sleeveLevelsOpen(state, config);
 }
 
 /**
@@ -47,12 +47,12 @@ export function resleeveSkillsShown(state: Pick<GameStateView, 'purchased' | 'ru
  * @returns the text, tip and affordability to put on the button, or `null` when there is no such unlock, it is owned, or it is not in reach yet
  */
 export function resleeveBuyView(
-  state: Pick<GameStateView, 'purchased'>,
+  state: StateSliceView<'purchased'>,
   config: Pick<GameConfig, 'buyables'>,
   viewById: ReadonlyMap<string, BuyableView>,
 ): ResleeveBuyView | null {
   const id = sleeveLevelsGateId(config.buyables);
   const view = id === null ? undefined : viewById.get(id);
-  if (!id || !view || (state.purchased[id] ?? 0) > 0 || !view.available) return null;
+  if (!id || !view || (state.sleeve.purchased[id] ?? 0) > 0 || !view.available) return null;
   return { id, text: `${view.name}: ${view.costText} ${view.costUnit}`, tip: view.tip, affordable: view.affordable };
 }

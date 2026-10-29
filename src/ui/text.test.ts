@@ -8,9 +8,10 @@ import { setCredits, testConfig } from '../testing/testConfig';
 import { mountUi, showNotice, type SpeedControl } from './dom';
 import { uiText, type UiText } from './uiText';
 import { buildViewModel, statRow } from './viewModel';
+import { flat } from '../testing/flatState';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
-const state = (g: { getState(): unknown }) => g.getState() as { heat: number; legend: number; network: unknown };
+const state = (g: { getState(): unknown }) => flat<{ heat: number; legend: number; network: unknown }>(g);
 
 /** A complete text table whose every entry is recognisable, to prove that nothing is spelled out in logic. */
 const shouting: UiText = {

@@ -2,6 +2,7 @@ import { createGame } from '../app/createGame';
 import { num } from '../numbers';
 import { testConfig } from './testConfig';
 import { createConfig, type BuyableDefinition, type GameConfig } from '../core';
+import { flat } from './flatState';
 
 /** A skill: one point, no action. */
 export const skill = (id: string, effect: BuyableDefinition['effect'], cost = 1): BuyableDefinition => ({
@@ -32,7 +33,7 @@ export type Loose = {
 };
 
 /** The state of a game, writable (tests only). */
-export const mutable = (g: { getState(): unknown }): Loose => g.getState() as unknown as Loose;
+export const mutable = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
 /** Earns the first skill point: the inert action reaches level 1. */
 export const grantPoint = (g: { getState(): unknown }): void => {

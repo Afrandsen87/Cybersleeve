@@ -41,25 +41,25 @@ describe('reward rounding', () => {
 
   it('payReward adds the rounded amount once per run, with fractional amounts per run floored first', () => {
     const state = stateOf();
-    const before = state.network.toNumber();
+    const before = state.sleeve.network.toNumber();
     payReward(state, 'networkNodes', num(2.75), num(10));
-    expect(state.network.toNumber() - before).toBe(20); // 10 runs of floor(2.75), not floor(27.5)
-    const credits = state.credits.toNumber();
+    expect(state.sleeve.network.toNumber() - before).toBe(20); // 10 runs of floor(2.75), not floor(27.5)
+    const credits = state.wallet.credits.toNumber();
     payReward(state, 'credits', num(2.75), num(10));
-    expect(state.credits.toNumber() - credits).toBeCloseTo(27.5, 9);
+    expect(state.wallet.credits.toNumber() - credits).toBeCloseTo(27.5, 9);
   });
 
   it('payReward pays nothing for zero runs or a zero amount, and never pays a negative whole amount below its floor', () => {
     const state = stateOf();
-    const before = state.network.toNumber();
+    const before = state.sleeve.network.toNumber();
     payReward(state, 'networkNodes', num(0.9), num(1000));
     payReward(state, 'networkNodes', num(5), num(0));
-    expect(state.network.toNumber()).toBe(before);
+    expect(state.sleeve.network.toNumber()).toBe(before);
   });
 
   it('a huge amount stays finite or clamps rather than corrupting the balance', () => {
     const state = stateOf();
     payReward(state, 'credits', num(1e300), num(1e300));
-    expect(Number.isNaN(state.credits.toNumber())).toBe(false);
+    expect(Number.isNaN(state.wallet.credits.toNumber())).toBe(false);
   });
 });

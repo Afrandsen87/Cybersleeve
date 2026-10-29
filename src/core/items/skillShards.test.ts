@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { setCredits, testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, LevelRule, serializeState, type GameConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /**
  * The Skill shard `sh` delays the XP scaling by 1 level. Actions `a` and `b` are unlocked from the start, `c` needs access level 2.
@@ -32,12 +33,12 @@ function game(random: () => number = () => 0, config = configWith()) {
 type Game = ReturnType<typeof game>;
 
 const give = (g: Game, n: number): void => {
-  (g.getState() as { inventory: Record<string, Record<string, number>> }).inventory['sh'] = { common: n };
+  (g.getState() as unknown as { wallet: { inventory: Record<string, Record<string, number>> } }).wallet.inventory['sh'] = { common: n };
 };
-const held = (g: Game): number => g.getState().inventory['sh']?.['common'] ?? 0;
-const shards = (g: Game, id: string): number => g.getState().actions[id]!.skillShards;
+const held = (g: Game): number => g.getState().wallet.inventory['sh']?.['common'] ?? 0;
+const shards = (g: Game, id: string): number => g.getState().sleeve.actions[id]!.skillShards;
 const setXp = (g: Game, id: string, xp: number): void => {
-  (g.getState().actions[id]!.xp as unknown) = num(xp);
+  (g.getState().sleeve.actions[id]!.xp as unknown) = num(xp);
 };
 
 describe('LevelRule with a delay', () => {
@@ -152,7 +153,7 @@ describe('Skill shards: what they do to the levels', () => {
     const g = game(() => 0);
     give(g, 1);
     setXp(g, 'b', 20);
-    (g.getState().actions['a']!.sleeveXp as unknown) = num(20);
+    (g.getState().sleeve.actions['a']!.sleeveXp as unknown) = num(20);
     g.useSkillShard();
     expect(g.actionLevel('b')).toBe(1);
     expect(g.sleeveLevel('a')).toBe(1);
@@ -172,7 +173,7 @@ describe('Skill shards: what they do to the levels', () => {
     for (let i = 0; i < 400; i++) short.tick(1_000);
     short.tick(1);
     expect(long.actionLevel('a')).toBe(short.actionLevel('a'));
-    expect(long.getState().actions['a']!.xp.toNumber()).toBe(short.getState().actions['a']!.xp.toNumber());
+    expect(long.getState().sleeve.actions['a']!.xp.toNumber()).toBe(short.getState().sleeve.actions['a']!.xp.toNumber());
   });
 
   it('are reset by re-sleeving', () => {
@@ -192,23 +193,23 @@ describe('Skill shards: saving and the state', () => {
     g.useSkillShard();
     g.useSkillShard();
     const restored = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(restored.actions['a']!.skillShards).toBe(2);
-    expect(restored.actions['b']!.skillShards).toBe(0);
+    expect(restored.sleeve.actions['a']!.skillShards).toBe(2);
+    expect(restored.sleeve.actions['b']!.skillShards).toBe(0);
   });
 
   it('a bad saved count becomes 0', () => {
     const config = configWith();
-    const json = JSON.parse(serializeState(game(() => 0, config).getState()));
+    const json = flatSave(serializeState(game(() => 0, config).getState()));
     json.actions.a.skillShards = -4;
     json.actions.b.skillShards = 'x';
-    const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect(restored.actions['a']!.skillShards).toBe(0);
-    expect(restored.actions['b']!.skillShards).toBe(0);
+    const restored = deserializeState(asSave(json), config, numberFactory)!;
+    expect(restored.sleeve.actions['a']!.skillShards).toBe(0);
+    expect(restored.sleeve.actions['b']!.skillShards).toBe(0);
   });
 
   it('flags a fractional shard count as a broken state', () => {
     const g = game();
-    (g.getState().actions['a'] as { skillShards: number }).skillShards = 1.5;
+    (g.getState().sleeve.actions['a'] as { skillShards: number }).skillShards = 1.5;
     expect(findInvariantViolations(g.getState(), configWith()).join('\n')).toContain('a.skillShards is invalid');
   });
 });

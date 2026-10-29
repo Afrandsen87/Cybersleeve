@@ -50,12 +50,12 @@ export class ResleeveGate implements ResleevePolicy {
   /** True when the player may re-sleeve: no gate in the content, or the gate is owned and the lockout is over. */
   canResleeve(state: GameState): boolean {
     if (this.gateId === null) return true;
-    return (state.purchased[this.gateId] ?? 0) > 0 && state.resleeveLockoutMs <= 0;
+    return (state.sleeve.purchased[this.gateId] ?? 0) > 0 && state.sleeve.resleeveLockoutMs <= 0;
   }
 
   /** Called by the shop after every purchase: buying the gate starts the lockout. */
   onPurchased(buyable: BuyableDefinition): void {
-    if (buyable.id === this.gateId) this.state.resleeveLockoutMs = this.lockoutMs;
+    if (buyable.id === this.gateId) this.state.sleeve.resleeveLockoutMs = this.lockoutMs;
   }
 
   /**
@@ -66,6 +66,7 @@ export class ResleeveGate implements ResleevePolicy {
    * @param deltaMs game time that passed
    */
   advance(deltaMs: number): void {
-    if (this.state.resleeveLockoutMs > 0) this.state.resleeveLockoutMs = Math.max(0, this.state.resleeveLockoutMs - deltaMs);
+    if (this.state.sleeve.resleeveLockoutMs > 0)
+      this.state.sleeve.resleeveLockoutMs = Math.max(0, this.state.sleeve.resleeveLockoutMs - deltaMs);
   }
 }

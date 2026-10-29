@@ -15,7 +15,7 @@ describe("the tooltip on an action card's speed line", () => {
 
   it('names each factor with its level and how much a level is worth (test config: +100% per level)', () => {
     const g = game();
-    (g.getState().actions['a'] as { xp: unknown }).xp = num(10); // test config levels: level 1 at 5 XP
+    (g.getState().sleeve.actions['a'] as { xp: unknown }).xp = num(10); // test config levels: level 1 at 5 XP
     const text = tip(g);
     expect(text).toContain('Action Level = 2 (level 1, +100% per level)');
     expect(text).toContain('Sleeve Level = 1 (level 0, +100% per level)');
@@ -38,7 +38,7 @@ describe("the tooltip on an action card's speed line", () => {
 
   it('matches the speed the engine really uses: the factors multiply to the current speed', () => {
     const g = game({ sleeve: { baseInterfaceSpeed: 0.5 } });
-    (g.getState().actions['a'] as { xp: unknown }).xp = num(10);
+    (g.getState().sleeve.actions['a'] as { xp: unknown }).xp = num(10);
     const product = g.speedFactors('a').reduce((p, f) => p * f.factor, 1);
     expect(product).toBeCloseTo(g.currentSpeed('a'), 10);
   });

@@ -7,13 +7,14 @@ import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
 import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel } from './viewModel';
+import { flat } from '../testing/flatState';
 
 const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 const config = createConfig(testConfig, { items: { ...testConfig.items, augment: { itemId: 'file', xpBonusPerItem: 0.01 } } });
 
 type Loose = { inventory: unknown };
 const stock = (g: { getState(): unknown }, held: Record<string, number>): void => {
-  (g.getState() as unknown as Loose).inventory = { file: held };
+  flat<Loose>(g).inventory = { file: held };
 };
 
 beforeEach(() => {
@@ -97,8 +98,8 @@ describe('the Augment button on the screen', () => {
     expect(tile(1).classList.contains('selected')).toBe(false);
     expect(buttons()[0]!.disabled).toBe(false);
     buttons()[0]!.click();
-    expect(game.getState().actions['a']!.augments).toEqual({ common: 1 });
-    expect(game.getState().inventory['file']!['common']).toBe(1);
+    expect(game.getState().sleeve.actions['a']!.augments).toEqual({ common: 1 });
+    expect(game.getState().wallet.inventory['file']!['common']).toBe(1);
     expect(hoverText(buttons()[0]!)).toContain('XP per Run = 1 x (1 + 0.01 x 1) = 1.01');
     expect(buttons()[0]!.classList.contains('applied')).toBe(true);
     buttons()[0]!.click();
@@ -111,8 +112,8 @@ describe('the Augment button on the screen', () => {
     render();
     root.querySelectorAll<HTMLButtonElement>('.item-tile')[0]!.click();
     buttons()[0]!.click();
-    expect(game.getState().actions['a']!.augments).toEqual({ common: 1 });
-    expect(game.getState().actions['a']!.running).toBe(false);
+    expect(game.getState().sleeve.actions['a']!.augments).toEqual({ common: 1 });
+    expect(game.getState().sleeve.actions['a']!.running).toBe(false);
   });
 
   it('is an empty placeholder in a game without a schematic', () => {
@@ -136,7 +137,7 @@ describe('the Augment button on the screen', () => {
     for (let i = 0; i < 100; i++) buttons()[0]!.click();
     game.startAction('a');
     game.tick(10_000);
-    expect(game.getState().actions['a']!.xp.eq(num(2))).toBe(true);
+    expect(game.getState().sleeve.actions['a']!.xp.eq(num(2))).toBe(true);
   });
 });
 

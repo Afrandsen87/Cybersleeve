@@ -41,14 +41,14 @@ describe('buyables are revealed when their price is within reach', () => {
     const g = game(1, 10);
     expect(g.isBuyableRevealed('dual')).toBe(true); // 15 <= 10 x 10
     expect(g.buy('auto')).toBe('purchased'); // credits fall to 0
-    expect(g.getState().credits.eq(num(0))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(0))).toBe(true);
     expect(g.isBuyableRevealed('dual')).toBe(true);
   });
 
   it('keeps owned purchases shown and raises the window as credits are earned', () => {
     const g = game(1, 0);
     expect(g.isBuyableRevealed('speed')).toBe(false);
-    (g.getState() as { credits: unknown }).credits = num(10);
+    (g.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(10);
     g.tick(1);
     expect(g.isBuyableRevealed('speed')).toBe(true); // 100 <= 10 x 10
   });
@@ -56,8 +56,8 @@ describe('buyables are revealed when their price is within reach', () => {
   it('resets with a re-sleeve: the peaks start again from what a new life holds', () => {
     const g = game(1, 10);
     g.tick(1);
-    expect(g.getState().peakCredits.gte(num(10))).toBe(true);
+    expect(g.getState().sleeve.peakCredits.gte(num(10))).toBe(true);
     g.resleeve();
-    expect(g.getState().peakCredits.eq(num(10))).toBe(true);
+    expect(g.getState().sleeve.peakCredits.eq(num(10))).toBe(true);
   });
 });

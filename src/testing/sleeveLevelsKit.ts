@@ -33,5 +33,5 @@ export function openResleeving(g: GameEngine, lockoutMs = 5_000): void {
  * @param g an engine built on any config
  */
 export function markResleeved(g: GameEngine): void {
-  (g.getState().runs as SleeveRunRecord[]).push({ creditsPerSecond: num(0), actionLevelsTotal: 0 });
+  (g.getState().wallet.runs as SleeveRunRecord[]).push({ creditsPerSecond: num(0), actionLevelsTotal: 0 });
 }

@@ -36,8 +36,9 @@ export class NetworkSystem {
    */
   payPassiveIncome(deltaMs: number): void {
     const seconds = this.factory.fromNumber(deltaMs / 1000);
-    if (!this.state.network.isZero()) this.state.credits = this.state.credits.add(this.stats.passiveCreditsPerSecond().mul(seconds));
-    if (this.synths) this.state.credits = this.state.credits.add(this.synths.creditsPerSecond().mul(seconds));
+    if (!this.state.sleeve.network.isZero())
+      this.state.wallet.credits = this.state.wallet.credits.add(this.stats.passiveCreditsPerSecond().mul(seconds));
+    if (this.synths) this.state.wallet.credits = this.state.wallet.credits.add(this.synths.creditsPerSecond().mul(seconds));
   }
 
   /**
@@ -47,11 +48,13 @@ export class NetworkSystem {
    */
   grow(deltaMs: number): void {
     const rate = this.stats.networkGrowthRate();
-    if (!(rate > 0) || this.state.network.isZero()) return;
+    if (!(rate > 0) || this.state.sleeve.network.isZero()) return;
     const factor = Math.expm1(Math.log1p(rate) * (deltaMs / 1000));
-    const growth = this.state.network.mul(this.factory.fromNumber(factor)).add(this.factory.fromNumber(this.state.networkRemainder));
+    const growth = this.state.sleeve.network
+      .mul(this.factory.fromNumber(factor))
+      .add(this.factory.fromNumber(this.state.sleeve.networkRemainder));
     const whole = growth.floor();
-    this.state.networkRemainder = growth.sub(whole).toNumber();
-    this.state.network = this.state.network.add(whole);
+    this.state.sleeve.networkRemainder = growth.sub(whole).toNumber();
+    this.state.sleeve.network = this.state.sleeve.network.add(whole);
   }
 }

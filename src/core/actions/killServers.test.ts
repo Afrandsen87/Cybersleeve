@@ -4,6 +4,7 @@ import { num, numberFactory } from '../../numbers';
 import { findInvariantViolations } from '../../testing/invariants';
 import { percentKillAction, setCredits, testConfig } from '../../testing/testConfig';
 import { createConfig, deserializeState, serializeState, validateConfig, type BuyableDefinition, type GameConfig } from '..';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /**
  * The test action `pkill` takes 1% of the nodes per run and pays +1 ICE Rating. Its Overclock doubles the ICE Rating it pays and holds
@@ -43,7 +44,7 @@ function configWith(overclock: GameConfig['actions'][number]['overclock'] = OVER
 function game(config = configWith(), nodes = 1_000_000) {
   const g = createGame({ config, random: () => 0.5 });
   setCredits(g, num(1e9));
-  (g.getState() as { network: unknown }).network = num(nodes);
+  (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(nodes);
   return g;
 }
 type Game = ReturnType<typeof game>;
@@ -51,13 +52,13 @@ type Game = ReturnType<typeof game>;
 const own = (g: Game, ...ids: string[]): void => {
   for (const id of ids) g.buy(id);
 };
-const nodes = (g: Game): number => g.getState().network.toNumber();
-const ice = (g: Game): number => g.getState().iceRating.toNumber();
+const nodes = (g: Game): number => g.getState().sleeve.network.toNumber();
+const ice = (g: Game): number => g.getState().sleeve.iceRating.toNumber();
 /** Lets one run of `pkill` complete (the next one, when auto-run restarts it, then starts). */
 const finishRun = (g: Game): void => g.tick(g.currentDurationMs('pkill') + 1);
 const setLevel = (g: Game, level: number): void => {
   // With firstLevelXp 10 and growth 1e6 the XP for level 1 is 10 and for level 2 10 + 1e7; level 1 is all these tests need.
-  (g.getState().actions['pkill']!.xp as unknown) = num(level >= 1 ? 10 : 0);
+  (g.getState().sleeve.actions['pkill']!.xp as unknown) = num(level >= 1 ? 10 : 0);
 };
 
 describe('Decommission protocol', () => {
@@ -96,43 +97,43 @@ describe('Credit Siphon', () => {
     const g = game(undefined, 1_000);
     own(g, 'siphon');
     const perNode = g.passiveCreditsPerNode().toNumber(); // 0.05 per second
-    const before = g.getState().credits.toNumber();
+    const before = g.getState().wallet.credits.toNumber();
     expect(g.startAction('pkill')).toBe(true);
     expect(nodes(g)).toBe(990);
-    expect(g.getState().credits.toNumber() - before).toBeCloseTo(10 * perNode * 10, 4);
+    expect(g.getState().wallet.credits.toNumber() - before).toBeCloseTo(10 * perNode * 10, 4);
   });
 
   it('uses the income after the heat tax: a hot sleeve pays less', () => {
     const g = game(undefined, 1_000);
     own(g, 'siphon');
-    (g.getState() as { heat: number }).heat = 50;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 50;
     // the heat tax applies to income, not to the payout per node: the siphon still pays what a node delivers after the tax
     expect(g.passiveCreditsPerNode().toNumber()).toBeCloseTo(0.05, 9);
     const perNode = g.passiveCreditsPerNode().toNumber() * g.creditKeepFactor();
     expect(perNode).toBeCloseTo(0.025, 9);
-    const before = g.getState().credits.toNumber();
+    const before = g.getState().wallet.credits.toNumber();
     g.startAction('pkill');
-    expect(g.getState().credits.toNumber() - before).toBeCloseTo(10 * perNode * 10, 4);
+    expect(g.getState().wallet.credits.toNumber() - before).toBeCloseTo(10 * perNode * 10, 4);
   });
 
   it('pays for each restart of an auto-run, not just the first start', () => {
     const g = game(undefined, 100_000);
     own(g, 'siphon', 'kill-auto');
-    const start = g.getState().credits.toNumber();
+    const start = g.getState().wallet.credits.toNumber();
     g.startAction('pkill');
     finishRun(g);
     finishRun(g);
     // three runs have started by now: the first, and one restart after each completion
-    expect(g.getState().credits.toNumber()).toBeGreaterThan(start);
+    expect(g.getState().wallet.credits.toNumber()).toBeGreaterThan(start);
     expect(nodes(g)).toBeLessThan(100_000 - 1_000 - 900);
   });
 
   it('pays nothing without it', () => {
     const g = game(undefined, 1_000);
-    const before = g.getState().credits.toNumber();
+    const before = g.getState().wallet.credits.toNumber();
     g.startAction('pkill');
     // only the passive income of the nodes can have changed the balance, and no time has passed
-    expect(g.getState().credits.toNumber()).toBe(before);
+    expect(g.getState().wallet.credits.toNumber()).toBe(before);
   });
 });
 
@@ -161,13 +162,13 @@ describe('Overclock: the Kill chain', () => {
     }
     // base 1 x (1 + Overclock 1 + 0.5 per link): 2, 2.5, 3, 3.5, then the chain stays at 3 links
     expect(gains).toEqual([2, 2.5, 3, 3.5, 3.5]);
-    expect(g.getState().chains['pkill']).toBe(3);
+    expect(g.getState().sleeve.chains['pkill']).toBe(3);
   });
 
   it('each link takes more of the nodes: the share is 1% x (1 + 0.5 per link)', () => {
     const g = game(undefined, 1_000_000);
     overclocked(g);
-    (g.getState() as { chains: Record<string, number> }).chains['pkill'] = 2;
+    (g.getState() as unknown as { sleeve: { chains: Record<string, number> } }).sleeve.chains['pkill'] = 2;
     expect(g.startCostOf('pkill')!.toNumber()).toBe(20_000); // 1% x 2 = 2%
   });
 
@@ -175,30 +176,30 @@ describe('Overclock: the Kill chain', () => {
     const g = game(undefined, 1_000_000);
     own(g, 'kill-oc', 'kill-chain');
     g.toggleOverclock('pkill');
-    (g.getState() as { chains: Record<string, number> }).chains['pkill'] = 2;
+    (g.getState() as unknown as { sleeve: { chains: Record<string, number> } }).sleeve.chains['pkill'] = 2;
     g.startAction('pkill');
     finishRun(g);
-    expect(g.getState().actions['pkill']!.running).toBe(false);
-    expect(g.getState().chains['pkill']).toBeUndefined();
+    expect(g.getState().sleeve.actions['pkill']!.running).toBe(false);
+    expect(g.getState().sleeve.chains['pkill']).toBeUndefined();
   });
 
   it('is broken, and counts for nothing, when Overclock is switched off', () => {
     const g = game(undefined, 1_000_000);
     overclocked(g);
-    (g.getState() as { chains: Record<string, number> }).chains['pkill'] = 2;
+    (g.getState() as unknown as { sleeve: { chains: Record<string, number> } }).sleeve.chains['pkill'] = 2;
     g.toggleOverclock('pkill');
     expect(g.startCostOf('pkill')!.toNumber()).toBe(10_000);
     expect(g.rewardPerRun('pkill').toNumber()).toBe(1);
     g.startAction('pkill');
     finishRun(g);
-    expect(g.getState().chains['pkill']).toBeUndefined();
+    expect(g.getState().sleeve.chains['pkill']).toBeUndefined();
   });
 
   it('shows its links in the Overclock status, with the reward per link scaled by the strength of Overclock', () => {
     const g = game(undefined, 1_000_000);
     own(g, 'kill-oc', 'kill-chain');
     g.toggleOverclock('pkill');
-    (g.getState() as { chains: Record<string, number> }).chains['pkill'] = 1;
+    (g.getState() as unknown as { sleeve: { chains: Record<string, number> } }).sleeve.chains['pkill'] = 1;
     expect(g.overclockStatus('pkill')!.chain).toEqual({ links: 1, maxLinks: 3, rewardPerLink: 0.5, nodesPerLink: 0.5 });
   });
 
@@ -221,7 +222,7 @@ describe('the Kill chain buyable', () => {
     expect(g.overclockStatus('pkill')!.chain).toBeNull();
     g.startAction('pkill');
     for (let i = 0; i < 3; i++) finishRun(g);
-    expect(g.getState().chains['pkill']).toBeUndefined();
+    expect(g.getState().sleeve.chains['pkill']).toBeUndefined();
     expect(g.rewardPerRun('pkill').toNumber()).toBe(2);
   });
 
@@ -234,21 +235,21 @@ describe('the Kill chain buyable', () => {
     own(g, 'kill-chain');
     expect(g.overclockStatus('pkill')!.chain).toEqual({ links: 0, maxLinks: 3, rewardPerLink: 0.5, nodesPerLink: 0.5 });
     finishRun(g);
-    expect(g.getState().chains['pkill']).toBe(1);
+    expect(g.getState().sleeve.chains['pkill']).toBe(1);
   });
 
   it('is saved with the purchase: a chain is only restored for an action that owns it', () => {
     const config = configWith();
     const g = game(config);
     own(g, 'kill-oc');
-    (g.getState() as { chains: Record<string, number> }).chains['pkill'] = 2;
-    expect(deserializeState(serializeState(g.getState()), config, numberFactory)!.chains).toEqual({});
+    (g.getState() as unknown as { sleeve: { chains: Record<string, number> } }).sleeve.chains['pkill'] = 2;
+    expect(deserializeState(serializeState(g.getState()), config, numberFactory)!.sleeve.chains).toEqual({});
   });
 });
 
 describe('Overclock: holding heat in place', () => {
   const hot = (g: Game): void => {
-    (g.getState() as { heat: number }).heat = 10;
+    (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 10;
   };
 
   it('heat cools as usual without Overclock', () => {
@@ -257,7 +258,7 @@ describe('Overclock: holding heat in place', () => {
     hot(g);
     g.startAction('pkill');
     g.tick(120_000);
-    expect(g.getState().heat).toBeLessThan(10);
+    expect(g.getState().sleeve.heat).toBeLessThan(10);
   });
 
   it('heat does not cool at all while the action runs overclocked', () => {
@@ -267,7 +268,7 @@ describe('Overclock: holding heat in place', () => {
     hot(g);
     g.startAction('pkill');
     g.tick(120_000);
-    expect(g.getState().heat).toBe(10);
+    expect(g.getState().sleeve.heat).toBe(10);
     expect(g.heatCoolingBlocked()).toBe(true);
   });
 
@@ -278,10 +279,10 @@ describe('Overclock: holding heat in place', () => {
     hot(g);
     g.startAction('pkill');
     g.tick(5_000);
-    expect(g.getState().actions['pkill']!.running).toBe(false);
+    expect(g.getState().sleeve.actions['pkill']!.running).toBe(false);
     expect(g.heatCoolingBlocked()).toBe(false);
     g.tick(120_000);
-    expect(g.getState().heat).toBeLessThan(10);
+    expect(g.getState().sleeve.heat).toBeLessThan(10);
   });
 
   it('does not hold heat while Overclock is switched off, even with the unlock owned', () => {
@@ -345,12 +346,12 @@ describe('saving the chain', () => {
     const config = configWith();
     const g = game(config);
     own(g, 'kill-oc', 'kill-chain');
-    (g.getState() as { chains: Record<string, number> }).chains['pkill'] = 2;
+    (g.getState() as unknown as { sleeve: { chains: Record<string, number> } }).sleeve.chains['pkill'] = 2;
     const restored = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(restored.chains['pkill']).toBe(2);
-    const json = JSON.parse(serializeState(g.getState()));
+    expect(restored.sleeve.chains['pkill']).toBe(2);
+    const json = flatSave(serializeState(g.getState()));
     json.chains = { pkill: 99, a: 1, ghost: 2 };
-    const clamped = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect(clamped.chains).toEqual({ pkill: 3 });
+    const clamped = deserializeState(asSave(json), config, numberFactory)!;
+    expect(clamped.sleeve.chains).toEqual({ pkill: 3 });
   });
 });

@@ -33,11 +33,11 @@ const newGame = (lockoutMs = 5_000) => {
 describe('before the sleeve-levels unlock is bought', () => {
   it('sleeve XP is tracked but its level reads 0, and re-sleeving is refused', () => {
     const g = newGame();
-    expect(g.getState().actions['a']!.sleeveXp.toNumber()).toBe(1e6);
+    expect(g.getState().sleeve.actions['a']!.sleeveXp.toNumber()).toBe(1e6);
     expect(g.sleeveLevel('a')).toBe(0);
     expect(g.canResleeve()).toBe(false);
     expect(g.resleeve()).toBe(false);
-    expect(g.getState().runs).toHaveLength(0);
+    expect(g.getState().wallet.runs).toHaveLength(0);
   });
 
   it('buying it turns the tracked XP into levels at once', () => {
@@ -68,7 +68,7 @@ describe('the re-sleeve lockout after buying it', () => {
     for (let i = 0; i < 100; i++) short.tick(50);
     expect(long.canResleeve()).toBe(true);
     expect(short.canResleeve()).toBe(true);
-    expect(short.getState().resleeveLockoutMs).toBe(long.getState().resleeveLockoutMs);
+    expect(short.getState().sleeve.resleeveLockoutMs).toBe(long.getState().sleeve.resleeveLockoutMs);
   });
 
   it('a content lockout of 0 allows re-sleeving the moment it is bought', () => {
@@ -86,14 +86,14 @@ describe('re-sleeving with the unlock', () => {
     g.resleeve();
     expect(g.ownedCount('levels')).toBe(1);
     expect(g.sleeveLevel('a')).toBeGreaterThan(0);
-    expect(g.getState().resleeveLockoutMs).toBe(0);
+    expect(g.getState().sleeve.resleeveLockoutMs).toBe(0);
     expect(g.canResleeve()).toBe(true);
   });
 
   it('is saved and loaded with the state (the lockout field has a safe default for older saves)', () => {
     const g = newGame();
     g.buy('levels');
-    expect(g.getState().resleeveLockoutMs).toBe(5_000);
+    expect(g.getState().sleeve.resleeveLockoutMs).toBe(5_000);
   });
 });
 

@@ -22,7 +22,7 @@ import { resleeveSkillsShown } from './sleeveGate';
 import type { AutomationView, BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
 
 /** The latest finished sleeve-runs, newest first. */
-export function runsView(runs: GameStateView['runs'], config: GameConfig, text: UiText): RunsView {
+export function runsView(runs: GameStateView['wallet']['runs'], config: GameConfig, text: UiText): RunsView {
   const shown = runs.slice(-config.resleeve.runsShown);
   const firstNumber = runs.length - shown.length + 1;
   return {
@@ -53,7 +53,7 @@ export function runsView(runs: GameStateView['runs'], config: GameConfig, text: 
  */
 export function tabsView(engine: SkillQueries & CorporationQueries, state: GameStateView, config: GameConfig, text: UiText): TabView[] {
   const automation = engine.automation();
-  const statsShown = state.runs.length > 0; // the first re-sleeve writes the first run down
+  const statsShown = state.wallet.runs.length > 0; // the first re-sleeve writes the first run down
   const skillsShown = engine.skillPointsEarned() > 0 || statsShown || resleeveSkillsShown(state, config); // the re-sleeve skills are on the Skills tab
   const automationShown = automation.pointsEarned() > 0;
   const corporationShown = engine.isCorporationUnlocked();
@@ -117,7 +117,7 @@ export function skillsView(
     ...common,
     skills: config.buyables.filter((b) => b.currency === 'resleevePoints'),
     laneTitle: branchTitle,
-    open: state.runs.length > 0,
+    open: state.wallet.runs.length > 0,
   });
   const resleeveVisible = resleeveSkillsShown(state, config);
   const anyMasked = (l: readonly SkillLaneView[]): boolean => l.some((lane) => !lane.hidden && lane.nodes.some((n) => n.masked));

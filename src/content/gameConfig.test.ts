@@ -75,14 +75,14 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       if (!auto) continue;
       const g = createGame();
       setCredits(g, num('1e100'));
-      (g.getState() as { network: unknown }).network = num('1e100');
+      (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num('1e100');
       while (!g.isUnlocked(a.id)) expect(g.buy(ACCESS_UPGRADE)).toBe('purchased');
       expect(g.buy(auto.id), `${auto.id} could not be bought`).toBe('purchased');
       expect(g.isAutoRun(a.id)).toBe(true);
       g.startAction(a.id);
       const oneRun = g.currentDurationMs(a.id);
       g.tick(oneRun * 3.5);
-      expect(g.getState().actions[a.id]!.xp.gte(num(3)), `${a.id} did not restart itself`).toBe(true);
+      expect(g.getState().sleeve.actions[a.id]!.xp.gte(num(3)), `${a.id} did not restart itself`).toBe(true);
     }
   });
 
@@ -104,7 +104,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
   it('every buyable can be bought once enough credits are available (no dead gates)', () => {
     const g = createGame();
     setCredits(g, num('1e100'));
-    (g.getState() as { network: unknown }).network = num('1e100'); // some buyables are paid in network nodes
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num('1e100'); // some buyables are paid in network nodes
     // Buy in config order, repeating until nothing more can be bought once (a gate may be listed after what it unlocks).
     // Skills are paid in skill points or re-sleeve points, not credits: they have their own tests below.
     markResleeved(g); // Skill transfer and Faster conditioning wait for the second sleeve run
@@ -122,8 +122,8 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       expect(g.canBuy(id), `${id} can be bought without a point`).toBe(false);
       // a skill is offered only once the purchase that unlocks it is owned
       for (const r of gameConfig.buyables.find((b) => b.id === id)?.requires ?? [])
-        (g.getState().purchased as Record<string, number>)[r] = 1;
-      (g.getState().actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(10); // the first action reaches level 1
+        (g.getState().sleeve.purchased as Record<string, number>)[r] = 1;
+      (g.getState().sleeve.actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(10); // the first action reaches level 1
       expect(g.actionLevel(gameConfig.actions[0]!.id)).toBe(1);
       expect(g.skillPoints()).toBe(1);
       expect(g.canBuy(id), `${id} cannot be bought with the first point`).toBe(true);
@@ -170,7 +170,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
   it('every action can be unlocked by playing (no action is permanently locked)', () => {
     const g = createGame();
     setCredits(g, num('1e100'));
-    (g.getState() as { network: unknown }).network = num('1e100');
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num('1e100');
     for (let pass = 0; pass < gameConfig.buyables.length; pass++) {
       for (const b of gameConfig.buyables) if (g.canBuy(b.id)) g.buy(b.id);
     }
@@ -184,8 +184,8 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     g.startAction(first.id);
     g.tick(g.currentDurationMs(first.id) + 1);
     const s = g.getState();
-    expect(s.actions[first.id]!.xp.isZero()).toBe(false);
-    expect(s.credits.isZero() && s.network.isZero() && s.hackingProficiency.isZero()).toBe(false);
+    expect(s.sleeve.actions[first.id]!.xp.isZero()).toBe(false);
+    expect(s.wallet.credits.isZero() && s.sleeve.network.isZero() && s.sleeve.hackingProficiency.isZero()).toBe(false);
   });
 
   it('every item a buyable can drop exists, and the harvest is the second purchase on the Practice Hacking card', () => {
@@ -202,14 +202,14 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(g.buy(KOMPROMAT_HARVEST)).toBe('purchased');
     g.startAction(PRACTICE_HACKING);
     g.tick(g.currentDurationMs(PRACTICE_HACKING) + 1);
-    const common = g.getState().inventory[KOMPROMAT]!['common']!;
+    const common = g.getState().wallet.inventory[KOMPROMAT]!['common']!;
     expect(common).toBeGreaterThanOrEqual(1);
-    const before = g.getState().credits;
+    const before = g.getState().wallet.credits;
     expect(g.sellItems(KOMPROMAT, 'common', 'all')).toBe(common);
     expect(
       g
         .getState()
-        .credits.sub(before)
+        .wallet.credits.sub(before)
         .eq(num(100 * common)),
     ).toBe(true);
   });
@@ -241,7 +241,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     const g = createGame();
     expect(buildViewModel(g).resleeveBuy).toBeNull(); // not in reach in a new game
     setCredits(g, num('1e11'));
-    (g.getState() as { peakCredits: unknown }).peakCredits = num('1e11');
+    (g.getState() as unknown as { sleeve: { peakCredits: unknown } }).sleeve.peakCredits = num('1e11');
     const vm = buildViewModel(g);
     expect(vm.resleeveShown).toBe(false);
     expect(vm.resleeveBuy).toMatchObject({ id: SLEEVE_LEVELS, affordable: true });

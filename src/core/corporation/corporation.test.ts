@@ -14,6 +14,8 @@ import {
   serializeState,
   validateConfig,
 } from '..';
+import { flat } from '../../testing/flatState';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /** Test content: three rarities of `file`, a purchase that opens the corporation, and one corporation action of 30 seconds. */
 const action = (overrides: Partial<CorporationActionDefinition> = {}, chance = 1): CorporationActionDefinition => ({
@@ -48,18 +50,18 @@ const config = contentWith([action()]);
 /** A game with the corporation open (the unlock is owned). */
 const openGame = (cfg: GameConfig = config, random = seededRandom(1)) => {
   const g = createGame({ config: cfg, random });
-  (g.getState().purchased as Record<string, number>)['inc'] = 1;
+  (g.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
   return g;
 };
 
 type Loose = { inventory: Record<string, Record<string, number>> };
 const stock = (g: { getState(): unknown }, held: Record<string, number>): void => {
-  (g.getState() as unknown as Loose).inventory = { file: held };
+  flat<Loose>(g).inventory = { file: held };
 };
-const held = (g: { getState(): unknown }, rarity: string): number => (g.getState() as unknown as Loose).inventory['file']?.[rarity] ?? 0;
+const held = (g: { getState(): unknown }, rarity: string): number => flat<Loose>(g).inventory['file']?.[rarity] ?? 0;
 /** The run state of action `c1` (its XP is left out: levels are tested in `corporationLevels.test.ts`). */
 const run = (g: ReturnType<typeof createGame>) => {
-  const { running, progress } = g.getState().corporation.actions['c1']!;
+  const { running, progress } = g.getState().wallet.corporation.actions['c1']!;
   return { running, progress };
 };
 
@@ -76,7 +78,7 @@ describe('the corporation is closed until its unlock is owned', () => {
   it('opens the moment the unlock is bought', () => {
     const g = createGame({ config });
     expect(g.corporationActions().map((a) => a.id)).toEqual(['c1']);
-    (g.getState().purchased as Record<string, number>)['inc'] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
     expect(g.isCorporationUnlocked()).toBe(true);
     expect(g.canStartCorporationAction('c1')).toBe(true);
   });
@@ -169,18 +171,18 @@ describe('Insider backstabbing style effect: upgradeRandomItem', () => {
     stock(g, {});
     g.startCorporationAction('c1');
     g.tick(30_000);
-    expect(g.getState().inventory['file'] ?? {}).toEqual({});
+    expect(g.getState().wallet.inventory['file'] ?? {}).toEqual({});
   });
 
   it('only some runs upgrade when the chance is below 1: no upgrade when the draw misses', () => {
     const misses = createGame({ config: contentWith([action({}, 0.01)]), random: () => 0.5 });
-    (misses.getState().purchased as Record<string, number>)['inc'] = 1;
+    (misses.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
     stock(misses, { common: 5 });
     misses.startCorporationAction('c1');
     misses.tick(30_000);
     expect(held(misses, 'common')).toBe(5);
     const hits = createGame({ config: contentWith([action({}, 0.01)]), random: () => 0 });
-    (hits.getState().purchased as Record<string, number>)['inc'] = 1;
+    (hits.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
     stock(hits, { common: 5 });
     hits.startCorporationAction('c1');
     hits.tick(30_000);
@@ -190,7 +192,7 @@ describe('Insider backstabbing style effect: upgradeRandomItem', () => {
   it('the stack is picked by how many it holds: a stack with 9 times the files gives up about 9 times as many', () => {
     const g = openGame();
     stock(g, { common: 900, uncommon: 100 });
-    const _state = g.getState() as unknown as Loose;
+    const _state = flat<Loose>(g);
     const ctx = {
       state: g.getState() as unknown as CorporationEffectContext['state'],
       inventory: (g as unknown as { inventory: never }).inventory,
@@ -214,17 +216,17 @@ describe('the corporation in saves and re-sleeves', () => {
     g.startCorporationAction('c1');
     g.tick(12_000);
     const restored = deserializeState(serializeState(g.getState()), config, numberFactory)!;
-    expect(restored.corporation.actions['c1']!.running).toBe(true);
-    expect(restored.corporation.actions['c1']!.progress).toBeCloseTo(0.4, 12);
+    expect(restored.wallet.corporation.actions['c1']!.running).toBe(true);
+    expect(restored.wallet.corporation.actions['c1']!.progress).toBeCloseTo(0.4, 12);
   });
 
   it('a save from before the corporation existed loads with every action idle, and bad values are repaired', () => {
     const g = openGame();
     g.startCorporationAction('c1');
     g.tick(12_000);
-    const json = JSON.parse(serializeState(g.getState()));
+    const json = flatSave(serializeState(g.getState()));
     const load = () => {
-      const { running, progress } = deserializeState(JSON.stringify(json), config, numberFactory)!.corporation.actions['c1']!;
+      const { running, progress } = deserializeState(asSave(json), config, numberFactory)!.wallet.corporation.actions['c1']!;
       return { running, progress };
     };
     delete json.corporation;

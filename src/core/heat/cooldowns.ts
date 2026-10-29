@@ -29,16 +29,16 @@ export function coolDownHeat(
   amount = sleeve.heatCooldownAmount,
 ): void {
   const cooled = coolHeatBoosted(
-    { heat: state.heat, cooldownMs: state.heatCooldownMs, moles: state.moles },
+    { heat: state.sleeve.heat, cooldownMs: state.sleeve.heatCooldownMs, moles: state.sleeve.moles },
     deltaMs,
-    cycleMs(sleeve, state.legend),
+    cycleMs(sleeve, state.sleeve.legend),
     amount,
     speed,
     boost,
   );
-  state.heat = cooled.heat;
-  state.heatCooldownMs = cooled.cooldownMs;
-  state.moles = cooled.moles;
+  state.sleeve.heat = cooled.heat;
+  state.sleeve.heatCooldownMs = cooled.cooldownMs;
+  state.sleeve.moles = cooled.moles;
 }
 
 /**
@@ -51,7 +51,7 @@ export function coolDownHeat(
  * @param deltaMs game time in milliseconds
  */
 export function decayLegend(state: GameState, sleeve: SleeveConfig, deltaMs: number): void {
-  const cooled = coolHeat({ heat: state.legend, cooldownMs: state.legendCooldownMs }, deltaMs, sleeve.legendDecayPeriodMs, 1);
-  state.legend = cooled.heat;
-  state.legendCooldownMs = cooled.cooldownMs;
+  const cooled = coolHeat({ heat: state.sleeve.legend, cooldownMs: state.sleeve.legendCooldownMs }, deltaMs, sleeve.legendDecayPeriodMs, 1);
+  state.sleeve.legend = cooled.heat;
+  state.sleeve.legendCooldownMs = cooled.cooldownMs;
 }

@@ -11,7 +11,7 @@ import { type BuyableDefinition, createConfig, validateConfig } from '..';
 const withBuyables = (buyables: BuyableDefinition[], overrides = {}) =>
   createGame({ config: createConfig(testConfig, { actions: [testConfig.actions[0]!, networkAction], buyables, ...overrides }) });
 const setNetwork = (g: { getState(): unknown }, nodes: ReturnType<typeof num>) => {
-  (g.getState() as { network: unknown }).network = nodes;
+  (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = nodes;
 };
 
 describe('buyables paid in network nodes', () => {
@@ -32,8 +32,8 @@ describe('buyables paid in network nodes', () => {
     setNetwork(g, num(150));
     expect(g.currencyOf('uplink')).toBe('networkNodes');
     expect(g.buy('uplink')).toBe('purchased');
-    expect(g.getState().network.eq(num(50))).toBe(true);
-    expect(g.getState().credits.eq(num(5))).toBe(true);
+    expect(g.getState().sleeve.network.eq(num(50))).toBe(true);
+    expect(g.getState().wallet.credits.eq(num(5))).toBe(true);
     expect(g.sleeveStats().interfaceBase).toBeCloseTo(1.1, 10);
   });
 
@@ -70,7 +70,7 @@ describe('network self-growth', () => {
     g.buy('grow');
     setNetwork(g, num(1000));
     for (let i = 0; i < steps; i++) g.tick(ms / steps);
-    return g.getState().network.toNumber();
+    return g.getState().sleeve.network.toNumber();
   };
 
   it('compounds the nodes by the rate every second but only whole nodes join (1000 nodes, 1% per second, 10 s -> 1104)', () => {
@@ -89,21 +89,21 @@ describe('network self-growth', () => {
     g.buy('grow');
     setNetwork(g, num(1000));
     for (let i = 0; i < 100; i++) g.tick(20_000); // each tick alone adds 0.02 nodes, which would round away
-    expect(g.getState().network.toNumber()).toBe(1002);
-    expect(g.getState().networkRemainder).toBeGreaterThanOrEqual(0);
-    expect(g.getState().networkRemainder).toBeLessThan(1);
+    expect(g.getState().sleeve.network.toNumber()).toBe(1002);
+    expect(g.getState().sleeve.networkRemainder).toBeGreaterThanOrEqual(0);
+    expect(g.getState().sleeve.networkRemainder).toBeLessThan(1);
   });
 
   it('does nothing without the buyable or without nodes', () => {
     const g = withBuyables([growth]);
     setNetwork(g, num(1000));
     g.tick(10_000);
-    expect(g.getState().network.eq(num(1000))).toBe(true);
+    expect(g.getState().sleeve.network.eq(num(1000))).toBe(true);
     const empty = withBuyables([growth]);
     setCredits(empty, num(1));
     empty.buy('grow');
     empty.tick(10_000);
-    expect(empty.getState().network.isZero()).toBe(true);
+    expect(empty.getState().sleeve.network.isZero()).toBe(true);
   });
 });
 
@@ -121,7 +121,7 @@ describe('interface speed from the network size', () => {
     setCredits(g, num(1));
     g.buy('syn');
     setNetwork(g, nodes);
-    (g.getState() as { hackingProficiency: ReturnType<typeof num> }).hackingProficiency = num(bonus);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: ReturnType<typeof num> } }).sleeve.hackingProficiency = num(bonus);
     return g.sleeveStats();
   };
 
@@ -161,7 +161,7 @@ describe('level bonus from another action sleeve level', () => {
     g.buy('transfer');
     expect(g.levelBonus('net')).toBe(2);
     expect(g.actionLevel('net')).toBe(0);
-    expect(g.getState().actions['net']!.xp.isZero()).toBe(true);
+    expect(g.getState().sleeve.actions['net']!.xp.isZero()).toBe(true);
     expect(g.currentSpeed('net')).toBeCloseTo(before * (1 + 2), 10); // test config: linear, 1 per level, level 0 is worth 1
   });
 
@@ -286,33 +286,33 @@ describe('reward multiplier on an action that pays network nodes', () => {
   };
   const runOnce = (copies: number) => {
     const g = withBuyables([parallel]);
-    (g.getState() as { purchased: Record<string, number> }).purchased['parallel'] = copies;
+    (g.getState() as unknown as { sleeve: { purchased: Record<string, number> } }).sleeve.purchased['parallel'] = copies;
     g.startAction('net');
     g.tick(20_000); // exactly one run of the 20 s action
     return g;
   };
 
   it('doubles the nodes paid per copy owned', () => {
-    expect(runOnce(0).getState().network.eq(num(1))).toBe(true);
-    expect(runOnce(1).getState().network.eq(num(2))).toBe(true);
-    expect(runOnce(3).getState().network.eq(num(8))).toBe(true);
+    expect(runOnce(0).getState().sleeve.network.eq(num(1))).toBe(true);
+    expect(runOnce(1).getState().sleeve.network.eq(num(2))).toBe(true);
+    expect(runOnce(3).getState().sleeve.network.eq(num(8))).toBe(true);
   });
 
   it('changes nothing else a run does: same XP, same counted runs, same heat, same duration', () => {
     const plain = runOnce(0);
     const boosted = runOnce(3);
-    const a = plain.getState().actions['net']!;
-    const b = boosted.getState().actions['net']!;
+    const a = plain.getState().sleeve.actions['net']!;
+    const b = boosted.getState().sleeve.actions['net']!;
     expect(b.xp.eq(a.xp)).toBe(true);
     expect(b.runsTowardSleeveXp).toBe(a.runsTowardSleeveXp);
-    expect(boosted.getState().heat).toBe(plain.getState().heat);
+    expect(boosted.getState().sleeve.heat).toBe(plain.getState().sleeve.heat);
     expect(boosted.currentDurationMs('net')).toBe(plain.currentDurationMs('net'));
     expect(boosted.xpPerRun('net').eq(plain.xpPerRun('net'))).toBe(true);
   });
 
   it('does not touch the credits of another action', () => {
     const g = withBuyables([parallel]);
-    (g.getState() as { purchased: Record<string, number> }).purchased['parallel'] = 4;
+    (g.getState() as unknown as { sleeve: { purchased: Record<string, number> } }).sleeve.purchased['parallel'] = 4;
     expect(g.rewardPerRun('a').eq(testConfig.actions[0]!.reward)).toBe(true);
   });
 });
@@ -332,11 +332,11 @@ describe('network growth that depends on an action level', () => {
     const g = withBuyables([levelGrowth], { network: { creditsPerNodePerSecond: 0 } });
     setCredits(g, num(10));
     for (let i = 0; i < (opts.copies ?? 1); i++) g.buy('lg');
-    (g.getState().actions['net'] as { xp: unknown }).xp = num(opts.netXp ?? 0);
+    (g.getState().sleeve.actions['net'] as { xp: unknown }).xp = num(opts.netXp ?? 0);
     setNetwork(g, num(1000));
     const steps = opts.steps ?? 1;
     for (let i = 0; i < steps; i++) g.tick((opts.ms ?? 10_000) / steps);
-    return g.getState().network.toNumber();
+    return g.getState().sleeve.network.toNumber();
   };
 
   it('grows by level x percentPerLevel percent per second: level 0 does not grow, level 1 is 1% a second, level 2 is 2%', () => {
@@ -366,10 +366,10 @@ describe('network growth that depends on an action level', () => {
     setCredits(g, num(10));
     g.buy('lg');
     g.buy('bonus');
-    (g.getState().actions['net'] as { xp: unknown }).xp = num(10); // level 1
+    (g.getState().sleeve.actions['net'] as { xp: unknown }).xp = num(10); // level 1
     setNetwork(g, num(1000));
     g.tick(10_000);
-    expect(g.getState().network.toNumber()).toBe(Math.floor(1000 * 1.01 ** 10));
+    expect(g.getState().sleeve.network.toNumber()).toBe(Math.floor(1000 * 1.01 ** 10));
   });
 
   it('gives (almost) the same result for one long tick and many short ones', () => {
@@ -380,7 +380,7 @@ describe('network growth that depends on an action level', () => {
     const g = withBuyables([levelGrowth]);
     setNetwork(g, num(1000));
     g.tick(10_000);
-    expect(g.getState().network.eq(num(1000))).toBe(true);
+    expect(g.getState().sleeve.network.eq(num(1000))).toBe(true);
   });
 
   it('is validated: a negative percent and an unknown source action are rejected', () => {

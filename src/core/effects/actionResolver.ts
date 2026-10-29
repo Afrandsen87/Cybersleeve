@@ -7,7 +7,7 @@
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { type ActionAccumulator, definitionOf } from './effectRegistry';
-import type { ActionId, BuyableDefinition, ChainRule, GameState, ItemDropRule } from '../types';
+import type { ActionId, BuyableDefinition, ChainRule, ItemDropRule, StateSlice } from '../types';
 
 /** Aggregated purchase effects for one action. */
 export interface ActionEffects {
@@ -51,7 +51,7 @@ export interface ActionEffects {
  */
 export function resolveEffects(
   buyables: readonly BuyableDefinition[],
-  state: Pick<GameState, 'purchased'> & Partial<Pick<GameState, 'autoRunOff'>>,
+  state: StateSlice<'purchased'> & { sleeve: Partial<StateSlice<'autoRunOff'>['sleeve']> },
   actionId: ActionId,
   factory: NumberFactory,
 ): ActionEffects {
@@ -69,9 +69,9 @@ export function resolveEffects(
     rarityShifts: [],
   };
   for (const b of buyables) {
-    const owned = state.purchased[b.id] ?? 0;
+    const owned = state.sleeve.purchased[b.id] ?? 0;
     if (owned <= 0 || b.actionId !== actionId) continue;
-    definitionOf(b).action?.(acc, b.effect, { owned, switchedOff: state.autoRunOff?.[b.id] === true, factory });
+    definitionOf(b).action?.(acc, b.effect, { owned, switchedOff: state.sleeve.autoRunOff?.[b.id] === true, factory });
   }
   return acc;
 }

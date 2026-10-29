@@ -97,7 +97,7 @@ export const SLEEVE_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<Bu
       if (!(Number.isFinite(e.perLn) && e.perLn >= 0)) errors.push(`${where}: perLn must be >= 0`);
     },
     sleeve: (acc, e, { owned, state }) => {
-      acc.interfaceNetworkFactor *= (1 + e.perLn * naturalLog(state.network)) ** owned;
+      acc.interfaceNetworkFactor *= (1 + e.perLn * naturalLog(state.sleeve.network)) ** owned;
     },
   },
   levelBonusFromSleeveLevel: {

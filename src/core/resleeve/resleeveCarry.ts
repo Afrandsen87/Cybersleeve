@@ -8,7 +8,7 @@ import { ownsKind } from '../effects/ownedOfKind';
 import { currencyInfo } from '../kernel/currencies';
 import { logScaled } from '../kernel/curves';
 import type { BigNum, NumberFactory } from '../../numbers';
-import type { BuyableDefinition, GameState } from '../types';
+import type { BuyableDefinition, GameState, StateSlice } from '../types';
 
 /** True while the player owns a buyable with the given effect kind. */
 function owns(
@@ -39,13 +39,13 @@ export function isActionCardPurchase(b: BuyableDefinition): boolean {
  * @param buyables all purchasable definitions
  */
 export function recordLastLife(
-  old: Pick<GameState, 'purchased'>,
-  fresh: Pick<GameState, 'lastLifePurchases'>,
+  old: StateSlice<'purchased'>,
+  fresh: StateSlice<'lastLifePurchases'>,
   buyables: readonly BuyableDefinition[],
 ): void {
   for (const b of buyables) {
-    const owned = old.purchased[b.id] ?? 0;
-    if (owned > 0 && isActionCardPurchase(b)) fresh.lastLifePurchases[b.id] = owned;
+    const owned = old.sleeve.purchased[b.id] ?? 0;
+    if (owned > 0 && isActionCardPurchase(b)) fresh.wallet.lastLifePurchases[b.id] = owned;
   }
 }
 
@@ -71,22 +71,22 @@ function isAutomationPurchase(b: BuyableDefinition): boolean {
  * @param factory number factory
  */
 export function carryRetention(old: GameState, fresh: GameState, buyables: readonly BuyableDefinition[], factory: NumberFactory): void {
-  if (owns(buyables, old.purchased, 'keepsAutomation')) {
-    fresh.automation = old.automation;
+  if (owns(buyables, old.sleeve.purchased, 'keepsAutomation')) {
+    fresh.wallet.automation = old.wallet.automation;
     for (const b of buyables) {
-      const owned = old.purchased[b.id] ?? 0;
-      if (owned > 0 && isAutomationPurchase(b)) fresh.purchased[b.id] = owned;
+      const owned = old.sleeve.purchased[b.id] ?? 0;
+      if (owned > 0 && isAutomationPurchase(b)) fresh.sleeve.purchased[b.id] = owned;
     }
   }
   for (const b of buyables) {
-    if ((old.purchased[b.id] ?? 0) <= 0) continue;
+    if ((old.sleeve.purchased[b.id] ?? 0) <= 0) continue;
     if (b.effect.kind === 'carriesProficiency') {
-      const kept = logScaled(b.effect.scale, old.hackingProficiency.toNumber());
-      if (Number.isFinite(kept) && kept > 0) fresh.hackingProficiency = factory.fromNumber(kept);
+      const kept = logScaled(b.effect.scale, old.sleeve.hackingProficiency.toNumber());
+      if (Number.isFinite(kept) && kept > 0) fresh.sleeve.hackingProficiency = factory.fromNumber(kept);
     }
     if (b.effect.kind === 'carriesIceRating') {
-      const kept: BigNum = old.iceRating.pow(b.effect.share);
-      if (kept.gt(fresh.iceRating)) fresh.iceRating = kept;
+      const kept: BigNum = old.sleeve.iceRating.pow(b.effect.share);
+      if (kept.gt(fresh.sleeve.iceRating)) fresh.sleeve.iceRating = kept;
     }
   }
 }

@@ -7,7 +7,7 @@ import { ownsKind } from '../effects/ownedOfKind';
 import { effectiveDurationMs, levelFactor } from '../actions/speed';
 import { applyCorporationEffect, type CorporationEffectContext } from './corporationEffects';
 import type { CorporationLevels } from './corporationLevels';
-import type { CorporationActionDefinition, CorporationActionId, GameConfig, GameState } from '../types';
+import type { CorporationActionDefinition, CorporationActionId, GameConfig, StateSlice } from '../types';
 
 /**
  * Rounding slack, as a share of one run: progress is a fraction, and `(1 - 0.9999) * 30000` is not exactly `3`. A run counts as
@@ -40,7 +40,7 @@ export class Corporation {
    */
   constructor(
     private readonly config: Pick<GameConfig, 'corporation' | 'buyables' | 'speed' | 'engine'>,
-    private readonly state: Pick<GameState, 'corporation' | 'purchased' | 'synths'>,
+    private readonly state: StateSlice<'corporation' | 'purchased' | 'synths'>,
     private readonly effects: CorporationEffectContext,
     readonly levels: CorporationLevels,
   ) {
@@ -49,14 +49,14 @@ export class Corporation {
 
   /** True while the player owns a purchase with the `unlocksCorporation` effect. */
   isUnlocked(): boolean {
-    return ownsKind(this.config.buyables, this.state.purchased, 'unlocksCorporation');
+    return ownsKind(this.config.buyables, this.state.sleeve.purchased, 'unlocksCorporation');
   }
 
   /** The corporate rank: `corporation.baseRank` (default 1) plus what the owned `corporateRank` purchases add. */
   rank(): number {
     let rank = this.config.corporation?.baseRank ?? 1;
     for (const b of this.config.buyables) {
-      if (b.effect.kind === 'corporateRank') rank += b.effect.amount * (this.state.purchased[b.id] ?? 0);
+      if (b.effect.kind === 'corporateRank') rank += b.effect.amount * (this.state.sleeve.purchased[b.id] ?? 0);
     }
     return rank;
   }
@@ -80,9 +80,9 @@ export class Corporation {
   workersFactor(): number {
     let factor = 1;
     for (const b of this.config.buyables) {
-      const copies = this.state.purchased[b.id] ?? 0;
+      const copies = this.state.sleeve.purchased[b.id] ?? 0;
       if (b.effect.kind === 'corporationSpeedPerLnSynths' && copies > 0) {
-        factor *= (1 + b.effect.perLn * Math.log1p(this.state.synths.length)) ** copies;
+        factor *= (1 + b.effect.perLn * Math.log1p(this.state.wallet.synths.length)) ** copies;
       }
     }
     return factor;
@@ -90,7 +90,7 @@ export class Corporation {
 
   /** True while the player owns a purchase with the `unlocksSynthPurchase` effect (the option to buy synthetic sleeves is open). */
   synthPurchaseUnlocked(): boolean {
-    return ownsKind(this.config.buyables, this.state.purchased, 'unlocksSynthPurchase');
+    return ownsKind(this.config.buyables, this.state.sleeve.purchased, 'unlocksSynthPurchase');
   }
 
   /** The corporation's actions, in the order the tab lists them. */
@@ -116,7 +116,7 @@ export class Corporation {
    * @returns true when the action is now running
    */
   start(id: CorporationActionId): boolean {
-    const action = this.state.corporation.actions[id];
+    const action = this.state.wallet.corporation.actions[id];
     if (!action || !this.canStart(id)) return false;
     action.running = true;
     return true;
@@ -133,7 +133,7 @@ export class Corporation {
 
   /** Advances one action; when its run completes the effects are applied once and the action stops. */
   private tick(def: CorporationActionDefinition, deltaMs: number): void {
-    const action = this.state.corporation.actions[def.id];
+    const action = this.state.wallet.corporation.actions[def.id];
     if (!action?.running) return;
     const duration = this.durationMs(def.id);
     const needed = (1 - action.progress) * duration;
@@ -146,7 +146,7 @@ export class Corporation {
     this.levels.award(def.id, 1);
     for (const effect of def.effects) applyCorporationEffect(effect, 1, this.effects);
     for (const b of this.config.buyables) {
-      if (b.corporationActionId === def.id && b.effect.kind === 'addsCorporationEffect' && (this.state.purchased[b.id] ?? 0) > 0) {
+      if (b.corporationActionId === def.id && b.effect.kind === 'addsCorporationEffect' && (this.state.sleeve.purchased[b.id] ?? 0) > 0) {
         applyCorporationEffect(b.effect.effect, 1, this.effects);
       }
     }

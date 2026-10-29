@@ -45,7 +45,7 @@ describe('fewer runs per batch of sleeve XP', () => {
   it('a batch of sleeve XP is granted after the reduced number of runs, not the base number', () => {
     const g = gameWith();
     buyCopies(g, 10); // 90 runs per batch
-    const action = g.getState().actions['a']!;
+    const action = g.getState().sleeve.actions['a']!;
     (action as { runsTowardSleeveXp: number }).runsTowardSleeveXp = 89;
     g.startAction('a');
     g.tick(10_000); // one run of 'a' completes: 90 runs counted
@@ -55,7 +55,7 @@ describe('fewer runs per batch of sleeve XP', () => {
 
   it('a counter already above the new requirement pays out on the next run and keeps the remainder valid', () => {
     const g = gameWith();
-    const action = g.getState().actions['a']!;
+    const action = g.getState().sleeve.actions['a']!;
     (action as { runsTowardSleeveXp: number }).runsTowardSleeveXp = 95;
     buyCopies(g, 10); // 90 runs per batch: the counter is now past it
     g.startAction('a');

@@ -12,6 +12,8 @@ import {
   type BuyableDefinition,
   type GameConfig,
 } from '..';
+import { flat } from '../../testing/flatState';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 /** A re-sleeve skill: one point, no action. */
 const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], requires?: string[]): BuyableDefinition => ({
@@ -40,7 +42,7 @@ type Loose = {
   heat: number;
   actions: Record<string, { xp: unknown; sleeveXp: unknown }>;
 };
-const mutable = (g: { getState(): unknown }): Loose => g.getState() as unknown as Loose;
+const mutable = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
 const newGame = (c: GameConfig = config): ReturnType<typeof createGame> => createGame({ config: c });
 
@@ -121,11 +123,11 @@ describe('what a re-sleeve keeps', () => {
     g.resleeve();
     g.buy('syn');
     g.resleeve();
-    expect(g.getState().runs).toHaveLength(3);
-    expect(g.getState().synths).toHaveLength(2);
+    expect(g.getState().wallet.runs).toHaveLength(3);
+    expect(g.getState().wallet.synths).toHaveLength(2);
     g.newGame();
-    expect(g.getState().runs).toEqual([]);
-    expect(g.getState().synths).toEqual([]);
+    expect(g.getState().wallet.runs).toEqual([]);
+    expect(g.getState().wallet.synths).toEqual([]);
     expect(g.ownedCount('eu')).toBe(0);
     expect(g.resleevePoints()).toBe(0);
   });
@@ -137,14 +139,14 @@ describe('the record of finished runs', () => {
     withNodes(g, 1000);
     atLevel(g, 3);
     g.resleeve();
-    const [run] = g.getState().runs;
-    expect(g.getState().runs).toHaveLength(1);
+    const [run] = g.getState().wallet.runs;
+    expect(g.getState().wallet.runs).toHaveLength(1);
     expect(run!.creditsPerSecond.toNumber()).toBeCloseTo(50, 9); // 1000 nodes x 0.05
     expect(run!.actionLevelsTotal).toBe(3);
     g.resleeve();
-    expect(g.getState().runs).toHaveLength(2);
-    expect(g.getState().runs[1]!.creditsPerSecond.isZero()).toBe(true); // an empty life earned nothing
-    expect(g.getState().runs[1]!.actionLevelsTotal).toBe(0);
+    expect(g.getState().wallet.runs).toHaveLength(2);
+    expect(g.getState().wallet.runs[1]!.creditsPerSecond.isZero()).toBe(true); // an empty life earned nothing
+    expect(g.getState().wallet.runs[1]!.actionLevelsTotal).toBe(0);
   });
 
   it('writes down the income after the heat tax', () => {
@@ -152,7 +154,7 @@ describe('the record of finished runs', () => {
     withNodes(g, 1000);
     mutable(g).heat = 40; // 40% tax
     g.resleeve();
-    expect(g.getState().runs[0]!.creditsPerSecond.toNumber()).toBeCloseTo(30, 9);
+    expect(g.getState().wallet.runs[0]!.creditsPerSecond.toNumber()).toBeCloseTo(30, 9);
   });
 
   it("writes down the sleeve's own income only: synthetic income is not part of it, so nothing compounds", () => {
@@ -166,7 +168,7 @@ describe('the record of finished runs', () => {
     g.resleeve();
     withNodes(g, 0);
     g.resleeve();
-    expect(g.getState().runs.map((r) => r.creditsPerSecond.toNumber())).toEqual([50, 0, 0, 0]);
+    expect(g.getState().wallet.runs.map((r) => r.creditsPerSecond.toNumber())).toEqual([50, 0, 0, 0]);
   });
 });
 
@@ -174,8 +176,8 @@ describe('synthetic sleeves', () => {
   it('there are none without the skill, however many times the player re-sleeves', () => {
     const g = newGame();
     for (let i = 0; i < 4; i++) g.resleeve();
-    expect(g.getState().runs).toHaveLength(4);
-    expect(g.getState().synths).toEqual([]);
+    expect(g.getState().wallet.runs).toHaveLength(4);
+    expect(g.getState().wallet.synths).toEqual([]);
     expect(g.synthCount()).toBe(0);
     expect(g.synthSleevesUnlocked()).toBe(false);
   });
@@ -188,7 +190,7 @@ describe('synthetic sleeves', () => {
     expect(g.synthCount()).toBe(0);
     g.buy('syn');
     expect(g.synthCount()).toBe(1);
-    expect(g.getState().synths).toEqual([{ runIndex: 1 }]);
+    expect(g.getState().wallet.synths).toEqual([{ runIndex: 1 }]);
     expect(g.synthSleevesUnlocked()).toBe(true);
   });
 
@@ -200,7 +202,7 @@ describe('synthetic sleeves', () => {
     g.buy('syn');
     g.resleeve(); // run 2
     g.resleeve(); // run 3
-    expect(g.getState().synths).toEqual([{ runIndex: 1 }, { runIndex: 2 }, { runIndex: 3 }]);
+    expect(g.getState().wallet.synths).toEqual([{ runIndex: 1 }, { runIndex: 2 }, { runIndex: 3 }]);
   });
 
   it('earns the final income of its run scaled by the levels reached so far, and stays at that amount once it has caught up', () => {
@@ -212,8 +214,8 @@ describe('synthetic sleeves', () => {
     withNodes(g, 1000);
     atLevel(g, 4);
     g.resleeve(); // run 2: 50 per second at a level total of 4, and a sleeve to copy it
-    expect(g.getState().runs[2]!.actionLevelsTotal).toBe(4);
-    expect(g.getState().synths).toEqual([{ runIndex: 1 }, { runIndex: 2 }]);
+    expect(g.getState().wallet.runs[2]!.actionLevelsTotal).toBe(4);
+    expect(g.getState().wallet.synths).toEqual([{ runIndex: 1 }, { runIndex: 2 }]);
     const incomeAt = (level: number): number => {
       atLevel(g, level);
       return g.synthCreditsPerSecond().toNumber();
@@ -243,7 +245,7 @@ describe('synthetic sleeves', () => {
     const perSecond = g.synthCreditsPerSecond().toNumber();
     expect(perSecond).toBeCloseTo(100, 9);
     g.tick(1_000);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(perSecond, 6);
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(perSecond, 6);
   });
 
   it('pays the network income and the synthetic income together', () => {
@@ -261,7 +263,7 @@ describe('synthetic sleeves', () => {
     const synthetic = g.synthCreditsPerSecond().toNumber();
     expect(synthetic).toBeCloseTo(50, 9);
     g.tick(1_000);
-    expect(g.getState().credits.toNumber()).toBeCloseTo(20 + synthetic, 6);
+    expect(g.getState().wallet.credits.toNumber()).toBeCloseTo(20 + synthetic, 6);
   });
 
   it('each sleeve uses the numbers of the run it belongs to, and the total is their sum', () => {
@@ -270,10 +272,10 @@ describe('synthetic sleeves', () => {
     g.buy('eu');
     g.resleeve();
     g.buy('syn');
-    const state = g.getState() as unknown as {
+    const state = flat<{
       runs: { creditsPerSecond: unknown; actionLevelsTotal: number }[];
       synths: { runIndex: number }[];
-    };
+    }>(g);
     state.runs.push({ creditsPerSecond: num(100), actionLevelsTotal: 4 }, { creditsPerSecond: num(30), actionLevelsTotal: 2 });
     state.synths.push({ runIndex: 2 }, { runIndex: 3 });
     atLevel(g, 1); // a quarter of the way to run 2, half of the way to run 3
@@ -383,25 +385,25 @@ describe('saving', () => {
     g.buy('syn');
     g.resleeve();
     const loaded = roundTrip(g)!;
-    expect(loaded.runs.map((r) => [r.creditsPerSecond.toNumber(), r.actionLevelsTotal])).toEqual([
+    expect(loaded.wallet.runs.map((r) => [r.creditsPerSecond.toNumber(), r.actionLevelsTotal])).toEqual([
       [50, 3],
       [0, 0],
       [0, 0],
     ]);
-    expect(loaded.synths).toEqual(g.getState().synths);
-    expect(loaded.purchased['eu']).toBe(1);
-    expect(loaded.purchased['syn']).toBe(1);
+    expect(loaded.wallet.synths).toEqual(g.getState().wallet.synths);
+    expect(loaded.sleeve.purchased['eu']).toBe(1);
+    expect(loaded.sleeve.purchased['syn']).toBe(1);
     expect(serializeState(loaded)).toBe(serializeState(g.getState())); // saving, loading and saving again gives the same text
   });
 
   it('loads an older save without these parts as a game with no runs', () => {
     const g = newGame();
-    const data = JSON.parse(serializeState(g.getState())) as Record<string, unknown>;
+    const data = flatSave(serializeState(g.getState())) as Record<string, unknown>;
     delete data['runs'];
     delete data['synths'];
-    const loaded = deserializeState(JSON.stringify(data), config, numberFactory)!;
-    expect(loaded.runs).toEqual([]);
-    expect(loaded.synths).toEqual([]);
+    const loaded = deserializeState(asSave(data), config, numberFactory)!;
+    expect(loaded.wallet.runs).toEqual([]);
+    expect(loaded.wallet.synths).toEqual([]);
   });
 
   it('repairs what it cannot read: a bad run becomes an empty one (so the others keep their place) and a stray sleeve is dropped', () => {
@@ -410,24 +412,24 @@ describe('saving', () => {
     g.buy('eu');
     g.resleeve();
     g.buy('syn'); // one sleeve on run 1
-    const data = JSON.parse(serializeState(g.getState())) as Record<string, unknown>;
+    const data = flatSave(serializeState(g.getState())) as Record<string, unknown>;
     data['runs'] = [{ creditsPerSecond: 'oops', actionLevelsTotal: -4 }, { creditsPerSecond: '12', actionLevelsTotal: 3 }, 'junk'];
     data['synths'] = [{ runIndex: 1 }, { runIndex: 7 }, { runIndex: -1 }, { runIndex: 0.5 }, 'junk', { runIndex: 2 }];
-    const loaded = deserializeState(JSON.stringify(data), config, numberFactory)!;
-    expect(loaded.runs.map((r) => [r.creditsPerSecond.toNumber(), r.actionLevelsTotal])).toEqual([
+    const loaded = deserializeState(asSave(data), config, numberFactory)!;
+    expect(loaded.wallet.runs.map((r) => [r.creditsPerSecond.toNumber(), r.actionLevelsTotal])).toEqual([
       [0, 0],
       [12, 3],
       [0, 0],
     ]);
-    expect(loaded.synths).toEqual([{ runIndex: 1 }, { runIndex: 2 }]);
+    expect(loaded.wallet.synths).toEqual([{ runIndex: 1 }, { runIndex: 2 }]);
   });
 
   it('hands out no synthetic sleeves to a save that does not own the skill', () => {
     const g = newGame();
     g.resleeve();
-    const data = JSON.parse(serializeState(g.getState())) as Record<string, unknown>;
+    const data = flatSave(serializeState(g.getState())) as Record<string, unknown>;
     data['synths'] = [{ runIndex: 0 }];
-    expect(deserializeState(JSON.stringify(data), config, numberFactory)!.synths).toEqual([]);
+    expect(deserializeState(asSave(data), config, numberFactory)!.wallet.synths).toEqual([]);
   });
 
   it('the state of a played game passes every invariant', () => {

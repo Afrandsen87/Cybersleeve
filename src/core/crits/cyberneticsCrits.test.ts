@@ -98,7 +98,7 @@ describe('Overdrive Spike (criticalRewardMultiplier)', () => {
     g.buy('spike');
     g.startAction('net');
     g.tick(20_001);
-    expect(g.getState().network.toNumber()).toBe(6);
+    expect(g.getState().sleeve.network.toNumber()).toBe(6);
   });
 
   it('does nothing to ordinary runs', () => {

@@ -51,15 +51,15 @@ export function cyberneticsGame(config: GameConfig = cyberneticsConfig(), seed =
 export type CyberneticsGame = ReturnType<typeof cyberneticsGame>;
 
 /** Credits held. */
-export const creditsOf = (g: CyberneticsGame): number => g.getState().credits.toNumber();
+export const creditsOf = (g: CyberneticsGame): number => g.getState().wallet.credits.toNumber();
 
 /** Network nodes held. */
-export const nodesOf = (g: CyberneticsGame): number => g.getState().network.toNumber();
+export const nodesOf = (g: CyberneticsGame): number => g.getState().sleeve.network.toNumber();
 
 /** Action XP of an action. */
-export const xpOf = (g: CyberneticsGame, id: string): number => g.getState().actions[id]!.xp.toNumber();
+export const xpOf = (g: CyberneticsGame, id: string): number => g.getState().sleeve.actions[id]!.xp.toNumber();
 
 /** Puts augments of the given rarities (a count each) on an action, as if they had been applied. */
 export function setAugments(g: CyberneticsGame, actionId: string, applied: Record<string, number>): void {
-  (g.getState().actions[actionId] as { augments: Record<string, number> }).augments = { ...applied };
+  (g.getState().sleeve.actions[actionId] as { augments: Record<string, number> }).augments = { ...applied };
 }

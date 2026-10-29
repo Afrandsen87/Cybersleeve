@@ -30,7 +30,7 @@ const config = createConfig(testConfig, {
 
 const open = () => {
   const g = createGame({ config });
-  (g.getState().purchased as Record<string, number>)['inc'] = 1;
+  (g.getState().sleeve.purchased as Record<string, number>)['inc'] = 1;
   return g;
 };
 

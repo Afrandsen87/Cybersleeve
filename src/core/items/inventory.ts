@@ -4,7 +4,7 @@
  * The inventory: items held, and selling them for credits.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
-import type { GameConfig, GameState, ItemId, RarityId } from '../types';
+import type { GameConfig, GameState, ItemId, RarityId, StateSlice } from '../types';
 
 /** Most of one stack that can be held; counts are plain numbers and stay whole and exact below this. */
 const MAX_STACK = Number.MAX_SAFE_INTEGER;
@@ -19,8 +19,8 @@ const MAX_STACK = Number.MAX_SAFE_INTEGER;
  * @param rarityId the rarity
  * @returns the count (0 when none)
  */
-export function itemCount(state: Pick<GameState, 'inventory'>, itemId: ItemId, rarityId: RarityId): number {
-  return state.inventory[itemId]?.[rarityId] ?? 0;
+export function itemCount(state: StateSlice<'inventory'>, itemId: ItemId, rarityId: RarityId): number {
+  return state.wallet.inventory[itemId]?.[rarityId] ?? 0;
 }
 
 /**
@@ -72,7 +72,7 @@ export class Inventory {
    */
   add(itemId: ItemId, rarityId: RarityId, count: number): void {
     if (!this.items.has(itemId) || !this.values.has(rarityId) || !(count > 0)) return;
-    const stacks = (this.state.inventory[itemId] ??= {});
+    const stacks = (this.state.wallet.inventory[itemId] ??= {});
     stacks[rarityId] = Math.min(MAX_STACK, (stacks[rarityId] ?? 0) + Math.floor(count));
   }
 
@@ -126,7 +126,7 @@ export class Inventory {
     const wanted = amount === 'all' ? held : Math.floor(amount);
     const taken = Math.min(held, Number.isFinite(wanted) ? wanted : 0);
     if (!(taken > 0)) return 0;
-    this.state.inventory[itemId]![rarityId] = held - taken;
+    this.state.wallet.inventory[itemId]![rarityId] = held - taken;
     return taken;
   }
 
@@ -144,8 +144,8 @@ export class Inventory {
     const wanted = amount === 'all' ? held : Math.floor(amount);
     const sold = Math.min(held, Number.isFinite(wanted) ? wanted : 0);
     if (!(sold > 0)) return 0;
-    this.state.inventory[itemId]![rarityId] = held - sold;
-    this.state.credits = this.state.credits.add(this.sellValue(rarityId).mul(this.factory.fromNumber(sold)));
+    this.state.wallet.inventory[itemId]![rarityId] = held - sold;
+    this.state.wallet.credits = this.state.wallet.credits.add(this.sellValue(rarityId).mul(this.factory.fromNumber(sold)));
     return sold;
   }
 }

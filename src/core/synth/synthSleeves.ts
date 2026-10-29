@@ -6,7 +6,7 @@
 import { ownsKind } from '../effects/ownedOfKind';
 import type { BigNum, NumberFactory } from '../../numbers';
 import type { Progression } from '../actions/progression';
-import type { ActionId, BuyableDefinition, GameConfig, GameState, SleeveRunRecord } from '../types';
+import type { ActionId, BuyableDefinition, GameConfig, GameState, SleeveRunRecord, StateSlice } from '../types';
 
 /** Something that earns credits per second on top of the network (what {@link NetworkSystem} adds to its income). */
 export interface SynthIncome {
@@ -46,9 +46,9 @@ export function synthCreditsPerSecond(record: SleeveRunRecord, currentLevels: nu
  * @param actionId the action
  * @returns the level, or 0 when there is no synthetic sleeve or no run kept that action's level
  */
-export function bestSynthActionLevel(state: Pick<GameState, 'runs' | 'synths'>, actionId: ActionId): number {
+export function bestSynthActionLevel(state: StateSlice<'runs' | 'synths'>, actionId: ActionId): number {
   let best = 0;
-  for (const synth of state.synths) best = Math.max(best, state.runs[synth.runIndex]?.actionLevels?.[actionId] ?? 0);
+  for (const synth of state.wallet.synths) best = Math.max(best, state.wallet.runs[synth.runIndex]?.actionLevels?.[actionId] ?? 0);
   return best;
 }
 
@@ -88,7 +88,7 @@ export class SynthSleeves implements SynthIncome {
 
   /** True when the player owns a buyable with the given effect kind. */
   private owns(kind: BuyableDefinition['effect']['kind']): boolean {
-    return ownsKind(this.config.buyables, this.state.purchased, kind);
+    return ownsKind(this.config.buyables, this.state.sleeve.purchased, kind);
   }
 
   /** True when the player owns a buyable with the `perfectCopies` effect. */
@@ -100,29 +100,29 @@ export class SynthSleeves implements SynthIncome {
   perResleeve(): number {
     let count = 1;
     for (const b of this.config.buyables) {
-      if (b.effect.kind === 'synthsPerResleeve' && (this.state.purchased[b.id] ?? 0) > 0) count = Math.max(count, b.effect.count);
+      if (b.effect.kind === 'synthsPerResleeve' && (this.state.sleeve.purchased[b.id] ?? 0) > 0) count = Math.max(count, b.effect.count);
     }
     return count;
   }
 
   /** True when the player owns a buyable with the `synthSleeves` effect. */
   isUnlocked(): boolean {
-    return this.config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (this.state.purchased[b.id] ?? 0) > 0);
+    return this.config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (this.state.sleeve.purchased[b.id] ?? 0) > 0);
   }
 
   /** How many synthetic sleeves the player has. */
   count(): number {
-    return this.state.synths.length;
+    return this.state.wallet.synths.length;
   }
 
   /** Credits per second all synthetic sleeves earn together, not taxed by heat (they have paid their tax already). */
   creditsPerSecond(): BigNum {
     let total = this.factory.fromNumber(0);
-    if (this.state.synths.length === 0) return total;
+    if (this.state.wallet.synths.length === 0) return total;
     const levels = this.progression.totalActionLevels(this.state);
     const live = this.isPerfect() ? this.networkIncome() : null;
-    for (const synth of this.state.synths) {
-      const record = this.state.runs[synth.runIndex];
+    for (const synth of this.state.wallet.synths) {
+      const record = this.state.wallet.runs[synth.runIndex];
       if (!record) continue;
       const own = synthCreditsPerSecond(record, levels, this.factory);
       total = total.add(live?.gt(own) ? live : own);
@@ -136,7 +136,7 @@ export class SynthSleeves implements SynthIncome {
    * Called by: `resleever.ts`, {@link SynthSleeves.onPurchased}.
    */
   addForLatestRun(): void {
-    if (this.state.runs.length > 0) this.state.synths.push({ runIndex: this.state.runs.length - 1 });
+    if (this.state.wallet.runs.length > 0) this.state.wallet.synths.push({ runIndex: this.state.wallet.runs.length - 1 });
   }
 
   /**

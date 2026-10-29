@@ -15,6 +15,8 @@ import {
   serializeState,
   validateConfig,
 } from '..';
+import { flat } from '../../testing/flatState';
+import { asSave, flatSave } from '../../testing/saveKit';
 
 const free = (id: string, actionId: string | undefined, effect: BuyableDefinition['effect'], extra = {}): BuyableDefinition => ({
   id,
@@ -28,7 +30,7 @@ const free = (id: string, actionId: string | undefined, effect: BuyableDefinitio
 const game = (actions: (typeof testConfig.actions)[number][], buyables: BuyableDefinition[] = [], overrides = {}) =>
   createGame({ config: createConfig(testConfig, { actions, buyables, ...overrides }) });
 const state = (g: { getState(): unknown }) =>
-  g.getState() as { network: ReturnType<typeof num>; nodePayoutBonus: ReturnType<typeof num>; heat: number };
+  flat<{ network: ReturnType<typeof num>; nodePayoutBonus: ReturnType<typeof num>; heat: number }>(g);
 
 describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () => {
   const pkill = (nodes: number, buyables: BuyableDefinition[] = []) => {
@@ -52,7 +54,7 @@ describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () =
     const g = pkill(99);
     expect(g.startAction('pkill')).toBe(false);
     expect(state(g).network.toNumber()).toBe(99);
-    expect(g.getState().actions['pkill']!.running).toBe(false);
+    expect(g.getState().sleeve.actions['pkill']!.running).toBe(false);
   });
 
   it('cannot start with 0 nodes', () => {
@@ -64,7 +66,7 @@ describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () =
     expect(g.startAction('pkill')).toBe(true);
     expect(state(g).network.toNumber()).toBe(99);
     g.tick(1_000);
-    expect(g.getState().iceRating.eq(num(2))).toBe(true);
+    expect(g.getState().sleeve.iceRating.eq(num(2))).toBe(true);
   });
 
   it('takes 1% of whatever is held when each run starts (auto-run: 1000 -> 990 -> 981)', () => {
@@ -73,7 +75,7 @@ describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () =
     g.buy('auto');
     g.tick(1_000); // pays 10 (990), completes, pays 9 (981)
     expect(state(g).network.toNumber()).toBe(981);
-    expect(g.getState().iceRating.eq(num(2))).toBe(true);
+    expect(g.getState().sleeve.iceRating.eq(num(2))).toBe(true);
   });
 
   it('stops auto-running once the nodes fall below 100', () => {
@@ -81,7 +83,7 @@ describe('percentage start cost (Kill servers: 1% of nodes, rounded down)', () =
     setCredits(g, num(1));
     g.buy('auto');
     g.tick(1_000); // pays 1 (99), completes; 99 nodes cannot pay for another run
-    expect(g.getState().actions['pkill']!.running).toBe(false);
+    expect(g.getState().sleeve.actions['pkill']!.running).toBe(false);
     expect(state(g).network.toNumber()).toBe(99);
   });
 });
@@ -128,9 +130,9 @@ describe('prices in nodes are whole numbers', () => {
 
 describe('Legend removes whole nodes, run by run', () => {
   const remove = (nodes: number, runs: number) => {
-    const s = { network: num(nodes), heat: 0 };
+    const s = { wallet: {}, sleeve: { network: num(nodes), heat: 0 } };
     applyCompletionEffects(legendAction.completionEffects, s, runs, numberFactory);
-    return s.network.toNumber();
+    return s.sleeve.network.toNumber();
   };
 
   it('each run removes floor(25%) of what is left (1000 -> 750 -> 563 -> 423 -> 318 -> 239)', () => {
@@ -167,7 +169,7 @@ describe('node payout bonus (Push malware)', () => {
     state(g).network = num(100);
     expect(g.passiveCreditsPerNode().toNumber()).toBeCloseTo(0.05 + 0.001, 10); // test config base 0.05; the heat tax is not part of the payout per node
     expect(state(g).heat).toBe(1);
-    expect(g.getState().credits.isZero()).toBe(true);
+    expect(g.getState().wallet.credits.isZero()).toBe(true);
   });
 
   it('is not taxed by heat', () => {
@@ -204,26 +206,28 @@ describe('node payout bonus (Push malware)', () => {
 
 describe('saving whole nodes and the newer fields', () => {
   const config = createConfig(testConfig, { actions: [testConfig.actions[0]!] });
-  const base = () => JSON.parse(serializeState(createInitialState(config, numberFactory)));
+  const base = () => flatSave(serializeState(createInitialState(config, numberFactory)));
 
   it('round-trips the Legend cycle, the growth carry and the node payout bonus', () => {
     const s = createInitialState(config, numberFactory);
-    s.legend = 2;
-    s.legendCooldownMs = 123_000;
-    s.networkRemainder = 0.25;
-    s.nodePayoutBonus = num(0.042);
+    s.sleeve.legend = 2;
+    s.sleeve.legendCooldownMs = 123_000;
+    s.sleeve.networkRemainder = 0.25;
+    s.sleeve.nodePayoutBonus = num(0.042);
     const restored = deserializeState(serializeState(s), config, numberFactory)!;
-    expect(restored.legend).toBe(2);
-    expect(restored.legendCooldownMs).toBe(123_000);
-    expect(restored.networkRemainder).toBe(0.25);
-    expect(restored.nodePayoutBonus.toNumber()).toBeCloseTo(0.042, 12);
+    expect(restored.sleeve.legend).toBe(2);
+    expect(restored.sleeve.legendCooldownMs).toBe(123_000);
+    expect(restored.sleeve.networkRemainder).toBe(0.25);
+    expect(restored.sleeve.nodePayoutBonus.toNumber()).toBeCloseTo(0.042, 12);
   });
 
   it('older saves without them load with fresh-game values', () => {
     const json = base();
     for (const key of ['legendCooldownMs', 'networkRemainder', 'nodePayoutBonus']) delete json[key];
-    const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect([restored.legendCooldownMs, restored.networkRemainder, restored.nodePayoutBonus.toNumber()]).toEqual([0, 0, 0]);
+    const restored = deserializeState(asSave(json), config, numberFactory)!;
+    expect([restored.sleeve.legendCooldownMs, restored.sleeve.networkRemainder, restored.sleeve.nodePayoutBonus.toNumber()]).toEqual([
+      0, 0, 0,
+    ]);
   });
 
   it('floors a saved fractional node count and rejects nonsense values', () => {
@@ -232,11 +236,11 @@ describe('saving whole nodes and the newer fields', () => {
     json.networkRemainder = 1.5;
     json.nodePayoutBonus = -1;
     json.legendCooldownMs = -5;
-    const restored = deserializeState(JSON.stringify(json), config, numberFactory)!;
-    expect(restored.network.toNumber()).toBe(12);
-    expect(restored.networkRemainder).toBe(0);
-    expect(restored.nodePayoutBonus.isZero()).toBe(true);
-    expect(restored.legendCooldownMs).toBe(0);
+    const restored = deserializeState(asSave(json), config, numberFactory)!;
+    expect(restored.sleeve.network.toNumber()).toBe(12);
+    expect(restored.sleeve.networkRemainder).toBe(0);
+    expect(restored.sleeve.nodePayoutBonus.isZero()).toBe(true);
+    expect(restored.sleeve.legendCooldownMs).toBe(0);
   });
 });
 

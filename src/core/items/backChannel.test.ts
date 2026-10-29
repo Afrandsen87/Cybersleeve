@@ -20,10 +20,10 @@ describe('BackChannel', () => {
   it('turns the named stack into Moles, molesPerItem each, and takes the items', () => {
     const { state, back } = setup(rule);
     expect(back.giveUp('file', 'common', 2)).toBe(2);
-    expect(state.moles).toBe(10);
-    expect(state.inventory['file']!['common']).toBe(1);
+    expect(state.sleeve.moles).toBe(10);
+    expect(state.wallet.inventory['file']!['common']).toBe(1);
     expect(back.giveUp('file', 'common', 'all')).toBe(1);
-    expect(state.moles).toBe(15);
+    expect(state.sleeve.moles).toBe(15);
   });
 
   it('does nothing without a channel, or for another rarity or item', () => {
@@ -32,7 +32,7 @@ describe('BackChannel', () => {
     const some = setup(rule);
     expect(some.back.giveUp('file', 'rare', 1)).toBe(0);
     expect(some.back.giveUp('other', 'common', 1)).toBe(0);
-    expect(some.state.moles).toBe(0);
-    expect(some.state.inventory['file']!['rare']).toBe(2);
+    expect(some.state.sleeve.moles).toBe(0);
+    expect(some.state.wallet.inventory['file']!['rare']).toBe(2);
   });
 });

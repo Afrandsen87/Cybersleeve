@@ -159,7 +159,7 @@ export class Automation implements AutomationControls {
 
   /** See {@link AutomationControls.pointsEarned}: see {@link automationPointsEarned}. */
   pointsEarned(): number {
-    return this.available() ? automationPointsEarned(this.config.buyables, this.state.purchased) : 0;
+    return this.available() ? automationPointsEarned(this.config.buyables, this.state.sleeve.purchased) : 0;
   }
 
   /** See {@link AutomationControls.pointsAvailable}: asks the shop (earned points minus the price of the automation skills owned). */
@@ -169,7 +169,7 @@ export class Automation implements AutomationControls {
 
   /** See {@link AutomationControls.isUnlocked}: the feature's first skill is owned. */
   isUnlocked(feature: AutomationFeature): boolean {
-    return isFeatureUnlocked(this.config.buyables, this.state.purchased, feature);
+    return isFeatureUnlocked(this.config.buyables, this.state.sleeve.purchased, feature);
   }
 
   /** See {@link AutomationControls.unlock}. Buys the lane's first skill, which mutates `state.purchased`. */
@@ -181,53 +181,53 @@ export class Automation implements AutomationControls {
 
   /** See {@link AutomationControls.isAutoBurnOn}. */
   isAutoBurnOn(): boolean {
-    return this.state.automation.autoBurnOn;
+    return this.state.wallet.automation.autoBurnOn;
   }
 
   /** See {@link AutomationControls.autoBurnCeiling}. */
   autoBurnCeiling(): number {
-    return this.state.automation.autoBurnCeiling;
+    return this.state.wallet.automation.autoBurnCeiling;
   }
 
   /** See {@link AutomationControls.setAutoBurn}. Mutates `state.automation.autoBurnOn`. */
   setAutoBurn(on: boolean): boolean {
-    if (this.isUnlocked('autoBurn')) this.state.automation.autoBurnOn = on;
-    return this.state.automation.autoBurnOn;
+    if (this.isUnlocked('autoBurn')) this.state.wallet.automation.autoBurnOn = on;
+    return this.state.wallet.automation.autoBurnOn;
   }
 
   /** See {@link AutomationControls.setAutoBurnCeiling}. Mutates `state.automation.autoBurnCeiling`. */
   setAutoBurnCeiling(heat: number): boolean {
     if (!this.isUnlocked('autoBurn') || !Number.isFinite(heat) || heat < 0) return false;
-    this.state.automation.autoBurnCeiling = heat;
+    this.state.wallet.automation.autoBurnCeiling = heat;
     return true;
   }
 
   /** See {@link AutomationControls.isAutosaleOn}. */
   isAutosaleOn(rarityId: RarityId): boolean {
-    return this.state.automation.autosale[rarityId] === true;
+    return this.state.wallet.automation.autosale[rarityId] === true;
   }
 
   /** See {@link AutomationControls.setAutosale}. Mutates `state.automation.autosale`. */
   setAutosale(rarityId: RarityId, on: boolean): boolean {
     if (!this.isUnlocked('autosale') || !this.config.items.rarities.some((r) => r.id === rarityId)) return this.isAutosaleOn(rarityId);
-    if (on) this.state.automation.autosale[rarityId] = true;
-    else delete this.state.automation.autosale[rarityId];
+    if (on) this.state.wallet.automation.autosale[rarityId] = true;
+    else delete this.state.wallet.automation.autosale[rarityId];
     return on;
   }
 
   /** See {@link AutomationControls.dispersal}. */
   dispersal(actionId: ActionId): number {
-    return this.state.automation.dispersal[actionId] ?? 0;
+    return this.state.wallet.automation.dispersal[actionId] ?? 0;
   }
 
   /** See {@link AutomationControls.setDispersal}. Mutates `state.automation.dispersal`. */
   setDispersal(actionId: ActionId, percent: number): boolean {
     if (!this.isUnlocked('dispersal') || !this.config.actions.some((a) => a.id === actionId) || !Number.isFinite(percent)) return false;
     // The shares of all actions together never pass 100: an action gets at most what the others leave.
-    const others = Object.entries(this.state.automation.dispersal).reduce((n, [id, s]) => (id === actionId ? n : n + s), 0);
+    const others = Object.entries(this.state.wallet.automation.dispersal).reduce((n, [id, s]) => (id === actionId ? n : n + s), 0);
     const share = Math.min(Math.max(0, 100 - others), Math.max(0, percent));
-    if (share > 0) this.state.automation.dispersal[actionId] = share;
-    else delete this.state.automation.dispersal[actionId];
+    if (share > 0) this.state.wallet.automation.dispersal[actionId] = share;
+    else delete this.state.wallet.automation.dispersal[actionId];
     return true;
   }
 
@@ -237,7 +237,7 @@ export class Automation implements AutomationControls {
    */
   step(): void {
     if (!this.available()) return;
-    if (this.isUnlocked('autoBurn') && this.state.automation.autoBurnOn) this.burn();
+    if (this.isUnlocked('autoBurn') && this.state.wallet.automation.autoBurnOn) this.burn();
     if (this.isUnlocked('autosale')) this.sell();
     if (this.isUnlocked('dispersal')) this.disperse();
   }
@@ -246,7 +246,8 @@ export class Automation implements AutomationControls {
   private burn(): void {
     const lead = this.config.items.burnLead;
     const stack = this.config.items.rarities[0];
-    const { heat, automation } = this.state;
+    const { heat } = this.state.sleeve;
+    const { automation } = this.state.wallet;
     if (!lead || !stack || !(heat > automation.autoBurnCeiling) || !this.burnLeads.canUse(stack.id)) return;
     this.burnLeads.useMany(stack.id, this.burnLeads.leadsNeeded(automation.autoBurnCeiling));
   }
@@ -266,15 +267,15 @@ export class Automation implements AutomationControls {
   private disperse(): void {
     const augment = this.config.items.augment;
     if (!augment) return;
-    const held = this.config.items.rarities.reduce((n, r) => n + (this.state.inventory[augment.itemId]?.[r.id] ?? 0), 0);
+    const held = this.config.items.rarities.reduce((n, r) => n + (this.state.wallet.inventory[augment.itemId]?.[r.id] ?? 0), 0);
     const shares = this.config.actions
-      .map((a) => ({ id: a.id, share: this.state.automation.dispersal[a.id] ?? 0 }))
+      .map((a) => ({ id: a.id, share: this.state.wallet.automation.dispersal[a.id] ?? 0 }))
       .filter((s) => s.share > 0);
     const total = shares.reduce((n, s) => n + s.share, 0);
     if (held <= 0 || total <= 0) return;
     // Aim at the shares of everything applied so far plus what is held now, so a few schematics per step still end up balanced
     // (a stateless split would give a single schematic to the first action every time).
-    const appliedTo = (id: ActionId): number => Object.values(this.state.actions[id]?.augments ?? {}).reduce((n, c) => n + c, 0);
+    const appliedTo = (id: ActionId): number => Object.values(this.state.sleeve.actions[id]?.augments ?? {}).reduce((n, c) => n + c, 0);
     const appliedTotal = shares.reduce((n, s) => n + appliedTo(s.id), 0);
     const needs = shares.map((s) => Math.max(0, ((appliedTotal + held) * s.share) / total - appliedTo(s.id)));
     const needTotal = needs.reduce((n, d) => n + d, 0);

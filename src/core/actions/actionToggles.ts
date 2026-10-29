@@ -103,9 +103,9 @@ export class ActionToggles {
    */
   toggleOverclock(id: ActionId): boolean {
     const status = this.modes.overclockStatus(id);
-    if (!status || !this.state.actions[id]) return false;
-    if (status.on) delete this.state.overclocked[id];
-    else this.state.overclocked[id] = true;
+    if (!status || !this.state.sleeve.actions[id]) return false;
+    if (status.on) delete this.state.sleeve.overclocked[id];
+    else this.state.sleeve.overclocked[id] = true;
     return !status.on;
   }
 
@@ -117,11 +117,11 @@ export class ActionToggles {
    */
   toggleFocus(id: ActionId): boolean {
     const status = this.modes.focusStatus(id);
-    if (!status?.canSwitchOn || !this.state.actions[id]) return false;
+    if (!status?.canSwitchOn || !this.state.sleeve.actions[id]) return false;
     if (status.on) {
-      delete this.state.focused[id];
-      delete this.state.focusStacks[id];
-    } else this.state.focused[id] = true;
+      delete this.state.sleeve.focused[id];
+      delete this.state.sleeve.focusStacks[id];
+    } else this.state.sleeve.focused[id] = true;
     return !status.on;
   }
 
@@ -133,9 +133,9 @@ export class ActionToggles {
    */
   addFocus(id: ActionId): boolean {
     const status = this.modes.focusStatus(id);
-    if (!status?.canAdd || !this.state.actions[id]) return false;
-    if (status.on) this.state.focusStacks[id] = (this.state.focusStacks[id] ?? 0) + 1;
-    else this.state.focused[id] = true;
+    if (!status?.canAdd || !this.state.sleeve.actions[id]) return false;
+    if (status.on) this.state.sleeve.focusStacks[id] = (this.state.sleeve.focusStacks[id] ?? 0) + 1;
+    else this.state.sleeve.focused[id] = true;
     return true;
   }
 
@@ -147,11 +147,11 @@ export class ActionToggles {
    */
   removeFocus(id: ActionId): boolean {
     const status = this.modes.focusStatus(id);
-    if (!status?.canRemove || !this.state.actions[id]) return false;
-    const stacks = this.state.focusStacks[id] ?? 0;
-    if (stacks > 1) this.state.focusStacks[id] = stacks - 1;
-    else if (stacks === 1) delete this.state.focusStacks[id];
-    else delete this.state.focused[id];
+    if (!status?.canRemove || !this.state.sleeve.actions[id]) return false;
+    const stacks = this.state.sleeve.focusStacks[id] ?? 0;
+    if (stacks > 1) this.state.sleeve.focusStacks[id] = stacks - 1;
+    else if (stacks === 1) delete this.state.sleeve.focusStacks[id];
+    else delete this.state.sleeve.focused[id];
     return true;
   }
 }

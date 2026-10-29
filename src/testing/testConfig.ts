@@ -153,7 +153,7 @@ export const malwareAction: GameConfig['actions'][number] = {
  * @param credits new credits
  */
 export function setCredits(engine: { getState(): unknown }, credits: ReturnType<typeof num>): void {
-  (engine.getState() as { credits: unknown }).credits = credits;
+  (engine.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = credits;
 }
 
 /**
@@ -163,5 +163,5 @@ export function setCredits(engine: { getState(): unknown }, credits: ReturnType<
  * @param actionId the action whose sleeve XP is set (default `'a'`)
  */
 export function setSleeveXp(engine: { getState(): unknown }, xp: ReturnType<typeof num>, actionId = 'a'): void {
-  (engine.getState() as { actions: Record<string, { sleeveXp: unknown }> }).actions[actionId]!.sleeveXp = xp;
+  (engine.getState() as unknown as { sleeve: { actions: Record<string, { sleeveXp: unknown }> } }).sleeve.actions[actionId]!.sleeveXp = xp;
 }

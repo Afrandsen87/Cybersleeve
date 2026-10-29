@@ -34,7 +34,7 @@ describe('levels start at 0 (real content)', () => {
   it('each level is worth +5% of the base speed: level 1 is 1.05, level 2 is 1.1', () => {
     const g = createGame();
     const id = gameConfig.actions[0]!.id;
-    const setXp = (xp: number) => ((g.getState().actions[id] as { xp: unknown }).xp = num(xp));
+    const setXp = (xp: number) => ((g.getState().sleeve.actions[id] as { xp: unknown }).xp = num(xp));
     const actionFactor = () => g.speedFactors(id).find((f) => f.id === SPEED_FACTOR_IDS.actionLevel)!.factor;
     setXp(10); // the first level-up
     expect(g.actionLevel(id)).toBe(1);
@@ -59,8 +59,8 @@ describe('skills are offered by their unlocking purchase (real content)', () => 
   it('a Kompromat skill is hidden until the harvest is owned, then shows', () => {
     const g = createGame();
     expect(g.isBuyableAvailable(SKILL_NOSE_FOR_SECRETS)).toBe(false);
-    (g.getState() as { credits: unknown }).credits = num(1_000);
-    (g.getState() as { actions: Record<string, { xp: unknown }> }).actions[PRACTICE_HACKING]!.xp = num(100);
+    (g.getState() as unknown as { wallet: { credits: unknown } }).wallet.credits = num(1_000);
+    (g.getState() as unknown as { sleeve: { actions: Record<string, { xp: unknown }> } }).sleeve.actions[PRACTICE_HACKING]!.xp = num(100);
     expect(g.buy(KOMPROMAT_HARVEST)).toBe('purchased');
     expect(g.isBuyableAvailable(SKILL_NOSE_FOR_SECRETS)).toBe(true);
   });

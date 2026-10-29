@@ -45,16 +45,16 @@ const closeTo = (a: { toNumber(): number }, b: { toNumber(): number }) => {
 function expectSame(once: ReturnType<typeof createGame>, stepped: ReturnType<typeof createGame>, ids: string[]) {
   const a = once.getState();
   const b = stepped.getState();
-  closeTo(a.credits, b.credits);
-  closeTo(a.network, b.network);
-  expect(a.heat).toBeCloseTo(b.heat, 6);
+  closeTo(a.wallet.credits, b.wallet.credits);
+  closeTo(a.sleeve.network, b.sleeve.network);
+  expect(a.sleeve.heat).toBeCloseTo(b.sleeve.heat, 6);
   for (const id of ids) {
-    expect(a.actions[id]!.xp.eq(b.actions[id]!.xp), `${id} xp`).toBe(true);
-    expect(a.actions[id]!.sleeveXp.eq(b.actions[id]!.sleeveXp), `${id} sleeve xp`).toBe(true);
-    expect(a.actions[id]!.runsTowardSleeveXp, `${id} counter`).toBe(b.actions[id]!.runsTowardSleeveXp);
+    expect(a.sleeve.actions[id]!.xp.eq(b.sleeve.actions[id]!.xp), `${id} xp`).toBe(true);
+    expect(a.sleeve.actions[id]!.sleeveXp.eq(b.sleeve.actions[id]!.sleeveXp), `${id} sleeve xp`).toBe(true);
+    expect(a.sleeve.actions[id]!.runsTowardSleeveXp, `${id} counter`).toBe(b.sleeve.actions[id]!.runsTowardSleeveXp);
     expect(once.actionLevel(id)).toBe(stepped.actionLevel(id));
     expect(once.sleeveLevel(id)).toBe(stepped.sleeveLevel(id));
-    expect(a.actions[id]!.progress).toBeCloseTo(b.actions[id]!.progress, 6);
+    expect(a.sleeve.actions[id]!.progress).toBeCloseTo(b.sleeve.actions[id]!.progress, 6);
   }
 }
 
@@ -84,8 +84,8 @@ describe('closed-form runs match completing runs one at a time', () => {
     const setup: Setup = (g) => {
       setCredits(g, num(1_000_000));
       g.buy('access');
-      (g.getState() as { network: unknown }).network = num(100);
-      (g.getState() as { actions: Record<string, { running: boolean }> }).actions['mal']!.running = true;
+      (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(100);
+      (g.getState() as unknown as { sleeve: { actions: Record<string, { running: boolean }> } }).sleeve.actions['mal']!.running = true;
     };
     // Manual action: one run per tick in both twins; use auto-run-like behaviour by giving the action an auto buyable.
     const config = createConfig(runsOnly(), {
@@ -99,7 +99,7 @@ describe('closed-form runs match completing runs one at a time', () => {
       g.buy('mal-auto');
     };
     const { once, stepped } = twins(600_000, 6_000, prepared, config);
-    expect(once.getState().heat).toBeGreaterThan(100);
+    expect(once.getState().sleeve.heat).toBeGreaterThan(100);
     expectSame(once, stepped, ['mal']);
   });
 
@@ -115,7 +115,7 @@ describe('closed-form runs match completing runs one at a time', () => {
       g.buy('net-auto');
     };
     const { once, stepped } = twins(3_000_125, 6_001, setup, config); // an end time that is not an exact run boundary, where float rounding could tip one twin over
-    expect(once.getState().network.gt(num(100))).toBe(true);
+    expect(once.getState().sleeve.network.gt(num(100))).toBe(true);
     expectSame(once, stepped, ['net']);
   });
 });
@@ -133,7 +133,7 @@ describe('start costs and completion effects match run-by-run play', () => {
         sleeve: { legendDecayPeriodMs: 1e15 },
       }),
     );
-  const mutable = (g: ReturnType<typeof createGame>) => g.getState() as { network: unknown };
+  const mutable = (g: ReturnType<typeof createGame>) => g.getState().sleeve as { network: unknown };
 
   it('auto-running Kill servers pays 50 nodes per run and adds 1 ICE Rating per run', () => {
     const setup: Setup = (g) => {
@@ -142,9 +142,9 @@ describe('start costs and completion effects match run-by-run play', () => {
       mutable(g).network = num(500);
     };
     const { once, stepped } = twins(5_000, 5, setup, config());
-    expect(once.getState().iceRating.eq(stepped.getState().iceRating)).toBe(true);
-    closeTo(once.getState().network, stepped.getState().network);
-    expect(once.getState().iceRating.eq(num(6))).toBe(true);
+    expect(once.getState().sleeve.iceRating.eq(stepped.getState().sleeve.iceRating)).toBe(true);
+    closeTo(once.getState().sleeve.network, stepped.getState().sleeve.network);
+    expect(once.getState().sleeve.iceRating.eq(num(6))).toBe(true);
   });
 
   it('auto-running with a share-of-nodes cost takes 1% of what is held at the start of every run', () => {
@@ -161,9 +161,9 @@ describe('start costs and completion effects match run-by-run play', () => {
       mutable(g).network = num(10_000);
     };
     const { once, stepped } = twins(5_000, 5, setup, cfg);
-    expect(once.getState().network.eq(stepped.getState().network)).toBe(true);
-    expect(once.getState().iceRating.eq(stepped.getState().iceRating)).toBe(true);
-    expect(once.getState().network.toNumber()).toBeLessThan(10_000);
+    expect(once.getState().sleeve.network.eq(stepped.getState().sleeve.network)).toBe(true);
+    expect(once.getState().sleeve.iceRating.eq(stepped.getState().sleeve.iceRating)).toBe(true);
+    expect(once.getState().sleeve.network.toNumber()).toBeLessThan(10_000);
   });
 
   it('auto-running Legend removes a quarter of the nodes per run, however the runs are batched', () => {
@@ -174,11 +174,11 @@ describe('start costs and completion effects match run-by-run play', () => {
       mutable(g).network = num(1000);
     };
     const { once, stepped } = twins(5_000, 5, setup, config());
-    closeTo(once.getState().network, stepped.getState().network);
-    closeTo(num(once.getState().legend), num(stepped.getState().legend));
-    expect(once.getState().legend).toBeCloseTo(5, 6);
-    expect(once.getState().heat).toBe(25); // 5 s running x 5 heat/s
-    expect(stepped.getState().heat).toBe(25);
+    closeTo(once.getState().sleeve.network, stepped.getState().sleeve.network);
+    closeTo(num(once.getState().sleeve.legend), num(stepped.getState().sleeve.legend));
+    expect(once.getState().sleeve.legend).toBeCloseTo(5, 6);
+    expect(once.getState().sleeve.heat).toBe(25); // 5 s running x 5 heat/s
+    expect(stepped.getState().sleeve.heat).toBe(25);
   });
 });
 
@@ -191,21 +191,21 @@ describe('closed-form runs do not depend on how long the tick is', () => {
     const started = performance.now();
     g.tick(tenYearsMs);
     expect(performance.now() - started).toBeLessThan(500);
-    expect(g.getState().actions['a']!.xp.isFinite()).toBe(true);
+    expect(g.getState().sleeve.actions['a']!.xp.isFinite()).toBe(true);
     // More time can only mean more progress: a tick of 1000 years gives at least as much XP.
     const longer = createGame({ config: three() });
     setCredits(longer, num(10));
     longer.buy('auto');
     longer.tick(100 * tenYearsMs);
-    expect(longer.getState().actions['a']!.xp.gte(g.getState().actions['a']!.xp)).toBe(true);
+    expect(longer.getState().sleeve.actions['a']!.xp.gte(g.getState().sleeve.actions['a']!.xp)).toBe(true);
   });
 
   it('a manual action still completes only one run per click, however long the tick is', () => {
     const g = createGame({ config: three() });
     g.startAction('a');
     g.tick(1e12);
-    expect(g.getState().actions['a']!.xp.eq(num(1))).toBe(true);
-    expect(g.getState().actions['a']!.running).toBe(false);
+    expect(g.getState().sleeve.actions['a']!.xp.eq(num(1))).toBe(true);
+    expect(g.getState().sleeve.actions['a']!.running).toBe(false);
   });
 });
 
@@ -218,7 +218,7 @@ describe('feedback between systems does not depend on how time is delivered', ()
       engine,
     });
   const setup: Setup = (g) => g.buy('pauto');
-  const bonus = (g: ReturnType<typeof createGame>) => g.getState().hackingProficiency.toNumber();
+  const bonus = (g: ReturnType<typeof createGame>) => g.getState().sleeve.hackingProficiency.toNumber();
 
   it('interface speed rising with every run: one 5 minute tick matches 6 000 steps of 50 ms (within 2%)', () => {
     const { once, stepped } = twins(300_000, 6_000, setup, feedback());
@@ -234,13 +234,13 @@ describe('feedback between systems does not depend on how time is delivered', ()
   it('passive income while heat cools: one 50 minute tick matches 60 000 steps of 50 ms (within 1%)', () => {
     const config = createConfig(testConfig, { sleeve: { heatCooldownMs: 60_000, heatCooldownAmount: 1 } });
     const setupNet: Setup = (g) => {
-      const s = g.getState() as { network: ReturnType<typeof num>; heat: number };
+      const s = g.getState().sleeve as { network: ReturnType<typeof num>; heat: number };
       s.network = num(1000);
       s.heat = 50;
     };
     const { once, stepped } = twins(3_000_000, 60_000, setupNet, config);
-    const a = once.getState().credits.toNumber();
-    const b = stepped.getState().credits.toNumber();
+    const a = once.getState().wallet.credits.toNumber();
+    const b = stepped.getState().wallet.credits.toNumber();
     expect(Math.abs(a - b)).toBeLessThanOrEqual(0.01 * b);
   });
 

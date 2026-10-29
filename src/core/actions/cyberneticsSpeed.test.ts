@@ -78,14 +78,14 @@ describe('Parallel Threads (interfaceSpeedPerLnNodes at a small rate)', () => {
   it('multiplies interface speed by 1 + perLn x ln(nodes): 1000 nodes at 0.002 give about x1.0138', () => {
     const g = cyberneticsGame(cyberneticsConfig([buy({ id: 'pt', effect: { kind: 'interfaceSpeedPerLnNodes', perLn: 0.002 } })]));
     g.buy('pt');
-    (g.getState() as { network: unknown }).network = num(1000);
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num(1000);
     expect(g.sleeveStats().interfaceNetworkFactor).toBeCloseTo(1 + 0.002 * Math.log(1000), 12);
   });
 
   it('stays below x2.5 even at the infinity cap of 1e308 (ln about 709)', () => {
     const g = cyberneticsGame(cyberneticsConfig([buy({ id: 'pt', effect: { kind: 'interfaceSpeedPerLnNodes', perLn: 0.002 } })]));
     g.buy('pt');
-    (g.getState() as { network: unknown }).network = num('1e308');
+    (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num('1e308');
     expect(g.sleeveStats().interfaceNetworkFactor).toBeLessThan(2.5);
   });
 });

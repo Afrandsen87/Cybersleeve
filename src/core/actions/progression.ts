@@ -270,7 +270,7 @@ export class Progression {
    * @returns a whole number >= 0
    */
   xpDelay(state: GameState, actionId: ActionId): number {
-    return (state.actions[actionId]?.skillShards ?? 0) * this.levelsPerShard;
+    return (state.sleeve.actions[actionId]?.skillShards ?? 0) * this.levelsPerShard;
   }
 
   /** Action XP measured against the unreduced thresholds: `xp / (1 - reduction)`. */
@@ -283,7 +283,7 @@ export class Progression {
   /** Sleeve level of an action if its thresholds were scaled to the share `keep` of the normal XP (1 = normal). */
   private sleeveLevelAt(state: GameState, actionId: ActionId, keep: number): number {
     // sleeve XP is tracked all along, but its levels count only once the unlock is owned (a game without that buyable has no gate)
-    if (this.sleeveLevelsGateId !== null && (state.purchased[this.sleeveLevelsGateId] ?? 0) <= 0) return 0;
+    if (this.sleeveLevelsGateId !== null && (state.sleeve.purchased[this.sleeveLevelsGateId] ?? 0) <= 0) return 0;
     return this.rule(this.sleeveRules, actionId).levelForXp(this.scaledSleeveXp(state, actionId, keep));
   }
 
@@ -300,7 +300,7 @@ export class Progression {
   }
 
   private requireAction(state: GameState, actionId: ActionId): ActionState {
-    const action = state.actions[actionId];
+    const action = state.sleeve.actions[actionId];
     if (!action) throw new Error(`Unknown action: ${actionId}`);
     return action;
   }

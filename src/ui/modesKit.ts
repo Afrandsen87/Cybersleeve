@@ -7,6 +7,7 @@ import { type BuyableDefinition, createConfig, type GameConfig } from '../core';
 import { num } from '../numbers';
 import { networkAction, setCredits, testConfig } from '../testing/testConfig';
 import type { SpeedControl } from './dom';
+import { flat } from '../testing/flatState';
 
 /** The fast-forward switch as the UI sees it: off, factor 1. */
 export const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
@@ -55,8 +56,7 @@ export const own = (g: ReturnType<typeof createGame>, id: string, times = 1): vo
 };
 
 /** The state with the loosely typed fields the tests write to (heat, inventory). */
-export const state = (g: ReturnType<typeof createGame>) =>
-  g.getState() as unknown as { heat: number; inventory: Record<string, Record<string, number>> };
+export const state = (g: ReturnType<typeof createGame>) => flat<{ heat: number; inventory: Record<string, Record<string, number>> }>(g);
 
 /** Matches a negation in a tooltip, to check that a text says a thing is not so. */
 export const NOT = /\b(not|never|no)\b/i;

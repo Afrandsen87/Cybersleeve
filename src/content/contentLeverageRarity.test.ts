@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { gameConfig, KOMPROMAT, KOMPROMAT_HARVEST } from './gameConfig';
 import { SKILL_BLACK_LEDGER, SKILL_DEEP_FILES, SKILL_SEALED_ARCHIVES } from './ids';
+import { flat } from '../testing/flatState';
 
 const skill = (id: string) => gameConfig.buyables.find((b) => b.id === id)!;
 
@@ -20,7 +21,7 @@ describe('Kompromat rarity skills (real content)', () => {
 
   it('at the start only common and uncommon can drop; each skill opens exactly its rarity', () => {
     const g = createGame();
-    const state = g.getState() as unknown as { purchased: Record<string, number> };
+    const state = flat<{ purchased: Record<string, number> }>(g);
     state.purchased[KOMPROMAT_HARVEST] = 1;
     const can = (r: string) => g.dropSources(KOMPROMAT, r).length > 0;
     expect(['common', 'uncommon', 'rare', 'legendary', 'crisis'].map(can)).toEqual([true, true, false, false, false]);

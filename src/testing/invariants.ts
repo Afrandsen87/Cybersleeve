@@ -11,6 +11,7 @@ import {
   BuyableCaps,
   isActionCardPurchase,
   SCALAR_FIELDS,
+  scalarValue,
   automationPointsEarned,
   isFeatureUnlocked,
 } from '../core';
@@ -58,24 +59,27 @@ const isWhole = (n: BigNum): boolean => {
  */
 export function findInvariantViolations(state: GameStateView, config: InvariantConfig): string[] {
   const problems: string[] = [];
-  const bag = state as unknown as Record<string, BigNum | number>;
   for (const field of SCALAR_FIELDS) {
-    const value = bag[field.key];
+    const value = scalarValue(state, field);
     if (field.kind === 'big') {
       if (!validAmount(value as BigNum)) problems.push(`${field.key} is not a valid amount: ${String(value)}`);
     } else if (!Number.isFinite(value as number) || (value as number) < 0) {
       problems.push(`${field.key} is not a finite number >= 0: ${String(value)}`);
     }
   }
-  const auto = state.automation;
-  const earned = automationPointsEarned(config.buyables, state.purchased);
+  // the wallet's all-time peaks are statistics that only ever go up, so they are never below this life's peaks (which a re-sleeve resets)
+  const { wallet, sleeve: life } = state;
+  if (wallet.allTimePeakCredits.lt(life.peakCredits)) problems.push("allTimePeakCredits is below this life's peakCredits");
+  if (wallet.allTimePeakNetwork.lt(life.peakNetwork)) problems.push("allTimePeakNetwork is below this life's peakNetwork");
+  const auto = state.wallet.automation;
+  const earned = automationPointsEarned(config.buyables, state.sleeve.purchased);
   const spent = config.buyables.reduce(
-    (n, b) => (b.currency === 'automationPoints' ? n + b.cost.toNumber() * (state.purchased[b.id] ?? 0) : n),
+    (n, b) => (b.currency === 'automationPoints' ? n + b.cost.toNumber() * (state.sleeve.purchased[b.id] ?? 0) : n),
     0,
   );
   if (spent > earned) problems.push(`more automation points spent (${spent}) than earned (${earned})`);
   const featureUnlocked = (feature: (typeof AUTOMATION_FEATURES)[number]): boolean =>
-    isFeatureUnlocked(config.buyables, state.purchased, feature);
+    isFeatureUnlocked(config.buyables, state.sleeve.purchased, feature);
   if (!(Number.isFinite(auto.autoBurnCeiling) && auto.autoBurnCeiling >= 0))
     problems.push(`autoBurnCeiling is not valid: ${auto.autoBurnCeiling}`);
   if (auto.autoBurnOn && !featureUnlocked('autoBurn')) problems.push('Auto Burn is on but not unlocked');
@@ -90,12 +94,12 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   for (const id of Object.keys(auto.autosale)) {
     if (!config.items.rarities.some((r) => r.id === id)) problems.push(`autosale names unknown rarity ${id}`);
   }
-  if (!isWhole(state.network)) problems.push(`network is not whole: ${state.network.toString()}`);
-  if (!(state.networkRemainder >= 0 && state.networkRemainder < 1))
-    problems.push(`networkRemainder is outside [0, 1): ${state.networkRemainder}`);
+  if (!isWhole(state.sleeve.network)) problems.push(`network is not whole: ${state.sleeve.network.toString()}`);
+  if (!(state.sleeve.networkRemainder >= 0 && state.sleeve.networkRemainder < 1))
+    problems.push(`networkRemainder is outside [0, 1): ${state.sleeve.networkRemainder}`);
 
   for (const def of config.actions) {
-    const action = state.actions[def.id];
+    const action = state.sleeve.actions[def.id];
     if (!action) {
       problems.push(`action ${def.id} has no state`);
       continue;
@@ -114,79 +118,84 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   }
   const caps = new BuyableCaps(config.buyables);
   for (const b of config.buyables) {
-    const owned = state.purchased[b.id] ?? 0;
-    if (!validCount(owned) || owned > caps.maxCopies(b, state.purchased)) problems.push(`${b.id} owned count is invalid: ${owned}`);
+    const owned = state.sleeve.purchased[b.id] ?? 0;
+    if (!validCount(owned) || owned > caps.maxCopies(b, state.sleeve.purchased)) problems.push(`${b.id} owned count is invalid: ${owned}`);
     for (const need of [...(b.requires ?? []), ...(b.parents ?? [])]) {
-      if (owned > 0 && (state.purchased[need] ?? 0) <= 0) problems.push(`${b.id} is owned without ${need}, which it needs`);
+      if (owned > 0 && (state.sleeve.purchased[need] ?? 0) <= 0) problems.push(`${b.id} is owned without ${need}, which it needs`);
     }
   }
   const unlocked = (kind: string, actionId: string): boolean =>
-    config.buyables.some((b) => b.effect.kind === kind && b.actionId === actionId && (state.purchased[b.id] ?? 0) > 0);
+    config.buyables.some((b) => b.effect.kind === kind && b.actionId === actionId && (state.sleeve.purchased[b.id] ?? 0) > 0);
   const slots =
     config.focus.baseSlots +
-    config.buyables.reduce((n, b) => (b.effect.kind === 'focusSlots' ? n + b.effect.perCopy * (state.purchased[b.id] ?? 0) : n), 0);
+    config.buyables.reduce((n, b) => (b.effect.kind === 'focusSlots' ? n + b.effect.perCopy * (state.sleeve.purchased[b.id] ?? 0) : n), 0);
   const known = new Set(config.actions.map((a) => a.id));
-  for (const id of Object.keys(state.overclocked)) {
+  for (const id of Object.keys(state.sleeve.overclocked)) {
     const def = config.actions.find((a) => a.id === id);
     if (!known.has(id) || !def?.overclock || !unlocked('overclockUnlock', id))
       problems.push(`overclocked.${id} is switched on without its unlock`);
   }
-  for (const id of Object.keys(state.focused)) {
+  for (const id of Object.keys(state.sleeve.focused)) {
     if (!known.has(id) || !unlocked('focusUnlock', id)) problems.push(`focused.${id} is switched on without its unlock`);
   }
-  for (const [id, count] of Object.entries(state.lastLifePurchases)) {
+  for (const [id, count] of Object.entries(state.wallet.lastLifePurchases)) {
     const b = config.buyables.find((x) => x.id === id);
     if (!b || !isActionCardPurchase(b) || !validCount(count) || count < 1) problems.push(`lastLifePurchases.${id} is invalid: ${count}`);
   }
-  const stacking = config.buyables.some((b) => b.effect.kind === 'focusStacking' && (state.purchased[b.id] ?? 0) > 0);
-  for (const [id, count] of Object.entries(state.focusStacks)) {
+  const stacking = config.buyables.some((b) => b.effect.kind === 'focusStacking' && (state.sleeve.purchased[b.id] ?? 0) > 0);
+  for (const [id, count] of Object.entries(state.sleeve.focusStacks)) {
     if (!validCount(count) || count < 1) problems.push(`focusStacks.${id} is invalid: ${count}`);
-    if (state.focused[id] !== true) problems.push(`focusStacks.${id} has stacked slots on an action that is not focused`);
+    if (state.sleeve.focused[id] !== true) problems.push(`focusStacks.${id} has stacked slots on an action that is not focused`);
     if (!stacking) problems.push(`focusStacks.${id} is set without a focus stacking skill`);
   }
-  const taken = Object.keys(state.focused).length + Object.values(state.focusStacks).reduce((n, c) => n + c, 0);
+  const taken = Object.keys(state.sleeve.focused).length + Object.values(state.sleeve.focusStacks).reduce((n, c) => n + c, 0);
   if (taken > slots) problems.push(`${taken} Focus slots are taken with ${slots} slots`);
-  for (const [id, count] of Object.entries(state.bankedCriticals)) {
+  for (const [id, count] of Object.entries(state.sleeve.bankedCriticals)) {
     if (!known.has(id) || !validCount(count)) problems.push(`bankedCriticals.${id} is invalid: ${count}`);
   }
-  if (state.zeroDaysOn) {
+  if (state.sleeve.keyToggles['zeroDay']) {
     const rule = config.items.zeroDay;
     const stack = config.items.rarities[0];
-    if (!rule || !stack || (state.inventory[rule.itemId]?.[stack.id] ?? 0) <= 0)
-      problems.push('zeroDaysOn is switched on without a Zero-day held');
+    if (!rule || !stack || (state.wallet.inventory[rule.itemId]?.[stack.id] ?? 0) <= 0)
+      problems.push('the Zero-day toggle is switched on without a Zero-day held');
   }
-  if (state.adminKeysOn) {
+  if (state.sleeve.keyToggles['adminKey']) {
     const rule = config.items.adminKey;
     const stack = config.items.rarities[0];
-    if (!rule || !stack || (state.inventory[rule.itemId]?.[stack.id] ?? 0) <= 0)
-      problems.push('adminKeysOn is switched on without an Admin key held');
+    if (!rule || !stack || (state.wallet.inventory[rule.itemId]?.[stack.id] ?? 0) <= 0)
+      problems.push('the Admin key toggle is switched on without an Admin key held');
   }
-  for (const [id, links] of Object.entries(state.chains)) {
-    const owned = config.buyables.find((b) => b.effect.kind === 'overclockChain' && b.actionId === id && (state.purchased[b.id] ?? 0) > 0);
+  for (const [id, links] of Object.entries(state.sleeve.chains)) {
+    const owned = config.buyables.find(
+      (b) => b.effect.kind === 'overclockChain' && b.actionId === id && (state.sleeve.purchased[b.id] ?? 0) > 0,
+    );
     const max = owned?.effect.kind === 'overclockChain' ? owned.effect.chain.maxLinks : undefined;
     if (max === undefined || !validCount(links) || links > max) problems.push(`chains.${id} is invalid: ${links}`);
   }
-  for (const [itemId, stacks] of Object.entries(state.inventory)) {
+  for (const [itemId, stacks] of Object.entries(state.wallet.inventory)) {
     for (const [rarityId, count] of Object.entries(stacks)) {
       if (!validCount(count) || count > Number.MAX_SAFE_INTEGER)
         problems.push(`inventory ${itemId}/${rarityId} count is invalid: ${count}`);
     }
   }
-  state.runs.forEach((run, i) => {
+  state.wallet.runs.forEach((run, i) => {
     if (!validAmount(run.creditsPerSecond)) problems.push(`run ${i} has an invalid income: ${run.creditsPerSecond.toString()}`);
     if (!validCount(run.actionLevelsTotal)) problems.push(`run ${i} has an invalid level total: ${run.actionLevelsTotal}`);
   });
   const seen = new Set<number>();
-  for (const synth of state.synths) {
-    if (!(Number.isInteger(synth.runIndex) && synth.runIndex >= 0 && synth.runIndex < state.runs.length))
+  for (const synth of state.wallet.synths) {
+    if (!(Number.isInteger(synth.runIndex) && synth.runIndex >= 0 && synth.runIndex < state.wallet.runs.length))
       problems.push(`a synthetic sleeve points at a run that does not exist: ${synth.runIndex}`);
     if (seen.has(synth.runIndex)) problems.push(`two synthetic sleeves copy run ${synth.runIndex}`);
     seen.add(synth.runIndex);
   }
-  if (state.synths.length > 0 && !config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (state.purchased[b.id] ?? 0) > 0))
+  if (
+    state.wallet.synths.length > 0 &&
+    !config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (state.sleeve.purchased[b.id] ?? 0) > 0)
+  )
     problems.push('synthetic sleeves exist without the skill that gives them');
   for (const def of config.corporation?.actions ?? []) {
-    const action = state.corporation.actions[def.id];
+    const action = state.wallet.corporation.actions[def.id];
     if (!action) problems.push(`corporation action ${def.id} has no state`);
     else if (!(Number.isFinite(action.progress) && action.progress >= 0 && action.progress < 1))
       problems.push(`corporation action ${def.id} has progress outside [0, 1): ${action.progress}`);

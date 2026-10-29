@@ -49,7 +49,7 @@ function heatAfter(config: GameConfig, runs: number, steps: number, overclock: b
   }
   g.startAction('push');
   for (let i = 0; i < steps; i++) g.tick((runs * 1_000 + 1) / steps);
-  return g.getState().heat;
+  return g.getState().sleeve.heat;
 }
 
 describe('heat chance', () => {

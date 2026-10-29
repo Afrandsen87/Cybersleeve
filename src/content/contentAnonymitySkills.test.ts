@@ -84,7 +84,7 @@ describe('the anonymity skill tree: what a new game shows', () => {
     const g = createGame();
     expect(nodeOf(g, SKILL_SCORCHED_EARTH).masked).toBe(true);
     expect(nodeOf(g, SKILL_SILVER_TONGUE).masked).toBe(true);
-    (g.getState().purchased as Record<string, number>)[BURN_LEADS] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[BURN_LEADS] = 1;
     expect(nodeOf(g, SKILL_SCORCHED_EARTH).masked).toBe(false);
     expect(nodeOf(g, SKILL_SILVER_TONGUE).masked).toBe(false);
   });

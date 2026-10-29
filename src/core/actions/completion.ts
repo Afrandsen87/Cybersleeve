@@ -5,7 +5,7 @@
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { assertNever } from '../effects/effectTraits';
-import type { CompletionEffect, GameState } from '../types';
+import type { CompletionEffect, StateSlice } from '../types';
 
 /** Runs that remove nodes one run at a time (each rounded down); any further runs of one batch use the closed form. */
 const SEQUENTIAL_RUN_LIMIT = 10_000;
@@ -43,18 +43,18 @@ function removeNodes(nodes: BigNum, fraction: number, runs: number, factory: Num
  */
 export function applyCompletionEffects(
   effects: readonly CompletionEffect[] | undefined,
-  state: Pick<GameState, 'network'>,
+  state: StateSlice<'network'>,
   runs: number,
   factory: NumberFactory,
 ): void {
   for (const effect of effects ?? []) {
     switch (effect.kind) {
       case 'removeNodesFraction':
-        state.network = removeNodes(state.network, effect.fraction, runs, factory);
+        state.sleeve.network = removeNodes(state.sleeve.network, effect.fraction, runs, factory);
         break;
       case 'removeNodes': {
-        const left = state.network.sub(factory.fromNumber(effect.amount).mul(factory.fromNumber(runs)));
-        state.network = left.isNegative() ? factory.fromNumber(0) : left;
+        const left = state.sleeve.network.sub(factory.fromNumber(effect.amount).mul(factory.fromNumber(runs)));
+        state.sleeve.network = left.isNegative() ? factory.fromNumber(0) : left;
         break;
       }
       default:

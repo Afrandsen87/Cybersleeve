@@ -35,7 +35,7 @@ export class IncomeStats {
   /** The share of node income kept after the heat tax (with the current ICE Rating). */
   creditKeepFactor(): number {
     const stats = this.sleeveStats();
-    return this.economy.keepFactor(this.state.heat, stats.heatReduction, stats.heatTaxCap);
+    return this.economy.keepFactor(this.state.sleeve.heat, stats.heatReduction, stats.heatTaxCap);
   }
 
   /** Fraction of its size the network grows by per second right now (fixed rates plus level-based rates of the growth buyables). */
@@ -53,7 +53,7 @@ export class IncomeStats {
   taxedCreditsPerNode(): BigNum {
     const stats = this.sleeveStats();
     return this.economy.taxedCreditsPerNode(
-      this.state.heat,
+      this.state.sleeve.heat,
       stats.heatReduction,
       stats.nodePayoutMultiplier,
       stats.nodePayoutBonus,
@@ -65,8 +65,8 @@ export class IncomeStats {
   passiveCreditsPerSecond(): BigNum {
     const stats = this.sleeveStats();
     return this.economy.passiveCreditsPerSecond(
-      this.state.network,
-      this.state.heat,
+      this.state.sleeve.network,
+      this.state.sleeve.heat,
       stats.heatReduction,
       stats.nodePayoutMultiplier,
       stats.nodePayoutBonus,
