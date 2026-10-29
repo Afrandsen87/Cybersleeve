@@ -35,12 +35,16 @@ interface RunsReductionSource {
   readonly minRuns: number;
 }
 
+/** The largest divisor on sleeve XP requirements: keeps every threshold a positive, finite number at any level. */
+const MAX_DIVISOR = 1e300;
+
 /**
  * The XP reductions bought with buyables.
  *
  * @remarks
- * `sleeveXpReduction` buyables scale down the XP every sleeve level asks for: a reduction `r` makes each threshold `(1 - r)` times as
- * large. The action whose sleeve level feeds a reduction is exempt from it, so that level is always measured against the normal thresholds.
+ * `sleeveXpReduction` buyables (Study methods) DIVIDE the XP every sleeve level asks for by `1 + perLevel x source sleeve level x copies`,
+ * with no ceiling (the divisor is applied on its own, after, and apart from, the shared `maxSleeveXpReduction` clamp that caps the flat
+ * action-level reductions). The action whose sleeve level feeds it is exempt, so that level is always measured against the normal thresholds.
  * `actionXpReduction` buyables do the same for every ACTION level (never the sleeve levels). `runsPerSleeveXpReduction` buyables lower how
  * many runs one batch of sleeve XP takes. Owns no state; reads `GameState.purchased`.
  *
@@ -123,24 +127,25 @@ export class XpReductions {
   }
 
   /**
-   * Fraction by which owned `sleeveXpReduction` buyables lower the XP that one action's sleeve levels need. Per buyable:
-   * `min(maxReduction, perLevel * sleeve level of sourceActionId * copies)`, summed and capped at `progression.maxSleeveXpReduction`.
-   * The source action itself is not reduced by its own buyable.
+   * The divisor owned `sleeveXpReduction` buyables put on the XP that one action's sleeve levels need: the product, over the owned ones, of
+   * `1 + perLevel x sleeve level of sourceActionId x copies`. 1 when none applies; the source action itself is not divided by its own
+   * buyable. No ceiling, but kept finite (at most `MAX_DIVISOR`); a non-finite term counts as no effect.
    *
-   * Called by: `Progression.sleeveXpReduction`.
+   * Called by: `Progression.sleeveXpKeep`.
    *
    * @param state current state (reads `purchased`)
    * @param actionId the action whose sleeve levels are asked about
    * @param unreducedSleeveLevel the sleeve level of an action measured against the normal thresholds
-   * @returns a fraction in [0, `progression.maxSleeveXpReduction`]
+   * @returns a number >= 1
    */
-  sleeveXpReduction(state: GameState, actionId: ActionId, unreducedSleeveLevel: (id: ActionId) => number): number {
-    let total = 0;
+  sleeveXpDivisor(state: GameState, actionId: ActionId, unreducedSleeveLevel: (id: ActionId) => number): number {
+    let divisor = 1;
     for (const { id, effect } of this.sleeveSources) {
       const copies = state.purchased[id] ?? 0;
       if (copies <= 0 || effect.sourceActionId === actionId) continue;
-      total += Math.min(effect.maxReduction, effect.perLevel * unreducedSleeveLevel(effect.sourceActionId) * copies);
+      const term = effect.perLevel * unreducedSleeveLevel(effect.sourceActionId) * copies;
+      if (Number.isFinite(term) && term > 0) divisor *= 1 + term;
     }
-    return Math.min(total, this.maxTotalReduction);
+    return Math.min(divisor, MAX_DIVISOR);
   }
 }

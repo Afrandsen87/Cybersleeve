@@ -99,7 +99,7 @@ The prices are the same for every action for now. The sleeve-wide **Overclock up
 | Kompromat harvest | 500 credits | 5% of completed runs drop a Kompromat file, rarity 90 / 10 / 0 / 0 / 0 over common, uncommon, rare, legendary, crisis (see 10). |
 | Rarity refinement | 10,000 credits; needs the harvest | Increases the rarity of Kompromat drops based on Hacking Proficiency (see 10 for how). Its tooltip says just that. |
 | Skill transfer | 1,000,000 credits | Adds Practice Hacking's **sleeve level** to Grow network's level, for speed only (not its XP). |
-| Study methods | 1e15 credits | Every sleeve level of the **other** actions needs 0.01% less XP per sleeve level of Practice Hacking, at most 25%. Practice Hacking itself is not affected. |
+| Study methods | 1e15 credits | The XP every sleeve level of the **other** actions needs is divided by 1 + the sleeve level of Practice Hacking (level 1 halves it, level 3 quarters it); there is no ceiling. Practice Hacking itself is not affected. |
 
 ### Grow network
 | Buyable | Cost | Effect |
@@ -212,3 +212,6 @@ Speed = actionLevel factor x the action's own sleeveLevel factor x interface spe
 
 *Group: Decided 2026-10-27 (by the user, more re-sleeve skills)*
 - **Overdrive Cap:** several Focus slots per action, each multiplying speed by 1.25 again (the assistant chose multiplicative, as the user asked for the default); the Focus cell splits into add and remove halves. Saved as `focusStacks`.
+
+*Group: Decided 2026-10-29 (by the user, after reviewing the migration plan)*
+- **Study methods is a divisor with no ceiling:** the XP the other actions sleeve levels need is divided by `1 + perLevel x Practice Hacking sleeve level` (content `perLevel: 1`). It replaced `0.01% per level, max 25%`, which was dead at every reachable level. If it still feels small when played, the lever changes from XP cost to extra levels (decide after playing; not pre-built).

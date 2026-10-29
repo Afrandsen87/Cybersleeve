@@ -76,12 +76,12 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     id: STUDY_METHODS,
     name: 'Study methods',
     symbol: 'SM',
-    description: 'Every sleeve level of the other actions needs 0.01% less XP for each sleeve level of Practice Hacking, up to 25% less.',
+    description: 'The XP every sleeve level of the other actions needs is divided by 1 plus the sleeve level of Practice Hacking.',
     actionId: PRACTICE_HACKING,
     cost: num(1e15),
     requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once re-sleeving is unlocked
-    // perLevel 0.0001 = 0.01 percent per sleeve level (the cap is reached at level 2500); maxReduction 0.25 = at most 25 percent
-    effect: { kind: 'sleeveXpReduction', sourceActionId: PRACTICE_HACKING, perLevel: 0.0001, maxReduction: 0.25 },
+    // divisor = 1 + perLevel x Practice Hacking sleeve level: perLevel 1 halves the XP at level 1; there is no ceiling
+    effect: { kind: 'sleeveXpReduction', sourceActionId: PRACTICE_HACKING, perLevel: 1 },
   },
 
   overclockUnlock(PRACTICE_HACKING, 'Unlocks Overclock for this action: pays 200% more, but each completed run costs 5 nodes.'),

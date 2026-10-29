@@ -16,7 +16,7 @@ Skills are buyables paid in **skill points**, drawn as a **skill tree** on the S
 | Bandwidth Leech | Node payout ×1.5 (compounds with the Node payout buyable) |
 | Cold Trail | Heat cools down 25% faster |
 | Muscle Memory | Hacking Proficiency counts 25% higher wherever it is used (hacking multiplier, drop-ratio shifts, and the value shown on screen) |
-| Quick Study | Every ACTION level needs 1% less XP (sleeve levels unchanged), with the same overall cap as Study methods |
+| Quick Study | Every ACTION level needs 1% less XP (sleeve levels unchanged), capped by `progression.maxSleeveXpReduction` (Study methods is not: it is a divisor with no ceiling) |
 | Parallel Threads | Interface speed ×(1 + ln(nodes) / 500): very slow on purpose (about ×2.4 at the 1e308 cap; Network synergy's 1/100 gives about ×8). Stacks with Network synergy. |
 | Neural Accelerant | Interface speed ×(1 + 5% for each distinct rarity of augment applied on any action), additive: Common alone is ×1.05, Common and Uncommon ×1.10, all five ×1.25. Counts rarities, not copies. |
 | Fiber Tap | Each completed Push malware run has a **25% chance to also pay one full Grow network reward** (its reward, its own multipliers, its reward kind; whole nodes only, so never a fraction). Never critical, no XP, heat or drops. Drawn once per batch of runs. |

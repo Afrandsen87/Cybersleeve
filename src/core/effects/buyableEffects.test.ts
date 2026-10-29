@@ -175,16 +175,16 @@ describe('level bonus from another action sleeve level', () => {
 });
 
 describe('reduced sleeve XP requirement (other actions only)', () => {
-  const study = (perLevel = 0.01, maxReduction = 0.25): BuyableDefinition => ({
+  const study = (perLevel = 1): BuyableDefinition => ({
     id: 'study',
     name: 'Study',
     description: '',
     actionId: 'a',
     cost: num(1),
-    effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel, maxReduction },
+    effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel },
   });
-  const studied = (sleeveXp: number, perLevel?: number, maxReduction?: number) => {
-    const g = withBuyables([study(perLevel, maxReduction)]);
+  const studied = (sleeveXp: number, perLevel?: number) => {
+    const g = withBuyables([study(perLevel)]);
     setSleeveXp(g, num(sleeveXp), 'a');
     setSleeveXp(g, num(sleeveXp), 'net');
     setCredits(g, num(1));
@@ -198,18 +198,39 @@ describe('reduced sleeve XP requirement (other actions only)', () => {
     expect(g.sleeveXpReduction('net')).toBe(0);
   });
 
-  it('reduces the other actions by perLevel per source sleeve level (level 3, 0.01 -> 3% less XP)', () => {
+  it('divides the other actions requirement by 1 + source sleeve level (level 3: a quarter of the XP)', () => {
     const g = studied(1110); // sleeve level 3 (the levels cost 10, 100 and 1000)
     expect(g.sleeveLevel('a')).toBe(3);
-    expect(g.sleeveXpReduction('net')).toBeCloseTo(0.03, 10);
-    expect(g.nextSleeveLevelXp('net').toNumber()).toBeCloseTo(11_110 * 0.97, 6);
-    expect(g.sleeveXpForLevel('net').toNumber()).toBeCloseTo(10_000 * 0.97, 6); // leaving level 3 costs 10,000 in full, 3% less
+    expect(g.sleeveXpReduction('net')).toBeCloseTo(0.75, 10);
+    expect(g.nextSleeveLevelXp('net').toNumber()).toBeCloseTo(11_110 / 4, 6);
+    expect(g.sleeveXpForLevel('net').toNumber()).toBeCloseTo(10_000 / 4, 6); // leaving level 3 costs 10,000 in full, divided by 4
   });
 
-  it('a percentage-sized rate works: 0.0001 per level means level 4 gives 0.04% less XP', () => {
-    const g = studied(11_110, 0.0001);
+  it('is 1 at source level 0 and half the XP at level 1', () => {
+    expect(studied(5).sleeveXpReduction('net')).toBe(0); // level 0: divisor 1
+    expect(studied(10).sleeveXpReduction('net')).toBeCloseTo(0.5, 10); // level 1: divisor 2
+  });
+
+  it('a smaller perLevel works: 0.01 per level means level 4 divides by 1.04', () => {
+    const g = studied(11_110, 0.01);
     expect(g.sleeveLevel('a')).toBe(4);
-    expect(g.sleeveXpReduction('net')).toBeCloseTo(0.0004, 10);
+    expect(g.sleeveXpReduction('net')).toBeCloseTo(1 - 1 / 1.04, 10);
+  });
+
+  it('has no ceiling: it grows with every source level, tends to 1 and stays finite at a huge level', () => {
+    let last = -1;
+    for (const xp of [10, 110, 1110, 1e6, 1e12, 1e100]) {
+      const g = studied(xp);
+      const reduction = g.sleeveXpReduction('net');
+      expect(reduction).toBeGreaterThanOrEqual(last);
+      expect(reduction).toBeLessThanOrEqual(1);
+      expect(Number.isFinite(g.nextSleeveLevelXp('net').toNumber())).toBe(true);
+      expect(g.nextSleeveLevelXp('net').toNumber()).toBeGreaterThan(0);
+      expect(Number.isFinite(g.sleeveLevelProgress('net'))).toBe(true);
+      last = reduction;
+    }
+    expect(last).toBeGreaterThanOrEqual(0.99); // level 99: 1 - 1/100
+    expect(studied(1e100, 10).sleeveXpReduction('net')).toBeGreaterThan(0.99); // past the 0.99 clamp the flat reductions obey
   });
 
   it('the source action is not affected by its own reduction', () => {
@@ -221,14 +242,9 @@ describe('reduced sleeve XP requirement (other actions only)', () => {
     expect(short.sleeveLevel('a')).toBe(1);
   });
 
-  it('can lift another action over a threshold (109 XP is level 2 when the source is level 1: 1% off 110)', () => {
+  it('can lift another action over a threshold (109 XP is level 2 when the source is level 1: half the XP needed)', () => {
     const g = studied(109);
     expect(g.sleeveLevel('net')).toBe(2);
-  });
-
-  it('never goes beyond the cap (25% at most)', () => {
-    expect(studied(1000, 0.01, 0.25).sleeveXpReduction('net')).toBeLessThanOrEqual(0.25);
-    expect(studied(1e12, 0.5, 0.25).sleeveXpReduction('net')).toBeCloseTo(0.25, 10);
   });
 
   it('keeps the level progress bar within 0..1', () => {
@@ -246,12 +262,7 @@ describe('validation of the newer effects', () => {
     expect(invalid({ ...base, effect: { kind: 'levelBonusFromSleeveLevel', sourceActionId: 'ghost', targetActionId: 'a' } })).toContain(
       'unknown action "ghost"',
     );
-    expect(invalid({ ...base, effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel: 0, maxReduction: 0.2 } })).toContain(
-      'perLevel must be > 0',
-    );
-    expect(invalid({ ...base, effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel: 0.1, maxReduction: 1 } })).toContain(
-      'maxReduction',
-    );
+    expect(invalid({ ...base, effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel: 0 } })).toContain('perLevel must be > 0');
     expect(invalid({ ...base, effect: { kind: 'networkGrowth', ratePerSecond: -1 } })).toContain('growth rate');
     expect(invalid({ ...base, effect: { kind: 'interfaceSpeedPerLnNodes', perLn: -1 } })).toContain('perLn');
     expect(invalid({ ...base, currency: 'gold' as never, effect: { kind: 'autoRun' }, actionId: 'a' })).toContain('unknown currency');

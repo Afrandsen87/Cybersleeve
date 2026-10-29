@@ -116,19 +116,19 @@ describe('the heat tax rate comes from the configuration', () => {
 });
 
 describe('sleeve XP reduction cap and new settings are validated', () => {
-  it('progression.maxSleeveXpReduction caps the total reduction', () => {
+  it('progression.maxSleeveXpReduction caps the flat action reductions only: Study methods has no ceiling', () => {
     const reduce: BuyableDefinition = {
       id: 'study',
       name: 's',
       description: '',
       cost: num(1),
-      effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel: 0.5, maxReduction: 0.9 },
+      effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel: 0.5 },
     };
     const second = { id: 'b', name: 'B', baseDurationMs: 1_000, reward: num(1), xpPerRun: num(1) };
     const g = game({ progression: { maxSleeveXpReduction: 0.3 } }, [testConfig.actions[0]!, second], [...testConfig.buyables, reduce]);
     mutable(g).purchased['study'] = 1;
     (g.getState().actions['a'] as { sleeveXp: unknown }).sleeveXp = num(1e6);
-    expect(g.sleeveXpReduction('b')).toBe(0.3);
+    expect(g.sleeveXpReduction('b')).toBeGreaterThan(0.3);
   });
 
   it.each([

@@ -99,7 +99,7 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
       effect: { kind: 'interfaceSpeed', amount: 0.1 },
     }),
     buyable({ id: 'skill', actionId: 'a', effect: { kind: 'levelBonusFromSleeveLevel', sourceActionId: 'a', targetActionId: 'net' } }),
-    buyable({ id: 'study', actionId: 'a', effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel: 0.01, maxReduction: 0.25 } }),
+    buyable({ id: 'study', actionId: 'a', effect: { kind: 'sleeveXpReduction', sourceActionId: 'a', perLevel: 0.01 } }),
     buyable({ id: 'oc-a', actionId: 'a', effect: { kind: 'overclockUnlock' } }),
     buyable({ id: 'oc-practice', actionId: 'practice', effect: { kind: 'overclockUnlock' } }),
     buyable({ id: 'oc-push', actionId: 'push', effect: { kind: 'overclockUnlock' } }),

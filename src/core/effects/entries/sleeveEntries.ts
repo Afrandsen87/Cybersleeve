@@ -113,9 +113,6 @@ export const SLEEVE_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<Bu
     validate: (e, { where, actionIds, errors }) => {
       if (!actionIds.has(e.sourceActionId)) errors.push(`${where}: XP reduction refers to unknown action "${e.sourceActionId}"`);
       if (!(Number.isFinite(e.perLevel) && e.perLevel > 0)) errors.push(`${where}: XP reduction perLevel must be > 0`);
-      if (!(Number.isFinite(e.maxReduction) && e.maxReduction >= 0 && e.maxReduction < 1)) {
-        errors.push(`${where}: XP reduction maxReduction must be in [0, 1)`);
-      }
     },
   },
 };

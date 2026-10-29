@@ -90,7 +90,7 @@ export type ActionEffect =
    * Lowers the XP needed for every sleeve level of every OTHER action by `min(maxReduction, perLevel * sleeve level of
    * sourceActionId)`, as a fraction (0.25 = 25 percent less XP). The source action itself is not affected.
    */
-  | { readonly kind: 'sleeveXpReduction'; readonly sourceActionId: ActionId; readonly perLevel: number; readonly maxReduction: number }
+  | { readonly kind: 'sleeveXpReduction'; readonly sourceActionId: ActionId; readonly perLevel: number }
   /**
    * Every ACTION level of every action needs less XP, by an amount that depends on that action's own SLEEVE level `L`: the reduction is
    * `1 - remainingPerOrder ^ log10(L)` (0 up to level 1; with 0.5, half at level 10, three quarters at level 100), never above
