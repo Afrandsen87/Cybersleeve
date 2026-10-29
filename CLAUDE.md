@@ -8,6 +8,10 @@ This file is read at the start of every session. It holds standing rules for bui
 - A full analysis of that project is in this folder: `ARCHITECTURE_DerivativeClicker.html` (visual) and `ARCHITECTURE_DerivativeClicker.md` (text). Read it before designing anything that touches economy, prestige, save/load or the tick loop.
 - Cybersleeve is **not a port**. Reuse the understanding of how the reference works, not its code structure.
 
+## Design work: load the genre skill first
+
+Before proposing or reviewing any mechanic, economy, prestige, progression, skill, buyable, pacing or balance change, invoke the **`incremental-design`** skill (`.claude/skills/incremental-design/SKILL.md`). It holds the genre knowledge and the list of things Cybersleeve deliberately does differently. Subagents doing design work must be told to read it.
+
 ## Mandatory engineering rules
 
 Everything built must satisfy **all** of these:
@@ -61,7 +65,7 @@ The reference game plays at astronomical scales (up to 1e303 and beyond, with an
 
 Full history, prices and mechanic details: **`docs/DECISIONS.md`** (read the entry for a mechanic before changing it). `DESIGN.md` describes the game as it is now.
 
-Platform and tooling: desktop-browser PWA; TypeScript strict + Vite + Vitest + Biome; vanilla TS views; big numbers behind our own Decimal interface (break_infinity adapter), game code never imports the library. Infinity is 1e308 (`core/infinity.ts`). Offline progress is out of scope and balance is not a factor yet: do not "fix" balance oddities. Python on this Windows machine needs `PYTHONUTF8=1`.
+Platform and tooling: desktop-browser PWA; TypeScript strict + Vite + Vitest + Biome; vanilla TS views; big numbers behind our own Decimal interface (break_infinity adapter), game code never imports the library. Infinity is 1e308 (`core/infinity.ts`). Offline progress is out of scope. Balance matters now that players are on the live game (see "Balance" in `docs/DECISIONS.md`, 2026-10-28): new content must be sanity-checked against existing pacing, and existing tuning is not changed without being asked, but pacing problems are flagged with numbers. Being corrected later is still fine. Python on this Windows machine needs `PYTHONUTF8=1`.
 
 Design rules:
 - No global reward or output multiplier: every lever/multiplier names exactly what it scales (`REWARDS`, `EFFECT_TRAITS`); code asks descriptors, never compares kind names.
