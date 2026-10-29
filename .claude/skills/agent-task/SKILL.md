@@ -11,7 +11,7 @@ Task: $ARGUMENTS
 
 1. If you are not already inside `.claude/worktrees/`, create a worktree with the EnterWorktree tool, named with a short kebab-case slug of the task (for example "corporation-widgets"). This is the **task branch**. Confirm its path and branch.
 2. Run `npm install` in it (each worktree has its own `node_modules`).
-3. Read `CLAUDE.md`, then the parts of `DESIGN.md` and `docs/DECISIONS.md` that cover the mechanic you will touch. If the task involves design, economy, pacing or balance, also read `.claude/skills/incremental-design/SKILL.md`, and tell subagents doing such work to read it.
+3. Read `CLAUDE.md`, then the parts of `DESIGN.md` and `docs/DECISIONS.md` that cover the mechanic you will touch. If the task involves design, economy, pacing or balance, also read `.claude/skills/incremental-design/SKILL.md`, and tell subagents doing such work to read it. If the task adds or changes any stat, skill, tree, buyable, tooltip or text, also read `docs/REVEAL_RULES.md`.
 4. If you need the dev server, use a port derived from the worktree name (`npm run dev -- --port <port>`) and say which. Saves live in the browser per origin, so worktrees do not share saves.
 5. State the files and directories in scope. If the task did not name them and they are unclear, propose a scope and ask once.
 
@@ -26,7 +26,7 @@ Do it **yourself** in the task worktree when the task is small, touches a few fi
 - Keep it to about 2 to 5 subagents. More does not help; merging cost grows.
 - Write each subagent a self-contained prompt: the goal, its exact file scope, what is out of scope, the rules from `CLAUDE.md` that apply (SOLID, TSDoc, small files, no hard-coded tuning, tests split by feature), and the exact report format below. Do not assume it has seen this conversation.
 
-Spawn them in one message, in parallel, with the Agent tool and `isolation: "worktree"`. Each subagent must:
+Spawn them in one message, in parallel, with the Agent tool, `isolation: "worktree"` and an explicit `model` (a subagent without one inherits the expensive orchestrator model): `haiku` for read-only survey, search or summary work, `sonnet` for implementation. Each subagent must:
 
 - Work only inside its scope; if it needs something outside, stop and describe it instead.
 - Commit small and often on its own worktree branch. Commit subjects follow the changelog rule in `CLAUDE.md`: one short player-facing line, or `chore:`/`docs:`/`test:`/`refactor:` for anything players do not see.
@@ -46,7 +46,7 @@ When subagents finish, from the task worktree:
 
 ## 4. Verify
 
-In the task worktree run `npm run check` (typecheck, Biome, tests, build). Fix failures. Do not proceed to landing while it fails; report honestly if you cannot fix it.
+In the task worktree run `npm run check` (typecheck, Biome, tests, build). Fix failures. For a UI change, also launch the preview (the `run` skill), screenshot the changed screen and check it. Do not proceed to landing while it fails; report honestly if you cannot fix it.
 
 Scope reminders: your change includes its docs (`docs/ARCHITECTURE.md`, `docs/CONFIG.md`, `DESIGN.md`, TSDoc, tests next to the code). Do not generate, edit or stage `docs/architecture.html`; only run `npm run docs` if the user asks. Outside scope without asking: `package.json`, `package-lock.json`, build and deploy config, the save version and migrations, and `CLAUDE.md`.
 

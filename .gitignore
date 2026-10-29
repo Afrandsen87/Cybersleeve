@@ -6,3 +6,4 @@ tmp-vitest*.json
 .vitest
 coverage
 docs/architecture.html
+.claude/worktrees/

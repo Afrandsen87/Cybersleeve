@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "docs": "node scripts/generate-docs.mjs",
     "docs:check": "node scripts/generate-docs.mjs --check",
+    "agents:sync": "node scripts/sync-agents.mjs",
     "lint": "biome lint",
     "format": "biome format --write",
     "check": "npm run typecheck && biome check && npm test && npm run build",
