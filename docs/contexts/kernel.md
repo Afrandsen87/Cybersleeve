@@ -42,3 +42,6 @@ All amounts are `BigNum` (mantissa/exponent). The adapter treats exponent ≥ 9e
 
 *Group: Decided 2026-10-26 (by the user, after the full review)*
 - **Infinity is 1e308** (`core/kernel/infinity.ts`, `INFINITY`). Every amount is clamped to it by the overflow policy after every slice and every multiplier derived from an amount saturates there (`saturate`); reaching it calls the policy's `onInfinity` listener (the hook for the future infinity prestige, whose design is still open). It is a representational limit, not a tuning value.
+
+*Group: Decided 2026-10-30 (by the user, design interview)*
+- **1e308 is not a hard cap in the target design.** Several numbers will go past it, with displays such as 1e100000 or 1e2e3240; the larger number type is to be built when progress reaches that scale (expected around the city tier of the corporation phase), after research. Until that decision is made, the current clamp (`core/infinity.ts`, DESIGN.md section 9) stays as a stop-gap and new designs should not rely on it as a final limit.

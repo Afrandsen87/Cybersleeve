@@ -60,10 +60,10 @@ Every decision entry now lives in the doc of the context it decides (section "De
 | [economy](contexts/economy.md) | 1 |
 | [effects](contexts/effects.md) | 6 |
 | [engine](contexts/engine.md) | 2 |
-| [general](contexts/general.md) | 2 |
+| [general](contexts/general.md) | 5 |
 | [heat](contexts/heat.md) | 5 |
 | [items](contexts/items.md) | 6 |
-| [kernel](contexts/kernel.md) | 4 |
+| [kernel](contexts/kernel.md) | 5 |
 | [resleeve](contexts/resleeve.md) | 6 |
 | [save](contexts/save.md) | 2 |
 | [skills](contexts/skills.md) | 4 |
@@ -75,9 +75,3 @@ Every decision entry now lives in the doc of the context it decides (section "De
 
 - **Balance:** the earlier "balance is not a factor yet, do not fix balance oddities" was meant loosely: the user accepts having to correct numbers later. It no longer applies literally because players are on the live game. Going forward, new content aims for sensible pacing (checked against existing prices, income and reveal thresholds), existing tuning is not rebalanced unasked, and an agent that sees a pacing problem reports it with numbers instead of silently fixing or ignoring it.
 - **Genre knowledge lives in a skill** (`.claude/skills/incremental-design/`), loaded on demand for design work, so agents stop proposing generic game-design ideas. Reference games: Space Idle, Cookie Clicker (without the clicking), CIFI, ISEPS, Derivative Clicker, Revolution Idle (Steam), Underworld Idle.
-
-Decided 2026-10-30 (by the user, design interview on branch `design-interview`):
-- **The long-term design target lives in `docs/VISION.md`** (index) and `docs/vision/*.md` (topic files, loaded only as needed). `DESIGN.md` remains the description of what is built; the vision is not to be implemented without a task that says so.
-- **1e308 is not a hard cap in the target design.** Several numbers will go past it, with displays such as 1e100000 or 1e2e3240; the larger number type is to be built when progress reaches that scale (expected around the city tier of the corporation phase), after research. Until that decision is made, the current clamp (`core/infinity.ts`, DESIGN.md section 9) stays as a stop-gap and new designs should not rely on it as a final limit.
-- Anti-goals: no real-money payments, no random chance as a progression blocker, no hidden information about met mechanics, no permanent soft-lock from suboptimal choices (a free sleeve-skill respec that restarts the run without benefit and is not a re-sleeve is wanted), no random events.
-
