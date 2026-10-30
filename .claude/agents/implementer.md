@@ -12,4 +12,4 @@ You are an **implementer** for Cybersleeve. The orchestrator has already planned
 - Commit small and often on your worktree branch. Subjects follow the changelog rule in `CLAUDE.md`.
 - Before finishing, run `npx vitest run <paths you touched>` and `npm run typecheck`. Fix what fails.
 - Never push, never touch `main` or other branches.
-- Report: branch name, worktree path, what changed, test and typecheck results, how many attempts it took to get them green, and anything needed outside your scope.
+- Report in under 300 words: branch, files changed, test and typecheck result with the number of failed attempts before green, decisions you made, and anything needed outside your scope. No restating the spec and no per-file narrative.

@@ -19,12 +19,14 @@ Task: $ARGUMENTS
 
 Do it **yourself** in the task worktree by default. Each subagent starts cold and you pay again to review and merge it, so fanning out only pays off for large work.
 
-**Fan out to subagents** only when the task splits into 3 or more work packages that can be built independently and are each large (for example content for several actions, separate UI widgets, engine change plus its tests plus docs). Rules for the split:
+**Fan out to subagents** only when the task splits into 3 or more work packages that can be built independently and are each large (for example content for several actions, separate UI widgets, engine change plus its tests plus docs). Otherwise do it yourself in the task worktree; for related small items, prefer one implementer over several agents. Rules for the split:
 
-- Packages must have **disjoint file scopes**. Shared files (types, `core/api.ts`, barrels, `docs/*`, `DESIGN.md`) go to exactly one package, or you edit them yourself first or last.
+- Packages must have **disjoint file scopes**. Shared files (types, `core/api.ts`, barrels, `docs/*`, `DESIGN.md`, golden save fixtures such as `core/save/v8Golden.test.ts`) go to exactly one package, or you edit them yourself first or after merging, so parallel packages never conflict on them.
 - If packages depend on a shared interface or type, make that change yourself on the task branch and commit it **before** spawning, so every subagent starts from it.
 - Keep it to 3 subagents at most. More does not help; merging cost grows.
 - Write each subagent a self-contained prompt: the goal, its exact file scope, what is out of scope, the rules from `CLAUDE.md` that apply (SOLID, TSDoc, small files, no hard-coded tuning, tests split by feature), and the exact report format below. Do not assume it has seen this conversation.
+
+**Worktrees:** subagents inherit your worktree pin and cannot write to another worktree, not even through EnterWorktree. Spawn each with `isolation: "worktree"` and make its first step `git merge --ff-only <task-branch>` so it builds on the task branch. Never pre-create worktrees for subagents.
 
 Spawn them in one message, in parallel, with the Agent tool and `isolation: "worktree"`, using the agent types in `.claude/agents/` (they fix the model): `scout` (haiku) for read-only survey, search or summary work, `implementer` (sonnet) for building. Any other subagent type needs an explicit `model`, or it inherits the Opus orchestrator. Your job as orchestrator is the plan: give each implementer the files to touch, the existing owner function of each rule it extends, and the tests to add, so it does not have to make design calls. Each subagent must:
 
@@ -32,7 +34,7 @@ Spawn them in one message, in parallel, with the Agent tool and `isolation: "wor
 - Commit small and often on its own worktree branch. Commit subjects follow the changelog rule in `CLAUDE.md`: one short player-facing line, or `chore:`/`docs:`/`test:`/`refactor:` for anything players do not see.
 - Run the tests relevant to its area (`npx vitest run <path>`) and typecheck before finishing. It need not run the full `npm run check`; you do that after merging.
 - Never push, never touch `main`, never touch other branches.
-- Report: branch name, worktree path, what changed, test results, and anything it needs outside its scope.
+- Report in under 300 words: branch, files changed, check result and failure count, decisions it made, and anything it needs outside its scope. No restating the spec and no per-file narrative.
 
 ## 3. Merge subagent work (orchestrator only)
 
@@ -43,7 +45,7 @@ When subagents finish, from the task worktree:
 3. Resolve conflicts yourself. They should be rare given disjoint scopes; if one is a real design disagreement rather than mechanical, stop and ask the user.
 4. If a package is wrong or incomplete, fix it yourself or send the subagent back with SendMessage. Do not merge broken work.
 5. Integrate cross-package pieces (barrels, docs, wiring) yourself, with tests.
-6. If you fanned out, spawn one `reviewer` on the task branch (`git diff main...<task-branch>`) once everything is merged. Fix the bug and rule findings you agree with; mention the rest in your report.
+6. Only if you fanned out to 3 or more packages, run one `reviewer` once, after the final merge, on the task branch (`git diff main...<task-branch>`). Fix the bug and rule findings you agree with in one pass; mention the rest in your report.
 
 ## 4. Verify
 
