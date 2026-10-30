@@ -17,10 +17,16 @@ import { migrateSave } from './migrate';
 const read = (name: string): string => readFileSync(new URL(`../../testing/fixtures/saves/${name}`, import.meta.url), 'utf8');
 const FIXTURES = ['v6-early-before-resleeve.json', 'v6-after-three-resleeves.json'];
 const load = (text: string) => deserializeState(text, gameConfig, numberFactory);
-/** The flat form of a loaded save, without `peakNetworkIncome`: a field newer than the v6 fixtures, which start it fresh (0). */
+/**
+ * The flat form of a loaded save, without the fields newer than the v6 fixtures: `peakNetworkIncome` (starts fresh, 0) and `seenItems`
+ * (loading marks every held stack as seen, and nothing else).
+ */
 const flatWithoutNewFields = (text: string) => {
-  const { peakNetworkIncome, ...rest } = flatSave(text);
+  const { peakNetworkIncome, seenItems, ...rest } = flatSave(text);
   expect(peakNetworkIncome).toBe('0');
+  const held = rest['inventory'] as Record<string, Record<string, number>>;
+  const seenOf = (stacks: Record<string, number>) => Object.fromEntries(Object.keys(stacks).map((rarity) => [rarity, true]));
+  expect(seenItems).toEqual(Object.fromEntries(Object.entries(held).map(([item, stacks]) => [item, seenOf(stacks)])));
   return rest;
 };
 

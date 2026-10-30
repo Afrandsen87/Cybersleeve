@@ -72,7 +72,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
         symbol: initials(item.name),
         rarityIndex: item.hasRarity === false ? null : items.rarities.indexOf(rarity),
         count,
-        unlocked: count > 0 || engine.hasSeenItem(item.id, rarity.id), // seen once, or held (an old save has held stacks it never recorded)
+        unlocked: engine.hasSeenItem(item.id, rarity.id), // seen once (loading a save marks what it holds)
         countText: formatBigNum(factory.fromNumber(count)),
         augmentable: augment?.itemId === item.id,
         sellable: item.sellable !== false,

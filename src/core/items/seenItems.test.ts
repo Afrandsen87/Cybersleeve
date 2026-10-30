@@ -3,7 +3,9 @@
  *
  * Called by: vitest. Calls: `Inventory`, `ZeroDays`, `applyCorporationEffect`, `resetForResleeve`, the save functions, the test config.
  */
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { gameConfig } from '../../content/gameConfig';
 import { num, numberFactory } from '../../numbers';
 import { seededGame } from '../../testing/gameKit';
 import { findInvariantViolations } from '../../testing/invariants';
@@ -11,6 +13,7 @@ import { seededRandom } from '../../testing/random';
 import { testConfig } from '../../testing/testConfig';
 import { applyCorporationEffect, createConfig, deserializeState, serializeState } from '..';
 import { ZeroDays } from '../crits/zeroDays';
+import { migrateSave } from '../save/migrate';
 import { createInitialState, resetForResleeve } from '../save/state';
 import { Inventory, hasSeenItem } from './inventory';
 
@@ -124,16 +127,37 @@ describe('seen items: re-sleeve and save', () => {
     expect(serializeState(back)).toBe(serializeState(state));
   });
 
-  it('a save without the field loads as empty, and malformed entries are dropped', () => {
+  it('a save without the field loads what it holds as seen, and malformed entries are dropped', () => {
     const { state, inv } = fresh();
     inv.add('file', 'rare', 1);
     const data = JSON.parse(serializeState(state)) as { wallet: Record<string, unknown> };
     delete data.wallet['seenItems'];
     const load = (): unknown => deserializeState(JSON.stringify(data), config, numberFactory)!.wallet.seenItems;
-    expect(load()).toEqual({});
+    expect(load()).toEqual({ file: { rare: true } }); // what the save holds counts as seen
     data.wallet['seenItems'] = { file: { rare: 'yes', ghost: true, common: true }, ghost: { common: true } };
-    expect(load()).toEqual({ file: { common: true } });
+    expect(load()).toEqual({ file: { common: true, rare: true } });
     data.wallet['seenItems'] = 5;
-    expect(load()).toEqual({});
+    expect(load()).toEqual({ file: { rare: true } });
+  });
+});
+
+describe('seen items: a real v7 save', () => {
+  const v7 = readFileSync(new URL('../../testing/fixtures/saves/v7-early-before-resleeve.json', import.meta.url), 'utf8');
+  const loaded = () => deserializeState(migrateSave(v7), gameConfig, numberFactory)!;
+
+  it('has every held stack seen, and the held-implies-seen invariant holds', () => {
+    const { wallet } = loaded();
+    const held = Object.entries(wallet.inventory).flatMap(([item, stacks]) => Object.keys(stacks).map((rarity) => [item, rarity] as const));
+    expect(held.length).toBeGreaterThan(0);
+    for (const [item, rarity] of held) expect(hasSeenItem(loaded(), item, rarity)).toBe(true);
+  });
+
+  it('keeps a stack seen after the last one of it is used up', () => {
+    const state = loaded();
+    const [item, stacks] = Object.entries(state.wallet.inventory)[0]!;
+    const rarity = Object.keys(stacks)[0]!;
+    delete state.wallet.inventory[item]![rarity];
+    expect(hasSeenItem(state, item, rarity)).toBe(true);
+    expect(deserializeState(serializeState(state), gameConfig, numberFactory)!.wallet.seenItems[item]?.[rarity]).toBe(true);
   });
 });

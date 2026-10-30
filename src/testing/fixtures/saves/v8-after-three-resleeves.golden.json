@@ -99,6 +99,14 @@
         "common": 1
       }
     },
+    "seenItems": {
+      "kompromat": {
+        "common": true
+      },
+      "augment-schematic": {
+        "common": true
+      }
+    },
     "credits": "22475.5369037922",
     "allTimePeakCredits": "23462.2121366629",
     "allTimePeakNetwork": "759"

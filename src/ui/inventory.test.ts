@@ -19,8 +19,11 @@ const harvest: BuyableDefinition = {
 };
 const config = createConfig(testConfig, { buyables: [...testConfig.buyables, harvest] });
 
+/** Holds stacks the way the game does: every held stack is also recorded as seen (the invariant). */
 const stock = (g: { getState(): unknown }, inventory: Record<string, Record<string, number>>): void => {
-  (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = inventory;
+  const wallet = (g.getState() as unknown as { wallet: { inventory: unknown; seenItems: Record<string, Record<string, true>> } }).wallet;
+  wallet.inventory = inventory;
+  for (const [item, stacks] of Object.entries(inventory)) for (const r of Object.keys(stacks)) (wallet.seenItems[item] ??= {})[r] = true;
 };
 
 /** Marks stacks as seen without holding them (what a drop that was since sold would have left behind). */
@@ -155,7 +158,9 @@ describe('inventory widget', () => {
     render();
     expect(widget.querySelector<HTMLElement>('.item-group')!.hidden).toBe(false);
     expect(buildViewModel(game).inventory.rows.map((r) => r.unlocked)).toEqual([false, true]);
-    stock(game, { file: { common: 1 } }); // held without being recorded (an old save)
+    stock(game, { file: { common: 1 } });
+    expect(buildViewModel(game).inventory.rows.map((r) => r.unlocked)).toEqual([true, true]);
+    stock(game, { file: {} }); // the last one used: the tile stays
     expect(buildViewModel(game).inventory.rows.map((r) => r.unlocked)).toEqual([true, true]);
   });
 

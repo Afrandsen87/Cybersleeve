@@ -26,6 +26,7 @@ type Loose = { inventory: unknown };
 /** Gives the game schematics and Auto-run for action `a` (augments only go on an action whose Auto-run is owned). */
 const stock = (g: ReturnType<typeof createGame>, held: Record<string, number>): void => {
   flat<Loose>(g).inventory = { file: held };
+  flat<{ seenItems: unknown }>(g).seenItems = { file: Object.fromEntries(Object.keys(held).map((r) => [r, true])) };
   (g.getState().sleeve.purchased as Record<string, number>)['auto'] = 1;
 };
 

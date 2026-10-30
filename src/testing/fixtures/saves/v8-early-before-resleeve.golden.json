@@ -43,6 +43,27 @@
         "common": 35
       }
     },
+    "seenItems": {
+      "kompromat": {
+        "common": true,
+        "uncommon": true,
+        "rare": true
+      },
+      "augment-schematic": {
+        "common": true,
+        "uncommon": true,
+        "rare": true
+      },
+      "burn-lead": {
+        "common": true
+      },
+      "zero-day": {
+        "common": true
+      },
+      "admin-key": {
+        "common": true
+      }
+    },
     "credits": "561477135640000000000",
     "allTimePeakCredits": "1.00136593463564e+24",
     "allTimePeakNetwork": "83873165"

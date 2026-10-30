@@ -70,7 +70,9 @@ export function readSeenItems(v: unknown, items: GameConfig['items']): Wallet['s
 }
 
 /**
- * The seen-items part (wallet `seenItems`). A save that has none loads as empty, so no save version change is needed; an empty set is left out of the saved text.
+ * The seen-items part (wallet `seenItems`). A save that has none loads with what it holds marked as seen (only `Inventory.add` records
+ * a drop, so an older save has held stacks it never recorded); no save version change is needed, and an empty set is left out of the saved text.
+ * Must be read after {@link inventorySavePart}: it marks every held stack.
  *
  * Called by: `save/saveParts.ts`. Calls: {@link writeSeenItems}, {@link readSeenItems}.
  */
@@ -81,7 +83,11 @@ export const seenItemsSavePart: SavePart<Pick<GameConfig, 'items'>> = {
     return Object.keys(seen).length > 0 ? { wallet: { seenItems: seen } } : {};
   },
   read: (state, raw, config) => {
-    state.wallet.seenItems = readSeenItems(raw.wallet['seenItems'], config.items);
+    const seen = readSeenItems(raw.wallet['seenItems'], config.items);
+    for (const [item, stacks] of Object.entries(state.wallet.inventory)) {
+      for (const [rarity, count] of Object.entries(stacks)) if (count > 0) (seen[item] ??= {})[rarity] = true;
+    }
+    state.wallet.seenItems = seen;
   },
 };
 
