@@ -27,7 +27,7 @@ function configWith(extra: BuyableDefinition[] = []): GameConfig {
     progression: { actionLevels: { firstLevelXp: 1e12, growthFactor: 10 }, sleeveLevels: { firstLevelXp: 1e12, growthFactor: 10 } },
     network: { creditsPerNodePerSecond: 0 },
   });
-  const a = { ...base.actions[0]!, heatPerRun: 1, overclock: { heatPerRunFactor: 3, heatChanceFactor: 2 } };
+  const a = { ...base.actions[0]!, heatPerRun: 1, overclock: { heatChanceFactor: 2 } };
   return createConfig(base, { actions: [a, { ...a, id: 'b', name: 'B', heatPerRun: undefined, overclock: undefined }] });
 }
 
@@ -192,7 +192,6 @@ describe('Overclock heat chance factor (Obfuscation)', () => {
     expect(g.overclockStatus('a')!.heatChanceFactor).toBe(2);
     g.buy('obf');
     expect(g.overclockStatus('a')!.heatChanceFactor).toBe(1);
-    expect(g.overclockStatus('a')!.heatPerRunFactor).toBe(3);
   });
 
   it('never takes the factor below 1: Overclock does not lower the chance under the action own', () => {

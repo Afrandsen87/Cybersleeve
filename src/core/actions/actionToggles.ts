@@ -31,8 +31,6 @@ export interface OverclockStatus {
   readonly rewardBonus: number;
   /** Heat the action adds per minute of game time while it is running overclocked (0 when the rule has none). */
   readonly heatPerMinute: number;
-  /** What the heat of each completed run is multiplied by while it is on (1 when the rule has no such cost). */
-  readonly heatPerRunFactor: number;
   /** What the chance that a completed run makes heat is multiplied by while it is on (1 when the rule has no such cost). */
   readonly heatChanceFactor: number;
   /** Effects applied for each completed run while it is on, after the ordinary completion effects. */

@@ -40,7 +40,7 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     networkAction,
     killAction,
     percentKillAction,
-    { ...payoutAction, overclock: { alsoPays: 'net', heatPerRunFactor: 3 } },
+    { ...payoutAction, overclock: { alsoPays: 'net' } },
     legendAction,
     { ...practiceAction, overclock: { rewardBonus: 2, completionEffects: [{ kind: 'removeNodes', amount: 5 }] } },
     malwareAction,

@@ -124,8 +124,7 @@ function checkCompletionEffects(where: string, effects: GameConfig['actions'][nu
 
 /** Checks the numbers of an action's Overclock rule: every field that is given must make sense, and at least one must be given. */
 function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions'][number]['overclock']>, errors: string[]): void {
-  const { speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, heatChanceFactor, alsoPays, completionEffects, stopsHeatCooling } =
-    rule;
+  const { speedBonus, rewardBonus, heatPerMinute, heatChanceFactor, alsoPays, completionEffects, stopsHeatCooling } = rule;
   if (speedBonus !== undefined && !(Number.isFinite(speedBonus) && speedBonus > 0))
     errors.push(`${where}: overclock speedBonus must be > 0`);
   if (rewardBonus !== undefined && !(Number.isFinite(rewardBonus) && rewardBonus > 0))
@@ -133,15 +132,12 @@ function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions
   if (heatPerMinute !== undefined && !(Number.isFinite(heatPerMinute) && heatPerMinute >= 0)) {
     errors.push(`${where}: overclock heatPerMinute must be >= 0`);
   }
-  if (heatPerRunFactor !== undefined && !(Number.isFinite(heatPerRunFactor) && heatPerRunFactor >= 1)) {
-    errors.push(`${where}: overclock heatPerRunFactor must be >= 1`);
-  }
   if (heatChanceFactor !== undefined && !(Number.isFinite(heatChanceFactor) && heatChanceFactor >= 1)) {
     errors.push(`${where}: overclock heatChanceFactor must be >= 1`);
   }
   checkCompletionEffects(`${where} overclock`, completionEffects, errors);
   const anything =
-    [speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, heatChanceFactor, alsoPays].some((v) => v !== undefined) ||
+    [speedBonus, rewardBonus, heatPerMinute, heatChanceFactor, alsoPays].some((v) => v !== undefined) ||
     stopsHeatCooling === true ||
     (completionEffects?.length ?? 0) > 0;
   if (!anything) errors.push(`${where}: overclock needs at least one effect`);

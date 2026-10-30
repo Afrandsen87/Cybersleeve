@@ -111,7 +111,6 @@ export class ToggleStats implements ModeStatuses {
       speedBonus: (rule.speedBonus ?? 0) * strength,
       rewardBonus: (rule.rewardBonus ?? 0) * strength,
       heatPerMinute: rule.heatPerMinute ?? 0,
-      heatPerRunFactor: rule.heatPerRunFactor ?? 1,
       heatChanceFactor: Math.max(1, (rule.heatChanceFactor ?? 1) * (this.sleeveStats().overclockHeatChanceFactors[id] ?? 1)),
       completionEffects: rule.completionEffects ?? [],
       alsoPays: rule.alsoPays ?? null,

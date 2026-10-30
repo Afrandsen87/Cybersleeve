@@ -263,7 +263,7 @@ export class ActionRunner {
   private chargeRunHeat(def: ActionDefinition, runs: number, overclock: ReturnType<DerivedStats['activeOverclock']>): void {
     const heatChance = Math.min(1, (def.heatChance ?? 1) * (overclock?.heatChanceFactor ?? 1));
     const heatRuns = perRunEvents(runs, heatChance, this.random);
-    this.state.sleeve.heat += heatRuns * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
+    this.state.sleeve.heat += heatRuns * (def.heatPerRun ?? 0);
   }
 
   /** Applies the completion effects of the action (every run), of the critical rule (every critical success) and of Overclock (every run). */

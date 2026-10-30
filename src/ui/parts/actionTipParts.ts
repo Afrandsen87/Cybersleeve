@@ -54,8 +54,6 @@ export interface OverclockTipParts {
   readonly reward: { readonly basePercent: string; readonly percent: string } | null;
   /** Heat added per minute while the action runs overclocked, or `null` when there is none. */
   readonly heatPerMinute: string | null;
-  /** What the heat of each run is multiplied by, or `null` when it is not. */
-  readonly heatPerRunFactor: string | null;
   /** What the chance that a run makes heat is multiplied by, or `null` when it is not. */
   readonly heatChanceFactor: string | null;
   /** Nodes each completed run costs, or `null` when it costs none. */

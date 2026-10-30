@@ -93,7 +93,6 @@ describe('Overclock', () => {
       speedBonus: 0.5,
       rewardBonus: 0,
       heatPerMinute: 1,
-      heatPerRunFactor: 1,
       heatChanceFactor: 1,
       completionEffects: [],
       alsoPays: null,

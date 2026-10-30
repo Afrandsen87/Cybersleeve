@@ -8,8 +8,8 @@ import { flat } from '../../testing/flatState';
 
 /** Practice-style rule: pays 200% more, costs 5 nodes per completed run. */
 const PRACTICE_RULE = { rewardBonus: 2, completionEffects: [{ kind: 'removeNodes', amount: 5 }] } as const;
-/** Push-style rule: each run also pays the nodes of one 'net' run, and makes three times as much heat. */
-const PUSH_RULE = { alsoPays: 'net', heatPerRunFactor: 3 } as const;
+/** Push-style rule: each run also pays the nodes of one 'net' run. */
+const PUSH_RULE = { alsoPays: 'net' } as const;
 
 const unlock = (actionId: string): BuyableDefinition => ({
   id: `oc-${actionId}`,
@@ -174,7 +174,7 @@ describe('Overclock that pays more and costs nodes (Practice Hacking style)', ()
   });
 });
 
-describe('Overclock that also pays another action and multiplies heat (Push malware style)', () => {
+describe('Overclock that also pays another action (Push malware style)', () => {
   const make = () => {
     const g = game(withAuto(configWith()));
     g.buy('oc-push');
@@ -188,13 +188,13 @@ describe('Overclock that also pays another action and multiplies heat (Push malw
     expect(nodes(g)).toBe(0);
   });
 
-  it('on: each run pays the nodes of one Grow-style run, and three times as much heat', () => {
+  it('on: each run pays the nodes of one Grow-style run, and the heat is unchanged', () => {
     const g = make();
     g.toggleOverclock('push');
     run(g, 'push', 5);
     expect(runs(g, 'push')).toBe(5);
     expect(nodes(g)).toBe(5);
-    expect(g.getState().sleeve.heat).toBeCloseTo(15, 9);
+    expect(g.getState().sleeve.heat).toBeCloseTo(5, 9);
   });
 
   it('pays the other action as if it had completed: its reward multipliers count, its XP and runs do not', () => {
@@ -217,14 +217,14 @@ describe('Overclock that also pays another action and multiplies heat (Push malw
     expect(g.rewardMultiplier('push').toNumber()).toBe(1);
   });
 
-  it('a stronger Overclock does not change the extra payment or the heat factor', () => {
+  it('a stronger Overclock does not change the extra payment or the heat', () => {
     const g = make();
     g.buy('ocs');
     g.buy('ocs');
     g.toggleOverclock('push');
     run(g, 'push', 5);
     expect(nodes(g)).toBe(5);
-    expect(g.getState().sleeve.heat).toBeCloseTo(15, 9);
+    expect(g.getState().sleeve.heat).toBeCloseTo(5, 9);
   });
 
   it('switched off again, the next runs are ordinary', () => {
@@ -284,7 +284,6 @@ describe('validation of the extended Overclock rule', () => {
   it.each([
     [{ rewardBonus: 0 }, 'overclock rewardBonus must be > 0'],
     [{ speedBonus: -1 }, 'overclock speedBonus must be > 0'],
-    [{ heatPerRunFactor: 0.5 }, 'overclock heatPerRunFactor must be >= 1'],
     [{ heatPerMinute: -1 }, 'overclock heatPerMinute must be >= 0'],
     [{ alsoPays: 'ghost' }, 'alsoPays refers to unknown action "ghost"'],
     [{ alsoPays: 'a' }, 'alsoPays cannot be the action itself'],

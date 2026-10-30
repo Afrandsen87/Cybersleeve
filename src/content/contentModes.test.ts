@@ -120,7 +120,7 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 0; // a run takes a minute, so the cooldown would take a point meanwhile
     g.toggleOverclock(PUSH_MALWARE);
     complete();
-    expect(g.overclockStatus(PUSH_MALWARE)).toMatchObject({ heatChanceFactor: 2, heatPerRunFactor: 1 });
+    expect(g.overclockStatus(PUSH_MALWARE)).toMatchObject({ heatChanceFactor: 2 });
     expect(g.getState().sleeve.network.toNumber()).toBe(g.payoutPerRun(GROW_NETWORK).toNumber());
   });
 
@@ -291,7 +291,6 @@ describe('Zero-days (real content)', () => {
     expect(skill.effect).toEqual({ kind: 'overclockHeatChanceFactor', targetActionId: PUSH_MALWARE, factor: 0.5 });
     const rule = gameConfig.actions.find((a) => a.id === PUSH_MALWARE)!.overclock!;
     expect(rule.heatChanceFactor).toBe(2);
-    expect(rule.heatPerRunFactor ?? 1).toBe(1);
     const g = rich();
     g.buy(overclockUnlockId(PUSH_MALWARE));
     expect(g.overclockStatus(PUSH_MALWARE)!.heatChanceFactor).toBe(2);

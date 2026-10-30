@@ -27,7 +27,7 @@ const auto: BuyableDefinition = {
 };
 
 /** Push-style action: 1 s runs, 1 heat per run that makes heat; levels out of reach and no cooling or passive income. */
-function configWith(push: object, rule: object = { heatPerRunFactor: 3, heatChanceFactor: 2 }): GameConfig {
+function configWith(push: object, rule: object = { heatChanceFactor: 2 }): GameConfig {
   const base = createConfig(testConfig, {
     buyables: [...testConfig.buyables, unlock, auto],
     progression: { actionLevels: { firstLevelXp: 1e12, growthFactor: 10 }, sleeveLevels: { firstLevelXp: 1e12, growthFactor: 10 } },
@@ -70,15 +70,15 @@ describe('heat chance', () => {
     }
   });
 
-  it('Overclock doubles the chance and triples the heat per heat-making run', () => {
+  it('Overclock doubles the chance and leaves the heat per heat-making run alone', () => {
     const config = configWith({ heatChance: 0.1 });
     const heat = heatAfter(config, 20_000, 1, true);
-    expect(heat).toBeGreaterThan(0.2 * 3 * 20_000 * 0.9);
-    expect(heat).toBeLessThan(0.2 * 3 * 20_000 * 1.1);
+    expect(heat).toBeGreaterThan(0.2 * 20_000 * 0.9);
+    expect(heat).toBeLessThan(0.2 * 20_000 * 1.1);
   });
 
   it('the chance is capped at 1 under Overclock', () => {
-    expect(heatAfter(configWith({ heatChance: 0.8 }), 100, 1, true)).toBe(300);
+    expect(heatAfter(configWith({ heatChance: 0.8 }), 100, 1, true)).toBe(100);
   });
 
   it('is reproducible with the same seed', () => {
