@@ -7,6 +7,7 @@
  * Called by: `actionView.ts`. Calls: the text table.
  */
 import type { BuyableDefinition, GameConfig } from '../../core';
+import { squareLocked } from './squareRules';
 import type { SquareCellId, UiText } from '../uiText';
 import type { ActionSquareView, AugmentButtonView, BuyableView, ModeButtonView, SquareCellView } from './viewTypes';
 
@@ -101,7 +102,7 @@ export function squareView(
       }
     : emptyCell('augment', text);
   return {
-    locked: auto.mode === 'buy',
+    locked: squareLocked(config, actionId, (id) => views.get(id)?.owned ?? 0),
     cells: [
       auto,
       unlockCell('overclock', find('overclockUnlock'), overclock, text),
