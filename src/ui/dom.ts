@@ -23,14 +23,9 @@ import { mountStatsPanel } from './widgets/statsPanel';
 import { buildStatWidget, renderStats } from './widgets/statWidget';
 import { buildTabBar } from './widgets/tabBar';
 
-export type { ChangelogEntry };
+import type { SpeedControl } from './speedControl';
 
-/** The fast-forward switch as the UI sees it (satisfied by `SpeedToggle`). */
-export interface SpeedControl {
-  readonly enabled: boolean;
-  readonly factor: number;
-  toggle(): boolean;
-}
+export type { ChangelogEntry, SpeedControl };
 
 /** Optional settings of {@link mountUi}. */
 export interface MountOptions {

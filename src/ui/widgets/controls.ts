@@ -10,7 +10,7 @@ import { formatBigNum, num } from '../../numbers';
 import { ConfirmGate } from '../confirmGate';
 import { type ChangelogEntry, buildChangelogModal } from './changelogModal';
 import { type UiContext, h, setText } from './domKit';
-import type { SpeedControl } from '../dom';
+import type { SpeedControl } from '../speedControl';
 import type { ResleeveBuyView } from '../viewModel';
 
 /** What the re-sleeve button needs to draw itself. */

@@ -8,7 +8,7 @@
  */
 import type { LevelScaling } from '../core';
 import { formatPlain } from '../numbers';
-import type { UiText } from './uiText';
+import type { TipTexts } from './tipTextTypes';
 import type { DropChanceParts, HackingCurve } from './uiTextParts';
 
 /** The drop chance lines of an item tooltip: one per action that can drop the stack, or 0% while none can. */
@@ -34,7 +34,7 @@ function hackingCurveBeyondLines(curve: HackingCurve): string[] {
 }
 
 /** The hover texts of the interface. */
-export const tipText: UiText['tips'] = {
+export const tipText: TipTexts = {
   // Every calculation tip has the same layout: the formulas, a blank line, the variables, a blank line, the result.
   // The blank lines are intentional. The text says what things do.
   access: ({ start, purchases, level, next }) =>

@@ -6,7 +6,7 @@
  * @remarks
  * Called by: `skillTree.ts` (builds them), `viewTypes.ts` (re-exports them), `ui/widgets/skillTree.ts` (draws them).
  */
-import type { BuyableView } from './viewTypes';
+import type { BuyableView } from './buyableViewTypes';
 
 /** One skill in a tree, with its place on the grid. The tree grows sideways: `col` is the depth, `row` the position within the lane. */
 export interface SkillNodeView {

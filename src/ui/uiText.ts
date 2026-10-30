@@ -12,39 +12,9 @@ import type { AutomationFeature, CorporationEffect, Currency, RewardKind } from 
 import { formatPlain } from '../numbers';
 
 import { tipText } from './tipText';
+import type { TipTexts } from './tipTextTypes';
 
-import type {
-  AccessTipParts,
-  ActionInfoParts,
-  ActionSpeedTipParts,
-  AdminKeyTipParts,
-  AugmentTipParts,
-  BackChannelTipParts,
-  BurnLeadTipParts,
-  BuyableTipParts,
-  BuyableValues,
-  CriticalTipParts,
-  FocusTipParts,
-  HackingProficiencyTipParts,
-  HeatTipParts,
-  IceRatingTipParts,
-  IncomeTipParts,
-  InterfaceSpeedTipParts,
-  LegendTipParts,
-  MolesTipParts,
-  NetworkGrowthValueParts,
-  OverclockTipParts,
-  PayoutTipParts,
-  RewardLineParts,
-  SkillShardTipParts,
-  SleeveSectionId,
-  SquareCellId,
-  StackKeptTipParts,
-  StackTipParts,
-  StatId,
-  SynthTipParts,
-  ZeroDayTipParts,
-} from './uiTextParts';
+import type { ActionInfoParts, RewardLineParts, SleeveSectionId, SquareCellId, StatId } from './uiTextParts';
 
 export * from './uiTextParts';
 
@@ -184,33 +154,8 @@ export interface UiText {
     /** The cells of the square on an action card: the symbol on the square button and the name read out for it. */
     readonly modes: Readonly<Record<SquareCellId, { readonly symbol: string; readonly name: string }>>;
   };
-  readonly tips: {
-    access(parts: AccessTipParts): string;
-    interfaceSpeed(parts: InterfaceSpeedTipParts): string;
-    hackingProficiency(parts: HackingProficiencyTipParts): string;
-    actionSpeed(parts: ActionSpeedTipParts): string;
-    payout(parts: PayoutTipParts): string;
-    income(parts: IncomeTipParts): string;
-    heat(parts: HeatTipParts): string;
-    iceRating(parts: IceRatingTipParts): string;
-    legend(parts: LegendTipParts): string;
-    critical(parts: CriticalTipParts): string;
-    buyable(parts: BuyableTipParts): string;
-    stack(parts: StackTipParts): string;
-    augment(parts: AugmentTipParts): string;
-    overclock(parts: OverclockTipParts): string;
-    focus(parts: FocusTipParts): string;
-    burnLead(parts: BurnLeadTipParts): string;
-    zeroDay(parts: ZeroDayTipParts): string;
-    adminKey(parts: AdminKeyTipParts): string;
-    skillShard(parts: SkillShardTipParts): string;
-    /** The tip of a stack of items that cannot be paid out (applied instead). */
-    stackKept(parts: StackKeptTipParts): string;
-    backChannel(parts: BackChannelTipParts): string;
-    moles(parts: MolesTipParts): string;
-    synths(parts: SynthTipParts): string;
-    networkGrowthValues(parts: NetworkGrowthValueParts): BuyableValues;
-  };
+  readonly tips: TipTexts;
+
   readonly resleeve: {
     readonly idle: string;
     readonly armed: string;
