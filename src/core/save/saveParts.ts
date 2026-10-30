@@ -12,7 +12,7 @@ import { actionsSavePart, autoRunSavePart, togglesSavePart } from '../actions/ac
 import { automationSavePart } from '../automation/automationSave';
 import { corporationSavePart } from '../corporation/corporationSave';
 import { critsSavePart } from '../crits/critsSave';
-import { inventorySavePart } from '../items/inventorySave';
+import { inventorySavePart, seenItemsSavePart } from '../items/inventorySave';
 import type { SavePart } from '../kernel/savePart';
 import { runsSavePart } from '../resleeve/runsSave';
 import { synthSavePart } from '../synth/synthSave';
@@ -40,12 +40,21 @@ export const SAVE_PARTS: readonly SavePart<SaveConfig>[] = [
   corporationSavePart,
   togglesSavePart,
   inventorySavePart,
+  seenItemsSavePart,
   critsSavePart,
   automationSavePart,
 ];
 
 /** Order of the keys of the saved wallet (the scalars follow). */
-export const WALLET_KEY_ORDER: readonly string[] = ['lastLifePurchases', 'runs', 'synths', 'corporations', 'automation', 'inventory'];
+export const WALLET_KEY_ORDER: readonly string[] = [
+  'lastLifePurchases',
+  'runs',
+  'synths',
+  'corporations',
+  'automation',
+  'inventory',
+  'seenItems',
+];
 
 /** Order of the keys of the saved sleeve (the scalars follow). */
 export const SLEEVE_KEY_ORDER: readonly string[] = [

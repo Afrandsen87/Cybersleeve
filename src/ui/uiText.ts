@@ -159,6 +159,7 @@ export const uiText: UiText = {
     reward: ({ amount, unit, multiplier, heatPerRun, heatChancePercent, heatPerSecond }) =>
       `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}${heatPerRun > 0 ? ` | ${heatChancePercent === null ? '' : `${heatChancePercent}% chance of `}+${heatPerRun} heat` : ''}${heatPerSecond > 0 ? ` | +${heatPerSecond} heat/s` : ''}`,
     augment: 'Augment',
+    xpFactors: { lever: 'XP Boost', augments: 'Augment Boost', mirror: 'Mirror Boost' },
     critFlash: (count, perSecond) => (count > 1 ? `${perSecond} crits/s` : 'CRITICAL!'),
     modes: {
       autoRun: { symbol: '↻', name: 'Auto-run' },

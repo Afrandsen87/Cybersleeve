@@ -15,6 +15,12 @@ Read this before adding or changing any stat, bar, button, purchase, skill, tree
 - A parent is always in the same branch, and every parent-child pair is drawn as a line.
 - A skill needs a unique icon, never a borrowed one. An item and the purchase that unlocks it may share a picture; a skill never may.
 
+## Heat, items and the Augment button
+
+- Heat (with ICE Rating) exists once an open action makes heat, or an Overclock unlock that makes heat is owned or shown in the action's square (`ui/view/squareRules.ts` owns "shown"; heat-making means `heatPerMinute > 0` or the action makes heat itself).
+- The Inventory, an item group and each rarity row show only once that item and rarity has been seen (`Wallet.seenItems`) or is held. A drop upgrade alone shows nothing.
+- The Augment cell on an action's square is empty until an owned buyable drops the schematic item (`ui/view/dropSource.ts`).
+
 ## Reveal checklist (every new or changed stat, skill, tree, buyable, tooltip or text)
 
 1. Name the earliest moment the player can know each concept it mentions (heat, ICE Rating, crits, sleeve level, re-sleeving, items, ...).

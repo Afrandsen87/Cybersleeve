@@ -65,6 +65,11 @@ export interface Wallet {
    * at every re-sleeve whatever skills are owned; empty in a new game. Whole counts.
    */
   lastLifePurchases: Record<BuyableId, number>;
+  /**
+   * Every item and rarity that has ever entered the inventory, over all lives (`seenItems[itemId][rarityId] === true`; an absent entry is not
+   * seen). Written only by `Inventory.add`. Decides which inventory groups and rows are shown. Survives re-sleeving. A save without it loads empty.
+   */
+  seenItems: Record<ItemId, Record<RarityId, true>>;
   /** What the player unlocked and set in the Automation tab. Reset by re-sleeving unless a retention skill keeps it. */
   automation: AutomationState;
   /** Progress of the corporation's actions. Survives re-sleeving: the corporation is not the character. (The save keeps corporations as a map keyed by id, with one entry.) */

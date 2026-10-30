@@ -218,3 +218,4 @@ Speed = actionLevel factor x the action's own sleeveLevel factor x interface spe
 
 *Group: Decided 2026-10-30 (by the user)*
 - **Overclock on Push malware only doubles the heat chance; Obfuscation halves that chance:** the 3x heat per run is gone (`heatPerRunFactor` stays available to other rules). Obfuscation (effect `overclockHeatChanceFactor`, factor 0.5) takes the doubled chance back to the action's own, never below it. It replaced `overclockHeatFactor`.
+- **XP tooltips read narrow queries, they do not recompute:** `ActionQueries.xpPerRunBreakdown(id)` (`RunStats.xpBreakdown`: base, XP lever, Augment factor, Neural Mirror factor, critical XP multiplier, and the total that equals `xpPerRun`, which now uses the same factors), `LevelQueries.actionXpCurve(id)` / `sleeveXpCurve(id)` (`Progression`: first level cost, growth, Skill-shard delay, reduction; type `XpCurve` in `actions/xpCurve.ts`) and `sleeveXpGrant()`.

@@ -57,6 +57,9 @@ const openGame = (cfg: GameConfig = config, random = seededRandom(1)) => {
 type Loose = { inventory: Record<string, Record<string, number>> };
 const stock = (g: { getState(): unknown }, held: Record<string, number>): void => {
   flat<Loose>(g).inventory = { file: held };
+  flat<{ seenItems: Record<string, Record<string, true>> }>(g).seenItems = {
+    file: Object.fromEntries(Object.keys(held).map((r) => [r, true as const])),
+  }; // what the held stacks would have recorded
 };
 const held = (g: { getState(): unknown }, rarity: string): number => flat<Loose>(g).inventory['file']?.[rarity] ?? 0;
 /** The run state of action `c1` (its XP is left out: levels are tested in `corporationLevels.test.ts`). */

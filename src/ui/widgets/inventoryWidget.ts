@@ -143,7 +143,7 @@ export function buildInventoryWidget(
  */
 export function renderInventory(widget: InventoryWidget, view: InventoryView, tips: TipRegistry, selection: UiSelection): void {
   widget.root.hidden = !view.visible;
-  // Only items that are unlocked show; a section with no item to show is hidden too.
+  // Only items and rarities that have been seen or are held show; a section with no item to show is hidden too.
   for (const [itemId, group] of widget.groups) group.hidden = !view.rows.some((r) => r.itemId === itemId && r.unlocked);
   widget.keptSection.hidden = !view.rows.some((r) => !r.sellable && r.unlocked);
   widget.sellSection.hidden = !view.rows.some((r) => r.sellable && r.unlocked);
@@ -156,6 +156,7 @@ export function renderInventory(widget: InventoryWidget, view: InventoryView, ti
     const key = stackKey(r.itemId, r.rarityId);
     const handle = widget.tiles.get(key);
     if (!handle) continue;
+    handle.tile.hidden = !r.unlocked;
     setText(handle.count, r.countText);
     handle.tile.classList.toggle('empty', r.count <= 0);
     handle.tile.classList.toggle('selected', r.augmentable ? r.rarityId === selection.augmentRarityId : key === widget.selected);

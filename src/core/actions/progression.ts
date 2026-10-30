@@ -8,6 +8,7 @@ import type { BigNum, NumberFactory } from '../../numbers';
 import { LevelRule } from './level';
 import { sleeveLevelsGateId } from '../effects/ownedOfKind';
 import { countRunsTowardSleeveXp, wholeCount } from './sleeveXp';
+import type { XpCurve } from './xpCurve';
 import { XpReductions } from './xpReductions';
 import type { ActionId, ActionState, GameConfig, GameState } from '../types';
 
@@ -271,6 +272,39 @@ export class Progression {
    */
   xpDelay(state: GameState, actionId: ActionId): number {
     return (state.sleeve.actions[actionId]?.skillShards ?? 0) * this.levelsPerShard;
+  }
+
+  /**
+   * The level curve of an action as the player pays it (see {@link XpCurve}). Called by: `GameEngine.actionXpCurve`.
+   * @throws Error if the action id is unknown
+   */
+  actionXpCurve(state: GameState, actionId: ActionId): XpCurve {
+    const rule = this.rule(this.actionRules, actionId);
+    return {
+      firstLevelXp: rule.firstLevelXp,
+      growthFactor: rule.growthFactor,
+      delay: this.xpDelay(state, actionId),
+      reduction: this.actionXpReduction(state, actionId),
+    };
+  }
+
+  /**
+   * The level curve of an action's sleeve levels: no delay, the Study-methods reduction. Called by: `GameEngine.sleeveXpCurve`.
+   * @throws Error if the action id is unknown
+   */
+  sleeveXpCurve(state: GameState, actionId: ActionId): XpCurve {
+    const rule = this.rule(this.sleeveRules, actionId);
+    return {
+      firstLevelXp: rule.firstLevelXp,
+      growthFactor: rule.growthFactor,
+      delay: 0,
+      reduction: this.sleeveXpReduction(state, actionId),
+    };
+  }
+
+  /** Sleeve XP one batch of runs grants (`progression.sleeveXpPerGrant`). */
+  sleeveXpGrant(): BigNum {
+    return this.sleeveXpPerGrant;
   }
 
   /** Action XP measured against the unreduced thresholds: `xp / (1 - reduction)`. */

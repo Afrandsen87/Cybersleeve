@@ -162,9 +162,12 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
     expect(g.getState().wallet.inventory[AUGMENT_SCHEMATIC]!['common']).toBe(held - 1);
   });
 
-  it('every action card has the button, and the Augment schematic is a normal item in the Inventory', () => {
-    const vm = buildViewModel(createGame());
-    for (const a of vm.actions) expect(a.augment, a.id).not.toBeNull();
+  it('every action card has the button once a purchase makes schematics drop, and the Augment schematic is a normal item in the Inventory', () => {
+    const g = createGame();
+    for (const a of buildViewModel(g).actions) expect(a.augment, a.id).toBeNull();
+    const drop = gameConfig.buyables.find((b) => b.effect.kind === 'itemDrop' && b.effect.drop.itemId === AUGMENT_SCHEMATIC)!;
+    (g.getState() as unknown as { sleeve: { purchased: Record<string, number> } }).sleeve.purchased[drop.id] = 1;
+    for (const a of buildViewModel(g).actions) expect(a.augment, a.id).not.toBeNull();
     expect(gameConfig.items.definitions.map((d) => d.id)).toContain(AUGMENT_SCHEMATIC);
     expect(gameConfig.items.augment?.itemId).toBe(AUGMENT_SCHEMATIC);
     expect(gameConfig.items.augment!.xpBonusPerItem).toBeGreaterThan(0);

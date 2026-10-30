@@ -187,6 +187,7 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
       const rarity = pick(random, config.items.rarities);
       const stack = (state.inventory[item.id] ??= {});
       stack[rarity.id] = (stack[rarity.id] ?? 0) + randomInt(random, 50);
+      ((state as unknown as { seenItems: Record<string, Record<string, true>> }).seenItems[item.id] ??= {})[rarity.id] = true;
     }
   } else g.tick(pick(random, TICKS));
 }

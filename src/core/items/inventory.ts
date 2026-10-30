@@ -24,6 +24,19 @@ export function itemCount(state: StateSlice<'inventory'>, itemId: ItemId, rarity
 }
 
 /**
+ * Whether this item in this rarity has ever entered the inventory (over all lives).
+ *
+ * Called by: `GameEngine.hasSeenItem`, `ui/view/inventoryView.ts`. Calls: nothing.
+ *
+ * @param state state to read
+ * @param itemId the item
+ * @param rarityId the rarity
+ */
+export function hasSeenItem(state: StateSlice<'seenItems'>, itemId: ItemId, rarityId: RarityId): boolean {
+  return state.wallet.seenItems[itemId]?.[rarityId] === true;
+}
+
+/**
  * The inventory rules: adding drops and selling stacks.
  *
  * @remarks
@@ -64,7 +77,8 @@ export class Inventory {
   }
 
   /**
-   * Puts items in the inventory. Unknown items and rarities are ignored; a stack stops growing at the largest exact count.
+   * Puts items in the inventory. Unknown items and rarities are ignored; a stack stops growing at the largest exact count. This is the ONE
+   * writer of `wallet.seenItems`: every way an item enters (drops, the Zero-day bonus shard, Corporation rarity upgrades) comes through here.
    *
    * @param itemId the item
    * @param rarityId the rarity
@@ -74,6 +88,7 @@ export class Inventory {
     if (!this.items.has(itemId) || !this.values.has(rarityId) || !(count > 0)) return;
     const stacks = (this.state.wallet.inventory[itemId] ??= {});
     stacks[rarityId] = Math.min(MAX_STACK, (stacks[rarityId] ?? 0) + Math.floor(count));
+    (this.state.wallet.seenItems[itemId] ??= {})[rarityId] = true;
   }
 
   /**

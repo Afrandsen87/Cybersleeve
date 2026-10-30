@@ -30,3 +30,4 @@ Code: `src/core/heat/` (see `docs/contexts/_folders.md`). Text below is moved ve
 
 *Group: Decided 2026-10-30 (by the user)*
 - **Overclock heat on Push malware is chance only:** Overclock doubles the chance a run makes heat (10% to 20%); the heat per run is unchanged. The skill Obfuscation (`overclockHeatChanceFactor`) halves that chance again. ICE Rating now removes 1% of the heat effect per order of magnitude (100% at 1e100).
+- **Heat shows once an Overclock that makes heat is on offer.** The reveal rule (`ui/view/statReveal.ts`) no longer waits for the Overclock to be owned: it also counts an Overclock unlock that is shown in the action's square (Auto-run owned, `ui/view/squareRules.ts` `overclockOnOffer`, the one owner of that predicate, also used by the square) when its overclock makes heat (`heatPerMinute > 0`, or the action makes heat itself). Heat and ICE Rating still appear together.

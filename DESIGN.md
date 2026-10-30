@@ -79,7 +79,7 @@ Scope decisions: desktop browsers only; offline progress is out of scope for now
 
 ## 10. Items, drops, the Inventory and Augments
 
-*Moved to [docs/contexts/items.md](docs/contexts/items.md).*
+*Moved to [docs/contexts/items.md](docs/contexts/items.md).* In short: an item and its rarity show in the Inventory only once found (or held); the Augment button waits for the upgrade that drops schematics.
 
 ## 11. Re-sleeving (first prestige)
 

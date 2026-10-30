@@ -10,6 +10,7 @@
  */
 import type { ActionDefinition, BuyableDefinition, GameConfig, SleeveStats } from '../../core';
 import { numberFactory } from '../../numbers';
+import { overclockOnOffer } from './squareRules';
 
 /** The stats that start hidden. */
 export type RevealableStat = 'heat' | 'iceRating' | 'legend';
@@ -30,15 +31,19 @@ const isOpen = (a: ActionDefinition, ctx: RevealContext): boolean => (a.required
 const ownsEffect = (ctx: RevealContext, kinds: readonly BuyableDefinition['effect']['kind'][]): boolean =>
   ctx.config.buyables.some((b) => kinds.includes(b.effect.kind) && ctx.owned(b.id) > 0);
 
-/** Heat is made or unlocked: an open action that makes heat, or an owned Overclock unlock whose overclock makes heat. */
+/** Whether an Overclock unlock, owned or shown in its action's square, would make heat (its heat per minute, or the action makes heat itself). */
+const overclockMakesHeat = (a: ActionDefinition): boolean =>
+  (a.overclock?.heatPerMinute ?? 0) > 0 || (a.heatPerRun ?? 0) > 0 || (a.heatPerSecond ?? 0) > 0;
+
+/** The Overclock unlock of an action when the player owns it or its cell is shown in the square. */
+const overclockUnlockOf = (a: ActionDefinition, ctx: RevealContext): BuyableDefinition | undefined =>
+  overclockOnOffer(ctx.config, a.id, ctx.owned) ??
+  ctx.config.buyables.find((b) => b.actionId === a.id && b.effect.kind === 'overclockUnlock' && ctx.owned(b.id) > 0);
+
+/** Heat is made or on offer: an open action that makes heat, or an Overclock unlock (owned, or shown in the square) whose overclock makes heat. */
 const heatExists = (ctx: RevealContext): boolean =>
   ctx.config.actions.some((a) => isOpen(a, ctx) && ((a.heatPerRun ?? 0) > 0 || (a.heatPerSecond ?? 0) > 0)) ||
-  ctx.config.buyables.some(
-    (b) =>
-      b.effect.kind === 'overclockUnlock' &&
-      ctx.owned(b.id) > 0 &&
-      (ctx.config.actions.find((a) => a.id === b.actionId)?.overclock?.heatPerMinute ?? 0) > 0,
-  );
+  ctx.config.actions.some((a) => overclockMakesHeat(a) && overclockUnlockOf(a, ctx) !== undefined);
 
 /** ICE Rating is boosted or earned: an owned buyable that boosts it, or an open action that earns it. */
 const iceExists = (ctx: RevealContext): boolean =>
@@ -51,8 +56,8 @@ const heatAndIce = (ctx: RevealContext): boolean => heatExists(ctx) || iceExists
 /**
  * One rule per stat: `true` once something that produces or boosts the stat is unlocked.
  *
- * - Heat and ICE Rating (linked, one shared rule): an open action that makes heat (`heatPerRun`, `heatPerSecond`), an owned Overclock
- *   unlock whose overclock makes heat (`heatPerMinute`), an owned buyable that boosts ICE Rating, or an open action that earns it.
+ * - Heat and ICE Rating (linked, one shared rule): an open action that makes heat (`heatPerRun`, `heatPerSecond`), an Overclock
+ *   unlock (owned, or shown in the square) whose overclock makes heat (`heatPerMinute`, or the action makes heat itself), an owned buyable that boosts ICE Rating, or an open action that earns it.
  * - Legend: an open action that earns it.
  */
 export const REVEAL_RULES: Readonly<Record<RevealableStat, (ctx: RevealContext) => boolean>> = {

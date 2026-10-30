@@ -19,8 +19,10 @@ import { type BigNum, formatBigNum, formatPlain, type NumberFactory } from '../.
 import type { UiText } from '../uiText';
 import { sleeveLevelsOpen } from './sleeveGate';
 import { SPEED_DECIMALS, formatSeconds } from './viewFormat';
+import { fastBarView } from './fastBar';
 import { augmentView, focusView, overclockView } from './modeViews';
 import { squareView } from './squareView';
+import { levelXpTipParts, sleeveXpTipParts } from './xpTipView';
 import type { ActionView, BuyableView, ViewSelection } from './viewTypes';
 
 /** What starting an action costs, for the card (the share of the balance is shown with today's amount). */
@@ -114,6 +116,7 @@ export function buildActionViews(
     const durationText = formatSeconds(duration, text);
     const cost = startCostText(def, engine.startCostOf(def.id), text);
     const auto = engine.isAutoRun(def.id);
+    const fast = fastBarView(duration, auto, text);
     const rewardText = formatBigNum(engine.payoutPerRun(def.id));
     const rewardUnit = text.rewardUnits[def.rewardKind ?? 'credits'];
     const rewardMultiplierText = formatBigNum(engine.rewardMultiplier(def.id));
@@ -147,12 +150,20 @@ export function buildActionViews(
         progressPercent: engine.sleeveLevelProgress(def.id) * 100,
         runsToNextXp,
       },
+      get levelXpTip() {
+        return text.tips.levelXp(levelXpTipParts(engine, def.id, text));
+      },
+      get sleeveXpTip() {
+        return text.tips.sleeveXp(sleeveXpTipParts(engine, def.id));
+      },
       speedText,
       durationText,
       rewardText,
       rewardUnit,
       rewardMultiplierText,
-      progressPercent: s.running ? Math.min(100, s.progress * 100) : 0,
+      durationMs: duration,
+      progressPercent: fast.full && (s.running || auto) ? 100 : s.running ? Math.min(100, s.progress * 100) : 0,
+      barText: fast.rateText,
       running: s.running,
       auto,
       unlocked,
