@@ -4,11 +4,9 @@ import { createGame } from '../app/createGame';
 import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
-import { type SpeedControl, mountUi } from './dom';
 import { HALF_TILE, STEP_PX, TILE_PX } from './widgets/skillTree';
 import { flat } from '../testing/flatState';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { mountTestUi } from '../testing/domMountKit';
 
 const skill = (id: string, extra: Partial<BuyableDefinition> = {}): BuyableDefinition => ({
   id,
@@ -42,7 +40,7 @@ const mount = () => {
   const root = document.createElement('div');
   document.body.append(root);
   const game = createGame({ config });
-  const render = mountUi(root, game, speed, () => {});
+  const render = mountTestUi(root, game);
   const tree = () => root.querySelector<HTMLElement>('.skills-widget:not(.resleeve-skills)')!;
   const node = (symbol: string) => [...tree().querySelectorAll<HTMLButtonElement>('.skill-node')].find((b) => b.textContent === symbol)!;
   return { root, game, render, tree, node };

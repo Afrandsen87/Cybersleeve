@@ -5,11 +5,10 @@ import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel } from './viewModel';
 import { flat } from '../testing/flatState';
+import { mountTestUi } from '../testing/domMountKit';
 
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 const config = createConfig(testConfig, { items: { ...testConfig.items, augment: { itemId: 'file', xpBonusPerItem: 0.01 } } });
 
 type Loose = { inventory: unknown };
@@ -67,7 +66,7 @@ describe('the Augment button on the screen', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     // The Augment button is a cell of the square, which shows its four cells once Auto-run is owned.
     setCredits(game, num(100));
     game.buy('auto');
@@ -120,7 +119,7 @@ describe('the Augment button on the screen', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: testConfig });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     setCredits(game, num(100));
     game.buy('auto');
     render();
@@ -165,7 +164,7 @@ describe('items that cannot be paid out, in the Inventory', () => {
       document.body.append(root);
       const game = createGame({ config: cfg });
       stock(game, { common: 2 });
-      mountUi(root, game, speed, () => {});
+      mountTestUi(root, game);
       const sections = [...root.querySelectorAll<HTMLElement>('.inventory-section')];
       expect(sections[1]!.hidden).toBe(!sellable); // the section for sale
       expect(sections[0]!.hidden).toBe(sellable); // the section of kept items

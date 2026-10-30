@@ -4,12 +4,10 @@ import { createGame } from '../app/createGame';
 import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
-import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel, statRow } from './viewModel';
 import { skillViews } from '../testing/skillViews';
 import { flat } from '../testing/flatState';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { mountTestUi } from '../testing/domMountKit';
 
 const skill = (id: string, effect: BuyableDefinition['effect'], symbol = id.toUpperCase()): BuyableDefinition => ({
   id,
@@ -160,7 +158,7 @@ describe('the screen', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = pointGame();
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     return { root, game, render };
   };
   const panel = (root: HTMLElement, cls: string) => root.querySelector<HTMLElement>(`.${cls}`)!;
@@ -186,7 +184,7 @@ describe('the screen', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     expect(root.querySelector<HTMLElement>('.tabs')!.hidden).toBe(true);
     loose(game).actions['z']!.xp = num(10);
     render();

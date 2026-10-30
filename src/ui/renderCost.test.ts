@@ -5,11 +5,9 @@ import { LevelRule } from '../core';
 import { num, numberFactory } from '../numbers';
 import { hoverText } from '../testing/hover';
 import { testConfig } from '../testing/testConfig';
-import { mountUi, type SpeedControl } from './dom';
 import { type UiText, uiText } from './uiText';
 import { buildViewModel } from './viewModel';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { mountTestUi } from '../testing/domMountKit';
 
 /** The display text with every hover-text builder counted, to see how often tooltips are built. */
 function countingText(): { text: UiText; built: () => number } {
@@ -44,7 +42,7 @@ describe('tooltips are built when they are shown, not when the screen is built',
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: testConfig });
-    const render = mountUi(root, game, speed, () => {}, { text });
+    const render = mountTestUi(root, game, { text });
     render();
     render();
     expect(built()).toBe(0);
@@ -57,7 +55,7 @@ describe('tooltips are built when they are shown, not when the screen is built',
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: testConfig });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     const heat = [...root.querySelectorAll<HTMLElement>('.stat')].find(
       (r) => r.querySelector('.stat-label')?.textContent === uiText.statLabels.heat,
     )!;
@@ -78,7 +76,7 @@ describe('progress bars', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: testConfig });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     game.startAction('a');
     game.tick(2_500);
     render();
@@ -93,7 +91,7 @@ describe('progress bars', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: testConfig });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     const bar = root.querySelector<HTMLElement>('.bar-fill')!;
     game.startAction('a');
     game.tick(2_500);

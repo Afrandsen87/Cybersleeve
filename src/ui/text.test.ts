@@ -5,12 +5,12 @@ import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { mountUi, showNotice, type SpeedControl } from './dom';
+import { mountUi, showNotice } from './dom';
 import { uiText, type UiText } from './uiText';
 import { buildViewModel, statRow } from './viewModel';
 import { flat } from '../testing/flatState';
+import { idleSpeed, mountTestUi } from '../testing/domMountKit';
 
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 const state = (g: { getState(): unknown }) => flat<{ heat: number; legend: number; network: unknown }>(g);
 
 /** A complete text table whose every entry is recognisable, to prove that nothing is spelled out in logic. */
@@ -43,7 +43,7 @@ describe('display text comes from the text table', () => {
   it('the screen shows the injected text, chrome included', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config: testConfig }), speed, () => {}, { text: shouting });
+    mountUi(root, createGame({ config: testConfig }), idleSpeed, () => {}, { text: shouting });
     expect(root.querySelector('.credits')?.textContent).toBe('<<0 CR>>');
     expect(root.querySelector('.resleeve')?.textContent).toBe('IDLE');
     expect(root.querySelector('.resleeve-cancel')?.textContent).toBe('NEVERMIND');
@@ -114,7 +114,7 @@ describe('the screen renders stat rows from data', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: testConfig });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     return { root, game, render };
   };
 
@@ -151,7 +151,7 @@ describe('test aids and notices', () => {
   it('the debug bar is left out when debug controls are off', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config: testConfig }), speed, () => {}, { debugControls: false });
+    mountUi(root, createGame({ config: testConfig }), idleSpeed, () => {}, { debugControls: false });
     expect(root.querySelector('.reset-save')).toBeNull();
     expect(root.querySelector('.speed-toggle')).toBeNull();
     expect(root.querySelector('.credits')).not.toBeNull();
@@ -160,7 +160,7 @@ describe('test aids and notices', () => {
   it('showNotice puts an alert over the game', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config: testConfig }), speed, () => {});
+    mountUi(root, createGame({ config: testConfig }), idleSpeed, () => {});
     showNotice(root, 'hello');
     const notice = root.firstElementChild!;
     expect(notice.textContent).toBe('hello');

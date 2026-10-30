@@ -5,11 +5,10 @@ import { createGame } from '../app/createGame';
 import { createConfig, type BuyableDefinition } from '../core';
 import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { mountUi, type SpeedControl } from './dom';
+import { mountUi } from './dom';
 import { uiText } from './uiText';
 import { buildViewModel } from './viewModel';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { idleSpeed, mountTestUi } from '../testing/domMountKit';
 
 const harvest: BuyableDefinition = {
   id: 'harvest',
@@ -81,7 +80,7 @@ describe('inventory widget', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     const widget = root.querySelector<HTMLElement>('.inventory-widget')!;
     const tiles = () => [...widget.querySelectorAll<HTMLButtonElement>('.item-tile')];
     const button = (label: string) =>
@@ -167,7 +166,7 @@ describe('inventory widget', () => {
         ],
       },
     });
-    mountUi(root, createGame({ config: two }), speed, () => {});
+    mountUi(root, createGame({ config: two }), idleSpeed, () => {});
     const [kept, forSale] = [...root.querySelectorAll<HTMLElement>('.inventory-section')];
     const groups = (section: HTMLElement) =>
       [...section.querySelectorAll<HTMLElement>('.item-group')].map((g) => g.querySelectorAll('.item-tile').length);
@@ -244,7 +243,7 @@ describe('inventory widget', () => {
     const game = createGame({ config });
     stock(game, { file: { common: 1 } });
     const icons = { urlFor: (id: string) => (id === 'file' ? 'url("icon-file")' : null) };
-    mountUi(root, game, speed, () => {}, { icons });
+    mountTestUi(root, game, { icons });
     const icon = root.querySelector<HTMLElement>('.item-tile .item-icon')!;
     expect(icon.style.getPropertyValue('--icon')).toBe('url("icon-file")');
     document.body.innerHTML = '';
@@ -272,7 +271,7 @@ describe('inventory widget', () => {
   it('the button is left out with the other test aids when they are off', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config }), speed, () => {}, { debugControls: false });
+    mountUi(root, createGame({ config }), idleSpeed, () => {}, { debugControls: false });
     expect(root.querySelector('.test-drop')).toBeNull();
   });
 });

@@ -5,10 +5,8 @@ import { createConfig, type GameConfig } from '../core';
 import { num } from '../numbers';
 import { automationLaneBuyables } from '../testing/automationKit';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel } from './viewModel';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { mountTestUi } from '../testing/domMountKit';
 
 const config: GameConfig = createConfig(testConfig, {
   actions: [...testConfig.actions, { id: 'b', name: 'B', baseDurationMs: 10_000, reward: num(0), xpPerRun: num(1) }],
@@ -44,7 +42,7 @@ const mount = (points = 1) => {
   const game = createGame({ config });
   setCredits(game, num(1_000_000));
   for (let i = 0; i < points; i++) game.buy('core');
-  const render = mountUi(root, game, speed, () => {});
+  const render = mountTestUi(root, game);
   return { root, game, render };
 };
 

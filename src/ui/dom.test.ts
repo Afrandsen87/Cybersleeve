@@ -5,15 +5,14 @@ import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { mountUi, type SpeedControl } from './dom';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { mountUi } from './dom';
+import { idleSpeed, mountTestUi } from '../testing/domMountKit';
 
 function mount(onReset: () => void = () => {}) {
   const root = document.createElement('div');
   document.body.append(root);
   const game = createGame({ config: testConfig });
-  const render = mountUi(root, game, speed, onReset);
+  const render = mountUi(root, game, idleSpeed, onReset);
   const click = (selector: string, index = 0) => (root.querySelectorAll(selector)[index] as HTMLElement).click();
   return { root, game, render, click };
 }
@@ -182,7 +181,7 @@ describe('icons', () => {
     document.body.append(root);
     const game = createGame({ config: testConfig });
     const icons = { urlFor: (id: string) => (id === 'a' || id === 'credits' ? `url("icon-${id}")` : null) };
-    mountUi(root, game, speed, () => {}, { icons });
+    mountTestUi(root, game, { icons });
     const title = root.querySelector('.action-title') as HTMLElement;
     expect(title.classList.contains('has-icon')).toBe(true);
     expect(title.style.getPropertyValue('--icon')).toBe('url("icon-a")');
@@ -202,7 +201,7 @@ describe('icons', () => {
     document.body.append(root);
     const game = createGame({ config: testConfig });
     const icons = { urlFor: (id: string) => `url("icon-${id}")` };
-    mountUi(root, game, speed, () => {}, { icons });
+    mountTestUi(root, game, { icons });
     const button = root.querySelector('.upgrade') as HTMLElement;
     expect(button.classList.contains('has-icon')).toBe(true);
     expect(button.style.getPropertyValue('--icon')).toMatch(/^url\("icon-/);

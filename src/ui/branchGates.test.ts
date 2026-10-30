@@ -9,10 +9,9 @@ import { BRANCH_ANONYMITY } from '../content/ids';
 import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
 import { legendAction, setCredits, testConfig } from '../testing/testConfig';
-import { type SpeedControl, mountUi } from './dom';
 import { buildViewModel } from './viewModel';
+import { mountTestUi } from '../testing/domMountKit';
 
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 const unlock: BuyableDefinition = {
   id: 'unlock',
   name: 'Unlock',
@@ -63,7 +62,7 @@ describe('a branch gated by heat', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const g = createGame({ config });
-    const render = mountUi(root, g, speed, () => {});
+    const render = mountTestUi(root, g);
     const laneEl = () => root.querySelector<HTMLElement>(`.skill-lane[data-branch="${BRANCH_ANONYMITY}"]`)!;
     expect(laneEl().hidden).toBe(true);
     setCredits(g, num(1));

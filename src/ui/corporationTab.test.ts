@@ -5,10 +5,8 @@ import { createConfig } from '../core';
 import { num } from '../numbers';
 import { hoverText } from '../testing/hover';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel } from './viewModel';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { mountTestUi } from '../testing/domMountKit';
 
 /** Test content: a purchase that opens the corporation and one corporation action of 30 seconds that upgrades files. */
 const config = createConfig(testConfig, {
@@ -136,7 +134,7 @@ describe('the Corporation tab on the screen', () => {
     document.body.append(root);
     const game = createGame({ config });
     own(game);
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     const tabButton = (): HTMLButtonElement =>
       [...root.querySelectorAll<HTMLButtonElement>('.tab')].find((t) => t.textContent === 'Corporation')!;
     const panel = (): HTMLElement => root.querySelector<HTMLElement>('.corporation-panel')!;

@@ -12,10 +12,9 @@ import { createConfig } from '../core';
 import { num } from '../numbers';
 import { hoverText } from '../testing/hover';
 import { setCredits, setSleeveXp, testConfig } from '../testing/testConfig';
-import { type SpeedControl, mountUi } from './dom';
 import { buildViewModel } from './viewModel';
+import { mountTestUi } from '../testing/domMountKit';
 
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
 const gate = {
   id: 'levels',
   name: 'Sleeve levels',
@@ -32,7 +31,7 @@ function mount(base: number, perResleeve: number) {
     resleeve: { ...testConfig.resleeve, lockoutMs: 0, sleeveLevelsNeeded: { base, perResleeve } },
   });
   const game = createGame({ config });
-  const render = mountUi(root, game, speed, () => {});
+  const render = mountTestUi(root, game);
   const button = () => root.querySelector<HTMLButtonElement>('.sleeve-widget .resleeve')!;
   const open = () => {
     setCredits(game, num(10));

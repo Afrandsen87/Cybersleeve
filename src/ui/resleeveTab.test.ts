@@ -4,12 +4,10 @@ import { createGame } from '../app/createGame';
 import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
 import { networkAction, testConfig } from '../testing/testConfig';
-import { mountUi, type SpeedControl } from './dom';
 import { buildViewModel, statRow } from './viewModel';
 import { skillViews } from '../testing/skillViews';
 import { flat } from '../testing/flatState';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { mountTestUi } from '../testing/domMountKit';
 
 const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], parents?: string[]): BuyableDefinition => ({
   id,
@@ -156,7 +154,7 @@ describe('the screen', () => {
   const mount = (game = resleeved(1)) => {
     const root = document.createElement('div');
     document.body.append(root);
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     return { root, game, render };
   };
   const click = (root: HTMLElement, label: string) =>

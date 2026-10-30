@@ -5,10 +5,8 @@ import { createConfig } from '../core';
 import { num } from '../numbers';
 import { automationLaneBuyables, laneSkillId } from '../testing/automationKit';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { type SpeedControl, mountUi } from './dom';
 import { buildViewModel } from './viewModel';
-
-const speed: SpeedControl = { enabled: false, factor: 1, toggle: () => false };
+import { mountTestUi } from '../testing/domMountKit';
 
 /** Test content: the automation point buyable `core` and a lane of three skills per feature. */
 const config = createConfig(testConfig, {
@@ -34,7 +32,7 @@ const mount = (points: number) => {
   const game = createGame({ config });
   setCredits(game, num(1_000_000));
   for (let i = 0; i < points; i++) game.buy('core');
-  const render = mountUi(root, game, speed, () => {});
+  const render = mountTestUi(root, game);
   return { root, game, render };
 };
 
