@@ -55,6 +55,7 @@ const SLEEVE_KEYS = [
   'overclocked',
   'peakCredits',
   'peakNetwork',
+  'peakNetworkIncome',
   'purchased',
   'resleeveLockoutMs',
 ];

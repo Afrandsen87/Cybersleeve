@@ -89,6 +89,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
         | 'peakCredits'
         | 'network'
         | 'peakNetwork'
+        | 'peakNetworkIncome'
         | 'heat'
         | 'heatCooldownMs'
         | 'iceRating'

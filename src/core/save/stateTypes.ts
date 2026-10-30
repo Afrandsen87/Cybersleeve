@@ -32,7 +32,7 @@ export interface ActionState {
  * What is kept of one finished sleeve-run (the life that ended with a re-sleeve). Synthetic sleeves are copies of such a run.
  */
 export interface SleeveRunRecord {
-  /** The credits per second the sleeve's own network was producing when it was re-sleeved (after the heat tax; synthetic income is not part of it). */
+  /** The highest credits per second the sleeve's own network produced during that life (after the heat tax; synthetic income is not part of it): the peak, not the rate at the moment of re-sleeving. */
   readonly creditsPerSecond: BigNum;
   /** The total of all action levels the sleeve had reached at that moment (a whole number >= 0). */
   readonly actionLevelsTotal: number;
@@ -84,6 +84,12 @@ export interface SleeveState {
   network: BigNum;
   /** The most nodes held at any moment of this life (see `RevealConfig`). Reset by re-sleeving. */
   peakNetwork: BigNum;
+  /**
+   * The highest credits per second the sleeve's own network produced at any moment of this life (after the heat tax; synthetic income
+   * is not part of it). Noted by `NetworkSystem.payPassiveIncome` every slice and read by the re-sleeve record, which keeps the larger of
+   * this and the rate at the moment of re-sleeving. Reset by re-sleeving; an older save without it starts at 0.
+   */
+  peakNetworkIncome: BigNum;
   /**
    * Current heat: starts at `sleeve.baseHeat`, raised by actions, lowered by the cooldown and by Burn leads. Reset by re-sleeving.
    * It may hold fractions of a point (Overclock adds heat continuously), but the cooldown only ever removes whole points: it waits

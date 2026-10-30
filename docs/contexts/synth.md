@@ -12,3 +12,6 @@ Code: `src/core/synth/` (see `docs/contexts/_folders.md`). Text below is moved v
 
 *Group: Decided 2026-10-27 (by the user, more re-sleeve skills)*
 - **Hive Interface** at one tenth of ln(1 + synthetic sleeves) (the user agreed the first value was weak). **Cloning Vats:** two per re-sleeve. **Perfect Copies:** each synthetic sleeve earns at least the network's own income now (a maximum with its recorded income, so a fresh life does not earn less than before). **Synthetic Workers** (was Board Seat): corporation run speed with synthetic sleeves. **Synthetic Procurement:** only the unlock, with an empty Synthetic Sleeves widget on the Corporation tab.
+
+*Group: Decided 2026-10-30 (by the user)*
+- **A synthetic sleeve earns the PEAK credits per second of the run it copies** (own network only; see resleeve.md), not the rate at the moment that life ended.

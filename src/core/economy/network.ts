@@ -41,12 +41,16 @@ export class NetworkSystem {
   /**
    * Pays the credits the network produced over `deltaMs`, using the nodes and heat held now (nodes finished during the
    * slice start producing in the next one), plus what the synthetic sleeves earned. The synthetic income is not taxed by heat.
+   * Also raises `sleeve.peakNetworkIncome` to the network's rate of this slice (synthetic income excluded), the peak the re-sleeve record keeps.
    * @param deltaMs game time in milliseconds
    */
   payPassiveIncome(deltaMs: number): void {
     const seconds = this.factory.fromNumber(deltaMs / 1000);
-    if (!this.state.sleeve.network.isZero())
-      this.state.wallet.credits = this.state.wallet.credits.add(this.stats.passiveCreditsPerSecond().mul(seconds));
+    if (!this.state.sleeve.network.isZero()) {
+      const rate = this.stats.passiveCreditsPerSecond();
+      if (rate.gt(this.state.sleeve.peakNetworkIncome)) this.state.sleeve.peakNetworkIncome = rate;
+      this.state.wallet.credits = this.state.wallet.credits.add(rate.mul(seconds));
+    }
     if (this.synths) this.state.wallet.credits = this.state.wallet.credits.add(this.synths.creditsPerSecond().mul(seconds));
   }
 

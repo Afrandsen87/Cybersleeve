@@ -16,6 +16,12 @@ import { migrateSave } from './migrate';
 const read = (name: string): string => readFileSync(new URL(`../../testing/fixtures/saves/${name}`, import.meta.url), 'utf8');
 const FIXTURES = ['v6-early-before-resleeve.json', 'v6-after-three-resleeves.json'];
 const load = (text: string) => deserializeState(text, gameConfig, numberFactory);
+/** The flat form of a loaded save, without `peakNetworkIncome`: a field newer than the v6 fixtures, which start it fresh (0). */
+const flatWithoutNewFields = (text: string) => {
+  const { peakNetworkIncome, ...rest } = flatSave(text);
+  expect(peakNetworkIncome).toBe('0');
+  return rest;
+};
 
 describe.each(FIXTURES)('v6 fixture %s', (name) => {
   const text = read(name);
@@ -32,7 +38,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
   });
 
   it('migrate, load and save gives back every value of the old save (field by field)', () => {
-    expect(flatSave(serializeState(load(migrated)!))).toEqual(raw);
+    expect(flatWithoutNewFields(serializeState(load(migrated)!))).toEqual(raw);
   });
 
   it('starts the all-time peaks at the peak of the life being lived', () => {
@@ -78,7 +84,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
 
   it('ignores unknown keys and unknown ids', () => {
     const extra = { ...raw, mystery: 1, purchased: { ...raw['purchased'], 'no-such-buyable': 3 } };
-    expect(flatSave(serializeState(load(asSave(extra))!))).toEqual(raw);
+    expect(flatWithoutNewFields(serializeState(load(asSave(extra))!))).toEqual(raw);
   });
 
   it('repairs garbage in plain-number fields to the fresh value', () => {

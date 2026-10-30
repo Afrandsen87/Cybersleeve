@@ -20,7 +20,15 @@ const config: GameConfig = createConfig(testConfig, {
   buyables: [
     ...testConfig.buyables,
     { id: 'auto-b', name: 'Auto B', description: '', actionId: 'b', cost: num(10), effect: { kind: 'autoRun' } },
-    { id: 'core', name: 'Core', description: '', cost: num(1), costGrowth: 10, maxPurchases: Infinity, effect: { kind: 'automationPoints', perCopy: 1 } },
+    {
+      id: 'core',
+      name: 'Core',
+      description: '',
+      cost: num(1),
+      costGrowth: 10,
+      maxPurchases: Infinity,
+      effect: { kind: 'automationPoints', perCopy: 1 },
+    },
     ...automationLaneBuyables(),
   ],
   automation: { autoBurnCeiling: 10 },
