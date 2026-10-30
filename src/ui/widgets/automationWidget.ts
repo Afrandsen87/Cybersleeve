@@ -6,7 +6,7 @@
  * @remarks
  * Called by: `ui/dom.ts`. Calls: `domKit.ts`, `skillTree.ts`, `AutomationControls`.
  */
-import type { AutomationControls, AutomationFeature } from '../../core';
+import type { AutoBurnSwitch, AutomationControls, AutomationFeature } from '../../core';
 import type { AutomationView } from '../viewModel';
 import { type UiContext, h, setText } from './domKit';
 import { type SkillTreeWidget, mountSkillTree } from './skillTree';
@@ -26,8 +26,12 @@ export interface AutomationWidget {
   readonly points: HTMLElement;
   /** Each feature's box, its unlock button, the controls that show once it is unlocked, and its skill lane. */
   readonly features: ReadonlyMap<AutomationFeature, AutomationFeatureHandle>;
-  readonly autoBurnSwitch: HTMLButtonElement;
-  readonly autoBurnCeiling: HTMLInputElement;
+  /** Auto Burn's switches by name, shown once the skill that adds each is owned. */
+  readonly autoBurnSwitches: ReadonlyMap<AutoBurnSwitch, HTMLButtonElement>;
+  /** Auto Burn's threshold inputs and reserve input, each with the row that holds it (hidden until its skill is owned). */
+  readonly autoBurnLower: { readonly row: HTMLElement; readonly input: HTMLInputElement };
+  readonly autoBurnUpper: { readonly row: HTMLElement; readonly input: HTMLInputElement };
+  readonly autoBurnReserve: { readonly row: HTMLElement; readonly input: HTMLInputElement };
   readonly rarities: ReadonlyMap<string, HTMLButtonElement>;
   readonly shares: ReadonlyMap<string, HTMLInputElement>;
 }
@@ -73,13 +77,27 @@ export function buildAutomationWidget(
   const points = h('div', 'skills-points');
   root.append(h('h2', undefined, view.title), points);
   const features = new Map<AutomationFeature, AutomationFeatureHandle>();
-  const autoBurnSwitch = h('button', 'automation-switch') as HTMLButtonElement;
-  autoBurnSwitch.addEventListener('click', () => {
-    controls.setAutoBurn(!controls.isAutoBurnOn());
+  const burn = controls.autoBurn();
+  const autoBurnSwitches = new Map<AutoBurnSwitch, HTMLButtonElement>();
+  for (const s of view.autoBurn.switches) {
+    const b = h('button', 'automation-switch', s.label) as HTMLButtonElement;
+    b.addEventListener('click', () => {
+      burn.setSwitch(s.name, !burn.rules()[s.name]);
+      refresh();
+    });
+    autoBurnSwitches.set(s.name, b);
+  }
+  // both thresholds are set together (the pair must stay 0 <= lower < upper), so each field sends the other's current value with its own
+  const lower = numberField(view.autoBurn.thresholds.lowerLabel, 0, null, (v) => {
+    burn.setThresholds(v, burn.rules().upperAt);
     refresh();
   });
-  const ceiling = numberField(view.autoBurn.ceilingLabel, 0, null, (v) => {
-    controls.setAutoBurnCeiling(v);
+  const upper = numberField(view.autoBurn.thresholds.upperLabel, 0, null, (v) => {
+    burn.setThresholds(burn.rules().lower, v);
+    refresh();
+  });
+  const reserve = numberField(view.autoBurn.reserve.label, 0, null, (v) => {
+    burn.setReserve(v);
     refresh();
   });
   const rarities = new Map<string, HTMLButtonElement>();
@@ -87,7 +105,7 @@ export function buildAutomationWidget(
   for (const f of view.features) {
     const box = h('section', `automation-feature automation-${f.id}`);
     const body = h('div', 'automation-controls');
-    if (f.id === 'autoBurn') body.append(autoBurnSwitch, ceiling.row);
+    if (f.id === 'autoBurn') body.append(h('p', 'automation-hint', view.autoBurn.hint), ...autoBurnSwitches.values(), lower.row, upper.row, reserve.row);
     else if (f.id === 'autosale') {
       for (const r of view.rarities) {
         const b = h('button', 'automation-switch', r.name) as HTMLButtonElement;
@@ -113,7 +131,7 @@ export function buildAutomationWidget(
     features.set(f.id, { box, controls: body, tree });
     root.append(box);
   }
-  return { root, points, features, autoBurnSwitch, autoBurnCeiling: ceiling.input, rarities, shares };
+  return { root, points, features, autoBurnSwitches, autoBurnLower: lower, autoBurnUpper: upper, autoBurnReserve: reserve, rarities, shares };
 }
 
 /** Sets an input's value from the game unless the player is typing in it (their text is not overwritten). */
@@ -131,9 +149,19 @@ export function renderAutomation(widget: AutomationWidget, view: AutomationView)
     handle.box.classList.toggle('unlocked', f.unlocked);
     handle.tree.render(f.lanes);
   }
-  setText(widget.autoBurnSwitch, view.autoBurn.switchText);
-  widget.autoBurnSwitch.classList.toggle('on', view.autoBurn.on);
-  syncInput(widget.autoBurnCeiling, view.autoBurn.ceiling);
+  for (const s of view.autoBurn.switches) {
+    const b = widget.autoBurnSwitches.get(s.name);
+    if (!b) continue;
+    b.hidden = !s.visible; // nothing is shown before its skill is owned
+    b.classList.toggle('on', s.on);
+  }
+  const { thresholds, reserve } = view.autoBurn;
+  widget.autoBurnLower.row.hidden = !thresholds.visible;
+  widget.autoBurnUpper.row.hidden = !thresholds.visible;
+  widget.autoBurnReserve.row.hidden = !reserve.visible;
+  syncInput(widget.autoBurnLower.input, thresholds.lower);
+  syncInput(widget.autoBurnUpper.input, thresholds.upper);
+  syncInput(widget.autoBurnReserve.input, reserve.value);
   for (const r of view.rarities) widget.rarities.get(r.id)?.classList.toggle('on', r.on);
   for (const a of view.actions) {
     const input = widget.shares.get(a.id);

@@ -140,6 +140,11 @@ export interface ItemQueries {
   backChannel(): BackChannelRule | null;
   /** True when using a Burn lead of this rarity would do something (one is held and there is heat). */
   canUseBurnLead(rarityId: RarityId): boolean;
+  /**
+   * The Burn lead toggle, or `null` while the lead is still a click that uses one lead (the Auto Burn lane's first skill is not owned).
+   * `hold`, `lower` and `reserve` are the rules in force (see `AutoBurnRules`).
+   */
+  burnLeadToggle(): { readonly on: boolean; readonly hold: boolean; readonly lower: number; readonly reserve: number } | null;
   /** True when pressing the Zero-day toggle would do something (it is on, or a Zero-day is held). */
   canToggleZeroDays(): boolean;
   /** True when pressing the Admin key toggle would do something (it is on, or an Admin key is held). */
@@ -235,6 +240,8 @@ export interface ShopCommands {
 export interface ItemCommands {
   /** Uses one Burn lead of a rarity: it is used up and takes a share of the current heat away. @returns true when one was used */
   useBurnLead(rarityId: RarityId): boolean;
+  /** Switches the Burn lead toggle (only once the Auto Burn lane's first skill is owned; works with no lead held). @returns true when it is now on */
+  toggleBurnLead(): boolean;
   /** Switches the Zero-day toggle (needs a Zero-day to switch on; switches itself off at 0). @returns true when it is now on */
   toggleZeroDays(): boolean;
   /** Switches the Admin key toggle (needs an Admin key to switch on; switches itself off at 0). @returns true when it is now on */

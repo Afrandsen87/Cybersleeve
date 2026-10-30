@@ -43,7 +43,7 @@ export const gameConfig: GameConfig = {
   reveal: { buyableOrders: 3 },
 
   /** Auto Burn starts out using Burn leads once heat is above 20 points (placeholder; the player changes it). */
-  automation: { autoBurnCeiling: 20 },
+  automation: { autoBurnCeiling: 20, autoBurnUpper: 70 },
 
   progression: {
     /** Completed runs of one action per batch of that action's sleeve XP. */

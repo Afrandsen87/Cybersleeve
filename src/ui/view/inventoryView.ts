@@ -63,8 +63,12 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
       const isZeroDay = zeroDay?.itemId === item.id;
       const isAdminKey = adminKey?.itemId === item.id;
       const isShard = skillShard?.itemId === item.id;
-      const usable = burnLead?.itemId === item.id || isShard;
-      const toggleable = isZeroDay || isAdminKey;
+      const isBurnLead = burnLead?.itemId === item.id;
+      // Once Auto Burn's first skill is owned the Burn lead is a toggle like the Zero-day; before that a click uses one lead.
+      const burnToggle = isBurnLead ? engine.burnLeadToggle() : null;
+      const isBurnToggle = burnToggle !== null;
+      const usable = (isBurnLead && !isBurnToggle) || isShard;
+      const toggleable = isZeroDay || isAdminKey || isBurnToggle;
       return {
         itemId: item.id,
         rarityId: rarity.id,
@@ -80,10 +84,14 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
         canUse:
           (usable && !isShard && engine.canUseBurnLead(rarity.id)) ||
           (isShard && engine.canUseSkillShard()) ||
+          isBurnToggle ||
           (isZeroDay && engine.canToggleZeroDays()) ||
           (isAdminKey && engine.canToggleAdminKeys()),
         toggleable,
-        on: (isZeroDay && state.sleeve.keyToggles['zeroDay'] === true) || (isAdminKey && state.sleeve.keyToggles['adminKey'] === true),
+        on:
+          (burnToggle?.on === true) ||
+          (isZeroDay && state.sleeve.keyToggles['zeroDay'] === true) ||
+          (isAdminKey && state.sleeve.keyToggles['adminKey'] === true),
         backChannel,
         get backChannelTip() {
           return backChannel && channel && channelMoles !== undefined
@@ -113,8 +121,18 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
                   : [],
             });
           }
-          if (usable && burnLead) {
+          if (isBurnLead && burnLead) {
             return text.tips.burnLead({
+              ...(burnToggle
+                ? {
+                    toggle: {
+                      on: burnToggle.on,
+                      hold: burnToggle.hold,
+                      lower: formatPlain(burnToggle.lower),
+                      reserve: burnToggle.reserve > 0 ? formatPlain(burnToggle.reserve) : null,
+                    },
+                  }
+                : {}),
               label,
               drops,
               sharePercent: formatPlain(burnLead.heatFraction * 100),

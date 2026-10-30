@@ -1,9 +1,10 @@
 import { AUTOMATION_FEATURES } from '../../automation/automation';
+import { AUTO_BURN_STEPS } from '../../automation/autoBurnTypes';
 import type { BuyableEffect } from '../../types';
 import { sleeveWide } from '../effectHelpers';
 import type { EffectDefinition } from '../effectTypes';
 
-type Kind = 'automationPoints' | 'unlocksAutomation';
+type Kind = 'automationPoints' | 'unlocksAutomation' | 'autoBurnStep';
 
 /** The entries for the automation effects, keyed by kind. */
 export const AUTOMATION_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<BuyableEffect, { kind: K }>> } = {
@@ -20,6 +21,13 @@ export const AUTOMATION_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extrac
     validate: (e, { where, errors }) => {
       if (!AUTOMATION_FEATURES.includes(e.feature))
         errors.push(`${where}: unlocksAutomation names an unknown feature "${String(e.feature)}"`);
+    },
+  },
+  autoBurnStep: {
+    // read only by Auto Burn (autoBurnRules.ts), which asks whether the owned buyable of each step exists
+    traits: sleeveWide,
+    validate: (e, { where, errors }) => {
+      if (!AUTO_BURN_STEPS.includes(e.step)) errors.push(`${where}: autoBurnStep names an unknown step "${String(e.step)}"`);
     },
   },
 };

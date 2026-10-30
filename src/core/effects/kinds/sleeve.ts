@@ -6,6 +6,7 @@
  * Called by: `effects/kinds/index.ts` (the {@link BuyableEffect} union). Calls: nothing.
  */
 import type { AutomationFeature } from '../../automation/automation';
+import type { AutoBurnStep } from '../../automation/autoBurnTypes';
 import type { ActionId } from '../../actions/actionTypes';
 
 /** Effects that change the sleeve as a whole: interface speed, access level, node payout, ICE Rating, network growth, automation. */
@@ -43,6 +44,8 @@ export type SleeveEffect =
   | { readonly kind: 'interfaceSpeedMultiplier'; readonly factor: number }
   /** Owning this skill (the root of an automation lane) unlocks the automation `feature`: its settings and its work. Sleeve-wide. */
   | { readonly kind: 'unlocksAutomation'; readonly feature: AutomationFeature }
+  /** Owning this skill (a later skill of the Auto Burn lane) grants one step of Auto Burn: a switch, the choice of categories, editable thresholds or the reserve. Sleeve-wide. */
+  | { readonly kind: 'autoBurnStep'; readonly step: AutoBurnStep }
   /** Does nothing (yet): a node of a tree whose effect is not designed. */
   | { readonly kind: 'placeholder' }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */

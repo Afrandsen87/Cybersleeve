@@ -63,6 +63,7 @@ export const SLEEVE_KEY_ORDER: readonly string[] = [
   'focused',
   'focusStacks',
   'keyToggles',
+  'autoBurn',
   'chains',
   'bankedCriticals',
   'actions',

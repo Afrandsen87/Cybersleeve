@@ -90,6 +90,17 @@ export interface BurnLeadTipParts {
   readonly count: string;
   /** Using one now would do something (a lead is held and there is heat). */
   readonly canUse: boolean;
+  /** Present once the lead is an Inventory toggle (Auto Burn's first skill): what the toggle does right now. */
+  readonly toggle?: {
+    /** The toggle is on. */
+    readonly on: boolean;
+    /** "Hold at lower threshold" is on: it uses just enough leads to reach the lower threshold instead of one a second. */
+    readonly hold: boolean;
+    /** The lower threshold in force. */
+    readonly lower: string;
+    /** Leads always kept, or `null` while no reserve is set. */
+    readonly reserve: string | null;
+  };
 }
 
 /** Pre-formatted pieces of the Moles explanation. */

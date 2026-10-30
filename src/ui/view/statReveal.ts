@@ -5,9 +5,10 @@
  * player is never shown a number nothing can change yet.
  *
  * @remarks
- * Called by: `sleeveView.ts`. Calls: nothing outside `core` types. Pure: no DOM, no state of its own.
+ * Called by: `sleeveView.ts`. Calls: the core heat predicates (`actionMakesHeat`, `overclockMakesHeat`), `squareRules.ts`. Pure: no DOM, no state of its own.
  * The rules are data (`REVEAL_RULES`): a new hidden stat adds one entry, it does not add an `if` to the view.
  */
+import { actionMakesHeat, overclockMakesHeat } from '../../core';
 import type { ActionDefinition, BuyableDefinition, GameConfig, SleeveStats } from '../../core';
 import { numberFactory } from '../../numbers';
 import { type OwnsAutoRun, overclockOnOffer } from './squareRules';
@@ -33,10 +34,6 @@ const isOpen = (a: ActionDefinition, ctx: RevealContext): boolean => (a.required
 const ownsEffect = (ctx: RevealContext, kinds: readonly BuyableDefinition['effect']['kind'][]): boolean =>
   ctx.config.buyables.some((b) => kinds.includes(b.effect.kind) && ctx.owned(b.id) > 0);
 
-/** Whether an Overclock unlock, owned or shown in its action's square, would make heat (its heat per minute, or the action makes heat itself). */
-const overclockMakesHeat = (a: ActionDefinition): boolean =>
-  (a.overclock?.heatPerMinute ?? 0) > 0 || (a.heatPerRun ?? 0) > 0 || (a.heatPerSecond ?? 0) > 0;
-
 /** The Overclock unlock of an action when the player owns it or its cell is shown in the square. */
 const overclockUnlockOf = (a: ActionDefinition, ctx: RevealContext): BuyableDefinition | undefined =>
   overclockOnOffer(ctx.config, a.id, ctx.ownsAuto) ??
@@ -44,7 +41,7 @@ const overclockUnlockOf = (a: ActionDefinition, ctx: RevealContext): BuyableDefi
 
 /** Heat is made or on offer: an open action that makes heat, or an Overclock unlock (owned, or shown in the square) whose overclock makes heat. */
 const heatExists = (ctx: RevealContext): boolean =>
-  ctx.config.actions.some((a) => isOpen(a, ctx) && ((a.heatPerRun ?? 0) > 0 || (a.heatPerSecond ?? 0) > 0)) ||
+  ctx.config.actions.some((a) => isOpen(a, ctx) && actionMakesHeat(a)) ||
   ctx.config.actions.some((a) => overclockMakesHeat(a) && overclockUnlockOf(a, ctx) !== undefined);
 
 /** ICE Rating is boosted or earned: an owned buyable that boosts it, or an open action that earns it. */

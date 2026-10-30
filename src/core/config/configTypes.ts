@@ -155,8 +155,10 @@ export interface ResleeveConfig {
 
 /** The automation features and their starting values. Leave the section out for a game without automation. */
 export interface AutomationConfig {
-  /** Where Auto Burn's heat ceiling starts (>= 0): Burn leads are used while heat is above it. */
+  /** Auto Burn's lower threshold (>= 0), where it starts: with "Hold at lower threshold" on, Burn leads bring heat down to it. */
   readonly autoBurnCeiling: number;
+  /** Auto Burn's upper threshold (> the lower one), where it starts: heat reaching it switches the Burn lead toggle on. */
+  readonly autoBurnUpper: number;
 }
 
 /** When a purchase appears in the interface. */

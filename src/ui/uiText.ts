@@ -57,7 +57,7 @@ export const uiText: UiText = {
     features: {
       autoBurn: {
         name: 'Auto Burn',
-        description: 'Keeps using Burn leads while heat is above the ceiling you set, just enough of them to bring it back down.',
+        description: 'Burns leads for you from the Inventory and cools or restarts your heat-making Overclocks and actions, as its skills allow.',
       },
       autosale: {
         name: 'Kompromat autosale',
@@ -68,8 +68,20 @@ export const uiText: UiText = {
         description: 'Applies the Augment schematics you hold to the actions by the shares you set.',
       },
     },
-    autoBurnSwitch: (on) => (on ? 'Auto Burn: on' : 'Auto Burn: off'),
-    autoBurnCeiling: 'Use leads above this heat',
+    autoBurn: {
+      hint: 'The Burn lead toggle is in the Inventory.',
+      switches: {
+        hold: 'Hold at lower threshold',
+        upper: 'Switch on at upper threshold',
+        offOverclocks: 'Out of leads: switch off Overclocks that make heat',
+        offActions: 'Out of leads: switch off Auto-run of actions that make heat',
+        onActions: 'Heat low, leads available: switch Auto-runs back on',
+        onOverclocks: 'Heat low, leads available: switch Overclocks back on',
+      },
+      lower: 'Lower threshold (heat)',
+      upper: 'Upper threshold (heat)',
+      reserve: 'Burn leads to always keep',
+    },
     dispersalShare: 'Share (%)',
   },
   skills: {

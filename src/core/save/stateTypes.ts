@@ -4,6 +4,7 @@
  * The state of a running game: what changes while playing, and its read-only view.
  */
 import type { AutomationState } from '../automation/automation';
+import type { AutoBurnLife } from '../automation/autoBurnTypes';
 import type { BigNum } from '../../numbers';
 import type { ActionId } from '../actions/actionTypes';
 import type { CorporationState } from '../corporation/corporationTypes';
@@ -134,6 +135,8 @@ export interface SleeveState {
    * key item up and are critical. A toggle switches itself off when none is left. Reset by re-sleeving.
    */
   keyToggles: Record<string, boolean>;
+  /** Auto Burn's part of this life: the Burn lead toggle, the second counter, and what it switched off. Reset by re-sleeving. */
+  autoBurn: AutoBurnLife;
   /** Links of each action's Overclock chain (absent: 0). Only counts while the action is overclocked and running. Reset by re-sleeving. */
   chains: Record<ActionId, number>;
 }

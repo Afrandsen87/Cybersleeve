@@ -27,6 +27,8 @@ interface InventoryWidget {
   readonly sellOne: HTMLButtonElement;
   readonly sellAll: HTMLButtonElement;
   readonly backChannel: HTMLButtonElement;
+  /** The latest row of each tile, by `itemId/rarityId`: what a click does can change while playing (the Burn lead becomes a toggle). */
+  readonly live: Map<string, InventoryRowView>;
   /** The sellable stack the player has selected (`itemId/rarityId`), or `null`. A choice of the screen only: not saved. */
   selected: string | null;
 }
@@ -37,7 +39,7 @@ const stackKey = (itemId: string, rarityId: string): string => `${itemId}/${rari
 /**
  * Builds the Inventory widget: a grid tile for every item and rarity (its icon, with the count underneath), in two sections. The
  * items that are kept or used are on the left; the items that can be sold are on the right, where a tile is selected by clicking it
- * and the buttons beside the grid sell what is selected. Clicking a tile of an item that is used (a Burn lead) uses one; clicking a Zero-day switches its toggle.
+ * and the buttons beside the grid sell what is selected. Clicking a tile of an item that is used (a Burn lead before Auto Burn) uses one; clicking a Zero-day, an Admin key or (with Auto Burn) a Burn lead switches its toggle.
  *
  * Called by: {@link mountUi}.
  *
@@ -74,6 +76,7 @@ export function buildInventoryWidget(
     sellOne: h('button', 'inventory-action', text.inventory.sellOne) as HTMLButtonElement,
     sellAll: h('button', 'inventory-action', text.inventory.sellAll) as HTMLButtonElement,
     backChannel: h('button', 'inventory-action', text.inventory.backChannel) as HTMLButtonElement,
+    live: new Map(view.rows.map((row) => [stackKey(row.itemId, row.rarityId), row])),
     selected: null,
   };
   for (const r of view.rows) {
@@ -88,8 +91,9 @@ export function buildInventoryWidget(
       if (r.augmentable) selection.augmentRarityId = selection.augmentRarityId === r.rarityId ? null : r.rarityId;
       if (r.sellable) widget.selected = widget.selected === key ? null : key;
       else if (!r.augmentable) {
-        if (r.toggleable) actions.toggle(r.itemId);
-        else if (r.usable) actions.use(r.itemId, r.rarityId);
+        const now = widget.live.get(key) ?? r;
+        if (now.toggleable) actions.toggle(r.itemId);
+        else if (now.usable) actions.use(r.itemId, r.rarityId);
       }
       actions.refresh();
     });
@@ -156,6 +160,7 @@ export function renderInventory(widget: InventoryWidget, view: InventoryView, ti
     const key = stackKey(r.itemId, r.rarityId);
     const handle = widget.tiles.get(key);
     if (!handle) continue;
+    widget.live.set(key, r);
     handle.tile.hidden = !r.unlocked;
     setText(handle.count, r.countText);
     handle.tile.classList.toggle('empty', r.count <= 0);
@@ -187,8 +192,12 @@ export function inventoryActions(engine: StateQueries & ItemCommands, refresh: (
     giveUp: (itemId: string, rarityId: string) => void engine.giveUpForMoles(itemId, rarityId, 1),
     use: (itemId: string, rarityId: string) =>
       void (itemId === engine.getConfig().items.skillShard?.itemId ? engine.useSkillShard() : engine.useBurnLead(rarityId)),
-    toggle: (itemId: string) =>
-      void (itemId === engine.getConfig().items.adminKey?.itemId ? engine.toggleAdminKeys() : engine.toggleZeroDays()),
+    toggle: (itemId: string) => {
+      const { adminKey, burnLead } = engine.getConfig().items;
+      if (itemId === burnLead?.itemId) engine.toggleBurnLead();
+      else if (itemId === adminKey?.itemId) engine.toggleAdminKeys();
+      else engine.toggleZeroDays();
+    },
     refresh,
   };
 }
