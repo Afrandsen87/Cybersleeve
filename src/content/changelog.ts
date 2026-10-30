@@ -19,10 +19,20 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-10-30 Re-sleeve requirements',
+    changes: [
+      'Re-sleeving now needs sleeve levels: your sleeve levels across all actions must add up to 1 for your first re-sleeve, 2 for the second, and one more for each re-sleeve after that. The Re-sleeve button tip shows how many you have and how many you need.',
+      'Study methods is much stronger: the XP that sleeve levels of the other actions need is divided by 1 plus the sleeve level of Practice Hacking, with no limit (it used to be at most 25% less).',
+      'Clearer tooltips for ICE Rating, Augment, Overclock, Burn leads and Skill shards.',
+      'Your save is upgraded to the new version automatically the next time you load the game.',
+      'A large clean-up behind the scenes, so new features are easier to add.',
+    ],
+  },
+  {
     version: '2026-10-27 Skill tree',
     changes: [
       'The skills are now a tree with three branches: Cybernetics (green), Anonymity (red) and Leverage (brown). Each grows sideways from a root skill, and a skill needs the one before it.',
-      'The whole tree and all branch names are visible from the start; what a skill does reads ??? until what makes it useful is owned, and a skill below a hidden one stays hidden.',
+      'You can see the whole tree from the start, but a skill shows ??? until you own what makes it useful.',
       'The re-sleeve skills grow sideways too.',
     ],
   },
@@ -30,23 +40,20 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
     version: '2026-10-27 Corporation widgets',
     changes: [
       'On the Corporation tab the widgets beside the corporation are now Holdings, Asset Acquisition and Hostile Negotiation, and the Inventory is gone from it.',
-      'Corporation actions now have action levels (no sleeve levels): each completed run gives action XP, the card shows the level bar, and every level makes the run 5% faster, like a character action.',
-      'Corporation action cards have a row for purchases. First one: Stock acquisition on Insider backstabbing, a 0.5% chance per run to acquire a stock of a competitor. Stocks owned shows in the new Holdings widget.',
+      'Corporation actions now gain action levels like character actions: every level makes the run 5% faster.',
+      'Corporation actions can now have purchases. The first is Stock acquisition on Insider backstabbing: a 0.5% chance per run to acquire a stock of a competitor, shown in the new Holdings widget.',
       'The corporation widget shows Corporate rank, Owned corporations and Employees.',
-      'New purchase in Asset Acquisition, the Corporate access upgrade (5,000,000 credits, 100000x more per copy): raises Corporate rank by 1, which unlocks the next corporation action. It is kept when you re-sleeve.',
+      'New purchase in Asset Acquisition, the Corporate access upgrade: each one raises Corporate rank by 1, which unlocks the next corporation action. It is kept when you re-sleeve.',
     ],
   },
   {
     version: '2026-10-27 Show all',
-    changes: [
-      'The test aid "Show locked" is now "Show all": it also reveals hidden tabs, stats, purchases, re-sleeve skills and inventory items.',
-      'Shortened some tooltips and the failed-import message.',
-    ],
+    changes: ['Shortened some tooltips and the failed-import message.'],
   },
   {
     version: '2026-10-27 Corporation',
     changes: [
-      'New Corporation tab, opened by the Incorporation re-sleeve skill. It is laid out like the Character tab; its widgets are empty for now. Corporation actions have their own run time that interface speed does not change, and the corporation is kept when you re-sleeve.',
+      'New Corporation tab, opened by the Incorporation re-sleeve skill. It is laid out like the Character tab, and the corporation is kept when you re-sleeve.',
       'New corporation action Insider backstabbing: a run takes 30 seconds, and each completed run has a 1% chance to upgrade one random Kompromat file you hold to the next rarity.',
       'Augment schematics are now applied by selecting the rarity in the Inventory (click its tile), then pressing the Augment button on an action. Only that rarity is used up.',
       'Each Augment schematic now adds 3% (was 1%) to the action XP boost of its rarity.',
@@ -57,28 +64,28 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
   {
     version: '2026-10-27 13:46',
     changes: [
-      'Re-sleeving now has to be unlocked: the Re-sleeve button at the bottom of the Sleeve widget starts as the purchase "Unlock resleeving" (100 billion credits). One click buys it and the button turns into Re-sleeve, disabled for 5 seconds so a double click cannot re-sleeve at once. The unlock is kept when you re-sleeve.',
-      'Sleeve levels and the sleeve XP bars are hidden, and give nothing, until re-sleeving is unlocked (the XP is still collected). The re-sleeve skill tree appears with it, with all its text hidden as ??? until your first re-sleeve.',
+      'Re-sleeving now has to be unlocked with the purchase "Unlock resleeving" (100 billion credits) at the bottom of the Sleeve widget. The unlock is kept when you re-sleeve.',
+      'Sleeve levels stay hidden and give nothing until re-sleeving is unlocked, but their XP is still collected. The re-sleeve skill tree appears at the same time.',
       'Heat, ICE Rating and Legend stay hidden until something that makes or boosts them is unlocked.',
-      'Purchases are listed cheapest first (by base price) in every widget.',
+      'Purchases are listed cheapest first in every widget.',
       'Push malware costs more: Hardened payload 100 thousand, Zero-day exploits 5 million, Ransomware 5 billion, Persistence 1 trillion. The ICE Rating boost now costs 150 thousand.',
-      'The ICE Rating tip names the purchase that adds the per-level bonus (Hardened payload) instead of "Level Bonus".',
+      'The ICE Rating tip now names Hardened payload as the purchase behind its per-level bonus.',
     ],
   },
   {
     version: '2026-10-26 23:33',
     changes: [
       'Grow network Auto-run now costs 10 credits; the Overclock and Focus of every action cost 25 and 100 times the Auto-run price of that same action.',
-      'Kompromat sells for more (100 credits for a common file, two orders of magnitude more per rarity), and its tip just says the payment is flat.',
+      'Kompromat sells for more: 100 credits for a common file, and 100 times more for each rarity above.',
       'Purchases now appear once their price is within 3 orders of magnitude of the most credits (or nodes) you have held.',
-      'The tabs sit on the credits line, stay hidden until the first skill or automation point, and a tab blinks while a point is waiting in it.',
+      'Tabs appear once you earn your first skill or automation point, and a tab blinks while a point is waiting to be spent.',
       'New Automation tab. The sleeve buyable Automation core gives automation points; each point unlocks one feature: Auto Burn (uses Burn leads to keep heat under a ceiling you set), Kompromat autosale (a switch per rarity) or Augment dispersal (a share of the schematics per action).',
       'Items you have not unlocked are hidden from the Inventory.',
       'The heat tax now takes its share of your credits per second instead of lowering the payout per node.',
-      'Skills are offered only once the purchase that makes them useful is owned (the Kompromat skills need Kompromat harvest).',
+      'Skills are offered only once you own what makes them useful (the Kompromat skills need Kompromat harvest).',
       'Critical chance can go above 100%: a run can have several critical successes, each one paying and teaching again. Zero-days, Admin keys and Ransomware now add +100% critical chance instead of guaranteeing a critical success.',
       'An action card lights up when it hits a critical success, and shows critical successes per second when they come fast.',
-      'The ICE Rating tip shows how it is calculated, and the node payout tip names every boost with its value.',
+      'The ICE Rating and node payout tips show how they are calculated.',
     ],
   },
   {
@@ -89,8 +96,8 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
       'New re-sleeve skill Synthetic Sleeves: run extra sleeves beside this one. Each earns the credits per second a finished run ended with, scaled by your action levels until you catch up. The Network widget shows how many you have and what they earn together.',
       'New re-sleeve skill Incorporation: does nothing for now.',
       'New Stats tab: the last 10 sleeve-runs, with the credits per second and action levels each ended with.',
-      'New skill Purge Protocol: every heat cooldown cycle removes 1 more heat for each sleeve level of Build Legend.',
-      'A heat cooldown cycle never takes more than the whole points of heat that are left, so a bigger step can never leave heat stuck.',
+      'New skill Purge Protocol: heat cools down faster for each sleeve level of Build Legend.',
+      'Fixed heat sometimes getting stuck instead of cooling down.',
     ],
   },
   {
@@ -107,10 +114,10 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
       'Pixel-art icons for actions, items and credits.',
       'Heat can now be a fraction of a point; it cools in whole points.',
       'Critical success is a new sleeve purchase: runs can pay 3x and give 2x action XP.',
-      'Amounts are now capped at 1e308 (infinity).',
+      'Amounts now stop at 1e308 (infinity).',
       'Saves: the last good save is kept as a backup, and you can export and import your save as text.',
       'Only one browser tab can play at a time, so two tabs cannot overwrite each other.',
-      'Smoother, cheaper rendering.',
+      'Smoother and lighter on your computer.',
       'Added this changelog.',
     ],
   },
