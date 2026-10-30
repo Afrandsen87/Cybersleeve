@@ -57,8 +57,7 @@ describe('Rarity refinement (real content)', () => {
       .actions.find((a) => a.id === PRACTICE_HACKING)!
       .buyables.find((b) => b.id === RARITY_REFINEMENT)!.tip;
     const def = gameConfig.buyables.find((b) => b.id === RARITY_REFINEMENT)!;
-    expect(tip.split('
-').slice(0, 2)).toEqual(['Rarity refinement', def.description]);
+    expect(tip.split('\n').slice(0, 2)).toEqual(['Rarity refinement', def.description]);
     expect(tip).not.toContain('250');
   });
 });
