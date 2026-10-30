@@ -88,8 +88,8 @@ export interface SleeveAccumulator {
   focusStacking: boolean;
   /** What action XP is multiplied by while an action is behind the best synthetic sleeve's level on it (1 without Neural Mirror). */
   synthXpFactor: number;
-  /** The lowest heat factor of Overclock set by `overclockHeatFactor` buyables, by action. */
-  overclockHeatFactors: Record<ActionId, number>;
+  /** The lowest factor on Overclock's heat chance set by `overclockHeatChanceFactor` buyables, by action. */
+  overclockHeatChanceFactors: Record<ActionId, number>;
 }
 
 /** What an action hook may look at besides the effect. */

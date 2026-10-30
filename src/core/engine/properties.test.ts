@@ -111,7 +111,7 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     buyable({ id: 'slots', costGrowth: 3, maxPurchases: 3, effect: { kind: 'focusSlots', perCopy: 1 } }),
     buyable({ id: 'boost', actionId: 'push', effect: { kind: 'criticalBoost', factor: 3 } }),
     buyable({ id: 'link', actionId: 'push', effect: { kind: 'criticalLink', targetActionId: 'net' } }),
-    buyable({ id: 'obf', effect: { kind: 'overclockHeatFactor', targetActionId: 'push', factor: 2 } }),
+    buyable({ id: 'obf', effect: { kind: 'overclockHeatChanceFactor', targetActionId: 'push', factor: 0.5 } }),
     buyable({ id: 'crit', maxPurchases: 3, effect: { kind: 'criticalChance', chance: 0.3 } }),
     buyable({ id: 'zds', actionId: 'push', effect: { kind: 'itemDrop', drop: { itemId: 'zd', chance: 0.5 } } }),
     buyable({

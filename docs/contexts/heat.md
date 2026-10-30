@@ -27,3 +27,6 @@ Code: `src/core/heat/` (see `docs/contexts/_folders.md`). Text below is moved ve
 
 *Group: Decided 2026-10-27 (by the user, new Anonymity skills)*
 - **Blackout:** the user rejected "heat does nothing" and chose 50%. Read as a CAP: the heat tax takes at most half of node income. (The other reading, halving the tax per point, was not chosen; say so if that is what was meant.) ICE Rating keeps its job below the cap; the user expects to find another use for it later.
+
+*Group: Decided 2026-10-30 (by the user)*
+- **Overclock heat on Push malware is chance only:** Overclock doubles the chance a run makes heat (10% to 20%); the heat per run is unchanged. The skill Obfuscation (`overclockHeatChanceFactor`) halves that chance again. ICE Rating now removes 1% of the heat effect per order of magnitude (100% at 1e100).

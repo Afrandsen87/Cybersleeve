@@ -36,7 +36,7 @@ function chain(b: BuyableDefinition, seen = new Set<string>()): BuyableDefinitio
 const CRIT_KINDS = ['criticalExtraChance', 'criticalRewardMultiplier', 'criticalBoost', 'criticalLink'];
 const HEAT_KINDS = [
   'heatCooldownSpeed',
-  'overclockHeatFactor',
+  'overclockHeatChanceFactor',
   'burnLeadFlatHeat',
   'idleHeatCooldown',
   'idleHeatCooldownAction',

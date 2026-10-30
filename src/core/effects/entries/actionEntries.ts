@@ -11,7 +11,7 @@ type Kind =
   | 'focusSlots'
   | 'startCostReduction'
   | 'creditSiphon'
-  | 'overclockHeatFactor'
+  | 'overclockHeatChanceFactor'
   | 'paysActionReward'
   | 'rewardMultiplier'
   | 'rewardMultiplierFromActionLevel';
@@ -87,15 +87,16 @@ export const ACTION_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<Bu
       acc.siphonSeconds += e.seconds;
     },
   },
-  overclockHeatFactor: {
+  overclockHeatChanceFactor: {
     traits: sleeveWide,
     validate: (e, ctx) => {
-      factorAtLeastOne(e, ctx);
+      if (!(Number.isFinite(e.factor) && e.factor > 0 && e.factor <= 1))
+        ctx.errors.push(`${ctx.where}: overclockHeatChanceFactor factor must be in (0, 1]`);
       if (!ctx.actionIds.has(e.targetActionId))
-        ctx.errors.push(`${ctx.where}: overclockHeatFactor refers to unknown action "${e.targetActionId}"`);
+        ctx.errors.push(`${ctx.where}: overclockHeatChanceFactor refers to unknown action "${e.targetActionId}"`);
     },
     sleeve: (acc, e) => {
-      acc.overclockHeatFactors[e.targetActionId] = Math.min(acc.overclockHeatFactors[e.targetActionId] ?? Infinity, e.factor);
+      acc.overclockHeatChanceFactors[e.targetActionId] = Math.min(acc.overclockHeatChanceFactors[e.targetActionId] ?? Infinity, e.factor);
     },
   },
   paysActionReward: {

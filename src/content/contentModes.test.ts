@@ -104,7 +104,7 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     expect(g.getState().sleeve.network.toNumber()).toBe(before - 5);
   });
 
-  it('Push malware overclocked pays the nodes of a Grow network run and makes 3x the heat, end to end', () => {
+  it('Push malware overclocked pays the nodes of a Grow network run and is twice as likely to make heat, end to end', () => {
     const g = rich();
     while (!g.isUnlocked(PUSH_MALWARE)) g.buy(ACCESS_UPGRADE);
     g.buy(overclockUnlockId(PUSH_MALWARE));
@@ -120,7 +120,7 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     (g.getState() as unknown as { sleeve: { heat: number } }).sleeve.heat = 0; // a run takes a minute, so the cooldown would take a point meanwhile
     g.toggleOverclock(PUSH_MALWARE);
     complete();
-    expect(g.getState().sleeve.heat).toBeCloseTo(plainHeat * 3, 9);
+    expect(g.overclockStatus(PUSH_MALWARE)).toMatchObject({ heatChanceFactor: 2, heatPerRunFactor: 1 });
     expect(g.getState().sleeve.network.toNumber()).toBe(g.payoutPerRun(GROW_NETWORK).toNumber());
   });
 
@@ -285,18 +285,20 @@ describe('Zero-days (real content)', () => {
     expect(g.getState().sleeve.network.toNumber() - nodes).toBeGreaterThanOrEqual(reward * gameConfig.criticalSuccess.rewardMultiplier);
   });
 
-  it('Obfuscation is a one-point skill that lowers the heat of Push malware Overclock from 3x to 2x', () => {
+  it('Obfuscation is a one-point skill that takes Push malware Overclock heat chance back to the normal one', () => {
     const skill = gameConfig.buyables.find((b) => b.id === SKILL_OBFUSCATION)!;
     expect(skill.currency).toBe('skillPoints');
-    expect(skill.effect).toEqual({ kind: 'overclockHeatFactor', targetActionId: PUSH_MALWARE, factor: 2 });
-    expect(gameConfig.actions.find((a) => a.id === PUSH_MALWARE)!.overclock?.heatPerRunFactor).toBe(3);
+    expect(skill.effect).toEqual({ kind: 'overclockHeatChanceFactor', targetActionId: PUSH_MALWARE, factor: 0.5 });
+    const rule = gameConfig.actions.find((a) => a.id === PUSH_MALWARE)!.overclock!;
+    expect(rule.heatChanceFactor).toBe(2);
+    expect(rule.heatPerRunFactor ?? 1).toBe(1);
     const g = rich();
     g.buy(overclockUnlockId(PUSH_MALWARE));
-    expect(g.overclockStatus(PUSH_MALWARE)!.heatPerRunFactor).toBe(3);
+    expect(g.overclockStatus(PUSH_MALWARE)!.heatChanceFactor).toBe(2);
     (g.getState().sleeve.actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num(1e6); // plenty of skill points
     (g.getState().sleeve.purchased as Record<string, number>)[SKILL_COLD_TRAIL] = 1; // Obfuscation grows from it
     expect(g.buy(SKILL_OBFUSCATION)).toBe('purchased');
-    expect(g.overclockStatus(PUSH_MALWARE)!.heatPerRunFactor).toBe(2);
+    expect(g.overclockStatus(PUSH_MALWARE)!.heatChanceFactor).toBe(1);
   });
 
   it('an empty stack cannot be switched on: the tile is not usable', () => {

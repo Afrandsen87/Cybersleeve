@@ -87,7 +87,7 @@ export function resolveSleeveStats(
     extraFocusSlots: 0,
     focusStacking: false,
     synthXpFactor: 1,
-    overclockHeatFactors: {},
+    overclockHeatChanceFactors: {},
   };
   const nodePayoutTerms: FactorTerm[] = [];
   const iceRatingTerms: FactorTerm[] = [];
@@ -160,7 +160,7 @@ export function resolveSleeveStats(
     extraFocusSlots: acc.extraFocusSlots,
     focusStacking: acc.focusStacking,
     synthXpFactor: acc.synthXpFactor,
-    overclockHeatFactors: acc.overclockHeatFactors,
+    overclockHeatChanceFactors: acc.overclockHeatChanceFactors,
   };
 }
 
