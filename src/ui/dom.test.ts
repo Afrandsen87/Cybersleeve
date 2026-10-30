@@ -46,6 +46,8 @@ describe('mountUi (smoke test against the real engine)', () => {
     render();
     click('.square-unlock'); // before Auto-run is bought the whole square buys it
     expect(game.ownedCount('auto')).toBe(1);
+    expect(game.isAutoRunEnabled('auto')).toBe(false); // bought switched off
+    click('.cell-autoRun');
     expect(game.isAutoRunEnabled('auto')).toBe(true);
     click('.cell-autoRun');
     expect(game.isAutoRunEnabled('auto')).toBe(false);

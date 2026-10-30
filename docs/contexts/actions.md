@@ -81,7 +81,7 @@ Hacking Proficiency is the total Practice Hacking has paid out, a stored total r
 
 ### The square on each action card
 The run bar of an action card spans the full width of the card. Underneath it, beside the reward line and the two level bars (action level, sleeve level), sits a **square** of the same height as those three rows (78 px; cells of 36 px). It holds the toggles of the action:
-- **Before Auto-run is bought** the whole square is one big button that buys it (its price is the action's own Auto-run price, listed with the action's purchases below).
+- **Before Auto-run is bought** the whole square is one big button that buys it (its price is the action's own Auto-run price, listed with the action's purchases below). Buying it leaves Auto-run switched OFF: the player switches it on with the Auto-run cell (decided 2026-10-30).
 - **Once Auto-run is owned** the square becomes a grid of four buttons: **Auto-run** (a toggle), **Overclock**, **Focus** and **Augment** (see 10; it applies one schematic and is disabled while none is held).
 - **Overclock and Focus cells** show what the action has: a cell whose unlock is not bought is a purchase button (lit when affordable, the tip shows the price); once bought it is a toggle (lit when on, struck through when off). An action without an Overclock effect has an empty dashed cell there (and in the Augment cell when the game has no schematic).
 
