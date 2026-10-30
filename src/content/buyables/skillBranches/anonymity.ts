@@ -61,7 +61,7 @@ export const anonymitySkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_OBFUSCATION],
-    requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once re-sleeving is unlocked
+    requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once the Sleeve levels upgrade is owned
     cost: num(1), // placeholder; a late-stage skill, since sleeve levels of Build Legend come slowly
     effect: { kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: LEGEND, perLevel: 1 },
   },

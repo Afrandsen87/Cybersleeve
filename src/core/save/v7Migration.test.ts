@@ -10,12 +10,19 @@ import { describe, expect, it } from 'vitest';
 import { gameConfig } from '../../content/gameConfig';
 import { numberFactory } from '../../numbers';
 import { type FlatSave, asSave, flatSave } from '../../testing/saveKit';
+import { RESLEEVE_UNLOCK, SLEEVE_LEVELS } from '../../content/ids';
 import { SAVE_VERSION, deserializeState, serializeState } from '..';
 import { migrateSave } from './migrate';
 
 const read = (name: string): string => readFileSync(new URL(`../../testing/fixtures/saves/${name}`, import.meta.url), 'utf8');
 const FIXTURES = ['v6-early-before-resleeve.json', 'v6-after-three-resleeves.json'];
 const load = (text: string) => deserializeState(text, gameConfig, numberFactory);
+
+/** The same flat save as the v8 reader gives it back: a life that owned Sleeve levels (the old unlock) now also owns Unlock resleeving. */
+function inV8(raw: FlatSave): FlatSave {
+  const purchased = raw['purchased'] as Record<string, number>;
+  return (purchased[SLEEVE_LEVELS] ?? 0) > 0 ? { ...raw, purchased: { ...purchased, [RESLEEVE_UNLOCK]: 1 } } : raw;
+}
 
 describe.each(FIXTURES)('v6 fixture %s', (name) => {
   const text = read(name);
@@ -32,7 +39,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
   });
 
   it('migrate, load and save gives back every value of the old save (field by field)', () => {
-    expect(flatSave(serializeState(load(migrated)!))).toEqual(raw);
+    expect(flatSave(serializeState(load(migrated)!))).toEqual(inV8(raw));
   });
 
   it('starts the all-time peaks at the peak of the life being lived', () => {
@@ -47,7 +54,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
     expect(Object.keys(data.wallet.corporations)).toEqual(['main']);
     expect(data.wallet.runs).toEqual(raw['runs']);
     expect(data.wallet.inventory).toEqual(raw['inventory']);
-    expect(data.sleeves.main.purchased).toEqual(raw['purchased']);
+    expect(data.sleeves.main.purchased).toEqual(inV8(raw)['purchased']);
     expect(data.sleeves.main.actions).toEqual(raw['actions']);
   });
 
@@ -78,7 +85,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
 
   it('ignores unknown keys and unknown ids', () => {
     const extra = { ...raw, mystery: 1, purchased: { ...raw['purchased'], 'no-such-buyable': 3 } };
-    expect(flatSave(serializeState(load(asSave(extra))!))).toEqual(raw);
+    expect(flatSave(serializeState(load(asSave(extra))!))).toEqual(inV8(raw));
   });
 
   it('repairs garbage in plain-number fields to the fresh value', () => {

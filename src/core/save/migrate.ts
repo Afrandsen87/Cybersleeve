@@ -8,10 +8,23 @@
  * changes, except that the two all-time peak statistics are new and start at the peak of the current life, and the two key toggles
  * (`zeroDaysOn`, `adminKeysOn`) become the keyed `keyToggles`. Keys v6 never wrote are not invented, so the reader's defaults apply.
  * Unknown keys are dropped, as the reader always ignored them.
+ *
+ * v8 split the old "Unlock resleeving" purchase in two: Sleeve levels (id `sleeve-levels`, the old purchase kept under its id) and the
+ * new Unlock resleeving (`resleeve-unlock`). A v7 save that owns the first bought the old 100e9 unlock, so it also gets the second.
+ * The migrations chain: a v6 save goes through {@link migrateV6} and then {@link migrateV7}.
  */
 
 /** The version the migration writes (the current save version). */
-export const MIGRATED_VERSION = 7;
+export const MIGRATED_VERSION = 8;
+
+/** The version {@link migrateV6} writes. */
+const V7 = 7;
+
+/** Content id of the old unlock that v7 saves own (now Sleeve levels). Written here because only the migration knows the v7 meaning. */
+const V7_UNLOCK_ID = 'sleeve-levels';
+
+/** Content id of the purchase v8 added (Unlock resleeving); a content test checks it still matches `RESLEEVE_UNLOCK`. */
+const V8_RESLEEVE_UNLOCK_ID = 'resleeve-unlock';
 
 // The ids of the only sleeve and the only corporation live in the kernel, where the contexts' save parts can read them; the migration writes under them.
 export { DEFAULT_SLEEVE_ID } from '../kernel/savePart';
@@ -50,7 +63,7 @@ function pick(from: Record<string, unknown>, keys: readonly string[]): Record<st
 }
 
 /**
- * Turns a flat v6 save object into the nested v7 one.
+ * Turns a flat v6 save object into the nested v7 one (then {@link migrateV7} brings it to the current version).
  *
  * Called by: {@link migrateSave}.
  *
@@ -68,14 +81,35 @@ export function migrateV6(flat: Record<string, unknown>): Record<string, unknown
     ...(flat['zeroDaysOn'] === true ? { zeroDay: true } : {}),
     ...(flat['adminKeysOn'] === true ? { adminKey: true } : {}),
   };
-  return { version: MIGRATED_VERSION, wallet, sleeves: { [DEFAULT_SLEEVE_ID]: sleeve } };
+  return { version: V7, wallet, sleeves: { [DEFAULT_SLEEVE_ID]: sleeve } };
+}
+
+/**
+ * Turns a v7 save object into the v8 one: a sleeve that owns Sleeve levels (the old Unlock resleeving) also owns the new Unlock resleeving.
+ *
+ * Called by: {@link migrateSave}.
+ *
+ * @param save the parsed v7 save (also what {@link migrateV6} returns)
+ * @returns the v8 save object (a new object; `save` is not changed)
+ */
+export function migrateV7(save: Record<string, unknown>): Record<string, unknown> {
+  const sleeves = save['sleeves'];
+  if (typeof sleeves !== 'object' || sleeves === null || Array.isArray(sleeves)) return { ...save, version: MIGRATED_VERSION };
+  const migrated: Record<string, unknown> = {};
+  for (const [id, sleeve] of Object.entries(sleeves)) {
+    const purchased = (sleeve as Record<string, unknown> | null)?.['purchased'];
+    const owned = typeof purchased === 'object' && purchased !== null ? (purchased as Record<string, unknown>) : null;
+    const ownsOld = owned !== null && Number(owned[V7_UNLOCK_ID]) > 0;
+    migrated[id] = ownsOld ? { ...(sleeve as object), purchased: { ...owned, [V8_RESLEEVE_UNLOCK_ID]: 1 } } : sleeve;
+  }
+  return { ...save, version: MIGRATED_VERSION, sleeves: migrated };
 }
 
 /**
  * Brings saved text to the current format.
  *
  * Called by: `app/persistence.ts` (before every read of a stored or pasted save).
- * Calls: {@link migrateV6}.
+ * Calls: {@link migrateV6}, {@link migrateV7}.
  *
  * @param json saved text, of any version
  * @returns the text unchanged when it is already the current version or not a save this code understands (the reader then rejects it as it always did),
@@ -90,5 +124,6 @@ export function migrateSave(json: string): string {
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return json;
   const flat = parsed as Record<string, unknown>;
-  return flat['version'] === 6 ? JSON.stringify(migrateV6(flat)) : json;
+  if (flat['version'] === 6) return JSON.stringify(migrateV7(migrateV6(flat)));
+  return flat['version'] === V7 ? JSON.stringify(migrateV7(flat)) : json;
 }

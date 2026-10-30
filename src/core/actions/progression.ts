@@ -80,7 +80,20 @@ export class Progression {
     const action = this.requireAction(state, actionId);
     action.xp = action.xp.add(xp);
 
-    countRunsTowardSleeveXp(action, runs, this.runsPerSleeveXp(state), this.sleeveXpPerGrant, this.factory);
+    if (this.sleeveXpOpen(state)) countRunsTowardSleeveXp(action, runs, this.runsPerSleeveXp(state), this.sleeveXpPerGrant, this.factory);
+  }
+
+  /**
+   * Whether sleeve XP exists yet: the Sleeve levels unlock is owned (a game without that buyable has it from the start).
+   *
+   * @remarks
+   * The one owner of this rule: {@link Progression.recordRuns} (XP and the run counter accrue only while open) and the sleeve level
+   * (reads 0 while closed, which only matters for XP saved before the unlock was owned).
+   *
+   * @param state current state (reads `purchased`)
+   */
+  private sleeveXpOpen(state: GameState): boolean {
+    return this.sleeveLevelsGateId === null || (state.sleeve.purchased[this.sleeveLevelsGateId] ?? 0) > 0;
   }
 
   /**
@@ -282,8 +295,7 @@ export class Progression {
 
   /** Sleeve level of an action if its thresholds were scaled to the share `keep` of the normal XP (1 = normal). */
   private sleeveLevelAt(state: GameState, actionId: ActionId, keep: number): number {
-    // sleeve XP is tracked all along, but its levels count only once the unlock is owned (a game without that buyable has no gate)
-    if (this.sleeveLevelsGateId !== null && (state.sleeve.purchased[this.sleeveLevelsGateId] ?? 0) <= 0) return 0;
+    if (!this.sleeveXpOpen(state)) return 0;
     return this.rule(this.sleeveRules, actionId).levelForXp(this.scaledSleeveXp(state, actionId, keep));
   }
 

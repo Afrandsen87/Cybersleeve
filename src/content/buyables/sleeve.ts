@@ -17,6 +17,7 @@ import {
   OVERCLOCK_UPGRADE,
   FOCUS_UPGRADE,
   SLEEVE_LEVELS,
+  RESLEEVE_UNLOCK,
 } from '../ids';
 
 /** The buyables of the sleeve as a whole (not tied to an action). */
@@ -143,10 +144,21 @@ export const sleeveBuyables: BuyableDefinition[] = [
 
   {
     id: SLEEVE_LEVELS,
-    name: 'Unlock resleeving',
+    name: 'Sleeve levels',
     symbol: 'SL',
-    description: 'Unlocks sleeve levels and the option to re-sleeve, and with it the re-sleeve skills. Kept when you re-sleeve.',
-    cost: num(100e9),
+    description:
+      'Your sleeve starts to learn: every action now earns sleeve XP, and each sleeve level gives a lasting bonus. Also shows the Re-sleeve button. Kept when you re-sleeve.',
+    cost: num(100e6),
     effect: { kind: 'unlockSleeveLevels' },
+  },
+
+  {
+    id: RESLEEVE_UNLOCK,
+    name: 'Unlock resleeving',
+    symbol: 'RU',
+    description: 'Allows you to re-sleeve, and with it the re-sleeve skills. Kept when you re-sleeve.',
+    cost: num(100e9),
+    requires: [SLEEVE_LEVELS], // reveal gate: the Re-sleeve button, where this is bought, shows once Sleeve levels is owned
+    effect: { kind: 'unlockResleeve' },
   },
 ];

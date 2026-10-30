@@ -123,7 +123,7 @@ describe('saving the progress of a run', () => {
 
   it('refuses an older or unknown version', () => {
     const { json } = saved();
-    for (const version of [2, 3, 6, 8, 'x']) {
+    for (const version of [2, 3, 6, 9, 'x']) {
       const data = { ...(JSON.parse(json) as object), version };
       expect(deserializeState(JSON.stringify(data), testConfig, numberFactory)).toBeNull();
     }
