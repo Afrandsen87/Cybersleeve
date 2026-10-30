@@ -26,3 +26,18 @@ Experiment: does running implementation subagents on a cheaper model (haiku) sav
 | 2026-10-29 | baseline | S0 core move (script, no subagents) | refactor | n/a | n/a | 0 | 1 (format only) | no | Orchestrator only; biome format fixes after path-length change |
 | 2026-10-29 | baseline | S2 classify DECISIONS entries by context | explore | n/a | haiku | 61009 | n/a | no | JSON map of 82 entries, judgement calls reported |
 | 2026-10-29 | baseline | S3 registry split + ownsKind (script + edits, no subagents) | refactor | n/a | n/a | 0 | 0 | no | Orchestrator only; 1 failed script run (regex) fixed before check |
+| 2026-10-30 | baseline | Survey: sleeve/resleeve/synth for CR batch | explore | scout | haiku | 127113 | n/a | no | Caught existing 100e9 Unlock resleeving buyable |
+| 2026-10-30 | baseline | Survey: actions/heat/augments/sort for CR batch | explore | scout | haiku | 139650 | n/a | no | Flagged Obfuscation going dead; sort claim verified |
+| 2026-10-30 | baseline | Survey: skill trees/inventory reveal for CR batch | explore | scout | haiku | 110128 | n/a | no | Found zero-day shard bypass of ItemDrops |
+| 2026-10-30 | baseline | CR batch pkg 1: tuning, autorun, augments, peak cps | logic | implementer | sonnet | 177815 | 4 (test-level, intermediate) | no | Moved autorun-off to activateBuyable; golden files updated |
+| 2026-10-30 | baseline | CR batch pkg 2: Sleeve levels split, tree reveal (+1 fix round) | logic | implementer | sonnet | 247231 | 1 typecheck + 1 test round | yes (sent back: heat skill mask, button gap) | Needed v8 migration; fix round cheap |
+| 2026-10-30 | baseline | CR batch pkg 3: reveals, seen items, widgets, XP tips | logic | implementer | sonnet | 249820 | ~5 test rounds | yes (doc merge conflicts) | No browser; UI checked by orchestrator |
+| 2026-10-30 | baseline | CR batch review 1 | explore | reviewer | opus | 149108 | n/a | no | Found seen-items backfill bug, dup auto-run owner |
+| 2026-10-30 | baseline | CR batch review-1 fixes | logic | implementer | sonnet | 163389 | 1 (format) | no | Worked directly in task worktree |
+| 2026-10-30 | baseline | CR2 A first try (blocked by worktree pin) | logic | implementer | sonnet | 36263 | n/a | n/a | Pinned to orchestrator worktree; wasted spawn |
+| 2026-10-30 | baseline | CR2 C first try (blocked by worktree pin) | logic | implementer | sonnet | 36758 | n/a | n/a | Same pin problem |
+| 2026-10-30 | baseline | CR2 B: synth curve, reflex memory, costs line | logic | implementer | sonnet | 152191 | 1 (CRLF) + few test | no | Bypassed pin via PowerShell into cr2-b |
+| 2026-10-30 | baseline | CR2 A retry: rarity, Kompromat price, Forensic hardening | logic | implementer | sonnet | 219313 | 1 (format) + 2 test | no | Duplicate commit subjects |
+| 2026-10-30 | baseline | CR2 C retry: Auto Burn lane (10 skills) | logic | implementer | sonnet | 289285 | 1 (format) + ~25 test fixes | yes (merge: dup setOn/setEnabled writer) | Largest package |
+| 2026-10-30 | baseline | CR2 review | explore | reviewer | opus | 160021 | n/a | no | 6 real Auto Burn bugs |
+| 2026-10-30 | baseline | CR2 review fixes | logic | implementer | sonnet | 192925 | ~5 test rounds + 1 format | no | Added automation->heat boundary edge |

@@ -8,3 +8,7 @@ coverage
 docs/architecture.html
 docs/Review 1/
 .claude/worktrees/
+
+# Personal branch launcher
+start-branch.bat
+scripts/start-branch.ps1
