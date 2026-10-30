@@ -13,9 +13,9 @@
 /** The version the migration writes (the current save version). */
 export const MIGRATED_VERSION = 7;
 
-// The id of the only sleeve (and corporation) lives in the kernel, where the contexts' save parts can read it; the migration writes everything under it.
+// The ids of the only sleeve and the only corporation live in the kernel, where the contexts' save parts can read them; the migration writes under them.
 export { DEFAULT_SLEEVE_ID } from '../kernel/savePart';
-import { DEFAULT_SLEEVE_ID } from '../kernel/savePart';
+import { DEFAULT_CORPORATION_ID, DEFAULT_SLEEVE_ID } from '../kernel/savePart';
 
 const WALLET_KEYS = ['credits', 'inventory', 'runs', 'lastLifePurchases', 'synths', 'automation'] as const;
 const SLEEVE_KEYS = [
@@ -62,7 +62,7 @@ export function migrateV6(flat: Record<string, unknown>): Record<string, unknown
   // all-time peaks are new: they start at the peak of the life being lived (absent in the save: the reader's fresh value applies)
   if ('peakCredits' in flat) wallet['allTimePeakCredits'] = flat['peakCredits'];
   if ('peakNetwork' in flat) wallet['allTimePeakNetwork'] = flat['peakNetwork'];
-  if ('corporation' in flat) wallet['corporations'] = { [DEFAULT_SLEEVE_ID]: flat['corporation'] };
+  if ('corporation' in flat) wallet['corporations'] = { [DEFAULT_CORPORATION_ID]: flat['corporation'] };
   const sleeve = pick(flat, SLEEVE_KEYS);
   sleeve['keyToggles'] = {
     ...(flat['zeroDaysOn'] === true ? { zeroDay: true } : {}),

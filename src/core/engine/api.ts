@@ -9,8 +9,13 @@
  * is everything a player can do, likewise the union of {@link ActionCommands}, {@link ShopCommands}, {@link ItemCommands},
  * {@link SleeveCommands} and {@link TestAidCommands}. `GameEngine` implements all of them, but a view only needs the part it
  * uses, so it can be tested against a small fake. A new question or command goes into the interface of its area.
+ *
+ * Keyed by id: {@link SleeveQueries} take an optional {@link SleeveId} and {@link CorporationQueries} / {@link CorporationCommands} an
+ * optional {@link CorporationId}, so a later layer with several sleeves or corporations adds no new methods. While there is one of each
+ * the id is ignored (the engine answers for the only one); a caller that does not care passes nothing.
  */
 import type { BigNum } from '../../numbers';
+import type { SleeveId } from '../kernel/savePart';
 import type { ResleeveRequirement } from '../resleeve/resleeve';
 import type { FocusStatus, OverclockStatus } from '../actions/actionToggles';
 import type { AutomationControls } from '../automation/automation';
@@ -19,17 +24,10 @@ import type { BackChannelRule } from '../items/leverageEffects';
 import type { RecentCrits } from '../crits/critFeed';
 import type { PurchaseResult } from '../economy/shop';
 import type { SpeedFactor } from '../actions/speed';
-import type {
-  ActionId,
-  BuyableId,
-  CorporationActionDefinition,
-  CorporationActionId,
-  Currency,
-  GameConfig,
-  GameStateView,
-  ItemId,
-  RarityId,
-} from '../types';
+import type { ActionId, BuyableId, Currency, GameConfig, GameStateView, ItemId, RarityId } from '../types';
+
+import type { CorporationCommands, CorporationQueries } from './apiCorporation';
+export type { CorporationCommands, CorporationQueries };
 
 /** What clicking a purchase did: it was bought (or refused), or an owned auto-run was switched. */
 export type ActivateResult = PurchaseResult | 'switched-on' | 'switched-off';
@@ -103,25 +101,25 @@ export interface LevelQueries {
 /** Read-only questions about the sleeve as a whole and the network it carries. */
 export interface SleeveQueries {
   /** The global sleeve stats after sleeve-wide purchases. */
-  sleeveStats(): SleeveStats;
+  sleeveStats(sleeveId?: SleeveId): SleeveStats;
   /** The share (0..1) of the network's credits per second kept after the heat tax, with the current ICE Rating. */
-  creditKeepFactor(): number;
+  creditKeepFactor(sleeveId?: SleeveId): number;
   /** Credits one network node delivers per second now (after the node payout multiplier; the heat tax is taken from the income). */
-  passiveCreditsPerNode(): BigNum;
+  passiveCreditsPerNode(sleeveId?: SleeveId): BigNum;
   /** Credits per second the network delivers now. */
-  passiveCreditsPerSecond(): BigNum;
+  passiveCreditsPerSecond(sleeveId?: SleeveId): BigNum;
   /** True when the player owns the skill that gives synthetic sleeves. */
-  synthSleevesUnlocked(): boolean;
+  synthSleevesUnlocked(sleeveId?: SleeveId): boolean;
   /** How many synthetic sleeves the player has. */
-  synthCount(): number;
+  synthCount(sleeveId?: SleeveId): number;
   /** Credits per second all synthetic sleeves earn together (not taxed by heat). */
-  synthCreditsPerSecond(): BigNum;
+  synthCreditsPerSecond(sleeveId?: SleeveId): BigNum;
   /** True when the player may re-sleeve right now. */
-  canResleeve(): boolean;
+  canResleeve(sleeveId?: SleeveId): boolean;
   /** The sleeve levels the next re-sleeve needs and the player holds, or `null` when it needs none. */
-  resleeveRequirement(): ResleeveRequirement | null;
+  resleeveRequirement(sleeveId?: SleeveId): ResleeveRequirement | null;
   /** True while heat cannot cool or be reduced at all (an action is running with an Overclock that stops heat cooling). */
-  heatCoolingBlocked(): boolean;
+  heatCoolingBlocked(sleeveId?: SleeveId): boolean;
 }
 
 /** Read-only questions about items: where they drop from, and whether the tiles of the inventory can be used. */
@@ -172,32 +170,6 @@ export interface SkillQueries {
   automation(): AutomationControls;
 }
 
-/** Read-only questions about the corporation. Called by: `ui/view/corporationView.ts`. */
-export interface CorporationQueries {
-  /** True while the Corporation tab is open (a purchase with the `unlocksCorporation` effect is owned). */
-  isCorporationUnlocked(): boolean;
-  /** The corporate rank (what gates the corporation's actions). */
-  corporateRank(): number;
-  /** True once the option to buy synthetic sleeves on the Corporation tab is open (the Synthetic Procurement skill). */
-  synthPurchaseUnlocked(): boolean;
-  /** How long one run of a corporation action takes now, in milliseconds (its action level speeds it up). */
-  corporationRunMs(id: CorporationActionId): number;
-  /** Stocks of competitors the corporation holds. */
-  corporationStocks(): number;
-  /** The action level of a corporation action (0 at the start). */
-  corporationLevel(id: CorporationActionId): number;
-  /** Action XP gathered inside the current level of a corporation action. */
-  corporationXpIntoLevel(id: CorporationActionId): BigNum;
-  /** Action XP the current level of a corporation action costs on its own. */
-  corporationXpForLevel(id: CorporationActionId): BigNum;
-  /** How far through its current level a corporation action is, from 0 to 1. */
-  corporationLevelProgress(id: CorporationActionId): number;
-  /** The corporation's actions, in the order the tab lists them. */
-  corporationActions(): readonly CorporationActionDefinition[];
-  /** True when starting the corporation action now would work. */
-  canStartCorporationAction(id: CorporationActionId): boolean;
-}
-
 /**
  * Everything that can be asked of the game without changing it. Each part is a narrow interface of its own, so a piece of
  * UI (or a test fake) can depend on just the part it reads.
@@ -236,12 +208,6 @@ export interface ActionCommands {
   addFocus(id: ActionId): boolean;
   /** Takes one Focus slot off an action. @returns true when one was removed */
   removeFocus(id: ActionId): boolean;
-}
-
-/** Commands on the corporation. Called by: `ui/widgets/corporationCards.ts`. */
-export interface CorporationCommands {
-  /** Starts a corporation action. @returns true when it is now running */
-  startCorporationAction(id: CorporationActionId): boolean;
 }
 
 /** Commands on purchases. Called by: `ui/widgets/`. */

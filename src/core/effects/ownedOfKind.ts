@@ -63,6 +63,19 @@ export function ownedEffects<K extends EffectKind>(
 }
 
 /**
+ * Id of the buyable that opens sleeve levels and re-sleeving (the one with the `unlockSleeveLevels` effect). Lives here, below both,
+ * because `Progression` (actions) and `ResleeveGate` (resleeve) read the same rule.
+ *
+ * Called by: `resleeve/resleeveGate.ts`, `actions/progression.ts`. Calls: nothing (pure).
+ *
+ * @param buyables the content
+ * @returns its id, or `null` when the content has none (no gate)
+ */
+export function sleeveLevelsGateId(buyables: readonly BuyableDefinition[] | undefined): string | null {
+  return buyables?.find((b) => b.effect.kind === 'unlockSleeveLevels')?.id ?? null;
+}
+
+/**
  * True when at least one copy of a buyable with this effect kind is owned.
  *
  * @param buyables every buyable definition of the content

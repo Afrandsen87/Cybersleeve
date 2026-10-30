@@ -4,6 +4,12 @@ Tick loop, engine facade, queries and commands, time.
 
 Code: `src/core/engine/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+## Surface (S10, current)
+- `engine/api.ts` holds the per-area `*Queries` / `*Commands` interfaces and the `GameQueries` / `GameCommands` unions; the corporation pair lives in `engine/apiCorporation.ts` (file size) and is re-exported. `SleeveQueries` take an optional `SleeveId`, `CorporationQueries` / `CorporationCommands` an optional `CorporationId`; both are ignored while there is one sleeve and one corporation, so `GameEngine` keeps its zero-id signatures (TypeScript accepts the shorter parameter list).
+- `core/index.ts` exports only what `app`, `ui`, `testing` and the in-core tests import (75 unused names dropped; 5.6 KB to 3.9 KB). A new export is added when something outside its context needs it.
+- `engine.ts` stays a delegating facade; nothing was moved in it.
+- `boundaries.test.ts` checks the layer rule (kernel < effects < domain < resleeve/synth/corporation < engine/save/config), a short same-layer table, and 13 named exceptions with reasons (list: see the test). It replaces the 100-edge allow-list.
+
 ## Design (from DESIGN.md)
 
 ### 12. Time

@@ -6,7 +6,7 @@
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { LevelRule } from './level';
-import { sleeveLevelsGateId } from '../resleeve/resleeveGate';
+import { sleeveLevelsGateId } from '../effects/ownedOfKind';
 import { countRunsTowardSleeveXp, wholeCount } from './sleeveXp';
 import { XpReductions } from './xpReductions';
 import type { ActionId, ActionState, GameConfig, GameState } from '../types';

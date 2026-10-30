@@ -4,6 +4,10 @@ The Corporation: actions, levels, stocks, rank.
 
 Code: `src/core/corporation/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+## Surface and state (S10, current)
+- **Keyed by id.** The save keeps the corporation as `wallet.corporations`, a map keyed by corporation id with one entry under `DEFAULT_CORPORATION_ID` (`'main'`, `kernel/savePart.ts`, together with the `CorporationId` and `SleeveId` types). In memory it is still one `wallet.corporation`. `CorporationQueries` / `CorporationCommands` (`engine/apiCorporation.ts`, re-exported by `engine/api.ts`) take an optional `corporationId` on every method; it is ignored while there is one corporation. No assignment rule, no second corporation, no UI.
+- **Synthetic sleeves through one question.** `Corporation` takes `Pick<SynthQueries, 'boost'>` (`synth/synthQueries.ts`, implemented by `SynthSleeves`, which calls the shared `synthBoost`). It no longer reads the wallet's `synths` list or the kernel curve itself. Tests: `corporation/corporationKeyed.test.ts`.
+
 ## Design (from DESIGN.md)
 
 ### 11b. The Corporation

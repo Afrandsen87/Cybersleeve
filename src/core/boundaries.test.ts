@@ -1,9 +1,11 @@
 /**
- * Architecture test: the bounded contexts of `src/core` (one folder each) may only depend on each other along the listed edges.
+ * Architecture test: the bounded contexts of `src/core` (one folder each) may only depend on each other downward, along the layers of
+ * `docs/review/target-architecture.md`.
  *
- * Purpose: make a second code path for the same rule hard to write by accident. A new import from one context into another fails here
- * until the edge is added on purpose; an edge that no longer exists must be deleted from the list, so the list can only shrink
- * as the refactor (docs/review/execution-plan.md) removes cross-context reaching. `(root)` is `core/types.ts` and `core/index.ts`.
+ * Purpose: make a second code path for the same rule hard to write by accident. An import from one context into another passes when it
+ * points to a lower layer, or along a listed same-layer edge; anything else must be a named exception with a reason, and an exception that no
+ * longer happens must be deleted, so the exception list can only shrink. `core/types.ts` and `core/index.ts` are the root: everyone may
+ * import the types, and the barrel (`index.ts`) is a re-export, so it is not checked as a source.
  * Also checks that production code in `core` never imports `app`, `ui` or `testing`.
  * Inputs: the source files on disk. Outputs: pass/fail. Side effects: reads files only.
  * Called by: `npm test`. Calls: node `fs` (no browser, DOM or timers).
@@ -15,59 +17,60 @@ import { describe, expect, it } from 'vitest';
 const SRC = join(process.cwd(), 'src');
 const CORE = join(SRC, 'core');
 
-/** Allowed `from -> to` context edges, generated from the code on 2026-10-29 (session S0). Delete lines as they stop being true. */
-const ALLOWED_EDGES: Readonly<Record<string, readonly string[]>> = {
-  '(root)': [
-    'actions',
-    'automation',
-    'config',
-    'corporation',
-    'crits',
-    'economy',
-    'effects',
-    'engine',
-    'heat',
-    'items',
-    'kernel',
-    'resleeve',
-    'save',
-    'skills',
-    'sleeve',
-    'synth',
-  ],
-  actions: ['(root)', 'crits', 'economy', 'effects', 'engine', 'items', 'kernel', 'resleeve', 'sleeve'],
-  // automation -> kernel, synth -> kernel and save -> crits/synth added in S8b: each context's save part uses kernel/savePart and kernel/readValues (downward), and save composes the parts.
-  automation: ['(root)', 'items', 'kernel'],
-  // config -> kernel added in S6: validation reads the currency descriptors (downward edge to the lowest layer).
-  config: ['(root)', 'actions', 'corporation', 'effects', 'items', 'kernel'],
-  corporation: ['(root)', 'actions', 'effects', 'items', 'kernel'],
-  // crits -> effects and items -> effects added in S6: the stats services (CritStats, ItemStats) resolve owned buyable effects (downward edge, L3 to L2).
-  crits: ['(root)', 'effects', 'items', 'kernel'],
-  economy: ['(root)', 'actions', 'effects', 'engine', 'heat', 'kernel', 'synth'],
-  effects: ['(root)', 'actions', 'automation', 'corporation', 'heat', 'items', 'kernel', 'resleeve'],
-  engine: [
-    '(root)',
-    'actions',
-    'automation',
-    'corporation',
-    'crits',
-    'economy',
-    'effects',
-    'heat',
-    'items',
-    'kernel',
-    'resleeve',
-    'save',
-    'synth',
-  ],
-  // heat -> kernel and sleeve -> kernel added in S3: both read the shared `kernel/curves` orders helper (downward edge to the lowest layer).
-  heat: ['(root)', 'effects', 'kernel'],
-  items: ['(root)', 'actions', 'effects', 'kernel'],
-  kernel: ['(root)'],
-  resleeve: ['(root)', 'actions', 'economy', 'effects', 'engine', 'kernel', 'save', 'synth'],
-  save: ['(root)', 'actions', 'automation', 'corporation', 'crits', 'effects', 'items', 'kernel', 'resleeve', 'synth'],
-  sleeve: ['kernel'],
-  synth: ['(root)', 'actions', 'effects', 'kernel'],
+/** Layer of each context (higher may import lower): kernel, effects, the domain contexts, the prestige layers, then engine/save/config. */
+const LAYER: Readonly<Record<string, number>> = {
+  kernel: 1,
+  effects: 2,
+  actions: 3,
+  heat: 3,
+  crits: 3,
+  items: 3,
+  economy: 3,
+  skills: 3,
+  automation: 3,
+  sleeve: 3,
+  resleeve: 4,
+  synth: 4,
+  corporation: 4,
+  engine: 5,
+  save: 5,
+  config: 5,
+};
+
+/** Edges between contexts of the same layer that the target architecture allows ("Allowed deps" column). */
+const SAME_LAYER: readonly string[] = [
+  'actions -> crits',
+  'actions -> items',
+  'actions -> economy',
+  'actions -> sleeve',
+  'crits -> items',
+  'automation -> items',
+  'economy -> heat',
+  'corporation -> synth',
+  'engine -> save',
+];
+
+/**
+ * Edges that break the layer rule today, each with the reason it stays. Delete a line when the edge goes away.
+ * Most are type-only imports of a type owned by the wrong context; the fix is a narrow interface owned by the consumer.
+ */
+const EXCEPTIONS: Readonly<Record<string, string>> = {
+  'actions -> engine':
+    'ActionRunner and StartCosts take the DerivedStats facade (engine/stats.ts) as a type; narrow per-service interfaces would remove it.',
+  'economy -> engine': 'NetworkSystem takes the DerivedStats facade as a type (same reason as actions -> engine).',
+  'resleeve -> engine': 'Resleever takes the DerivedStats facade as a type (same reason as actions -> engine).',
+  'economy -> actions':
+    'Economy reads the reward descriptors (actions/rewards.ts) to turn a payout into a currency; the descriptors belong in a lower layer.',
+  'effects -> actions': 'Effect kinds name ActionId/ActionDefinition: type-only imports of action types.',
+  'effects -> automation':
+    'effects/entries/automationEntries.ts and kinds/sleeve.ts import from automation/automation.ts (the feature names and table).',
+  'effects -> corporation': 'The corporation kinds name CorporationEffect/ActionId: type-only imports of corporation types.',
+  'effects -> heat': 'The effect registry composes the heat entries (heat/heatEffects.ts); entry files live with their mechanic.',
+  'effects -> items': 'effects/kinds/items.ts names item ids (itemTypes) and entries/itemEntries.ts imports items/inventory.ts.',
+  'effects -> resleeve': 'The effect registry composes the re-sleeve entries (resleeve/resleeveEffects.ts) and their kind types.',
+  'items -> actions': 'itemTypes.ts names ActionId (a drop source): type-only import.',
+  'resleeve -> save': 'Resleever resets the state with save/state.ts (resetForResleeve); the reset lists belong with the state shape.',
+  'resleeve -> synth': 'Resleever gives the synthetic sleeve for the run that just ended (SynthSleeves.addForResleeve).',
 };
 
 /** @returns every `.ts` file under `dir` */
@@ -100,28 +103,47 @@ function importsOfCore(): { file: string; targets: string[] }[] {
     });
 }
 
+/** True when the layer rule or the same-layer table allows `from -> to`. */
+function isAllowed(from: string, to: string): boolean {
+  const down = (LAYER[to] as number) < (LAYER[from] as number);
+  return down || SAME_LAYER.includes(`${from} -> ${to}`);
+}
+
 describe('core context boundaries', () => {
   const found = new Set<string>();
   const upward: string[] = [];
   for (const { file, targets } of importsOfCore()) {
+    const from = contextOf(file);
     for (const target of targets) {
       if (!target.startsWith(CORE)) {
         if (/[\\/](app|ui|testing)[\\/]/.test(relative(SRC, target))) upward.push(`${relative(SRC, file)} -> ${relative(SRC, target)}`);
         continue;
       }
-      const from = contextOf(file);
       const to = contextOf(target);
-      if (from !== to) found.add(`${from} -> ${to}`);
+      if (from !== '(root)' && to !== '(root)' && from !== to) found.add(`${from} -> ${to}`);
     }
   }
-  const allowed = new Set(Object.entries(ALLOWED_EDGES).flatMap(([from, tos]) => tos.map((to) => `${from} -> ${to}`)));
-
-  it('has no context edge outside the allowed list', () => {
-    expect([...found].filter((e) => !allowed.has(e)).sort()).toEqual([]);
+  const broken = [...found].filter((e) => {
+    const [from, to] = e.split(' -> ') as [string, string];
+    return !isAllowed(from, to);
   });
 
-  it('lists no edge that has gone away (the list only shrinks)', () => {
-    expect([...allowed].filter((e) => !found.has(e)).sort()).toEqual([]);
+  it('has every context in a layer', () => {
+    const contexts = new Set([...found].flatMap((e) => e.split(' -> ')));
+    expect([...contexts].filter((c) => LAYER[c] === undefined)).toEqual([]);
+  });
+
+  it('has no edge that breaks the layer rule without a named exception', () => {
+    expect(broken.filter((e) => !(e in EXCEPTIONS)).sort()).toEqual([]);
+  });
+
+  it('lists no exception or same-layer edge that has gone away (the lists only shrink)', () => {
+    expect(
+      Object.keys(EXCEPTIONS)
+        .filter((e) => !broken.includes(e))
+        .sort(),
+    ).toEqual([]);
+    expect(SAME_LAYER.filter((e) => !found.has(e)).sort()).toEqual([]);
   });
 
   it('never imports app, ui or testing from production code in core', () => {

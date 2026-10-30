@@ -4,7 +4,7 @@
  * The Corporation: starting its actions and advancing their runs.
  */
 import { ownsKind } from '../effects/ownedOfKind';
-import { synthBoost } from '../kernel/curves';
+import type { SynthQueries } from '../synth/synthQueries';
 import { effectiveDurationMs, levelFactor } from '../actions/speed';
 import { applyCorporationEffect, type CorporationEffectContext } from './corporationEffects';
 import type { CorporationLevels } from './corporationLevels';
@@ -38,12 +38,14 @@ export class Corporation {
    * @param state the live game state (mutated: `corporation`)
    * @param effects what the effects of the actions may use (inventory, randomness)
    * @param levels gets the XP of each completed run (also read by the engine for the levels shown)
+   * @param synths the synthetic sleeves, asked only for their boost (the Synthetic Workers skill)
    */
   constructor(
     private readonly config: Pick<GameConfig, 'corporation' | 'buyables' | 'speed' | 'engine'>,
-    private readonly state: StateSlice<'corporation' | 'purchased' | 'synths'>,
+    private readonly state: StateSlice<'corporation' | 'purchased'>,
     private readonly effects: CorporationEffectContext,
     readonly levels: CorporationLevels,
+    private readonly synths: Pick<SynthQueries, 'boost'>,
   ) {
     for (const a of config.corporation?.actions ?? []) this.definitions.set(a.id, a);
   }
@@ -83,7 +85,7 @@ export class Corporation {
     for (const b of this.config.buyables) {
       const copies = this.state.sleeve.purchased[b.id] ?? 0;
       if (b.effect.kind === 'corporationSpeedPerLnSynths' && copies > 0) {
-        factor *= synthBoost(b.effect.perLn, this.state.wallet.synths.length, copies);
+        factor *= this.synths.boost(b.effect.perLn, copies);
       }
     }
     return factor;

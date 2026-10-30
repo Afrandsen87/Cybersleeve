@@ -31,10 +31,10 @@ Split files (body divided; the old name becomes a thin facade or disappears):
 | `automation/` | automation; tests: automation.t |
 | `sleeve/` | sleeveEuphoria, (stats sleeve half), (effects sleeve half), (concave users); tests: sleeveEuphoria.t, iceRating.t, iceRatingFromLevel.t, coreSleeve.t, engineSleeve.t |
 | `resleeve/` | resleeve, sleeveLevelGate, runsSave, resleeveCarry, resleever, resleeveGate, resleeveEffects, resleeveEffectTypes, reflexArchive, (resleeveSkillsKit -> `testing/`); tests: resleeveGate.t, sleeveLevelGate.t, carryTraits.t, resleevePoints.t, runRecord.t, synthSleevesPlay.t, sleeveEuphoriaPlay.t, resleeveSaving.t (split from resleeveTree.t), revealAfterResleeves.t, batchingResleeveSkills.t, reflexArchive.t, retentionLane.t, saveWipe.t |
-| `synth/` | synthSleeves; tests: synthLane.t |
-| `corporation/` | corporation, corporationEffects, corporationLevels, corporationState, corporationTypes; tests: corporation.t, corporationLane.t, corporationLevels.t, corporationRank.t, corporationStocks.t |
+| `synth/` | synthSleeves, synthQueries; tests: synthLane.t |
+| `corporation/` | corporation, corporationEffects, corporationLevels, corporationSave, corporationState, corporationTypes; tests: corporationKeyed.t, corporation.t, corporationLane.t, corporationLevels.t, corporationRank.t, corporationStocks.t |
 | `save/` | serialization (composes), saveParts, purchasesSave, migrate, state, stateTypes; tests: progression.t, shop.t, serialization.t, configHelpers.t (split from coreState.t), saveParts.t, v7Golden.t, v7Migration.t, walletSleeve.t. Per-context parts: actions/actionsSave, crits/critsSave, items/inventorySave, automation/automationSave, corporation/corporationSave, resleeve/runsSave, synth/synthSave; kernel/savePart, kernel/readValues |
-| `engine/` | engine, api, index, stats (facade only); tests: engine.t, engineAccess.t, api.t, properties.t |
+| `engine/` | engine, api, apiCorporation, index, stats (facade only); tests: engine.t, engineAccess.t, api.t, properties.t |
 
 Unverified placements (check in the owning step): hardening.t, structure.t, retentionLane.t, saveWipe.t, coreState.t, and where the mixed halves of `stats`/`effects` land. `core/index.ts` stays a re-export barrel until Step 12, then shrinks to `engine/index`.
 

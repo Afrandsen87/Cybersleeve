@@ -11,8 +11,17 @@
 import type { NumberFactory } from '../../numbers';
 import type { GameState, GameStateView } from '../types';
 
-/** Id of the only sleeve (and the only corporation) in a save: both are saved as maps keyed by id, with one entry under this id. */
-export const DEFAULT_SLEEVE_ID = 'main';
+/** Id of a sleeve. Saved as the key of the `sleeves` map. */
+export type SleeveId = string;
+
+/** Id of a corporation. Saved as the key of the wallet's `corporations` map. */
+export type CorporationId = string;
+
+/** Id of the only sleeve in a save: `sleeves` is a map keyed by id, with one entry under this id. */
+export const DEFAULT_SLEEVE_ID: SleeveId = 'main';
+
+/** Id of the only corporation in a save: `corporations` is a map keyed by id, with one entry under this id (same text as the sleeve's, by history). */
+export const DEFAULT_CORPORATION_ID: CorporationId = 'main';
 
 /** One object of a save, as parsed (untrusted). */
 export type RawSection = Readonly<Record<string, unknown>>;

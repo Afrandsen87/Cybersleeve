@@ -3,10 +3,19 @@
  *
  * The passive-income network: credits produced by the nodes, and nodes that grow by themselves.
  */
-import type { NumberFactory } from '../../numbers';
+import type { BigNum, NumberFactory } from '../../numbers';
 import type { DerivedStats } from '../engine/stats';
-import type { SynthIncome } from '../synth/synthSleeves';
 import type { GameState } from '../types';
+
+/**
+ * Something that earns credits per second on top of the network. Owned here, by the consumer, so economy does not import `synth`.
+ *
+ * Called by: {@link NetworkSystem}. Implemented by: `SynthSleeves` (structurally).
+ */
+export interface SynthIncome {
+  /** Credits per second all synthetic sleeves together earn right now (>= 0). Not taxed by heat. */
+  creditsPerSecond(): BigNum;
+}
 
 /**
  * Advances the network over a stretch of game time.

@@ -9,20 +9,11 @@
  * Called by: `app/createGame.ts` (builds it), `engine.ts` (`advance`, through the {@link ResleevePolicy} it is), `shop.ts` (purchase
  * listener). `Progression` reads the same rule through {@link sleeveLevelsGateId}.
  */
+import { sleeveLevelsGateId } from '../effects/ownedOfKind';
 import type { ResleevePolicy } from './resleeve';
 import type { BuyableDefinition, GameConfig, GameState } from '../types';
 
-/**
- * Id of the buyable that opens sleeve levels and re-sleeving.
- *
- * Called by: {@link ResleeveGate}, `Progression`.
- *
- * @param buyables the content
- * @returns its id, or `null` when the content has none (no gate)
- */
-export function sleeveLevelsGateId(buyables: readonly BuyableDefinition[] | undefined): string | null {
-  return buyables?.find((b) => b.effect.kind === 'unlockSleeveLevels')?.id ?? null;
-}
+export { sleeveLevelsGateId };
 
 /**
  * Allows re-sleeving only once the gate buyable is owned and its lockout has run out; starts and counts down that lockout.

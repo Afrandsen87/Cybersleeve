@@ -137,6 +137,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
       rarityIds: config.items.rarities.map((r) => r.id),
     },
     corporationLevels,
+    synths,
   );
   const runner = new ActionRunner(
     config,

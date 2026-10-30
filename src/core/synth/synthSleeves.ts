@@ -4,15 +4,11 @@
  * Synthetic sleeves: extra sleeves that earn credits for you, each one a copy of a finished sleeve-run.
  */
 import { ownsKind } from '../effects/ownedOfKind';
+import { synthBoost } from '../kernel/curves';
+import type { SynthQueries } from './synthQueries';
 import type { BigNum, NumberFactory } from '../../numbers';
 import type { Progression } from '../actions/progression';
 import type { ActionId, BuyableDefinition, GameConfig, GameState, SleeveRunRecord, StateSlice } from '../types';
-
-/** Something that earns credits per second on top of the network (what {@link NetworkSystem} adds to its income). */
-export interface SynthIncome {
-  /** Credits per second all synthetic sleeves together earn right now (>= 0). Not taxed by heat. */
-  creditsPerSecond(): BigNum;
-}
 
 /**
  * The action-level total one synthetic sleeve is measured against (the "current levels" of {@link synthCreditsPerSecond}).
@@ -74,7 +70,7 @@ export function bestSynthActionLevel(state: StateSlice<'runs' | 'synths'>, actio
  * Called by: `network.ts` (income), `resleever.ts`, `shop.ts` (purchase listener), `engine.ts` (queries).
  * Calls: {@link synthCreditsPerSecond}, {@link Progression.totalActionLevels}.
  */
-export class SynthSleeves implements SynthIncome {
+export class SynthSleeves implements SynthQueries {
   /**
    * Creates the service.
    *
@@ -126,6 +122,15 @@ export class SynthSleeves implements SynthIncome {
   /** How many synthetic sleeves the player has. */
   count(): number {
     return this.state.wallet.synths.length;
+  }
+
+  /**
+   * The boost the synthetic sleeves give a `perLn` skill (see {@link SynthQueries.boost}).
+   *
+   * Called by: `corporation/corporation.ts`. Calls: `synthBoost`.
+   */
+  boost(perLn: number, copies: number): number {
+    return synthBoost(perLn, this.count(), copies);
   }
 
   /** Credits per second all synthetic sleeves earn together, not taxed by heat (they have paid their tax already). */
