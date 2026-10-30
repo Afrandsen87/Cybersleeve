@@ -7,6 +7,7 @@ import {
   BURN_LEAD,
   BURN_LEADS,
   GROW_NETWORK,
+  overclockUnlockId,
   SKILL_BLACKOUT,
   SKILL_COLD_TRAIL,
   SKILL_DEEP_COVER,
@@ -74,14 +75,17 @@ describe('the anonymity skill tree: effects name what they scale', () => {
 });
 
 describe('the anonymity skill tree: what a new game shows', () => {
-  it('Quiet Hours and Undercover read from the start, since heat is there from the start', () => {
+  it('Quiet Hours and Undercover read once heat exists, and are masked before', () => {
     const g = createGame();
+    expect(nodeOf(g, SKILL_QUIET_HOURS).masked).toBe(true);
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(GROW_NETWORK)] = 1; // Grow network's Overclock makes heat exist
     expect(nodeOf(g, SKILL_QUIET_HOURS).masked).toBe(false);
     expect(nodeOf(g, SKILL_UNDERCOVER).masked).toBe(false);
   });
 
   it('Scorched Earth and Silver Tongue wait for the Burn leads purchase', () => {
     const g = createGame();
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(GROW_NETWORK)] = 1; // heat exists
     expect(nodeOf(g, SKILL_SCORCHED_EARTH).masked).toBe(true);
     expect(nodeOf(g, SKILL_SILVER_TONGUE).masked).toBe(true);
     (g.getState().sleeve.purchased as Record<string, number>)[BURN_LEADS] = 1;

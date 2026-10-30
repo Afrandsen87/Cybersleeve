@@ -8,7 +8,7 @@
  * Called by: `ui/viewModel.ts`. Calls: the helpers in `viewFormat.ts`, `buyableViews.ts`.
  */
 import {
-  sleeveLevelsGateId,
+  resleeveGateId,
   type ActionDefinition,
   type GameConfig,
   type GameStateView,
@@ -223,7 +223,7 @@ export function sleeveView(
         b.actionId === undefined &&
         !isPointCurrency(config.buyables.find((d) => d.id === b.id)?.currency) &&
         !isCorporate(config, b.id) &&
-        b.id !== sleeveLevelsGateId(config.buyables),
+        b.id !== resleeveGateId(config.buyables),
     ),
     sections: sectionLayout(config).map((section) => ({
       id: section.id,

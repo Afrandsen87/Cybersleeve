@@ -1,19 +1,19 @@
 /**
  * @module core
  *
- * The gate on sleeve levels and re-sleeving: the one buyable with the `unlockSleeveLevels` effect, and the short lockout after it is
+ * The gate on re-sleeving: the one buyable with the `unlockResleeve` effect (Unlock resleeving), and the short lockout after it is
  * bought.
  *
  * @remarks
  * A game whose content has no such buyable has no gate: sleeve levels count and re-sleeving is always allowed (the unit-test configs).
  * Called by: `app/createGame.ts` (builds it), `engine.ts` (`advance`, through the {@link ResleevePolicy} it is), `shop.ts` (purchase
- * listener). `Progression` reads the same rule through {@link sleeveLevelsGateId}.
+ * listener). The Re-sleeve button reads the same rule through {@link resleeveGateId}.
  */
-import { sleeveLevelsGateId } from '../effects/ownedOfKind';
+import { resleeveGateId, sleeveLevelsGateId } from '../effects/ownedOfKind';
 import type { ResleevePolicy } from './resleeve';
 import type { BuyableDefinition, GameConfig, GameState } from '../types';
 
-export { sleeveLevelsGateId };
+export { resleeveGateId, sleeveLevelsGateId };
 
 /**
  * Allows re-sleeving only once the gate buyable is owned and its lockout has run out; starts and counts down that lockout.
@@ -34,7 +34,7 @@ export class ResleeveGate implements ResleevePolicy {
     config: Pick<GameConfig, 'buyables' | 'resleeve'>,
     private readonly state: GameState,
   ) {
-    this.gateId = sleeveLevelsGateId(config.buyables);
+    this.gateId = resleeveGateId(config.buyables);
     this.lockoutMs = config.resleeve.lockoutMs ?? 0;
   }
 

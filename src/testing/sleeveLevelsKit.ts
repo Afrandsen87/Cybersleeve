@@ -1,21 +1,21 @@
 /**
  * @module testing
  *
- * Test setup for the sleeve-levels unlock of the REAL content: buys it and lets the re-sleeve lockout run out, so a test can re-sleeve.
+ * Test setup for the two re-sleeve unlocks of the REAL content (Sleeve levels, then Unlock resleeving): buys both and lets the re-sleeve lockout run out, so a test can re-sleeve.
  *
  * @remarks
  * Used by the tests of `content/` that re-sleeve the real game. The unit-test config has no such unlock and needs none of this.
  */
-import { SLEEVE_LEVELS } from '../content/ids';
+import { RESLEEVE_UNLOCK, SLEEVE_LEVELS } from '../content/ids';
 import type { GameEngine, SleeveRunRecord } from '../core';
 import { num } from '../numbers';
 import { setCredits, setSleeveXp } from './testConfig';
 
-/** Credits that cover the unlock (price 100e9) with room to spare. */
+/** Credits that cover both unlocks (100e6 and 100e9) with room to spare. */
 const PLENTY = num('1e100');
 
 /**
- * Gives the player plenty of credits, buys the sleeve-levels unlock, waits out the lockout and writes enough sleeve XP on the first action
+ * Gives the player plenty of credits, buys both unlocks, waits out the lockout and writes enough sleeve XP on the first action
  * to pass the sleeve-level gate of every re-sleeve a test makes (sleeve XP carries over a re-sleeve).
  *
  * @param g an engine built on the real content
@@ -24,6 +24,7 @@ const PLENTY = num('1e100');
 export function openResleeving(g: GameEngine, lockoutMs = 5_000): void {
   setCredits(g, PLENTY);
   g.buy(SLEEVE_LEVELS);
+  g.buy(RESLEEVE_UNLOCK);
   g.tick(lockoutMs);
   const firstId = Object.keys(g.getState().sleeve.actions)[0];
   if (firstId !== undefined) setSleeveXp(g, num('1e30'), firstId);

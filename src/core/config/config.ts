@@ -373,6 +373,9 @@ export function validateConfig(config: GameConfig): string[] {
   if (config.buyables.filter((b) => b.effect.kind === 'unlockSleeveLevels').length > 1) {
     errors.push('at most one buyable may have the unlockSleeveLevels effect');
   }
+  if (config.buyables.filter((b) => b.effect.kind === 'unlockResleeve').length > 1) {
+    errors.push('at most one buyable may have the unlockResleeve effect');
+  }
 
   const p = config.progression;
   if (!positiveInt(p.runsPerSleeveXp)) errors.push('progression.runsPerSleeveXp must be an integer >= 1');

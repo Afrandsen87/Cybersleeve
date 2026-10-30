@@ -13,7 +13,7 @@ import {
   isPointCurrency,
   type LevelQueries,
   type ShopQueries,
-  sleeveLevelsGateId,
+  resleeveGateId,
   traitsOf,
 } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
@@ -33,8 +33,8 @@ export function sectionLayout(config: GameConfig): readonly { id: SleeveSectionI
   if (cached) return cached;
   const sectionOf = (b: BuyableDefinition): SleeveSectionId =>
     b.currency === 'networkNodes' ? 'nodes' : (b.maxPurchases ?? 1) > 1 ? 'rebuyable' : 'oneTime';
-  // the sleeve-levels unlock is not listed: it is the Re-sleeve button until bought
-  const gateId = sleeveLevelsGateId(config.buyables);
+  // Unlock resleeving is not listed: it is the Re-sleeve button until bought
+  const gateId = resleeveGateId(config.buyables);
   const defs = config.buyables.filter(
     (b) => b.actionId === undefined && !isPointCurrency(b.currency) && !traitsOf(b).corporate && b.id !== gateId,
   );

@@ -12,6 +12,9 @@ import {
   BRANCH_LEVERAGE,
   KOMPROMAT_HARVEST,
   PUSH_MALWARE,
+  GROW_NETWORK,
+  SKILL_QUIET_HOURS,
+  SKILL_UNDERCOVER,
   SKILL_BANDWIDTH,
   SKILL_BACK_CHANNEL,
   SKILL_BLACKOUT,
@@ -91,9 +94,12 @@ describe('what a new game shows of the skill tree', () => {
       .filter((n) => n.masked)
       .map((n) => n.view.id);
 
-  it('the Cybernetics branch, Cold Trail, Quiet Hours and Undercover read from the start; the rest waits for what makes it useful', () => {
+  it('the Cybernetics branch reads from the start; the Anonymity branch waits for heat and the rest for what makes it useful', () => {
     expect(masked(createGame()).sort()).toEqual(
       [
+        SKILL_COLD_TRAIL,
+        SKILL_QUIET_HOURS,
+        SKILL_UNDERCOVER,
         SKILL_SIGNAL_AMPLIFIER,
         SKILL_OVERDRIVE_SPIKE,
         SKILL_FIBER_TAP,
@@ -136,6 +142,7 @@ describe('what a new game shows of the skill tree', () => {
   it('owning the Push malware Overclock reveals Obfuscation, and Purge Protocol with it, because its parent now reads', () => {
     const g = createGame();
     (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(GROW_NETWORK)] = 1; // Grow network's Overclock makes heat exist
     expect(masked(g)).not.toContain(SKILL_OBFUSCATION);
     expect(masked(g)).toContain(SKILL_PURGE_PROTOCOL); // it talks about sleeve levels: it waits for re-sleeving to be unlocked
     (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
@@ -145,6 +152,7 @@ describe('what a new game shows of the skill tree', () => {
   it('a skill that reads but whose parent is not owned is dimmed and cannot be bought yet', () => {
     const g = createGame();
     (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1;
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(GROW_NETWORK)] = 1; // Grow network's Overclock makes heat exist
     const obfuscation = buildViewModel(g)
       .skills.lanes.flatMap((l) => l.nodes)
       .find((n) => n.view.id === SKILL_OBFUSCATION)!;

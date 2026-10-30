@@ -38,6 +38,7 @@ import {
   ZERO_DAY_EXPLOITS,
   CRITICAL_SUCCESS,
   FASTER_CONDITIONING,
+  SLEEVE_LEVELS,
   FOCUS_UPGRADE,
   GROW_NETWORK,
   ICE_RATING_BOOST,
@@ -1163,6 +1164,7 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   ...Object.fromEntries([GROW_NETWORK, PRACTICE_HACKING, PUSH_MALWARE, KILL_SERVERS, LEGEND].map((id) => [focusUnlockId(id), 'focus'])),
   [CRITICAL_SUCCESS]: 'critical-success',
   [FASTER_CONDITIONING]: 'conditioning',
+  [SLEEVE_LEVELS]: 'conditioning', // shares the conditioning picture until it gets its own
   // One icon for every auto-run (the cell in the square of an action card asks for `autoRun`) and one for every reward multiplier: they
   // do the same thing on each action.
   autoRun: 'auto-run',

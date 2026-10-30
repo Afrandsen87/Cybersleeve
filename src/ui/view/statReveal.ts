@@ -84,7 +84,7 @@ export function isStatHidden(stat: RevealableStat, ctx: RevealContext, hasValue:
 /**
  * Whether heat or ICE Rating has already moved off its starting value (they are revealed together, so either one keeps both shown).
  *
- * Called by: `sleeveView.ts`, `branchGates.ts`.
+ * Called by: `sleeveView.ts`, `branchMask.ts`.
  *
  * @param stats the sleeve stats now
  * @param config game configuration (reads the base ICE Rating)

@@ -1,18 +1,18 @@
 /**
  * @module ui
  *
- * Whether the sleeve-levels unlock is owned: until then the sleeve XP bars, the Re-sleeve button and the re-sleeve skill tree stay hidden.
+ * Whether the Sleeve levels unlock is owned: until then the sleeve XP bars and the Re-sleeve button stay hidden.
  *
  * @remarks
- * Called by: `viewModel.ts`, `actionView.ts`, `panelViews.ts`. Pure; reads the same rule as the game (`sleeveLevelsGateId`).
+ * Called by: `viewModel.ts`, `actionView.ts`, `panelViews.ts`. Pure; reads the same rules as the game (`sleeveLevelsGateId`, `resleeveGateId`).
  */
-import { type GameConfig, type GameQueries, sleeveLevelsGateId, type StateSliceView } from '../../core';
+import { type GameConfig, type GameQueries, resleeveGateId, sleeveLevelsGateId, type StateSliceView } from '../../core';
 import type { BuyableView, ResleeveBuyView } from './viewTypes';
 
 /**
  * Whether sleeve levels and re-sleeving are open.
  *
- * Called by: `viewModel.ts`, `actionView.ts`, {@link resleeveSkillsShown}.
+ * Called by: `viewModel.ts`, `actionView.ts`.
  *
  * @param state the game state (reads `purchased`)
  * @param config game configuration (finds the unlock buyable)
@@ -24,36 +24,39 @@ export function sleeveLevelsOpen(state: StateSliceView<'purchased'>, config: Pic
 }
 
 /**
- * Whether the re-sleeve skill tree shows.
+ * Whether the re-sleeve skill trees show: the player has ever earned a re-sleeve point.
+ *
+ * @remarks
+ * Re-sleeve points are `runs.length x resleeve.pointsPerResleeve` (`pointsPerResleeve` >= 1), so a finished sleeve-run is exactly
+ * "a point was earned" (the same fact that shows the Stats tab and opens the re-sleeve skill text).
  *
  * Called by: `panelViews.ts`.
  *
- * @param state the game state (reads `purchased` and `runs`)
- * @param config game configuration
- * @returns `true` when the re-sleeve skill tree shows: the unlock is owned; in a game without that unlock, once a sleeve-run has finished
+ * @param state the game state (reads `runs`)
+ * @returns `true` once at least one sleeve-run has finished
  */
-export function resleeveSkillsShown(state: StateSliceView<'purchased' | 'runs'>, config: Pick<GameConfig, 'buyables'>): boolean {
-  return sleeveLevelsGateId(config.buyables) === null ? state.wallet.runs.length > 0 : sleeveLevelsOpen(state, config);
+export function resleeveSkillsShown(state: StateSliceView<'runs'>): boolean {
+  return state.wallet.runs.length > 0;
 }
 
 /**
- * The sleeve-levels unlock as the Re-sleeve button shows it before it is bought.
+ * The Unlock resleeving purchase as the Re-sleeve button shows it before it is bought (the button itself shows once Sleeve levels is owned).
  *
  * Called by: `viewModel.ts`.
  *
  * @param state the game state (reads `purchased`)
  * @param config game configuration (finds the unlock buyable)
  * @param viewById the view of every buyable
- * @returns the text, tip and affordability to put on the button, or `null` when there is no such unlock, it is owned, or it is not in reach yet
+ * @returns the text, tip and affordability to put on the button, or `null` when there is no such unlock, it is owned, or Sleeve levels is not owned yet (the price-reach rule does not apply: owning Sleeve levels is enough)
  */
 export function resleeveBuyView(
   state: StateSliceView<'purchased'>,
   config: Pick<GameConfig, 'buyables'>,
   viewById: ReadonlyMap<string, BuyableView>,
 ): ResleeveBuyView | null {
-  const id = sleeveLevelsGateId(config.buyables);
+  const id = resleeveGateId(config.buyables);
   const view = id === null ? undefined : viewById.get(id);
-  if (!id || !view || (state.sleeve.purchased[id] ?? 0) > 0 || !view.available) return null;
+  if (!id || !view || (state.sleeve.purchased[id] ?? 0) > 0 || !sleeveLevelsOpen(state, config)) return null;
   return { id, text: `${view.name}: ${view.costText} ${view.costUnit}`, tip: view.tip, affordable: view.affordable };
 }
 

@@ -16,7 +16,7 @@ import {
 } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
-import { branchHiddenFn } from './branchGates';
+import { branchMaskedFn } from './branchMask';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
 import type { AutomationView, BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
@@ -51,10 +51,10 @@ export function runsView(runs: GameStateView['wallet']['runs'], config: GameConf
  * @param state the game state
  * @param text the display text
  */
-export function tabsView(engine: SkillQueries & CorporationQueries, state: GameStateView, config: GameConfig, text: UiText): TabView[] {
+export function tabsView(engine: SkillQueries & CorporationQueries, state: GameStateView, text: UiText): TabView[] {
   const automation = engine.automation();
   const statsShown = state.wallet.runs.length > 0; // the first re-sleeve writes the first run down
-  const skillsShown = engine.skillPointsEarned() > 0 || statsShown || resleeveSkillsShown(state, config); // the re-sleeve skills are on the Skills tab
+  const skillsShown = engine.skillPointsEarned() > 0 || statsShown; // a finished sleeve-run has earned a re-sleeve point
   const automationShown = automation.pointsEarned() > 0;
   const corporationShown = engine.isCorporationUnlocked();
   const tabsShown = skillsShown || automationShown || statsShown || corporationShown;
@@ -89,7 +89,7 @@ export function tabsView(engine: SkillQueries & CorporationQueries, state: GameS
  * @param state the game state
  * @param config game configuration
  * @param viewById the view of every buyable, by id
- * @param stats the sleeve stats (for the branches that wait for a stat to be revealed)
+ * @param stats the sleeve stats (for the branches whose text waits for a stat to be revealed)
  * @param text the display text
  * @param revealAll test aid: no skill is masked
  */
@@ -108,8 +108,8 @@ export function skillsView(
   const lanes = buildSkillLanes({
     ...common,
     skills: config.buyables.filter((b) => b.currency === 'skillPoints'),
+    branchMasked: branchMaskedFn(config, state, stats),
     laneTitle: branchTitle,
-    branchHidden: branchHiddenFn(config, state, stats),
     open: true,
   });
   // until the first re-sleeve the player has not seen what the skills do: only their places in the tree show
@@ -119,8 +119,8 @@ export function skillsView(
     laneTitle: branchTitle,
     open: state.wallet.runs.length > 0,
   });
-  const resleeveVisible = resleeveSkillsShown(state, config);
-  const anyMasked = (l: readonly SkillLaneView[]): boolean => l.some((lane) => !lane.hidden && lane.nodes.some((n) => n.masked));
+  const resleeveVisible = resleeveSkillsShown(state);
+  const anyMasked = (l: readonly SkillLaneView[]): boolean => l.some((lane) => lane.nodes.some((n) => n.masked));
   return {
     title: text.titles.skills,
     points: engine.skillPoints(),

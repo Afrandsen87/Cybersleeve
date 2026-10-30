@@ -39,6 +39,7 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
   ...HEAT_COOL_ENTRIES,
   synthSleeves: { traits: sleeveWide, validate: none },
   unlockSleeveLevels: { traits: sleeveWideCarried, validate: none },
+  unlockResleeve: { traits: sleeveWideCarried, validate: none },
   unlocksCorporation: { traits: sleeveWide, validate: none },
   addsCorporationEffect: { traits: corporateCarried, validate: none },
   corporateRank: {

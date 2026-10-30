@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import type { BuyableDefinition } from '../core';
 import { skillViews } from '../testing/skillViews';
-import { BRANCH_REVEAL_STAT } from '../ui/view/branchGates';
+import { BRANCH_REVEAL_STAT } from '../ui/view/branchMask';
 import { buildViewModel } from '../ui/viewModel';
 import {
   CRITICAL_SUCCESS,
@@ -75,7 +75,7 @@ describe('critical successes', () => {
 });
 
 describe('heat', () => {
-  it('every heat skill is in a branch that waits for heat to be revealed, or behind an Overclock unlock (the thing that makes heat)', () => {
+  it('every heat skill is in a branch whose text waits for heat to be revealed, or behind an Overclock unlock (the thing that makes heat)', () => {
     for (const b of everyday.filter((x) => HEAT_KINDS.includes(x.effect.kind))) {
       const inHeatBranch = b.branch !== undefined && BRANCH_REVEAL_STAT[b.branch] === 'heat';
       const behindOverclock = chain(b).some((c) => c.effect.kind === 'overclockUnlock');

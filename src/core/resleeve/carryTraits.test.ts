@@ -26,9 +26,9 @@ describe('carry data', () => {
     for (const kind of kinds) if (EFFECTS[kind].traits.carriedOverResleeve) expect(EFFECTS[kind].traits.toggleable, kind).toBe(false);
   });
 
-  it('at least the sleeve-levels unlock and the corporation are on the carried list', () => {
+  it('at least the two re-sleeve unlocks and the corporation are on the carried list', () => {
     const carried = kinds.filter((k) => EFFECTS[k].traits.carriedOverResleeve);
-    expect(carried).toEqual(expect.arrayContaining(['unlockSleeveLevels', 'corporateRank', 'addsCorporationEffect']));
+    expect(carried).toEqual(expect.arrayContaining(['unlockSleeveLevels', 'unlockResleeve', 'corporateRank', 'addsCorporationEffect']));
   });
 
   it('a buyable of a carried kind keeps all its copies over a re-sleeve; one of another kind does not', () => {

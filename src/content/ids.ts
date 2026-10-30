@@ -46,8 +46,10 @@ export const NODE_UPLINK = 'node-uplink';
 export const NODE_PAYOUT = 'node-payout';
 /** Id of the sleeve buyable that multiplies ICE Rating. */
 export const ICE_RATING_BOOST = 'ice-rating-boost';
-/** Id of the one-time sleeve buyable that unlocks sleeve levels and re-sleeving. */
+/** Id of the one-time sleeve buyable that unlocks sleeve levels (sleeve XP starts accruing) and shows the Re-sleeve button. */
 export const SLEEVE_LEVELS = 'sleeve-levels';
+/** Id of the one-time sleeve buyable ('Unlock resleeving') that allows re-sleeving; needs Sleeve levels first. */
+export const RESLEEVE_UNLOCK = 'resleeve-unlock';
 /** Id of the sleeve buyable that gives automation points (each unlocks one automation feature). */
 export const AUTOMATION_CORE = 'automation-core';
 /** Id of the Push malware auto-run buyable. */
