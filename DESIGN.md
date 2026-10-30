@@ -6,6 +6,8 @@ Status markers: **ASSUMPTION** = inferred, needs confirmation. **OPEN** = undeci
 
 Last updated: 2026-10-27.
 
+**Where the game is going:** the long-term target (story, layers, corporation phase, big numbers, player-experience rules, anti-goals) is in `docs/VISION.md`. This file stays the description of what is built.
+
 ## 1. Concept
 
 Cyberpunk idle/incremental game. The player is a character who performs **actions**. There is no life clock: the player builds up their current **sleeve** (body) and chooses when to **re-sleeve** (the first prestige layer). Later layers, not designed yet: several sleeves at once, each replaying a copy of the previous lifetime; companies that produce ever more sleeves; cities, outposts, planets.
