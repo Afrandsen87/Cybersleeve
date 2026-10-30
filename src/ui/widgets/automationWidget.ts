@@ -163,6 +163,7 @@ export function renderAutomation(widget: AutomationWidget, view: AutomationView)
   for (const s of view.autoBurn.switches) {
     const b = widget.autoBurnSwitches.get(s.name);
     if (!b) continue;
+    if (b.textContent !== s.label) b.textContent = s.label; // the Hold and Switch-on labels follow the thresholds
     b.hidden = !s.visible; // nothing is shown before its skill is owned
     b.classList.toggle('on', s.on);
   }

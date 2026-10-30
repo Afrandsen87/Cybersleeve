@@ -122,7 +122,7 @@ export const killServersBuyables: BuyableDefinition[] = [
 
   overclockUnlock(
     KILL_SERVERS,
-    'Unlocks Overclock for this action: pays double ICE Rating and holds heat in place while it runs. The Kill chain adds more.',
+    'Unlocks Overclock for this action: pays double ICE Rating and prevents heat cooldown while active. The Kill chain adds more.',
   ),
 
   focusUnlock(KILL_SERVERS),

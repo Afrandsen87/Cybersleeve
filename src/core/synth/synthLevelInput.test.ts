@@ -39,6 +39,24 @@ describe('SynthSleeves level input', () => {
     expect(asked).toEqual([0, 1]);
   });
 
+  it('the income ceiling is what the sleeves pay at full levels, whatever the live levels are', () => {
+    expect(setup(0).incomeCeiling().toNumber()).toBe(30);
+    expect(setup(50).incomeCeiling().toNumber()).toBe(30);
+    expect(setup(1000).incomeCeiling().toNumber()).toBe(setup(1000).creditsPerSecond().toNumber());
+  });
+
+  it('the income ceiling keeps the Perfect Copies floor and is 0 with no sleeves', () => {
+    const state = createInitialState(testConfig, numberFactory);
+    state.wallet.runs = [{ creditsPerSecond: num(10), actionLevelsTotal: 100 }];
+    const perfect = { id: 'pc', name: 'pc', description: '', cost: num(1), effect: { kind: 'perfectCopies' } } as const;
+    state.sleeve.purchased = { pc: 1 };
+    const progression = { totalActionLevelsWithProgress: () => 0 } as unknown as Progression;
+    const make = () => new SynthSleeves({ buyables: [perfect] }, state, progression, numberFactory, () => num(25));
+    expect(make().incomeCeiling().toNumber()).toBe(0);
+    state.wallet.synths = [{ runIndex: 0 }];
+    expect(make().incomeCeiling().toNumber()).toBe(25);
+  });
+
   it('a sleeve measured against 0 levels earns nothing', () => {
     expect(
       setup(0, () => 0)

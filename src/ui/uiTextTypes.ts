@@ -84,7 +84,10 @@ export interface UiText {
     /** Auto Burn: where the toggle is, the label of each switch, and the labels of the thresholds and the reserve. */
     readonly autoBurn: {
       readonly hint: string;
-      readonly switches: Readonly<Record<AutoBurnSwitch, string>>;
+      readonly switches: Readonly<Record<Exclude<AutoBurnSwitch, 'hold' | 'upper'>, string>>;
+      /** Labels of the two switches that act at a threshold; they show the heat value in force. */
+      holdAt(lowerHeat: string): string;
+      upperAt(upperHeat: string): string;
       readonly lower: string;
       readonly upper: string;
       readonly reserve: string;

@@ -896,6 +896,7 @@ button:not(:disabled):hover {
 /* A masked skill keeps its place and its lane colour, but nothing glows: it is not lit yet. */
 .skill-lane .skill-node.masked,
 .skill-lane .skill-node.masked.purchasable {
+  opacity: 0.35;
   color: var(--muted);
   border-color: var(--line);
   box-shadow: none;
@@ -1089,6 +1090,22 @@ button:not(:disabled):hover {
 }
 .cell-focus.split {
   pointer-events: none;
+}
+/*
+ * Action-card toggle cells (Auto-run, Overclock, Focus and its two halves): an untoggled one keeps the teal owned look instead of
+ * the muted line-through, a toggled one also glows magenta like a switched-on item tile.
+ */
+.square > .upgrade.owned.off,
+.square > .cell-half:not(.on) {
+  border-color: var(--teal);
+  color: var(--teal);
+  text-decoration: none;
+}
+.square > .upgrade.owned.on,
+.square > .cell-half.on {
+  background: #3a1440;
+  border-color: var(--magenta, #ff2bd6);
+  box-shadow: 0 0 8px var(--magenta, #ff2bd6);
 }
 /* A feature this action does not have yet: an empty placeholder. */
 .cell.empty {

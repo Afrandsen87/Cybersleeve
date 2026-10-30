@@ -150,6 +150,16 @@ export interface RewardLineParts {
   readonly multiplier: string | null;
 }
 
+/** Pre-formatted pieces of the live numbers of the Hardened payload purchase. */
+export interface HardenedPayloadValueParts {
+  /** The base ICE Rating each level gives (its own per-level amount, times the copies owned). */
+  readonly base: string;
+  /** What Forensic hardening adds per level, or `null` while none of it is owned (the term is not shown yet). */
+  readonly hardening: string | null;
+  /** The ICE Rating each level gives in total. */
+  readonly total: string;
+}
+
 /** Pre-formatted pieces of the live numbers of the Forensic hardening purchase. */
 export interface HardeningValueParts {
   /** Critical successes counted so far. */

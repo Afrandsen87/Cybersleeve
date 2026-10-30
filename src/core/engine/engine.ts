@@ -420,6 +420,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.runner.canStart(id);
   }
 
+  /** The live share of the balance the start cost takes, or `null` (see `StartCosts.shareOf`). */
+  startShareOf(id: ActionId): number | null {
+    return this.runner.startShareOf(id);
+  }
+
   /**
    * What starting the action would cost right now (network nodes rounded down to whole nodes), or `null` when free.
    * @throws Error if the action id is unknown
@@ -715,6 +720,11 @@ export class GameEngine implements GameQueries, GameCommands {
   /** Credits per second all synthetic sleeves earn together (not taxed by heat). */
   synthCreditsPerSecond(): BigNum {
     return this.synths.creditsPerSecond();
+  }
+
+  /** What all synthetic sleeves would earn together at full action levels (see `SynthSleeves.incomeCeiling`). */
+  synthIncomeCeiling(): BigNum {
+    return this.synths.incomeCeiling();
   }
 
   /** The share of earned credits kept after the heat tax (`1 - heat * (1 - iceRating reduction) / 100`, never below 0). */

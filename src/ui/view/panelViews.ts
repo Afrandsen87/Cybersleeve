@@ -9,6 +9,7 @@
 import {
   AUTOMATION_FEATURES,
   AUTO_BURN_SWITCHES,
+  type AutoBurnSwitch,
   type CorporationQueries,
   type GameConfig,
   type SkillQueries,
@@ -188,7 +189,7 @@ export function automationView(
       hint: text.automation.autoBurn.hint,
       switches: AUTO_BURN_SWITCHES.map((name) => ({
         name,
-        label: text.automation.autoBurn.switches[name],
+        label: autoBurnSwitchLabel(name, burn.rules(), text),
         on: burn.rules()[name],
         visible: burn.stepOwned(name),
       })),
@@ -205,4 +206,23 @@ export function automationView(
     actions: config.actions.map((a) => ({ id: a.id, name: a.name, percent: automation.dispersal(a.id) })),
     shareLabel: text.automation.dispersalShare,
   };
+}
+
+/**
+ * The label of an Auto Burn switch. The Hold and Switch-on switches show the heat threshold in force (from the rules, so the
+ * player's own thresholds once the skill makes them editable); the others have fixed text.
+ *
+ * Called by: {@link automationView}.
+ * Calls: `formatPlain`, the `autoBurn` text.
+ *
+ * @param name the switch
+ * @param rules the Auto Burn rules in force
+ * @param text the display text
+ * @returns the label to show
+ */
+function autoBurnSwitchLabel(name: AutoBurnSwitch, rules: { lower: number; upperAt: number }, text: UiText): string {
+  const t = text.automation.autoBurn;
+  if (name === 'hold') return t.holdAt(formatPlain(rules.lower));
+  if (name === 'upper') return t.upperAt(formatPlain(rules.upperAt));
+  return t.switches[name];
 }
