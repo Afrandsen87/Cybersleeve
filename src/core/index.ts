@@ -35,9 +35,11 @@ export {
   type AutomationFeature,
 } from './automation/automation';
 export { CritFeed } from './crits/critFeed';
+export { CritTally } from './crits/critTally';
+export { hardeningBonusPerLevel } from './effects/entries/sleeveEntries';
 export { LinkedPayouts } from './actions/linkedPayouts';
 export { CriticalSuccesses, criticalRuleFor } from './crits/critical';
-export { shiftWeights } from './items/rarityShift';
+export { proficiencySteps, shiftWeights, shiftWeightsBySteps } from './items/rarityShift';
 export { wholeOrders } from './kernel/curves';
 export { isPointCurrency } from './kernel/currencies';
 export type { RandomSource } from './kernel/sampling';

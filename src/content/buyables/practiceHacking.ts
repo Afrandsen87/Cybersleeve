@@ -53,12 +53,14 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     id: RARITY_REFINEMENT,
     name: 'Rarity refinement',
     symbol: 'RR',
-    description: 'Increases the rarity of Kompromat drops based on Hacking Proficiency.',
+    description:
+      'Increases the rarity of Kompromat drops based on Hacking Proficiency: for every doubling of your Hacking Proficiency (plus 1), 5% of each rarity moves up to the next rarity.',
     actionId: PRACTICE_HACKING,
     cost: num(10_000),
     requires: [KOMPROMAT_HARVEST],
-    // fractionPerOrder 0.01: each shift moves 1% of every rarity's weight on to the next rarity, all worked out up front and moved at once
-    effect: { kind: 'rarityShiftFromProficiency', fractionPerOrder: 0.01 },
+    // steps = log_stepBase(1 + proficiency), continuous (works from low proficiency); each step moves fractionPerStep of every rarity's
+    // weight on to the next rarity, all worked out up front and moved at once
+    effect: { kind: 'rarityShiftFromProficiency', fractionPerStep: 0.05, stepBase: 2 },
   },
 
   {
@@ -80,6 +82,7 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     actionId: PRACTICE_HACKING,
     cost: num(1e15),
     requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once the Sleeve levels upgrade is owned
+    revealAfterResleeves: 1, // not available (so not visible) before the first re-sleeve
     // divisor = 1 + perLevel x Practice Hacking sleeve level: perLevel 1 halves the XP at level 1; there is no ceiling
     effect: { kind: 'sleeveXpReduction', sourceActionId: PRACTICE_HACKING, perLevel: 1 },
   },

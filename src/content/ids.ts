@@ -206,6 +206,8 @@ export const DECOMMISSION_PROTOCOL = 'decommission-protocol';
 export const CREDIT_SIPHON = 'credit-siphon';
 /** Id of the Kill servers buyable that multiplies the ICE Rating each run pays. */
 export const CASCADE_FAILURE = 'cascade-failure';
+/** Id of the Kill servers buyable whose critical successes raise the per-level ICE Rating of Hardened payload. */
+export const FORENSIC_HARDENING = 'forensic-hardening';
 /** Id of the Push malware buyable that lets its runs drop Zero-days. */
 export const ZERO_DAY_EXPLOITS = 'zero-day-exploits';
 /** Id of the Push malware buyable that triples what its critical successes do. */

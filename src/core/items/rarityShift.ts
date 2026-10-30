@@ -3,6 +3,7 @@
  *
  * Shifting item drop ratios towards the rarer rarities.
  */
+import type { BigNum, NumberFactory } from '../../numbers';
 
 /**
  * Most shift steps worth computing. Each step moves 1% (or whatever the fraction is) of every weight on, so after this many
@@ -12,7 +13,40 @@
 const MAX_STEPS = 10_000;
 
 /**
- * Shifts drop weights towards the last rarity, one step per order of magnitude.
+ * How many shift steps a proficiency is worth: `log_stepBase(1 + proficiency)`, continuous.
+ *
+ * Called by: `itemStats.ts` (`ItemStats.itemDrops`). Calls: `BigNum.log10`.
+ *
+ * @param proficiency effective Hacking Proficiency
+ * @param stepBase the factor of (1 + proficiency) per step (> 1)
+ * @param factory number factory
+ * @returns a finite number >= 0 (0 for zero, negatives, NaN; clamped to {@link MAX_STEPS})
+ */
+export function proficiencySteps(proficiency: BigNum, stepBase: number, factory: NumberFactory): number {
+  if (proficiency.isZero() || proficiency.isNegative() || proficiency.isNaN()) return 0;
+  const steps = proficiency.add(factory.fromNumber(1)).log10() / Math.log10(stepBase); // log10(1 + proficiency)
+  return steps > 0 ? Math.min(steps, MAX_STEPS) : 0; // +Infinity clamps to the cap; NaN gives 0
+}
+
+/**
+ * Shifts drop weights by a continuous number of steps: the whole steps with {@link shiftWeights}, then the fractional rest as ONE more
+ * shift of `fraction x rest` (monotone in the steps, closed form).
+ *
+ * Called by: `itemStats.ts` (`ItemStats.itemDrops`). Calls: {@link shiftWeights}.
+ *
+ * @param weights relative weight per rarity, most common first
+ * @param steps steps (>= 0, may be fractional)
+ * @param fraction share of each weight moved per step (0..1)
+ * @returns the shifted weights (a new array)
+ */
+export function shiftWeightsBySteps(weights: readonly number[], steps: number, fraction: number): number[] {
+  const whole = Math.floor(steps);
+  const shifted = shiftWeights(weights, whole, fraction);
+  return steps > whole ? shiftWeights(shifted, 1, fraction * (steps - whole)) : shifted;
+}
+
+/**
+ * Shifts drop weights towards the last rarity, one whole step per count.
  *
  * @remarks
  * One step moves `fraction` of EACH weight to the next rarity. The amounts moved are all worked out from the weights as they

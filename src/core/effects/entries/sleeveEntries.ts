@@ -2,6 +2,20 @@ import type { BuyableEffect } from '../../types';
 import { factorAtLeastOne, naturalLog, sleeveWide } from '../effectHelpers';
 import type { EffectDefinition } from '../effectTypes';
 
+/**
+ * The ICE Rating each level of the level action gains from counted critical successes: `crits x perCrit` (0 for NaN or negative counts).
+ * The ONE owner of this rule: the effect hook and the buyable's tooltip values both ask it.
+ *
+ * Called by: `hardenedPayloadFromCrits.sleeve`, `ui/view/buyableViews.ts`. Calls: nothing.
+ *
+ * @param crits the counted critical successes (`sleeve.hardeningCrits`)
+ * @param perCrit ICE Rating per level per critical success
+ * @returns a number >= 0
+ */
+export function hardeningBonusPerLevel(crits: number, perCrit: number): number {
+  return crits > 0 ? crits * perCrit : 0;
+}
+
 type Kind =
   | 'interfaceSpeedMultiplier'
   | 'actionXpReductionFromSleeveLevel'
@@ -12,6 +26,7 @@ type Kind =
   | 'accessLevel'
   | 'iceRatingMultiplier'
   | 'iceRatingFromActionLevel'
+  | 'hardenedPayloadFromCrits'
   | 'interfaceSpeedPerLnNodes'
   | 'levelBonusFromSleeveLevel'
   | 'sleeveXpReduction';
@@ -89,6 +104,20 @@ export const SLEEVE_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<Bu
     },
     sleeve: (acc, e, { owned, factory, actionLevelOf }) => {
       acc.iceRatingBonus = acc.iceRatingBonus.add(factory.fromNumber(e.perLevel * actionLevelOf(e.sourceActionId) * owned));
+    },
+  },
+  hardenedPayloadFromCrits: {
+    traits: sleeveWide,
+    validate: (e, { where, actionIds, errors }) => {
+      if (!(Number.isFinite(e.perCrit) && e.perCrit > 0)) errors.push(`${where}: hardened payload perCrit must be > 0`);
+      for (const id of [e.critActionId, e.levelActionId]) {
+        if (!actionIds.has(id)) errors.push(`${where}: hardened payload refers to unknown action "${id}"`);
+      }
+    },
+    sleeve: (acc, e, { owned, factory, actionLevelOf, state }) => {
+      acc.iceRatingBonus = acc.iceRatingBonus.add(
+        factory.fromNumber(hardeningBonusPerLevel(state.sleeve.hardeningCrits, e.perCrit) * actionLevelOf(e.levelActionId) * owned),
+      );
     },
   },
   interfaceSpeedPerLnNodes: {

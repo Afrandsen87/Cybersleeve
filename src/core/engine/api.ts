@@ -138,6 +138,8 @@ export interface SleeveQueries {
 export interface ItemQueries {
   /** The actions that can drop one stack of items now, with the chance that one completed run of each drops it (0..1). */
   dropSources(itemId: ItemId, rarityId: RarityId): readonly { readonly actionId: ActionId; readonly chance: number }[];
+  /** Credits one item of this rarity sells for now (`Inventory.sellValue`: the floor or the seconds of peak income, whichever is more). */
+  sellValue(rarityId: RarityId): BigNum;
   /** The back channel unlocked by a skill, or `null`. */
   backChannel(): BackChannelRule | null;
   /** True when using a Burn lead of this rarity would do something (one is held and there is heat). */

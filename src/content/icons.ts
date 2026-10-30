@@ -25,6 +25,7 @@ import {
   ADMIN_KEY,
   BLACK_BOX_RECORDER,
   CASCADE_FAILURE,
+  FORENSIC_HARDENING,
   CREDIT_SIPHON,
   DECOMMISSION_PROTOCOL,
   SKILL_SHARD,
@@ -1136,6 +1137,7 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   [CREDIT_SIPHON]: 'credit-siphon',
   [KILL_CHAIN]: 'kill-chain',
   [CASCADE_FAILURE]: 'multiplier',
+  [FORENSIC_HARDENING]: 'hardened-payload', // shares the grid of Hardened payload, the purchase it feeds
   [PERSISTENCE]: 'persistence',
   [RANSOMWARE]: 'ransomware',
   [INDUSTRIAL_ESPIONAGE]: 'chip',

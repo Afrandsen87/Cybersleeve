@@ -52,6 +52,7 @@ const isWhole = (n: BigNum): boolean => {
  * - every recorded sleeve-run has a valid income and a whole total of action levels; every synthetic sleeve points at a recorded run, no run has
  *   two of them, and they exist only while the skill that gives them is owned;
  * - every corporation action of the content has a state, the progress of each is in [0, 1) and 0 while it is idle;
+ * - Counted critical successes (`hardeningCrits`) are a whole number, and above 0 only while a `hardenedPayloadFromCrits` buyable is owned.
  * - Skill shard counts are whole numbers, and an Overclock chain is a whole count within the most links of the chain buyable, for an action that owns one.
  *
  * @param state the state to check
@@ -72,6 +73,12 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   const { wallet, sleeve: life } = state;
   if (wallet.allTimePeakCredits.lt(life.peakCredits)) problems.push("allTimePeakCredits is below this life's peakCredits");
   if (wallet.allTimePeakNetwork.lt(life.peakNetwork)) problems.push("allTimePeakNetwork is below this life's peakNetwork");
+  if (!validCount(life.hardeningCrits)) problems.push(`hardeningCrits is not a whole number >= 0: ${life.hardeningCrits}`);
+  else if (
+    life.hardeningCrits > 0 &&
+    !config.buyables.some((b) => b.effect.kind === 'hardenedPayloadFromCrits' && (life.purchased[b.id] ?? 0) > 0)
+  )
+    problems.push('hardeningCrits is counted without a buyable that listens to critical successes');
   const auto = state.wallet.automation;
   const earned = automationPointsEarned(config.buyables, state.sleeve.purchased);
   const spent = config.buyables.reduce(

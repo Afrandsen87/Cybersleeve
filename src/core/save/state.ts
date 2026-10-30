@@ -103,6 +103,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
         | 'networkRemainder'
         | 'nodePayoutBonus'
         | 'hackingProficiency'
+        | 'hardeningCrits'
       >),
       autoRunOff: {},
       overclocked: {},

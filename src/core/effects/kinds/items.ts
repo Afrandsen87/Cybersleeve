@@ -12,11 +12,11 @@ export type ItemEffect =
   /** Completed runs of the buyable's action may drop an item, as described by `drop`. Applies once, whatever the number of copies. */
   | { readonly kind: 'itemDrop'; readonly drop: ItemDropRule }
   /**
-   * Hacking Proficiency shifts the drop ratios of the buyable's action towards the rarer rarities: for every whole order of
-   * magnitude of proficiency (`floor(log10)`, none below 10) `fractionPerOrder` of each rarity's weight moves to the next rarity.
-   * The amounts are worked out up front for all rarities and moved at once (see `shiftWeights`). Applies once, whatever the number of copies.
+   * Hacking Proficiency shifts the drop ratios of the buyable's action towards the rarer rarities: for every step
+   * (`log_stepBase(1 + proficiency)`, a continuous number, so it works from low proficiency) `fractionPerStep` of each rarity's weight
+   * moves to the next rarity. The amounts are worked out up front for all rarities and moved at once (see `shiftWeightsBySteps`). Applies once, whatever the number of copies.
    */
-  | { readonly kind: 'rarityShiftFromProficiency'; readonly fractionPerOrder: number }
+  | { readonly kind: 'rarityShiftFromProficiency'; readonly fractionPerStep: number; readonly stepBase: number }
   /** Multiplies the drop chance (the chance of a drop at all) of every drop rule of `itemId` by `factor` per copy; the result never exceeds 1. */
   | { readonly kind: 'itemDropChanceMultiplier'; readonly itemId: ItemId; readonly factor: number }
   /** Node payout is multiplied by `1 + perItem x` the number of `itemId` items of `rarityId` held, per copy. */

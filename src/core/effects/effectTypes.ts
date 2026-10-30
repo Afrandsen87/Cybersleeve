@@ -9,7 +9,17 @@
  * the types without importing the registry that imports them. Called by: the entry files, `effectRegistry.ts`, `actionResolver.ts`, `sleeveResolver.ts`.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
-import type { ActionId, BuyableDefinition, BuyableEffect, ChainRule, GameState, ItemDropRule, PaysActionRule, StateSlice } from '../types';
+import type {
+  ActionId,
+  BuyableDefinition,
+  BuyableEffect,
+  ChainRule,
+  GameState,
+  ItemDropRule,
+  PaysActionRule,
+  RarityShift,
+  StateSlice,
+} from '../types';
 
 /** Facts about one kind of effect. */
 export interface EffectTraits {
@@ -44,7 +54,7 @@ export interface ActionAccumulator {
   /** Seconds of node income paid per node destroyed by the start cost (0 without a `creditSiphon`). */
   siphonSeconds: number;
   drops: ItemDropRule[];
-  rarityShifts: number[];
+  rarityShifts: RarityShift[];
 }
 
 /** What owned effects add up to for the sleeve (the running result of the sleeve hooks). Plain factors start at 1, amounts at 0. */
@@ -105,7 +115,7 @@ export interface ActionHookContext {
 export interface SleeveHookContext {
   /** Copies of the buyable owned (>= 1). */
   readonly owned: number;
-  readonly state: StateSlice<'network' | 'inventory' | 'synths'>;
+  readonly state: StateSlice<'network' | 'inventory' | 'synths' | 'hardeningCrits'>;
   readonly factory: NumberFactory;
   /** Plain action level of an action (without level bonuses). */
   readonly actionLevelOf: (actionId: ActionId) => number;

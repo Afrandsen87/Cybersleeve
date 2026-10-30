@@ -19,7 +19,7 @@ import { Inventory, hasSeenItem } from './inventory';
 
 const config = createConfig(testConfig, {
   items: {
-    rarities: [...testConfig.items.rarities, { id: 'epic', name: 'Epic', sellValue: num(1000) }],
+    rarities: [...testConfig.items.rarities, { id: 'epic', name: 'Epic', sellValue: num(1000), sellSeconds: 0 }],
     definitions: [
       { id: 'file', name: 'File' },
       { id: 'ak', name: 'Admin key', sellable: false, hasRarity: false },

@@ -79,7 +79,7 @@ Scope decisions: desktop browsers only; offline progress is out of scope for now
 
 ## 10. Items, drops, the Inventory and Augments
 
-*Moved to [docs/contexts/items.md](docs/contexts/items.md).* In short: an item and its rarity show in the Inventory only once found (or held); the Augment button waits for the upgrade that drops schematics.
+*Moved to [docs/contexts/items.md](docs/contexts/items.md).* In short: an item and its rarity show in the Inventory only once found (or held); the Augment button waits for the upgrade that drops schematics. Kompromat sells for the larger of a floor per rarity and some seconds (60 for common, x5 per rarity) of this life's peak network income.
 
 ## 11. Re-sleeving (first prestige)
 

@@ -5,16 +5,15 @@
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { resolveDropChanceFactor, resolveEffects, type SleeveStats } from '../effects/effects';
-import { wholeOrders } from '../kernel/curves';
 import type { ActionId, GameConfig, GameState, ItemDropRule } from '../types';
 import { dropShare } from './drops';
 import { type BackChannelRule, resolveBackChannel, resolveRarityWeightBonus } from './leverageEffects';
-import { shiftWeights } from './rarityShift';
+import { proficiencySteps, shiftWeightsBySteps } from './rarityShift';
 
 /**
  * Answers the questions about item drops. Holds no state; reads the `GameState` it was given every time.
  *
- * Called by: `DerivedStats` (the facade). Calls: `resolveEffects`, `resolveDropChanceFactor`, `shiftWeights`, `dropShare`.
+ * Called by: `DerivedStats` (the facade). Calls: `resolveEffects`, `resolveDropChanceFactor`, `proficiencySteps`, `shiftWeightsBySteps`, `dropShare`.
  */
 export class ItemStats {
   /**
@@ -39,14 +38,16 @@ export class ItemStats {
    */
   itemDrops(id: ActionId): readonly ItemDropRule[] {
     const { drops, rarityShifts } = resolveEffects(this.config.buyables, this.state, id, this.factory);
-    const steps = rarityShifts.length === 0 ? 0 : wholeOrders(this.effectiveHackingProficiency());
+    const proficiency = rarityShifts.length === 0 ? undefined : this.effectiveHackingProficiency();
     const rarityIds = this.config.items.rarities.map((r) => r.id);
     return drops.map((rule) => {
       const base = rule.rarityWeights;
       const factor = resolveDropChanceFactor(this.config.buyables, this.state, rule.itemId);
       if (base === undefined) return { ...rule, chance: Math.min(1, rule.chance * factor) }; // an item without rarity has no ratios to shift
       let weights = rarityIds.map((r) => base[r] ?? 0);
-      for (const fraction of rarityShifts) weights = shiftWeights(weights, steps, fraction);
+      for (const shift of rarityShifts) {
+        weights = shiftWeightsBySteps(weights, proficiencySteps(proficiency!, shift.stepBase, this.factory), shift.fractionPerStep);
+      }
       const bonus = resolveRarityWeightBonus(this.config.buyables, this.state, rule.itemId, rarityIds); // added after the shift, per rarity
       const bonused = bonus.some((b) => b > 0);
       if (bonused) weights = weights.map((w, i) => w + bonus[i]!);

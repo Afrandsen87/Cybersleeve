@@ -113,6 +113,7 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     buyable({ id: 'link', actionId: 'push', effect: { kind: 'criticalLink', targetActionId: 'net' } }),
     buyable({ id: 'obf', effect: { kind: 'overclockHeatChanceFactor', targetActionId: 'push', factor: 0.5 } }),
     buyable({ id: 'crit', maxPurchases: 3, effect: { kind: 'criticalChance', chance: 0.3 } }),
+    buyable({ id: 'forensic', effect: { kind: 'hardenedPayloadFromCrits', critActionId: 'push', levelActionId: 'a', perCrit: 1 } }),
     buyable({ id: 'zds', actionId: 'push', effect: { kind: 'itemDrop', drop: { itemId: 'zd', chance: 0.5 } } }),
     buyable({
       id: 'leads',

@@ -15,6 +15,7 @@ import {
   SKILL_BACK_CHANNEL,
   SKILL_SIGNAL_AMPLIFIER,
   SKILL_TRANSFER,
+  STUDY_METHODS,
   SLEEVE_LEVELS,
   gameConfig,
 } from './gameConfig';
@@ -105,8 +106,8 @@ describe('sleeve levels and re-sleeving', () => {
       ).toBe(true);
   });
 
-  it('Faster conditioning and Skill transfer wait for the second sleeve run', () => {
-    for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(byId.get(id)!.revealAfterResleeves, id).toBe(1);
+  it('Faster conditioning, Skill transfer and Study methods wait for the second sleeve run', () => {
+    for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER, STUDY_METHODS]) expect(byId.get(id)!.revealAfterResleeves, id).toBe(1);
   });
 
   it('they are unavailable in a new game and available after one finished sleeve-run', () => {
@@ -117,6 +118,17 @@ describe('sleeve levels and re-sleeving', () => {
       actionLevelsTotal: 0,
     });
     for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(g.isBuyableAvailable(id), id).toBe(true);
+  });
+
+  it('Study methods stays unavailable before the first re-sleeve even with Sleeve levels owned, and opens after it', () => {
+    const g = createGame();
+    (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
+    expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(false);
+    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number }[]).push({
+      creditsPerSecond: 0,
+      actionLevelsTotal: 0,
+    });
+    expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(true);
   });
 });
 

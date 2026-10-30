@@ -71,7 +71,7 @@ describe('resolveRarityWeightBonus', () => {
 
 describe('the leverage skills in a game', () => {
   const items = {
-    rarities: RARITIES.map((id, i) => ({ id, name: id, sellValue: num(i + 1) })),
+    rarities: RARITIES.map((id, i) => ({ id, name: id, sellValue: num(i + 1), sellSeconds: 0 })),
     definitions: [{ id: 'file', name: 'F' }],
   };
   const drop = {

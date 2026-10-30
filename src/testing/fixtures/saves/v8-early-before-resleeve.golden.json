@@ -188,6 +188,7 @@
       "resleeveLockoutMs": 0,
       "networkRemainder": 0.523593042023,
       "nodePayoutBonus": "2871.3025000000002",
+      "hardeningCrits": 0,
       "hackingProficiency": "180.24"
     }
   }

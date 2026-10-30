@@ -55,12 +55,13 @@ export const ITEM_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<Buya
   rarityShiftFromProficiency: {
     traits: perAction,
     validate: (e, { where, errors }) => {
-      if (!(Number.isFinite(e.fractionPerOrder) && e.fractionPerOrder > 0 && e.fractionPerOrder <= 1)) {
-        errors.push(`${where}: fractionPerOrder must be in (0, 1]`);
+      if (!(Number.isFinite(e.fractionPerStep) && e.fractionPerStep > 0 && e.fractionPerStep <= 1)) {
+        errors.push(`${where}: fractionPerStep must be in (0, 1]`);
       }
+      if (!(Number.isFinite(e.stepBase) && e.stepBase > 1)) errors.push(`${where}: stepBase must be > 1`);
     },
     action: (acc, e) => {
-      acc.rarityShifts.push(e.fractionPerOrder);
+      acc.rarityShifts.push({ fractionPerStep: e.fractionPerStep, stepBase: e.stepBase });
     },
   },
   itemDropChanceMultiplier: {

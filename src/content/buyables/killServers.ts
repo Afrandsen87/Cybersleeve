@@ -16,6 +16,9 @@ import {
   CREDIT_SIPHON,
   CASCADE_FAILURE,
   CRITICAL_SUCCESS,
+  MALWARE_ICE,
+  FORENSIC_HARDENING,
+  PUSH_MALWARE,
 } from '../ids';
 import { autoRunCost, overclockUnlock, focusUnlock } from './helpers';
 
@@ -43,6 +46,20 @@ export const killServersBuyables: BuyableDefinition[] = [
     // Decommission protocol, Kill chain, Black box recorder.
     cost: num(1e14),
     effect: { kind: 'startCostReduction', perLevel: 0.01 },
+  },
+
+  {
+    id: FORENSIC_HARDENING,
+    name: 'Forensic hardening',
+    symbol: 'FH',
+    description:
+      'Every critical success of this action adds 1 to the ICE Rating each level of Push malware gives through Hardened payload. Only critical successes after buying it count.',
+    actionId: KILL_SERVERS,
+    requires: [CRITICAL_SUCCESS, MALWARE_ICE], // reveal gate: its text speaks of critical successes and Hardened payload
+    // Placeholder price (balance is not tuned yet): between Cascade failure and Credit Siphon.
+    cost: num(1e11),
+    // perCrit 1: the per-level ICE of Hardened payload is its perLevel + crits x 1, times the Push malware level
+    effect: { kind: 'hardenedPayloadFromCrits', critActionId: KILL_SERVERS, levelActionId: PUSH_MALWARE, perCrit: 1 },
   },
 
   {

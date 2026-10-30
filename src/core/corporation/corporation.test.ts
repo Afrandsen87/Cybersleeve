@@ -35,9 +35,9 @@ const contentWith = (actions: readonly CorporationActionDefinition[], extra: Par
     ],
     items: {
       rarities: [
-        { id: 'common', name: 'Common', sellValue: num(1) },
-        { id: 'uncommon', name: 'Uncommon', sellValue: num(10) },
-        { id: 'rare', name: 'Rare', sellValue: num(100) },
+        { id: 'common', name: 'Common', sellValue: num(1), sellSeconds: 0 },
+        { id: 'uncommon', name: 'Uncommon', sellValue: num(10), sellSeconds: 0 },
+        { id: 'rare', name: 'Rare', sellValue: num(100), sellSeconds: 0 },
       ],
       definitions: [{ id: 'file', name: 'File' }],
     },
