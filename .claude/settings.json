@@ -1,4 +1,5 @@
 {
+  "model": "opus",
   "permissions": {
     "deny": [
       "Read(./docs/architecture.html)",
