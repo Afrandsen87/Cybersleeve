@@ -41,7 +41,7 @@ function dropChances(engine: ItemQueries & ShopQueries & StateQueries, itemId: s
  */
 export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, factory: NumberFactory, text: UiText): InventoryView {
   const state = engine.getState();
-  const { items, buyables } = engine.getConfig();
+  const { items } = engine.getConfig();
   const channel = engine.backChannel();
   const burnLead = items.burnLead;
   const zeroDay = items.zeroDay;
@@ -53,16 +53,6 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
     id === undefined ? undefined : engine.getConfig().actions.find((a) => a.id === id)?.name;
   const zeroDayAction = actionNameOf(zeroDay?.actionId);
   const adminKeyAction = actionNameOf(adminKey?.actionId);
-  /** An item is unlocked once a purchase that drops it is owned, or some of it (in any rarity) is held. */
-  const unlockedItems = new Set(
-    items.definitions
-      .filter(
-        (item) =>
-          items.rarities.some((r) => itemCount(state, item.id, r.id) > 0) ||
-          buyables.some((b) => b.effect.kind === 'itemDrop' && b.effect.drop.itemId === item.id && engine.ownedCount(b.id) > 0),
-      )
-      .map((item) => item.id),
-  );
   const rows = items.definitions.flatMap((item) =>
     // An item without rarity is one stack (kept under the most common rarity) and is named by the item alone.
     (item.hasRarity === false ? items.rarities.slice(0, 1) : items.rarities).map((rarity): InventoryRowView => {
@@ -82,7 +72,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
         symbol: initials(item.name),
         rarityIndex: item.hasRarity === false ? null : items.rarities.indexOf(rarity),
         count,
-        unlocked: unlockedItems.has(item.id),
+        unlocked: count > 0 || engine.hasSeenItem(item.id, rarity.id), // seen once, or held (an old save has held stacks it never recorded)
         countText: formatBigNum(factory.fromNumber(count)),
         augmentable: augment?.itemId === item.id,
         sellable: item.sellable !== false,
@@ -170,10 +160,9 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
       };
     }),
   );
-  const dropSource = buyables.some((b) => b.effect.kind === 'itemDrop' && engine.ownedCount(b.id) > 0);
   return {
     title: text.titles.inventory,
-    visible: dropSource || rows.some((r) => r.count > 0), // an unlocked item is either held or has a drop source
+    visible: rows.some((r) => r.unlocked), // nothing shows until an item has been seen or is held
     rows,
   };
 }

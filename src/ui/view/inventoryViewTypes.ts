@@ -10,7 +10,7 @@ export interface InventoryRowView {
   readonly rarityIndex: number | null;
   /** Items held. A tile with 0 is shown dimmed. */
   readonly count: number;
-  /** The item is unlocked: a purchase that drops it is owned, or some of it is held. Every rarity of an unlocked item shows, even at 0; an item that is not unlocked is hidden. */
+  /** This item in this rarity is shown: it has been seen (it entered the inventory once, even if none is left) or some is held. A row that is not shown has its tile hidden; an item group shows once any of its rows does. */
   readonly unlocked: boolean;
   /** Clicking the tile selects the stack for the Augment buttons of the action cards (the Augment schematic). */
   readonly augmentable: boolean;
