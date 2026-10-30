@@ -15,7 +15,7 @@ Each stat has a hover tip; hovering the label or the value shows it.
 | Access level | 1 | Gates actions. Its tip names the next unlock. |
 | Interface speed | 0.1 | A plain multiplier on every action's speed (so a run takes ten times its base time at the start). |
 | Hacking Proficiency | 0 | Shown under Interface speed; its tip shows the multiplier it gives. Counts raised by Muscle Memory. |
-| ICE Rating | 1 | Lowers the effect of heat by **0.5% per order of magnitude** (100% at 1e200). Raised by Kill servers (+1 per run), multiplied by the ICE Rating boost buyable. |
+| ICE Rating | 1 | Lowers the effect of heat by **1% per order of magnitude** (100% at 1e100). Raised by Kill servers (+1 per run), multiplied by the ICE Rating boost buyable. |
 | Heat | 0 | A tax on **the credits per second the network produces** (the whole income, not the payout per node): each point takes 1% of it (capped at 100%), lowered by ICE Rating. With a reduction r, node income stops at `100 / (1 − r)` heat. It never touches run rewards, item payments or building nodes. Heat may hold **fractions of a point** (Overclock adds heat continuously; a Burn lead removes a share of it), but it only ever cools in **whole points**. |
 | Legend | 0 | Makes the heat cooldown cycle **10% faster per point** (the cycle time is divided by 1 + 0.1 x Legend). Falls by exactly 1 each 10-minute cycle (a bar shows it) while above 0. |
 
@@ -37,7 +37,7 @@ Each stat has a hover tip; hovering the label or the value shows it.
 | `heatCooldownMs` | Length of one heat cooldown cycle (> 0, default 60000 = 60 s). The cycle only advances while heat is above 0 |
 | `heatCooldownAmount` | Heat removed each time a cooldown cycle completes (> 0, default 1). The skill Purge Protocol (`heatCooldownAmountFromSleeveLevel`) adds `perLevel` per sleeve level of its source action |
 | `baseIceRating` | ICE Rating of a new sleeve (>= 1, default 1) |
-| `iceRatingReductionPerOrder` | Share of heat's effect removed per order of magnitude of ICE Rating (>= 0, default 0.005 = 0.5%, so 100% at 1e200) |
+| `iceRatingReductionPerOrder` | Share of heat's effect removed per order of magnitude of ICE Rating (>= 0, default 0.01 = 1%, so 100% at 1e100) |
 | `legendHeatSpeedup` | Each Legend point makes heat cool this much faster: the cycle is divided by `1 + this x Legend` (>= 0, default 0.1 = 10%) |
 | `legendDecayPeriodMs` | Legend falls by exactly 1 each time this many ms have passed, in whole steps like the heat cooldown (> 0, default 600000 = 10 min) |
 
