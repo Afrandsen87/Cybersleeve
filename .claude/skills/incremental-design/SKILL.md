@@ -7,6 +7,8 @@ description: Genre knowledge for Cybersleeve, an idle/incremental game. Load BEF
 
 You are designing for an **idle/incremental game**, not a generic game. Read this page, then the reference file that matches the task. Then read the `DESIGN.md` section and `docs/DECISIONS.md` entry for the mechanic you touch.
 
+**Read the long-term vision first.** `docs/VISION.md` is the designer's target for where the game is going (story, layers, corporation phase, route resets, big numbers, player-experience rules, anti-goals). Read its index, then only the `docs/vision/*.md` file(s) its table names for your task; always read `vision/player-experience.md` before proposing a new mechanic. A design must fit the vision (never contradict a stated intent or anti-goal) and must not implement vision items that no task asked for. Where the vision lists something as OPEN, ask the user instead of deciding. Where it conflicts with the lines below (1e308, offline), the vision is the direction and the current rules stay until a `docs/DECISIONS.md` entry changes them.
+
 ## What the genre is about
 
 1. **The player's real job is choosing what to improve next.** Numbers going up is the surface; the fun is deciding between several things that all make numbers go up, and seeing the result compound. A suggestion that adds a number without adding a decision is weak.
