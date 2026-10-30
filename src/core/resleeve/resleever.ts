@@ -45,9 +45,11 @@ export class Resleever {
     private readonly factory: NumberFactory,
   ) {}
 
-  /** Writes the ending run down, resets the state for the next life and gives it its synthetic sleeve. */
+  /** Writes the ending run down (its credits per second is the life's peak, see `SleeveState.peakNetworkIncome`), resets the state for the next life and gives it its synthetic sleeve. */
   resleeve(): void {
-    const income = this.stats.passiveCreditsPerSecond();
+    const current = this.stats.passiveCreditsPerSecond();
+    const peak = this.state.sleeve.peakNetworkIncome;
+    const income = current.gt(peak) ? current : peak; // the best the network earned this life, own network only (no synth income)
     const record: SleeveRunRecord = {
       creditsPerSecond: repairBig(income, this.factory) ?? income,
       actionLevelsTotal: Math.min(this.progression.totalActionLevels(this.state), INFINITY),

@@ -80,10 +80,11 @@ export type ActionEffect =
       readonly scale: number;
     }
   /**
-   * Lowers the factor Overclock multiplies the heat of each completed run of `targetActionId` by (`OverclockRule.heatPerRunFactor`)
-   * to `factor` (>= 1) when the rule's own factor is higher. Applies once, whatever the number of copies; the lowest factor wins.
+   * Multiplies the chance that a completed run of `targetActionId` makes heat while Overclock is on (`OverclockRule.heatChanceFactor`)
+   * by `factor` in (0, 1]: 0.5 halves a doubled chance back to the action's own chance. The result never drops below 1, so Overclock
+   * never lowers the chance under the action's own. Applies once, whatever the number of copies; the lowest factor wins.
    */
-  | { readonly kind: 'overclockHeatFactor'; readonly targetActionId: ActionId; readonly factor: number }
+  | { readonly kind: 'overclockHeatChanceFactor'; readonly targetActionId: ActionId; readonly factor: number }
   /** Adds the sleeve level of `sourceActionId` to the level of `targetActionId` when computing speed (not its XP progress). */
   | { readonly kind: 'levelBonusFromSleeveLevel'; readonly sourceActionId: ActionId; readonly targetActionId: ActionId }
   /**

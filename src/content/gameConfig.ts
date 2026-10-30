@@ -98,8 +98,8 @@ export const gameConfig: GameConfig = {
     heatCooldownAmount: 1,
     /** ICE Rating of a new sleeve. */
     baseIceRating: 1,
-    /** Share of the heat effect removed per order of magnitude of ICE Rating: 0.5%, so 100% at 1e200. */
-    iceRatingReductionPerOrder: 0.005,
+    /** Share of the heat effect removed per order of magnitude of ICE Rating: 1%, so 100% at 1e100. */
+    iceRatingReductionPerOrder: 0.01,
     /** Each point of Legend makes heat cool 10% faster. */
     legendHeatSpeedup: 0.1,
     /** Legend falls by 1 every 10 minutes. */

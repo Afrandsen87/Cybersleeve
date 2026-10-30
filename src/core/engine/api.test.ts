@@ -10,10 +10,21 @@ describe('GameCommands.activateBuyable', () => {
     expect(g.activateBuyable('auto')).toBe('cannot-afford');
     setCredits(g, num(100));
     expect(g.activateBuyable('auto')).toBe('purchased');
+    expect(g.activateBuyable('auto')).toBe('switched-on'); // bought switched off
     expect(g.activateBuyable('auto')).toBe('switched-off');
-    expect(g.activateBuyable('auto')).toBe('switched-on');
     expect(g.ownedCount('auto')).toBe(1);
     expect(g.activateBuyable('nope')).toBe('unknown');
+  });
+
+  it('buying Auto-run through the player command leaves it switched off; the first click on it then switches it on', () => {
+    const g = createGame({ config: testConfig });
+    setCredits(g, num(100));
+    g.activateBuyable('auto');
+    expect(g.ownedCount('auto')).toBe(1);
+    expect(g.isAutoRunEnabled('auto')).toBe(false);
+    expect(g.isAutoRun(testConfig.buyables.find((b) => b.id === 'auto')!.actionId!)).toBe(false);
+    g.activateBuyable('auto');
+    expect(g.isAutoRunEnabled('auto')).toBe(true);
   });
 
   it('a repeatable non-auto buyable keeps being bought', () => {

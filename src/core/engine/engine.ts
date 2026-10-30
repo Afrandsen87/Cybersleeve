@@ -235,12 +235,16 @@ export class GameEngine implements GameQueries, GameCommands {
   }
 
   /**
-   * What a click on a purchase does: an owned auto-run buyable is switched on or off, anything else is bought.
+   * What a click on a purchase does: an owned auto-run buyable is switched on or off, anything else is bought. The first copy of a
+   * toggleable buyable is left switched OFF (through `toggleAutoRun`, the one writer of `autoRunOff`): buying Auto-run never starts
+   * it. Only this player command does so; `buy` (setup, automation, buy-back) leaves a new auto-run on.
    * @returns what happened
    */
   activateBuyable(id: BuyableId): ActivateResult {
     if (this.shop.isToggleable(id) && this.ownedCount(id) > 0) return this.toggleAutoRun(id) ? 'switched-on' : 'switched-off';
-    return this.buy(id);
+    const result = this.buy(id);
+    if (result === 'purchased' && this.shop.isToggleable(id)) this.toggleAutoRun(id);
+    return result;
   }
 
   /**

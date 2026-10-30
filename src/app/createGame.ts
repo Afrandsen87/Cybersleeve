@@ -9,6 +9,7 @@ import {
   DerivedStats,
   ActionToggles,
   Augments,
+  ownsAutoRun,
   BackChannel,
   BurnLeads,
   CriticalLinks,
@@ -125,7 +126,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     () => stats.heatCoolingBlocked(),
     () => stats.sleeveStats().burnLeadFlatHeat,
   );
-  const augments = new Augments(config, state, inventory);
+  const augments = new Augments(config, state, inventory, (id) => ownsAutoRun(config.buyables, state, id));
   const corporationLevels = new CorporationLevels(config, state, factory);
   const corporation = new Corporation(
     config,

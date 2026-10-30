@@ -70,6 +70,7 @@ export const SCALAR_FIELDS: readonly ScalarField[] = [
   { kind: 'big', owner: 'wallet', key: 'allTimePeakNetwork', whole: true, initial: (_c, f) => f.fromNumber(0) },
   { kind: 'big', owner: 'sleeve', key: 'peakCredits', initial: (c, f) => f.fromNumber(c.progression.startingCredits) },
   { kind: 'big', owner: 'sleeve', key: 'peakNetwork', whole: true, initial: (_c, f) => f.fromNumber(0) },
+  { kind: 'big', owner: 'sleeve', key: 'peakNetworkIncome', initial: (_c, f) => f.fromNumber(0) },
   { kind: 'big', owner: 'sleeve', key: 'network', required: true, whole: true, initial: (_c, f) => f.fromNumber(0) },
   { kind: 'num', owner: 'sleeve', key: 'heat', initial: (c) => c.sleeve.baseHeat },
   { kind: 'num', owner: 'sleeve', key: 'heatCooldownMs', initial: () => 0 },

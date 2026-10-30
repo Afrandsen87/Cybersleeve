@@ -12,8 +12,10 @@ import { mountTestUi } from '../testing/domMountKit';
 const config = createConfig(testConfig, { items: { ...testConfig.items, augment: { itemId: 'file', xpBonusPerItem: 0.01 } } });
 
 type Loose = { inventory: unknown };
-const stock = (g: { getState(): unknown }, held: Record<string, number>): void => {
+/** Gives the game schematics and Auto-run for action `a` (augments only go on an action whose Auto-run is owned). */
+const stock = (g: ReturnType<typeof createGame>, held: Record<string, number>): void => {
   flat<Loose>(g).inventory = { file: held };
+  (g.getState().sleeve.purchased as Record<string, number>)['auto'] = 1;
 };
 
 beforeEach(() => {

@@ -43,6 +43,7 @@ const config: GameConfig = createConfig(testConfig, {
       maxPurchases: Infinity,
       effect: { kind: 'automationPoints', perCopy: 1 },
     },
+    { id: 'auto-b', name: 'Auto B', description: '', actionId: 'b', cost: num(10), effect: { kind: 'autoRun' } },
     ...automationLaneBuyables(),
   ],
   automation: { autoBurnCeiling: 10 },
@@ -220,6 +221,7 @@ describe('Augment dispersal', () => {
     const g = game(1);
     g.automation().unlock('dispersal');
     loose(g).inventory['schem'] = { ...held };
+    for (const id of ['auto', 'auto-b']) (g.getState().sleeve.purchased as Record<string, number>)[id] = 1; // dispersal needs the Auto-runs
     return g;
   };
   const applied = (g: ReturnType<typeof game>, id: string): number =>

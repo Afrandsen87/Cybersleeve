@@ -72,7 +72,7 @@ export interface SleeveConfig {
   readonly heatCooldownAmount: number;
   /** ICE Rating of a new sleeve (>= 1). The stat is multiplied by buyables and raised by actions. */
   readonly baseIceRating: number;
-  /** Share of the heat tax removed per order of magnitude of ICE Rating (0.005 = 0.5%; 100% is reached at 1e200). */
+  /** Share of the heat tax removed per order of magnitude of ICE Rating (0.01 = 1%; 100% is reached at 1e100). */
   readonly iceRatingReductionPerOrder: number;
   /** Each point of Legend makes heat cool this much faster: the cycle is divided by `1 + this x Legend` (0.1 = 10% faster per point; >= 0). */
   readonly legendHeatSpeedup: number;

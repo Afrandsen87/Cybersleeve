@@ -12,6 +12,7 @@ export { SCALAR_FIELDS, scalarValue } from './kernel/fields';
 export { REWARDS, REWARD_KINDS, payReward, rewardOf } from './actions/rewards';
 export { StartCosts } from './actions/startCosts';
 export { RewardPayer } from './actions/rewardPayer';
+export { ownsAutoRun } from './effects/queries';
 export { EFFECT_TRAITS, traitsOf } from './effects/effectTraits';
 export { Economy } from './economy/economy';
 export { Inventory, itemCount } from './items/inventory';

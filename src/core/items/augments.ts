@@ -43,6 +43,13 @@ export function distinctAugmentRarities(actions: Readonly<Record<ActionId, Pick<
 }
 
 /**
+ * The narrow query Augments asks: does the player own the Auto-run of this action (on or off)?
+ *
+ * Called by: {@link Augments}. Implemented by: `effects/queries.ts` (`ownsAutoRun`), wired in `app/createGame.ts`.
+ */
+export type AutoRunOwned = (actionId: ActionId) => boolean;
+
+/**
  * Applies Augment schematics (items) to actions.
  *
  * @remarks
@@ -51,7 +58,10 @@ export function distinctAugmentRarities(actions: Readonly<Record<ActionId, Pick<
  * sooner; the sleeve level follows the number of runs and is not affected. The player chooses which rarity is used up (selected in
  * the Inventory); the dispersal of the Automation tab (`applyMany`) has no choice to make and uses the most common rarity held first.
  *
- * Called by: `engine.ts` (`GameEngine.augmentAction`), `automation.ts` (`applyMany`). Calls: {@link Inventory} (`take`).
+ * An action whose Auto-run buyable is not owned takes no augments at all (`apply` and `applyMany` refuse it and use up nothing);
+ * ownership is asked through the injected {@link AutoRunOwned} query, so a switched-off Auto-run still counts.
+ *
+ * Called by: `engine.ts` (`GameEngine.augmentAction`), `automation.ts` (`applyMany`). Calls: {@link Inventory} (`take`), {@link AutoRunOwned}.
  */
 export class Augments {
   private readonly rarityIds: readonly string[];
@@ -62,11 +72,13 @@ export class Augments {
    * @param config reads `items.augment` (which item is the schematic and what one is worth) and the rarity order
    * @param state the live game state (mutated: each action's `augments`)
    * @param inventory where the schematics are taken from
+   * @param autoRunOwned whether an action's Auto-run is owned; augments only go on actions where it is
    */
   constructor(
     private readonly config: Pick<GameConfig, 'items'>,
     private readonly state: GameState,
     private readonly inventory: Inventory,
+    private readonly autoRunOwned: AutoRunOwned,
   ) {
     this.rarityIds = config.items.rarities.map((r) => r.id);
   }
@@ -76,12 +88,12 @@ export class Augments {
    *
    * @param actionId the action to augment
    * @param count how many to apply at most (a whole number >= 1)
-   * @returns how many were applied (0 when the action is unknown, the game has no schematic, or none is held)
+   * @returns how many were applied (0 when the action is unknown, its Auto-run is not owned, the game has no schematic, or none is held)
    */
   applyMany(actionId: ActionId, count: number): number {
     const augment = this.config.items.augment;
     const action = this.state.sleeve.actions[actionId];
-    if (!augment || !action) return 0;
+    if (!augment || !action || !this.autoRunOwned(actionId)) return 0;
     let applied = 0;
     for (const rarity of this.rarityIds) {
       if (applied >= count) break;
@@ -97,12 +109,12 @@ export class Augments {
    *
    * @param actionId the action to augment
    * @param rarityId the rarity to use up (only this one is touched)
-   * @returns true when one was applied; false when the action or rarity is unknown, the game has no schematic, or none of that rarity is held
+   * @returns true when one was applied; false when the action or rarity is unknown, the action's Auto-run is not owned, the game has no schematic, or none of that rarity is held
    */
   apply(actionId: ActionId, rarityId: RarityId): boolean {
     const augment = this.config.items.augment;
     const action = this.state.sleeve.actions[actionId];
-    if (!augment || !action || !this.rarityIds.includes(rarityId)) return false;
+    if (!augment || !action || !this.autoRunOwned(actionId) || !this.rarityIds.includes(rarityId)) return false;
     if (itemCount(this.state, augment.itemId, rarityId) <= 0 || this.inventory.take(augment.itemId, rarityId, 1) <= 0) return false;
     action.augments[rarityId] = (action.augments[rarityId] ?? 0) + 1;
     return true;

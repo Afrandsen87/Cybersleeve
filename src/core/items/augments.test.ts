@@ -23,8 +23,28 @@ const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 const game = (held: { common?: number; rare?: number } = { common: 5, rare: 2 }, c: GameConfig = config) => {
   const g = createGame({ config: c });
   loose(g).inventory = { file: { ...held } };
+  (g.getState().sleeve.purchased as Record<string, number>)['auto'] = 1; // Auto-run of action `a` is owned (switched off is enough)
   return g;
 };
+
+describe('augments need the Auto-run of the action', () => {
+  it('refuses an action whose Auto-run is not owned and uses nothing up', () => {
+    const g = game({ common: 3 });
+    delete (g.getState().sleeve.purchased as Record<string, number>)['auto'];
+    expect(g.augmentAction('a', 'common')).toBe(false);
+    expect(g.getState().sleeve.actions['a']!.augments).toEqual({});
+    expect(g.getState().wallet.inventory['file']!['common']).toBe(3);
+  });
+
+  it('accepts it again once Auto-run is bought, also while it is switched off', () => {
+    const g = game({ common: 3 });
+    delete (g.getState().sleeve.purchased as Record<string, number>)['auto'];
+    setCredits(g, num(100));
+    g.activateBuyable('auto'); // bought switched off
+    expect(g.isAutoRunEnabled('auto')).toBe(false);
+    expect(g.augmentAction('a', 'common')).toBe(true);
+  });
+});
 
 describe('applying an Augment schematic', () => {
   it('does nothing without a schematic', () => {
