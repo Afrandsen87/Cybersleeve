@@ -16,7 +16,8 @@
     "agents:sync": "node scripts/sync-agents.mjs",
     "lint": "biome lint",
     "format": "biome format --write",
-    "check": "npm run typecheck && biome check && npm test && npm run build",
+    "check:links": "node scripts/check-links.mjs",
+    "check": "npm run typecheck && biome check && npm run check:links && npm test && npm run build",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {

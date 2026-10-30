@@ -5,9 +5,9 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { createConfig, type GameConfig } from '../core';
-import { mountUi } from './dom';
+import { mountTestUi } from '../testing/domMountKit';
 import { buildViewModel } from './viewModel';
-import { speed, config, state, NOT } from './modesKit';
+import { config, state, NOT } from './modesKit';
 
 describe('the Burn lead row in the Inventory view model', () => {
   const row = (g: ReturnType<typeof createGame>) =>
@@ -61,7 +61,7 @@ describe('the Burn lead tile on the screen', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     const tile = (label: string) =>
       [...root.querySelectorAll<HTMLButtonElement>('.item-tile')].find((t) => t.getAttribute('aria-label') === label)!;
     return { root, game, render, tile };
@@ -132,7 +132,7 @@ describe('the Admin key and Skill shard tiles', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: keyConfig, random: () => 0 });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     const tile = (label: string) =>
       [...root.querySelectorAll<HTMLButtonElement>('.item-tile')].find((t) => t.getAttribute('aria-label') === label)!;
     return { game, render, tile };

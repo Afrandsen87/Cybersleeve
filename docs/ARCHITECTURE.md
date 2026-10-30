@@ -11,7 +11,8 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 | `npm run test:coverage` | unit tests with a v8 coverage report |
 | `npm run typecheck` | strict TypeScript check |
 | `npm run lint` / `npm run format` | Biome lint / Biome formatter (writes) |
-| `npm run check` | everything in one go: typecheck, Biome check, tests, build. Run before reporting work done |
+| `npm run check` | everything in one go: typecheck, Biome check, doc link check, tests, build. Run before reporting work done |
+| `npm run check:links` | every relative Markdown link in `docs/` (not `archive`, `review`), `DESIGN.md` and `CLAUDE.md` must point at an existing file (`scripts/check-links.mjs`) |
 | `npm run build` | typecheck + production build incl. PWA service worker/manifest into `dist/` |
 | `npm run preview` | serve the production build (production build served locally) |
 | `npm run docs` | regenerate `docs/architecture.html` (reads TSDoc + imports, runs the tests); only when the user asks; the file is not in git |

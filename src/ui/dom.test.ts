@@ -123,7 +123,7 @@ describe('screen layout', () => {
   it('puts the Sleeve and the right-hand widgets above a dividing line, and the actions below it', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config: testConfig }), { enabled: false, factor: 1, toggle: () => false }, () => {});
+    mountTestUi(root, createGame({ config: testConfig }));
     const layout = root.querySelector('.layout')!;
     expect([...layout.children].map((e) => e.className.split(' ')[0])).toEqual(['dashboard', 'divider', 'actions']);
     const dashboard = layout.querySelector('.dashboard')!;
@@ -144,7 +144,7 @@ describe('sleeve purchases', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const config = createConfig(testConfig, { buyables: [...testConfig.buyables, nodeBuyable] });
-    mountUi(root, createGame({ config }), { enabled: false, factor: 1, toggle: () => false }, () => {});
+    mountTestUi(root, createGame({ config }));
     return root;
   };
 
@@ -213,7 +213,7 @@ describe('mountUi - the changelog modal', () => {
   function mountWith(changelog?: { version: string; changes: string[] }[]) {
     document.body.innerHTML = '<div id="app"></div>';
     const root = document.getElementById('app') as HTMLElement;
-    mountUi(root, createGame({ config: testConfig }), { enabled: false, factor: 1, toggle: () => false }, () => {}, {
+    mountTestUi(root, createGame({ config: testConfig }), {
       changelog,
     });
     return root;

@@ -5,10 +5,9 @@ import { createGame } from '../app/createGame';
 import { createConfig, type BuyableDefinition } from '../core';
 import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { mountUi } from './dom';
 import { uiText } from './uiText';
 import { buildViewModel } from './viewModel';
-import { idleSpeed, mountTestUi } from '../testing/domMountKit';
+import { mountTestUi } from '../testing/domMountKit';
 
 const harvest: BuyableDefinition = {
   id: 'harvest',
@@ -166,7 +165,7 @@ describe('inventory widget', () => {
         ],
       },
     });
-    mountUi(root, createGame({ config: two }), idleSpeed, () => {});
+    mountTestUi(root, createGame({ config: two }));
     const [kept, forSale] = [...root.querySelectorAll<HTMLElement>('.inventory-section')];
     const groups = (section: HTMLElement) =>
       [...section.querySelectorAll<HTMLElement>('.item-group')].map((g) => g.querySelectorAll('.item-tile').length);
@@ -271,7 +270,7 @@ describe('inventory widget', () => {
   it('the button is left out with the other test aids when they are off', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config }), idleSpeed, () => {}, { debugControls: false });
+    mountTestUi(root, createGame({ config }), { debugControls: false });
     expect(root.querySelector('.test-drop')).toBeNull();
   });
 });

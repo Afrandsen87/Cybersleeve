@@ -8,9 +8,9 @@ import type { GameConfig } from '../core';
 import { num } from '../numbers';
 import { hoverText } from '../testing/hover';
 import { setCredits } from '../testing/testConfig';
-import { mountUi } from './dom';
+import { mountTestUi } from '../testing/domMountKit';
 import { buildViewModel } from './viewModel';
-import { speed, config, augmentConfig, own, state, NOT } from './modesKit';
+import { config, augmentConfig, own, state, NOT } from './modesKit';
 
 describe('the square on an action card (view model)', () => {
   const squareOf = (g: ReturnType<typeof createGame>, id = 'a', augmentRarityId: string | null = null) =>
@@ -105,7 +105,7 @@ describe('the square on the screen', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: cfg });
-    const render = mountUi(root, game, speed, () => {});
+    const render = mountTestUi(root, game);
     const card = (i: number) => root.querySelectorAll('.action')[i] as HTMLElement;
     const unlock = (i: number) => card(i).querySelector<HTMLButtonElement>('.square-unlock')!;
     const grid = (i: number) => card(i).querySelector<HTMLElement>('.square-grid')!;
@@ -254,7 +254,7 @@ describe('the square on the screen', () => {
     const game = createGame({ config: augmentConfig });
     own(game, 'auto');
     const icons = { urlFor: (id: string) => (id === 'overclock' || id === 'focus' ? `url("icon-${id}")` : null) };
-    mountUi(root, game, speed, () => {}, { icons });
+    mountTestUi(root, game, { icons });
     const cell = (id: string) => root.querySelector<HTMLElement>(`.action .cell-${id}`)!;
     expect(cell('overclock').style.getPropertyValue('--icon')).toBe('url("icon-overclock")');
     expect(cell('focus').style.getPropertyValue('--icon')).toBe('url("icon-focus")');

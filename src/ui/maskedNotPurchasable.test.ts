@@ -8,9 +8,8 @@ import { createGame } from '../app/createGame';
 import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
-import { mountUi } from './dom';
 import { buildViewModel } from './viewModel';
-import { idleSpeed } from '../testing/domMountKit';
+import { mountTestUi } from '../testing/domMountKit';
 
 /** A free re-sleeve skill: affordable from the start, but masked because no sleeve-run has finished. */
 const free: BuyableDefinition = {
@@ -40,7 +39,7 @@ describe('a masked skill is never purchasable', () => {
     document.body.innerHTML = '';
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config }), idleSpeed, () => {});
+    mountTestUi(root, createGame({ config }));
     const button = [...root.querySelectorAll<HTMLButtonElement>('.skill-node')].find((b) => b.classList.contains('masked'))!;
     expect(button.disabled).toBe(true);
     expect(button.classList.contains('purchasable')).toBe(false);

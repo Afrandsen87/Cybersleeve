@@ -5,11 +5,11 @@ import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
 import { setCredits, testConfig } from '../testing/testConfig';
-import { mountUi, showNotice } from './dom';
+import { showNotice } from './dom';
 import { uiText, type UiText } from './uiText';
 import { buildViewModel, statRow } from './viewModel';
 import { flat } from '../testing/flatState';
-import { idleSpeed, mountTestUi } from '../testing/domMountKit';
+import { mountTestUi } from '../testing/domMountKit';
 
 const state = (g: { getState(): unknown }) => flat<{ heat: number; legend: number; network: unknown }>(g);
 
@@ -43,7 +43,7 @@ describe('display text comes from the text table', () => {
   it('the screen shows the injected text, chrome included', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config: testConfig }), idleSpeed, () => {}, { text: shouting });
+    mountTestUi(root, createGame({ config: testConfig }), { text: shouting });
     expect(root.querySelector('.credits')?.textContent).toBe('<<0 CR>>');
     expect(root.querySelector('.resleeve')?.textContent).toBe('IDLE');
     expect(root.querySelector('.resleeve-cancel')?.textContent).toBe('NEVERMIND');
@@ -151,7 +151,7 @@ describe('test aids and notices', () => {
   it('the debug bar is left out when debug controls are off', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config: testConfig }), idleSpeed, () => {}, { debugControls: false });
+    mountTestUi(root, createGame({ config: testConfig }), { debugControls: false });
     expect(root.querySelector('.reset-save')).toBeNull();
     expect(root.querySelector('.speed-toggle')).toBeNull();
     expect(root.querySelector('.credits')).not.toBeNull();
@@ -160,7 +160,7 @@ describe('test aids and notices', () => {
   it('showNotice puts an alert over the game', () => {
     const root = document.createElement('div');
     document.body.append(root);
-    mountUi(root, createGame({ config: testConfig }), idleSpeed, () => {});
+    mountTestUi(root, createGame({ config: testConfig }));
     showNotice(root, 'hello');
     const notice = root.firstElementChild!;
     expect(notice.textContent).toBe('hello');

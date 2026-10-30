@@ -41,6 +41,3 @@ export function allOf(...policies: readonly ResleevePolicy[]): ResleevePolicy {
     },
   };
 }
-
-/** Temporary policy: always allowed. */
-export const alwaysAllowResleeve: ResleevePolicy = { canResleeve: () => true };
