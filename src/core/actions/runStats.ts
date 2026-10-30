@@ -155,7 +155,11 @@ export class RunStats {
     };
   }
 
-  /** What the Augment schematics applied to an action multiply its XP per run by (1 when the game has none or none is applied). */
+  /**
+   * What the Augment schematics applied to an action multiply its XP per run by (1 when the game has none or none is applied).
+   *
+   * Called by: {@link RunStats.xpPerRun}, {@link RunStats.xpBreakdown}.
+   */
   private augmentFactor(id: ActionId): number {
     const bonus = this.config.items.augment?.xpBonusPerItem ?? 0;
     return bonus > 0 ? augmentXpFactor(this.state.sleeve.actions[id]?.augments ?? {}, bonus) : 1;

@@ -90,12 +90,20 @@ export class LevelRule {
     return gained;
   }
 
-  /** What the first level costs (`firstLevelXp`), before any delay or reduction. */
+  /**
+   * What the first level costs (`firstLevelXp`), before any delay or reduction.
+   *
+   * Called by: `Progression.actionXpCurve`, `SleeveLevels.curve`.
+   */
   get firstLevelXp(): BigNum {
     return this.first;
   }
 
-  /** How much more each further level costs (`growthFactor`). */
+  /**
+   * How much more each further level costs (`growthFactor`).
+   *
+   * Called by: `Progression.actionXpCurve`, `SleeveLevels.curve`.
+   */
   get growthFactor(): number {
     return this.growth.toNumber();
   }

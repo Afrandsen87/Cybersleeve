@@ -264,7 +264,7 @@ export class Automation implements AutomationControls {
   }
 
   /**
-   * Dispersal: gives all the schematics held to the actions with a share, in proportion, none left over.
+   * Dispersal: gives all the schematics held to the actions with a share, in proportion. An action whose Auto-run is not owned takes none: its share stays in the inventory until it is.
    *
    * @remarks
    * An action whose Auto-run is not owned takes no augments (`Augments.applyMany` returns 0 and uses nothing up), so its part of

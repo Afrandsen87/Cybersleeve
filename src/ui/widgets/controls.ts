@@ -19,7 +19,7 @@ export interface ResleeveButtonState {
   readonly canResleeve: boolean;
   /** The button shows at all (the Sleeve levels unlock is owned). It is the purchase of Unlock resleeving while `buy` is set, the Re-sleeve action otherwise. */
   readonly shown: boolean;
-  /** The purchase (Unlock resleeving) to show on the button while it is not yet owned and in reach; `null` when the button is the Re-sleeve action. */
+  /** The purchase (Unlock resleeving) to show on the button while it is not yet owned; `null` when the button is the Re-sleeve action. */
   readonly buy: ResleeveBuyView | null;
   /** Sleeve levels held and needed while the next re-sleeve is short of them; `null` otherwise. Drives the button's tip. */
   readonly shortfall: { readonly held: number; readonly needed: number } | null;

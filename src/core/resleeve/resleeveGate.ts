@@ -9,11 +9,11 @@
  * Called by: `app/createGame.ts` (builds it), `engine.ts` (`advance`, through the {@link ResleevePolicy} it is), `shop.ts` (purchase
  * listener). The Re-sleeve button reads the same rule through {@link resleeveGateId}.
  */
-import { resleeveGateId, sleeveLevelsGateId } from '../effects/ownedOfKind';
+import { resleeveGateId } from '../effects/ownedOfKind';
 import type { ResleevePolicy } from './resleeve';
 import type { BuyableDefinition, GameConfig, GameState } from '../types';
 
-export { resleeveGateId, sleeveLevelsGateId };
+export { resleeveGateId };
 
 /**
  * Allows re-sleeving only once the gate buyable is owned and its lockout has run out; starts and counts down that lockout.

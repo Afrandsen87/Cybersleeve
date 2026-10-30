@@ -77,18 +77,7 @@ export const actionTips: Pick<TipTexts, 'actionSpeed' | 'payout' | 'income' | 'c
         'Above 100% a run can have several critical successes: 150% is one guaranteed and a 50% chance of a second',
         'Some actions may have other effects as well',
       ].join('\n'),
-    overclock: ({
-      on,
-      strength,
-      speed,
-      reward,
-      heatPerMinute,
-      heatChanceFactor,
-      nodesLost,
-      alsoPays,
-      holdsHeat,
-      chain,
-    }) =>
+    overclock: ({ on, strength, speed, reward, heatPerMinute, heatChanceFactor, nodesLost, alsoPays, holdsHeat, chain }) =>
       [
         `Overclock (${on ? 'on' : 'off'})`,
         ...(speed === null ? [] : ['Action Speed = Action Speed x (1 + Speed Bonus)']),

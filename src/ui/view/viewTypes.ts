@@ -50,7 +50,7 @@ export interface ViewModel {
   readonly canResleeve: boolean;
   /** The Re-sleeve button shows: the Sleeve levels unlock is owned (it is the purchase of Unlock resleeving while `resleeveBuy` is set). */
   readonly resleeveShown: boolean;
-  /** While the button is still the purchase of Unlock resleeving: what to show on it; `null` once bought (or when it is not in reach yet). */
+  /** While the button is still the purchase of Unlock resleeving: what to show on it; `null` once bought. */
   readonly resleeveBuy: ResleeveBuyView | null;
   /**
    * While the button is the Re-sleeve action and the sleeve levels held are short of what the next re-sleeve needs: how many are held and needed;

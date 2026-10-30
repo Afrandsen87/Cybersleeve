@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * Whether the Sleeve levels unlock is owned: until then the sleeve XP bars and the Re-sleeve button stay hidden.
+ * Whether the Sleeve levels unlock is owned: until then the sleeve XP bars and the Re-sleeve button stay hidden. (Unlock resleeving, a second purchase, is what allows re-sleeving.)
  *
  * @remarks
  * Called by: `viewModel.ts`, `actionView.ts`, `panelViews.ts`. Pure; reads the same rules as the game (`sleeveLevelsGateId`, `resleeveGateId`).
@@ -10,13 +10,14 @@ import { type GameConfig, type GameQueries, resleeveGateId, sleeveLevelsGateId, 
 import type { BuyableView, ResleeveBuyView } from './viewTypes';
 
 /**
- * Whether sleeve levels and re-sleeving are open.
+ * Whether the Sleeve levels unlock is owned (sleeve levels are open, so the Re-sleeve button shows). Re-sleeving itself is allowed
+ * only by the separate Unlock resleeving purchase (see {@link resleeveBuyView}).
  *
  * Called by: `viewModel.ts`, `actionView.ts`.
  *
  * @param state the game state (reads `purchased`)
  * @param config game configuration (finds the unlock buyable)
- * @returns `true` when sleeve levels and re-sleeving are open: the unlock is owned, or the content has no such unlock
+ * @returns `true` when sleeve levels are open: the unlock is owned, or the content has no such unlock
  */
 export function sleeveLevelsOpen(state: StateSliceView<'purchased'>, config: Pick<GameConfig, 'buyables'>): boolean {
   const id = sleeveLevelsGateId(config.buyables);

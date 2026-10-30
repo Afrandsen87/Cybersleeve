@@ -254,7 +254,7 @@ export class Progression {
     return this.sleeve.curve(state, actionId);
   }
 
-  /** Sleeve XP one batch of runs grants (`progression.sleeveXpPerGrant`). */
+  /** Sleeve XP one batch of runs grants (`progression.sleeveXpPerGrant`). Called by: `GameEngine.sleeveXpGrant`. */
   sleeveXpGrant(): BigNum {
     return this.sleeveXpPerGrant;
   }

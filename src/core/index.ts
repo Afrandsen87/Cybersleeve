@@ -53,7 +53,8 @@ export { SynthSleeves, synthCreditsPerSecond } from './synth/synthSleeves';
 export { Resleever } from './resleeve/resleever';
 export { allOf } from './resleeve/resleeve';
 export { SleeveLevelGate } from './resleeve/sleeveLevelGate';
-export { ResleeveGate, resleeveGateId, sleeveLevelsGateId } from './resleeve/resleeveGate';
+export { ResleeveGate, resleeveGateId } from './resleeve/resleeveGate';
+export { sleeveLevelsGateId } from './effects/ownedOfKind';
 export { CARRIED_OVER_ACTION_FIELDS, CARRIED_OVER_WALLET_FIELDS, createInitialState, resetForResleeve } from './save/state';
 export type {
   ActionQueries,

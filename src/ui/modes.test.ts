@@ -76,11 +76,7 @@ describe('the Overclock tip of an action with its own effect', () => {
   });
 
   it('say what things do and never what they do not', () => {
-    for (const rule of [
-      { rewardBonus: 2 },
-      { alsoPays: 'net' },
-      { completionEffects: [{ kind: 'removeNodes', amount: 5 }] },
-    ]) {
+    for (const rule of [{ rewardBonus: 2 }, { alsoPays: 'net' }, { completionEffects: [{ kind: 'removeNodes', amount: 5 }] }]) {
       expect(tipOf(rule)).not.toMatch(NOT);
     }
   });

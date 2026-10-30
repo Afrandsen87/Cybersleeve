@@ -473,7 +473,7 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.xpPerRun(id);
   }
 
-  /** The parts of the XP one run gives now. @throws Error if unknown */
+  /** The parts of the XP one run gives now. Called by: `ui/view/xpTipView.ts`. @throws Error if unknown */
   xpPerRunBreakdown(id: ActionId): XpPerRunBreakdown {
     return this.stats.xpPerRunBreakdown(id);
   }
@@ -495,17 +495,17 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.progression.actionXpForLevel(this.state, id);
   }
 
-  /** Sleeve XP one batch of runs grants. */
+  /** Sleeve XP one batch of runs grants. Called by: `ui/view/xpTipView.ts`. */
   sleeveXpGrant(): BigNum {
     return this.progression.sleeveXpGrant();
   }
 
-  /** The level curve of an action. @throws Error if unknown */
+  /** The level curve of an action. Called by: `ui/view/xpTipView.ts`. @throws Error if unknown */
   actionXpCurve(id: ActionId): XpCurve {
     return this.progression.actionXpCurve(this.state, id);
   }
 
-  /** The level curve of an action's sleeve levels. @throws Error if unknown */
+  /** The level curve of an action's sleeve levels. Called by: `ui/view/xpTipView.ts`. @throws Error if unknown */
   sleeveXpCurve(id: ActionId): XpCurve {
     return this.progression.sleeveXpCurve(this.state, id);
   }
@@ -587,7 +587,7 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.heatCoolingBlocked();
   }
 
-  /** True when this item in this rarity has ever entered the inventory (over all lives). */
+  /** True when this item in this rarity has ever entered the inventory (over all lives). Called by: `ui/view/inventoryView.ts`. */
   hasSeenItem(itemId: ItemId, rarityId: RarityId): boolean {
     return hasSeenItem(this.state, itemId, rarityId);
   }

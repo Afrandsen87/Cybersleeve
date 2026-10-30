@@ -75,7 +75,11 @@ export class Economy {
     return wholeRunAmount(def.rewardKind, gross);
   }
 
-  /** The XP lever (`global.xpMultiplier`) as a plain number: what {@link Economy.xpPerRun} multiplies the action's base XP by. */
+  /**
+   * The XP lever (`global.xpMultiplier`) as a plain number: what {@link Economy.xpPerRun} multiplies the action's base XP by.
+   *
+   * Called by: `RunStats.xpBreakdown`. Calls: nothing.
+   */
   xpLeverValue(): number {
     return this.xpLever.toNumber();
   }
