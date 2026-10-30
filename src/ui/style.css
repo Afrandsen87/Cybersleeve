@@ -572,6 +572,15 @@ button:not(:disabled):hover {
   gap: 8px;
   margin-top: 12px;
 }
+/* In the Sleeve widget the row sits at the bottom whatever the height of the widget: a column whose last child takes the free space above it. */
+.sleeve-widget {
+  display: flex;
+  flex-direction: column;
+}
+.sleeve-widget > .resleeve-row {
+  margin-top: auto; /* the free height goes above the row */
+  padding-top: 2px; /* with the 10px gap of the widget, a gap of at least 12px */
+}
 .resleeve-row[hidden] {
   display: none;
 }
