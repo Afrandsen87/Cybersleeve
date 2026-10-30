@@ -13,7 +13,8 @@ import { SAVE_VERSION, deserializeState } from '..';
 import { migrateSave, migrateV7 } from './migrate';
 
 const read = (name: string): string => readFileSync(new URL(`../../testing/fixtures/saves/${name}`, import.meta.url), 'utf8');
-const v7 = (purchased: Record<string, number>): string => JSON.stringify({ version: 7, wallet: {}, sleeves: { main: { purchased, heat: 3 } } });
+const v7 = (purchased: Record<string, number>): string =>
+  JSON.stringify({ version: 7, wallet: {}, sleeves: { main: { purchased, heat: 3 } } });
 const purchasedOf = (text: string): Record<string, number> => JSON.parse(text).sleeves.main.purchased;
 
 describe('v7 to v8', () => {

@@ -6,14 +6,7 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the text table.
  */
-import {
-  AUTOMATION_FEATURES,
-  type CorporationQueries,
-  type GameConfig,
-  type SkillQueries,
-
-  type GameStateView,
-} from '../../core';
+import { AUTOMATION_FEATURES, type CorporationQueries, type GameConfig, type SkillQueries, type GameStateView } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
