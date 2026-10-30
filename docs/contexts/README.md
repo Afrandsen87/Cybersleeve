@@ -24,4 +24,4 @@ One file per bounded context: its design text, architecture notes, config variab
 | [app](app.md) | Composition, loop, hosting, deploy, tooling and process. | 4.2 KB |
 | [general](general.md) | Cross-cutting decisions that fit no single context. | 1.1 KB |
 
-Also: [_layering.md](_layering.md) holds the layering diagram and the long per-folder notes until each context step has taken its share.
+Also: [_folders.md](_folders.md) (the folder map and test kits) and [_limitations.md](_limitations.md) (known limitations and next steps), both moved out of `ARCHITECTURE.md` in S11. [_layering.md](_layering.md) holds the layering diagram and the long per-folder notes until each context step has taken its share.
