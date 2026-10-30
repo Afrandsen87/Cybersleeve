@@ -30,6 +30,7 @@ const WALLET_KEYS = [
   'corporation',
   'credits',
   'inventory',
+  'lastLifeAutoRunOn',
   'lastLifePurchases',
   'runs',
   'seenItems',
@@ -90,6 +91,7 @@ describe('the v7 save shape', () => {
   it('is nested: the wallet, and the sleeves keyed by id with one entry', () => {
     const state = fresh();
     state.wallet.seenItems = { file: { common: true } }; // an empty set is left out of the text
+    state.wallet.lastLifeAutoRunOn = { auto: true }; // likewise
     const data = JSON.parse(serializeState(state));
     expect(data.version).toBe(SAVE_VERSION);
     expect(Object.keys(data).sort()).toEqual(['sleeves', 'version', 'wallet']);
