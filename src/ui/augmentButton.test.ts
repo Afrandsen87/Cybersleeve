@@ -169,7 +169,7 @@ describe('items that cannot be paid out, in the Inventory', () => {
     const row = buildViewModel(g).inventory.rows[0]!;
     expect(row.sellable).toBe(false);
     expect(row.tip).toBe(
-      'Common File\nClick to select this rarity, then apply it to an action with its Augment button\n\nDrop Chance = 0%\nOwned = 2',
+      'Common File\nClick to select this rarity, then apply it to an action with its Augment button\n\nDrop Chance = 10% per A run\nOwned = 2',
     );
     expect(row.tip).not.toMatch(/\b(not|never|no)\b/i);
   });
