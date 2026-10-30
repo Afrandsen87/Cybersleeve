@@ -82,6 +82,7 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     actionId: PRACTICE_HACKING,
     cost: num(1e15),
     requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once the Sleeve levels upgrade is owned
+    revealAfterResleeves: 1, // not available (so not visible) before the first re-sleeve
     // divisor = 1 + perLevel x Practice Hacking sleeve level: perLevel 1 halves the XP at level 1; there is no ceiling
     effect: { kind: 'sleeveXpReduction', sourceActionId: PRACTICE_HACKING, perLevel: 1 },
   },
