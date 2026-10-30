@@ -1,5 +1,5 @@
 /**
- * Link check: every relative Markdown link in `docs/` (except `docs/archive` and `docs/review`), `DESIGN.md` and `CLAUDE.md` must point at a file that exists.
+ * Link check: every relative Markdown link in `docs/` (except `docs/archive`), `DESIGN.md` and `CLAUDE.md` must point at a file that exists.
  *
  * Purpose: the docs are split per context and linked from index files; a moved file must not leave a dead link behind.
  * Inputs: the Markdown files on disk. Outputs: the broken links on stdout; exit code 1 when there are any. Side effects: reads files only.
@@ -8,7 +8,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 
-const SKIPPED_DIRS = new Set(['node_modules', '.git', 'archive', 'review']);
+const SKIPPED_DIRS = new Set(['node_modules', '.git', 'archive', 'Review 1']);
 
 /** @returns every `.md` file under `dir`, without the skipped folders */
 function walk(dir) {

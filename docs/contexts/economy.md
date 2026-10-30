@@ -2,7 +2,7 @@
 
 Credits, network nodes, passive income, the shop and price growth, purchase reveal.
 
-Code: `src/core/economy/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/economy/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Code structure (S6, 2026-10-29)
 

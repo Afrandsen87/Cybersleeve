@@ -2,7 +2,7 @@
 
 Sleeve stats: access level, ICE Rating, Hacking Proficiency, sleeve levels, Sleeve Euphoria.
 
-Code: `src/core/sleeve/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/sleeve/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Design (from DESIGN.md)
 

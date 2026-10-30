@@ -2,7 +2,7 @@
 
 Buyable effect kinds, the effect registry, traits and the resolved effect queries.
 
-Code: `src/core/effects/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/effects/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Interface, state and config (S3)
 

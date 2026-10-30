@@ -1,6 +1,6 @@
 # Context docs
 
-One file per bounded context: its design text, architecture notes, config variables and decision history, moved verbatim from `DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/CONFIG.md` and `docs/DECISIONS.md`. Load only the slice for the context you change. Code folders: `src/core/<context>/`; target map: `docs/review/target-architecture.md`.
+One file per bounded context: its design text, architecture notes, config variables and decision history, moved verbatim from `DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/CONFIG.md` and `docs/DECISIONS.md`. Load only the slice for the context you change. Code folders: `src/core/<context>/`; layers and exceptions: `core/boundaries.test.ts`.
 
 | Context | Responsibility | Size |
 |---|---|---|

@@ -2,7 +2,7 @@
 
 Save format, state lifetimes, serialization and versions.
 
-Code: `src/core/save/` (see `docs/review/file-map.md`). Text below is moved from the four main docs (updated for S8); headings name the source.
+Code: `src/core/save/` (see `docs/contexts/_folders.md`). Text below is moved from the four main docs (updated for S8); headings name the source.
 
 ### Wallet and sleeve (S8)
 `GameState = { wallet, sleeve }`. The **wallet** is what is shared by every sleeve; the **sleeve** is the one live sleeve (the save keeps sleeves in a map keyed by id with one entry, `main`; in memory there is one `state.sleeve` until a second sleeve exists). Structure only: no behaviour changed, and there is no rule that assigns anything to a sleeve.

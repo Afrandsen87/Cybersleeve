@@ -3,10 +3,10 @@
  * Moves the flat `src/core/*.ts` files into bounded-context folders and rewrites every relative import.
  *
  * Purpose: a purely mechanical step (no logic changes) of the context refactor; the mapping is the table
- * `docs/review/file-map.md` in executable form. Stems not in the table stay where they are.
+ * the old file map in executable form. Stems not in the table stay where they are.
  * Inputs: `--dry` prints the plan without touching files; no flag performs `git mv` and rewrites imports.
  * Side effects: renames files with `git mv` and edits import specifiers in every `.ts` file under `src/`.
- * Called by: a developer, once (Session S0 of docs/review/execution-plan.md).
+ * Called by: a developer, once (session S0 of the migration).
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';

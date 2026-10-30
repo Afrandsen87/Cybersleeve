@@ -2,7 +2,7 @@
 
 Rendering, view models, text, tooltips, layout.
 
-Code: `src/core/ui/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Decisions (from docs/DECISIONS.md)
 

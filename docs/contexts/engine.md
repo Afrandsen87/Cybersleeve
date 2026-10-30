@@ -2,7 +2,7 @@
 
 Tick loop, engine facade, queries and commands, time.
 
-Code: `src/core/engine/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/engine/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Surface (S10, current)
 - `engine/api.ts` holds the per-area `*Queries` / `*Commands` interfaces and the `GameQueries` / `GameCommands` unions; the corporation pair lives in `engine/apiCorporation.ts` (file size) and is re-exported. `SleeveQueries` take an optional `SleeveId`, `CorporationQueries` / `CorporationCommands` an optional `CorporationId`; both are ignored while there is one sleeve and one corporation, so `GameEngine` keeps its zero-id signatures (TypeScript accepts the shorter parameter list).

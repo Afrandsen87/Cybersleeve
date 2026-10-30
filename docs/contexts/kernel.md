@@ -2,7 +2,7 @@
 
 Number safety: BigNum adapter use, Infinity (1e308) clamping, sampling, curves, memo cache.
 
-Code: `src/core/kernel/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/kernel/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Interface, state and config (S3)
 

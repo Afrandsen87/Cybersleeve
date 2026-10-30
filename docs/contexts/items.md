@@ -2,7 +2,7 @@
 
 Items, rarities, drops, the Inventory, Burn leads, Skill shards, Augments, Back channel.
 
-Code: `src/core/items/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/items/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Interface, state and config (S5, items half)
 

@@ -1,6 +1,6 @@
 # Layering notes (to be redistributed)
 
-The layering diagram and the long per-folder notes that were in ARCHITECTURE.md. Each context migration step (docs/review/execution-plan.md S3-S10) moves its own sentences from the `core/` bullet into that context's doc; the diagram stays here until the last step.
+The layering diagram and the long per-folder notes that were in ARCHITECTURE.md. Each context migration step (the S3-S10 migration steps) moves its own sentences from the `core/` bullet into that context's doc; the diagram stays here until the last step.
 
 ### Layering (dependencies point downwards only)
 ```

@@ -1,6 +1,5 @@
 /**
- * Architecture test: the bounded contexts of `src/core` (one folder each) may only depend on each other downward, along the layers of
- * `docs/review/target-architecture.md`.
+ * Architecture test: the bounded contexts of `src/core` (one folder each) may only depend on each other downward, along the layers below.
  *
  * Purpose: make a second code path for the same rule hard to write by accident. An import from one context into another passes when it
  * points to a lower layer, or along a listed same-layer edge; anything else must be a named exception with a reason, and an exception that no

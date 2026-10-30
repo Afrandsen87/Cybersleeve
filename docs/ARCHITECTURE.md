@@ -25,7 +25,7 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 *Moved to [archive/deploy-changelog.md](archive/deploy-changelog.md).*
 
 ## Core folders
-One folder per bounded context under `src/core/` (map: `docs/review/file-map.md`; rules and layers: `docs/review/target-architecture.md`, enforced by `core/boundaries.test.ts`). The full description, with the test kits, is `docs/contexts/_folders.md`. The docs are split per context in `docs/contexts/<context>.md` (index: `docs/contexts/README.md`).
+One folder per bounded context under `src/core/` (layers and allowed exceptions: `core/boundaries.test.ts`; folder map: `docs/contexts/_folders.md`). The full description, with the test kits, is `docs/contexts/_folders.md`. The docs are split per context in `docs/contexts/<context>.md` (index: `docs/contexts/README.md`).
 
 ## Layering (dependencies point downwards only)
 

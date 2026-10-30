@@ -2,6 +2,7 @@
   "permissions": {
     "deny": [
       "Read(./docs/architecture.html)",
+      "Read(./docs/Review 1/**)",
       "Read(./ARCHITECTURE_DerivativeClicker.html)",
       "Read(./package-lock.json)"
     ],

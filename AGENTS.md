@@ -25,7 +25,7 @@ A change is done when all of these are true:
 
 - **SOLID:** one responsibility per module, depend on abstractions, inject dependencies, extend by adding. Take the narrow area interface you need (`ItemQueries`, `SleeveQueries`, `ShopQueries`, ... in `core/api.ts`), not the whole engine. The engine mutates no state itself; the `GameEngine` delegating facade stays unless it hurts.
 - **Build incrementally:** each step small, tested, documented and runnable. For a significant design or technology choice not covered here, ask the user first, then record it in `docs/DECISIONS.md`.
-- **Bounded contexts:** code lives in `src/core/<context>/` (map: `docs/review/target-architecture.md`, later `docs/contexts/README.md`). A context exposes only its `index.ts` and narrow `*Queries` interfaces; never import another context's other files (`core/boundaries.test.ts` enforces it).
+- **Bounded contexts:** code lives in `src/core/<context>/` (map: `docs/contexts/README.md`). A context imports only lower layers (or an edge in the same-layer table of `core/boundaries.test.ts`) and takes narrow `*Queries` interfaces; a new exception needs a reason in that test and the user's say-so.
 - **One mechanic, one code path:** a rule (heat tax, crit cover, reward payout, drop share, curves) has exactly one owner function or service in its context. Before writing logic, grep for the rule; reuse or extend the owner. Two paths for one rule is a defect, not a style choice. UI formats values from the owner and never re-derives them.
 - **Name the context:** every new mechanic states its context in the PR/report and in its TSDoc, and registers its effect-kind entry from that context.
 - **Data over code:** use named identifiers and typed structures for grids and indexes; drive UI from data; define each piece of starting state once and derive variants; keep serialisable data apart from behaviour; declare every dependency and guard third-party calls; delete dead code.
@@ -41,6 +41,7 @@ Sessions read code into a limited context, so size is a design constraint.
 - Source files: aim for about 10 KB, tests about 12 KB; split by responsibility before 15 KB (`engine.ts` is the one allowed outlier). Check the size of any file you add or grow, and split it in the same change.
 - Keep import paths stable when splitting: leave a thin facade or barrel (`viewModel.ts`, `types.ts`, `uiText.ts`, `gameConfig.ts`) and move bodies into a folder.
 - One content file per action (`content/buyables/<action>.ts`). Content is data; a new action or buyable adds a file or entry.
+- `docs/Review 1/` is the archived output of the first architecture review: git-ignored and denied in `.claude/settings.json`. Never read, cite or link it; its conclusions are in the code, `core/boundaries.test.ts` and `docs/contexts/`.
 - Large generated or data files (`docs/architecture.html`, `src/content/icons.ts`, `package-lock.json`, the reference HTML) are denied in `.claude/settings.json`; add new ones there and keep icon/pixel data out of files that logic imports.
 
 ## How to work

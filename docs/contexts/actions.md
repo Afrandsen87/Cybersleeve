@@ -2,7 +2,7 @@
 
 Actions: definitions, runner, toggles, speed, levels and XP, rewards, Overclock and Focus.
 
-Code: `src/core/actions/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/actions/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Code structure (S5b, 2026-10-29)
 

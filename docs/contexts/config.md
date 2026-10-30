@@ -2,7 +2,7 @@
 
 Configuration types and their validation.
 
-Code: `src/core/config/` (see `docs/review/file-map.md`). Text below is moved verbatim from the four main docs; headings name the source.
+Code: `src/core/config/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 ## Decisions (from docs/DECISIONS.md)
 

@@ -7,7 +7,7 @@
  * `core/heat.ts` are rewritten to the current folder layout.
  * Inputs: the four docs, `src/core` (for the path rewrite) and `decisions-map.json` (line number -> context for DECISIONS bullets,
  * path given as the first argument). Side effects: rewrites the four docs, writes `docs/contexts/*.md` and `docs/archive/*.md`.
- * Called by: a developer, once (Session S2 of docs/review/execution-plan.md). Calls: node `fs`.
+ * Called by: a developer, once (session S2 of the migration). Calls: node `fs`.
  */
 import fs from 'node:fs';
 
@@ -189,7 +189,7 @@ for (const [ctx, text] of Object.entries(CONTEXTS)) {
   const s = sections[ctx];
   if (!s) continue;
   const parts = [
-    `# Context: ${ctx}\n\n${text}\n\nCode: \`src/core/${ctx}/\` (see \`docs/review/file-map.md\`). Text below is moved verbatim from the four main docs; headings name the source.\n`,
+    `# Context: ${ctx}\n\n${text}\n\nCode: \`src/core/${ctx}/\` (see \`docs/contexts/_folders.md\`). Text below is moved verbatim from the four main docs; headings name the source.\n`,
   ];
   for (const k of ['design', 'architecture', 'config', 'decisions']) {
     if (s[k].length) parts.push(`## ${TITLE[k]} (from ${SRC_NAME[k]})\n\n${s[k].join('\n')}`);
@@ -200,7 +200,7 @@ for (const [ctx, text] of Object.entries(CONTEXTS)) {
 }
 fs.writeFileSync(
   'docs/contexts/README.md',
-  `# Context docs\n\nOne file per bounded context: its design text, architecture notes, config variables and decision history, moved verbatim from \`DESIGN.md\`, \`docs/ARCHITECTURE.md\`, \`docs/CONFIG.md\` and \`docs/DECISIONS.md\`. Load only the slice for the context you change. Code folders: \`src/core/<context>/\`; target map: \`docs/review/target-architecture.md\`.\n\n| Context | Responsibility | Size |\n|---|---|---|\n${index.join('\n')}\n`,
+  `# Context docs\n\nOne file per bounded context: its design text, architecture notes, config variables and decision history, moved verbatim from \`DESIGN.md\`, \`docs/ARCHITECTURE.md\`, \`docs/CONFIG.md\` and \`docs/DECISIONS.md\`. Load only the slice for the context you change. Code folders: \`src/core/<context>/\`; layers and exceptions: \`core/boundaries.test.ts\`.\n\n| Context | Responsibility | Size |\n|---|---|---|\n${index.join('\n')}\n`,
 );
 fs.writeFileSync('docs/archive/deploy-changelog.md', `# Archived: deploy changelog (was in ARCHITECTURE.md)\n\n${archive.join('\n')}\n`);
 console.log('done');
