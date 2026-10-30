@@ -56,8 +56,8 @@ export const actionsConfig: GameConfig['actions'] = [
     requiredAccessLevel: 3,
     /** Action XP per completed run. */
     xpPerRun: num(1),
-    /** Overclock: each run also pays the nodes of a Grow network run, but is twice as likely to make heat (20%). */
-    overclock: { alsoPays: GROW_NETWORK, heatChanceFactor: 2 },
+    /** Overclock: each run also pays the nodes of a Grow network run, but is four times as likely to make heat (40%). Obfuscation halves that to 20%. */
+    overclock: { alsoPays: GROW_NETWORK, heatChanceFactor: 4 },
   },
   {
     id: KILL_SERVERS,

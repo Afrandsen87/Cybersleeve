@@ -44,7 +44,7 @@ export const anonymitySkills: BuyableDefinition[] = [
     id: SKILL_OBFUSCATION,
     name: 'Obfuscation',
     symbol: 'OB',
-    description: 'Halves the heat chance Overclock doubles on Push malware: overclocked runs make heat as often as normal ones.',
+    description: 'Halves the heat chance Overclock raises on Push malware: overclocked runs are half as likely to make heat.',
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_COLD_TRAIL],
