@@ -215,3 +215,6 @@ Speed = actionLevel factor x the action's own sleeveLevel factor x interface spe
 
 *Group: Decided 2026-10-29 (by the user, after reviewing the migration plan)*
 - **Study methods is a divisor with no ceiling:** the XP the other actions sleeve levels need is divided by `1 + perLevel x Practice Hacking sleeve level` (content `perLevel: 1`). It replaced `0.01% per level, max 25%`, which was dead at every reachable level. If it still feels small when played, the lever changes from XP cost to extra levels (decide after playing; not pre-built).
+
+*Group: Decided 2026-10-30 (by the user)*
+- **XP tooltips read narrow queries, they do not recompute:** `ActionQueries.xpPerRunBreakdown(id)` (`RunStats.xpBreakdown`: base, XP lever, Augment factor, Neural Mirror factor, critical XP multiplier, and the total that equals `xpPerRun`, which now uses the same factors), `LevelQueries.actionXpCurve(id)` / `sleeveXpCurve(id)` (`Progression`: first level cost, growth, Skill-shard delay, reduction; type `XpCurve` in `actions/xpCurve.ts`) and `sleeveXpGrant()`.

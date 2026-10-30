@@ -42,7 +42,8 @@ describe('fastBarView', () => {
   });
 
   it('ignores a zero, negative, NaN or infinite duration', () => {
-    for (const d of [0, -5, Number.NaN, Number.POSITIVE_INFINITY]) expect(fastBarView(d, true, uiText)).toEqual({ full: false, rateText: null });
+    for (const d of [0, -5, Number.NaN, Number.POSITIVE_INFINITY])
+      expect(fastBarView(d, true, uiText)).toEqual({ full: false, rateText: null });
   });
 });
 

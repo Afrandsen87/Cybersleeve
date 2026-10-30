@@ -175,7 +175,8 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   }
   for (const [itemId, stacks] of Object.entries(state.wallet.inventory)) {
     for (const [rarityId, count] of Object.entries(stacks)) {
-      if (count > 0 && state.wallet.seenItems[itemId]?.[rarityId] !== true) problems.push(`inventory ${itemId}/${rarityId} is held but not seen`);
+      if (count > 0 && state.wallet.seenItems[itemId]?.[rarityId] !== true)
+        problems.push(`inventory ${itemId}/${rarityId} is held but not seen`);
       if (!validCount(count) || count > Number.MAX_SAFE_INTEGER)
         problems.push(`inventory ${itemId}/${rarityId} count is invalid: ${count}`);
     }

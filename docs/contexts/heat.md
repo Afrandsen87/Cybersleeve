@@ -27,3 +27,6 @@ Code: `src/core/heat/` (see `docs/contexts/_folders.md`). Text below is moved ve
 
 *Group: Decided 2026-10-27 (by the user, new Anonymity skills)*
 - **Blackout:** the user rejected "heat does nothing" and chose 50%. Read as a CAP: the heat tax takes at most half of node income. (The other reading, halving the tax per point, was not chosen; say so if that is what was meant.) ICE Rating keeps its job below the cap; the user expects to find another use for it later.
+
+*Group: Decided 2026-10-30 (by the user)*
+- **Heat shows once an Overclock that makes heat is on offer.** The reveal rule (`ui/view/statReveal.ts`) no longer waits for the Overclock to be owned: it also counts an Overclock unlock that is shown in the action's square (Auto-run owned, `ui/view/squareRules.ts` `overclockOnOffer`, the one owner of that predicate, also used by the square) when its overclock makes heat (`heatPerMinute > 0`, or the action makes heat itself). Heat and ICE Rating still appear together.

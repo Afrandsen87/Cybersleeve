@@ -160,11 +160,24 @@ describe('inventory widget', () => {
   });
 
   it('an item without rarity is one row, shown by the same rule', () => {
-    const none = createConfig(config, { items: { ...config.items, definitions: [...config.items.definitions, { id: 'tool', name: 'Tool', sellable: false, hasRarity: false }] } });
+    const none = createConfig(config, {
+      items: {
+        ...config.items,
+        definitions: [...config.items.definitions, { id: 'tool', name: 'Tool', sellable: false, hasRarity: false }],
+      },
+    });
     const g = createGame({ config: none });
-    expect(buildViewModel(g).inventory.rows.filter((r) => r.itemId === 'tool').map((r) => r.unlocked)).toEqual([false]);
+    expect(
+      buildViewModel(g)
+        .inventory.rows.filter((r) => r.itemId === 'tool')
+        .map((r) => r.unlocked),
+    ).toEqual([false]);
     see(g, { tool: { common: true } });
-    expect(buildViewModel(g).inventory.rows.filter((r) => r.itemId === 'tool').map((r) => r.unlocked)).toEqual([true]);
+    expect(
+      buildViewModel(g)
+        .inventory.rows.filter((r) => r.itemId === 'tool')
+        .map((r) => r.unlocked),
+    ).toEqual([true]);
   });
 
   it('an item held without a drop source (a shard) is shown by being held, in the rarity held', () => {

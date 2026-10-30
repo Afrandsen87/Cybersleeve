@@ -22,6 +22,7 @@ import { SPEED_DECIMALS, formatSeconds } from './viewFormat';
 import { fastBarView } from './fastBar';
 import { augmentView, focusView, overclockView } from './modeViews';
 import { squareView } from './squareView';
+import { levelXpTipParts, sleeveXpTipParts } from './xpTipView';
 import type { ActionView, BuyableView, ViewSelection } from './viewTypes';
 
 /** What starting an action costs, for the card (the share of the balance is shown with today's amount). */
@@ -148,6 +149,12 @@ export function buildActionViews(
         nextLevelXpText: sleeveNextText,
         progressPercent: engine.sleeveLevelProgress(def.id) * 100,
         runsToNextXp,
+      },
+      get levelXpTip() {
+        return text.tips.levelXp(levelXpTipParts(engine, def.id, text));
+      },
+      get sleeveXpTip() {
+        return text.tips.sleeveXp(sleeveXpTipParts(engine, def.id));
       },
       speedText,
       durationText,

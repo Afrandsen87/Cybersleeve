@@ -229,7 +229,22 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
     crit.hidden = true;
     card.append(button, reward, levelXp.root, sleeveXp.root, squareEl, upgrades, startBtn, poster, crit);
     root.append(card);
-    cards.set(a.id, { root: card, poster, button, start: startBtn, title, crit, info, bar, barLabel, reward, levelXp, sleeveXp, buyables, square });
+    cards.set(a.id, {
+      root: card,
+      poster,
+      button,
+      start: startBtn,
+      title,
+      crit,
+      info,
+      bar,
+      barLabel,
+      reward,
+      levelXp,
+      sleeveXp,
+      buyables,
+      square,
+    });
   }
 
   for (let i = initial.length; i < ACTION_GRID_SLOTS; i++) root.append(h('div', 'action empty'));
@@ -247,8 +262,10 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
         setText(card.info, a.infoText);
         tips.set(card.info, a.unlocked ? () => a.speedTip : null);
         setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
+        tips.set(card.levelXp.root, () => a.levelXpTip);
         card.sleeveXp.root.hidden = !a.sleeveShown;
         setXpBar(card.sleeveXp, a.sleeveBarText, a.sleeve.progressPercent);
+        tips.set(card.sleeveXp.root, a.sleeveShown ? () => a.sleeveXpTip : null);
         setText(card.reward, a.rewardLine);
         card.button.disabled = !a.startable;
         card.start.disabled = !a.startable || a.running; // greyed out until the run is over

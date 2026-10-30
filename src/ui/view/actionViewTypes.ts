@@ -106,6 +106,10 @@ export interface ActionView {
   readonly sleeveShown: boolean;
   /** This action's own sleeve level and XP. */
   readonly sleeve: XpTrackView & { readonly runsToNextXp: number };
+  /** Hover text of the level XP bar: XP per run and the cost of a level. Built when read (a getter). */
+  readonly levelXpTip: string;
+  /** Hover text of the sleeve XP bar: the sleeve XP grant and the cost of a sleeve level. Built when read (a getter). */
+  readonly sleeveXpTip: string;
   readonly speedText: string;
   readonly durationText: string;
   /** Amount actually received per run (all multipliers applied), in units of `rewardUnit`. */

@@ -8,7 +8,7 @@ import type { BigNum, NumberFactory } from '../../numbers';
 import type { ActionLookup } from '../actions/actionLookup';
 import type { FocusStatus, ModeStatuses, OverclockStatus } from '../actions/actionToggles';
 import type { Progression } from '../actions/progression';
-import { RunStats } from '../actions/runStats';
+import { RunStats, type XpPerRunBreakdown } from '../actions/runStats';
 import type { SpeedFactor, SpeedModifier } from '../actions/speed';
 import { ToggleStats } from '../actions/toggleStats';
 import { CritStats } from '../crits/critStats';
@@ -242,6 +242,11 @@ export class DerivedStats implements ModeStatuses {
   /** Action XP gained per completed run now. @throws Error if the action id is unknown */
   xpPerRun(id: ActionId): BigNum {
     return this.run.xpPerRun(id);
+  }
+
+  /** The parts of the XP one run gives now (see {@link RunStats.xpBreakdown}). @throws Error if the id is unknown */
+  xpPerRunBreakdown(id: ActionId): XpPerRunBreakdown {
+    return this.run.xpBreakdown(id);
   }
 
   /** The most action XP one run can give now (see {@link RunStats.maxXpPerRun}). @throws Error if the id is unknown */

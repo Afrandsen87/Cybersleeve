@@ -9,7 +9,8 @@
 import { actionTips } from './tipTextActions';
 import { itemTips } from './tipTextItems';
 import { sleeveTips } from './tipTextSleeve';
+import { xpTips } from './tipTextXp';
 import type { TipTexts } from './tipTextTypes';
 
 /** The hover texts of the interface: the three tables by area, merged. */
-export const tipText: TipTexts = { ...sleeveTips, ...actionTips, ...itemTips };
+export const tipText: TipTexts = { ...sleeveTips, ...actionTips, ...itemTips, ...xpTips };

@@ -144,6 +144,8 @@ export interface UiText {
     reward(parts: RewardLineParts): string;
     /** The label of the button in the top right corner of an action card that applies a schematic. */
     readonly augment: string;
+    /** The names of the factors in the XP per run tip (a factor of 1 is left out of the tip). */
+    readonly xpFactors: { readonly lever: string; readonly augments: string; readonly mirror: string };
     /** The critical success highlight of a card: just a mark for one success in the last second, an average per second for several. */
     critFlash(count: number, perSecond: string): string;
     /** The cells of the square on an action card: the symbol on the square button and the name read out for it. */

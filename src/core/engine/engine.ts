@@ -32,6 +32,8 @@ import type { NetworkSystem } from '../economy/network';
 import type { OverflowPolicy } from '../kernel/overflow';
 import { notePeaks } from '../economy/reveal';
 import type { Progression } from '../actions/progression';
+import type { XpCurve } from '../actions/xpCurve';
+import type { XpPerRunBreakdown } from '../actions/runStats';
 import type { ResleevePolicy, ResleeveRequirement } from '../resleeve/resleeve';
 import type { ResleeveGate } from '../resleeve/resleeveGate';
 import type { Resleever } from '../resleeve/resleever';
@@ -467,6 +469,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.xpPerRun(id);
   }
 
+  /** The parts of the XP one run gives now. @throws Error if unknown */
+  xpPerRunBreakdown(id: ActionId): XpPerRunBreakdown {
+    return this.stats.xpPerRunBreakdown(id);
+  }
+
   // ---- queries about levels -------------------------------------------------------------------------------------
 
   /** Level of an action. @throws Error if unknown */
@@ -482,6 +489,21 @@ export class GameEngine implements GameQueries, GameCommands {
   /** XP that leaving the action's current level costs on its own. @throws Error if unknown */
   actionXpForLevel(id: ActionId): BigNum {
     return this.progression.actionXpForLevel(this.state, id);
+  }
+
+  /** Sleeve XP one batch of runs grants. */
+  sleeveXpGrant(): BigNum {
+    return this.progression.sleeveXpGrant();
+  }
+
+  /** The level curve of an action. @throws Error if unknown */
+  actionXpCurve(id: ActionId): XpCurve {
+    return this.progression.actionXpCurve(this.state, id);
+  }
+
+  /** The level curve of an action's sleeve levels. @throws Error if unknown */
+  sleeveXpCurve(id: ActionId): XpCurve {
+    return this.progression.sleeveXpCurve(this.state, id);
   }
 
   /** Sleeve XP gathered inside the action's current sleeve level. @throws Error if unknown */

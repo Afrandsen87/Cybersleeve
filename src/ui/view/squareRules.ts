@@ -33,7 +33,11 @@ export function squareLocked(config: GameConfig, actionId: string, owned: (buyab
  * @param owned copies owned of a buyable
  * @returns the unlock, or `undefined` when the cell is not shown
  */
-export function overclockOnOffer(config: GameConfig, actionId: string, owned: (buyableId: string) => number): BuyableDefinition | undefined {
+export function overclockOnOffer(
+  config: GameConfig,
+  actionId: string,
+  owned: (buyableId: string) => number,
+): BuyableDefinition | undefined {
   if (squareLocked(config, actionId, owned)) return undefined;
   return config.buyables.find((b) => b.actionId === actionId && b.effect.kind === 'overclockUnlock');
 }

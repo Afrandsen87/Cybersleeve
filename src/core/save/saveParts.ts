@@ -46,7 +46,15 @@ export const SAVE_PARTS: readonly SavePart<SaveConfig>[] = [
 ];
 
 /** Order of the keys of the saved wallet (the scalars follow). */
-export const WALLET_KEY_ORDER: readonly string[] = ['lastLifePurchases', 'runs', 'synths', 'corporations', 'automation', 'inventory', 'seenItems'];
+export const WALLET_KEY_ORDER: readonly string[] = [
+  'lastLifePurchases',
+  'runs',
+  'synths',
+  'corporations',
+  'automation',
+  'inventory',
+  'seenItems',
+];
 
 /** Order of the keys of the saved sleeve (the scalars follow). */
 export const SLEEVE_KEY_ORDER: readonly string[] = [

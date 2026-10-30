@@ -90,6 +90,16 @@ export class LevelRule {
     return gained;
   }
 
+  /** What the first level costs (`firstLevelXp`), before any delay or reduction. */
+  get firstLevelXp(): BigNum {
+    return this.first;
+  }
+
+  /** How much more each further level costs (`growthFactor`). */
+  get growthFactor(): number {
+    return this.growth.toNumber();
+  }
+
   /**
    * Total experience at which `level + 1` is reached.
    *

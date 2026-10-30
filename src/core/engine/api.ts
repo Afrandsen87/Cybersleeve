@@ -23,6 +23,8 @@ import type { SleeveStats } from '../effects/effects';
 import type { BackChannelRule } from '../items/leverageEffects';
 import type { RecentCrits } from '../crits/critFeed';
 import type { PurchaseResult } from '../economy/shop';
+import type { XpCurve } from '../actions/xpCurve';
+import type { XpPerRunBreakdown } from '../actions/runStats';
 import type { SpeedFactor } from '../actions/speed';
 import type { ActionId, BuyableId, Currency, GameConfig, GameStateView, ItemId, RarityId } from '../types';
 
@@ -68,6 +70,8 @@ export interface ActionQueries {
   payoutPerRun(id: ActionId): BigNum;
   /** Action XP one completed run gives now (after any Augment schematics applied to the action). */
   xpPerRun(id: ActionId): BigNum;
+  /** The parts of the XP one run gives now (base, XP lever, Augments, Neural Mirror, critical), for explaining it. */
+  xpPerRunBreakdown(id: ActionId): XpPerRunBreakdown;
   /** Critical successes of an action in the last second of game time (the count and the average per second). */
   recentCrits(id: ActionId): RecentCrits;
 }
@@ -96,6 +100,12 @@ export interface LevelQueries {
   sleeveLevelProgress(id: ActionId): number;
   /** Completed runs one batch of sleeve XP takes right now. */
   runsPerSleeveXp(): number;
+  /** Sleeve XP one batch of runs grants. */
+  sleeveXpGrant(): BigNum;
+  /** The level curve of an action (first level, growth, Skill-shard delay, reduction). */
+  actionXpCurve(id: ActionId): XpCurve;
+  /** The level curve of an action's sleeve levels (first level, growth, Study-methods reduction). */
+  sleeveXpCurve(id: ActionId): XpCurve;
 }
 
 /** Read-only questions about the sleeve as a whole and the network it carries. */

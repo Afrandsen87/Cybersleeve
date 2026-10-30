@@ -42,6 +42,8 @@ export { isPointCurrency } from './kernel/currencies';
 export type { RandomSource } from './kernel/sampling';
 export { createClampOverflowPolicy } from './kernel/overflow';
 export { Progression } from './actions/progression';
+export type { XpCurve } from './actions/xpCurve';
+export type { XpPerRunBreakdown } from './actions/runStats';
 export { BuyableCaps } from './effects/buyableCaps';
 export { ReflexArchive } from './resleeve/reflexArchive';
 export { isActionCardPurchase } from './resleeve/resleeveCarry';
