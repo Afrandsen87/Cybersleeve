@@ -11,8 +11,10 @@ import {
   type BuyableDefinition,
   type GameConfig,
   isPointCurrency,
+  hardeningBonusPerLevel,
   type LevelQueries,
   type ShopQueries,
+  type StateQueries,
   resleeveGateId,
   traitsOf,
 } from '../../core';
@@ -65,7 +67,7 @@ export { isPointCurrency };
 /**
  * The live numbers behind the formula of a purchase, for the effects that have a formula to fill in.
  *
- * Called by: {@link buildViewModel}. Calls: `GameQueries.actionLevel`, the text table.
+ * Called by: {@link buildViewModel}. Calls: `GameQueries.actionLevel`, `getState`, `hardeningBonusPerLevel` (the owner of the Forensic hardening rule), the text table.
  *
  * @param b the purchase
  * @param engine the engine to read the numbers from
@@ -73,7 +75,19 @@ export { isPointCurrency };
  * @param text the display text
  * @returns the variables and the result, or `null` when the effect has no formula to fill in
  */
-function purchaseValues(b: BuyableDefinition, engine: LevelQueries & ShopQueries, owned: number, text: UiText): BuyableValues | null {
+function purchaseValues(
+  b: BuyableDefinition,
+  engine: LevelQueries & ShopQueries & StateQueries,
+  owned: number,
+  text: UiText,
+): BuyableValues | null {
+  if (b.effect.kind === 'hardenedPayloadFromCrits') {
+    const crits = engine.getState().sleeve.hardeningCrits;
+    return text.tips.hardeningValues({
+      crits: formatPlain(crits, 0),
+      perLevel: formatPlain(hardeningBonusPerLevel(crits, b.effect.perCrit) * Math.max(1, owned), 0),
+    });
+  }
   if (b.effect.kind !== 'networkGrowthFromActionLevel') return null;
   const level = engine.actionLevel(b.effect.sourceActionId);
   const copies = Math.max(1, owned);
@@ -108,7 +122,12 @@ const sortedCache = new WeakMap<GameConfig, readonly BuyableDefinition[]>();
  * @param text the display text
  * @param revealAll test aid: every purchase is `available`, whatever its requirements and reveal rules say
  */
-export function buildBuyableViews(engine: LevelQueries & ShopQueries, config: GameConfig, text: UiText, revealAll = false): BuyableView[] {
+export function buildBuyableViews(
+  engine: LevelQueries & ShopQueries & StateQueries,
+  config: GameConfig,
+  text: UiText,
+  revealAll = false,
+): BuyableView[] {
   let sorted = sortedCache.get(config);
   if (!sorted) {
     sorted = sortByBasePrice(config.buyables);

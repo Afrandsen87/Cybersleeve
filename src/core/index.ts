@@ -35,6 +35,8 @@ export {
   type AutomationFeature,
 } from './automation/automation';
 export { CritFeed } from './crits/critFeed';
+export { CritTally } from './crits/critTally';
+export { hardeningBonusPerLevel } from './effects/entries/sleeveEntries';
 export { LinkedPayouts } from './actions/linkedPayouts';
 export { CriticalSuccesses, criticalRuleFor } from './crits/critical';
 export { proficiencySteps, shiftWeights, shiftWeightsBySteps } from './items/rarityShift';

@@ -3,7 +3,16 @@ import { createGame } from '../../app/createGame';
 import { num, numberFactory } from '../../numbers';
 import { seededRandom } from '../../testing/random';
 import { setCredits, testConfig } from '../../testing/testConfig';
-import { createConfig, proficiencySteps, shiftWeights, shiftWeightsBySteps, validateConfig, wholeOrders, type BuyableDefinition, type GameConfig } from '..';
+import {
+  createConfig,
+  proficiencySteps,
+  shiftWeights,
+  shiftWeightsBySteps,
+  validateConfig,
+  wholeOrders,
+  type BuyableDefinition,
+  type GameConfig,
+} from '..';
 
 const sum = (w: readonly number[]): number => w.reduce((a, b) => a + b, 0);
 

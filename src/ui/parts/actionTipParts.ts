@@ -156,6 +156,14 @@ export interface RewardLineParts {
   readonly heatPerSecond: number;
 }
 
+/** Pre-formatted pieces of the live numbers of the Forensic hardening purchase. */
+export interface HardeningValueParts {
+  /** Critical successes counted so far. */
+  readonly crits: string;
+  /** ICE Rating added to every level of the level action so far. */
+  readonly perLevel: string;
+}
+
 /** Pre-formatted pieces of the live numbers of the network-growth purchase. */
 export interface NetworkGrowthValueParts {
   /** The level of the action the growth depends on. */

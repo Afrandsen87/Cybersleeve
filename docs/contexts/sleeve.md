@@ -15,7 +15,7 @@ Each stat has a hover tip; hovering the label or the value shows it.
 | Access level | 1 | Gates actions. Its tip names the next unlock. |
 | Interface speed | 0.1 | A plain multiplier on every action's speed (so a run takes ten times its base time at the start). |
 | Hacking Proficiency | 0 | Shown under Interface speed; its tip shows the multiplier it gives. Counts raised by Muscle Memory. |
-| ICE Rating | 1 | Lowers the effect of heat by **1% per order of magnitude** (100% at 1e100). Raised by Kill servers (+1 per run), multiplied by the ICE Rating boost buyable. |
+| ICE Rating | 1 | Lowers the effect of heat by **1% per order of magnitude** (100% at 1e100). Raised by Kill servers (+1 per run), multiplied by the ICE Rating boost buyable. Hardened payload adds per Push malware level; Forensic hardening raises that per-level amount by 1 per counted Kill servers critical success (`sleeve.hardeningCrits`, per life). |
 | Heat | 0 | A tax on **the credits per second the network produces** (the whole income, not the payout per node): each point takes 1% of it (capped at 100%), lowered by ICE Rating. With a reduction r, node income stops at `100 / (1 − r)` heat. It never touches run rewards, item payments or building nodes. Heat may hold **fractions of a point** (Overclock adds heat continuously; a Burn lead removes a share of it), but it only ever cools in **whole points**. |
 | Legend | 0 | Makes the heat cooldown cycle **10% faster per point** (the cycle time is divided by 1 + 0.1 x Legend). Falls by exactly 1 each 10-minute cycle (a bar shows it) while above 0. |
 

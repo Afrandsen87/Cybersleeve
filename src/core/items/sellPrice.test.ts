@@ -68,7 +68,9 @@ describe('Kompromat sale price follows peak income (Inventory.sellValue)', () =>
 
   it('a negative or NaN sellSeconds is rejected', () => {
     for (const sellSeconds of [-1, Number.NaN]) {
-      const bad = createConfig(config, { items: { ...config.items, rarities: [{ id: 'common', name: 'C', sellValue: num(1), sellSeconds }] } });
+      const bad = createConfig(config, {
+        items: { ...config.items, rarities: [{ id: 'common', name: 'C', sellValue: num(1), sellSeconds }] },
+      });
       expect(validateConfig(bad).join()).toContain('sellSeconds must be >= 0');
     }
   });

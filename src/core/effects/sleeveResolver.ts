@@ -54,7 +54,16 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
 export function resolveSleeveStats(
   buyables: readonly BuyableDefinition[],
   state: StateSlice<
-    'purchased' | 'heat' | 'hackingProficiency' | 'network' | 'iceRating' | 'legend' | 'nodePayoutBonus' | 'inventory' | 'synths'
+    | 'purchased'
+    | 'heat'
+    | 'hackingProficiency'
+    | 'network'
+    | 'iceRating'
+    | 'legend'
+    | 'nodePayoutBonus'
+    | 'inventory'
+    | 'synths'
+    | 'hardeningCrits'
   >,
   sleeve: SleeveConfig,
   factory: NumberFactory,

@@ -29,6 +29,17 @@ export type SleeveEffect =
    * `iceRatingMultiplier` buyables multiply it (so it does not matter in which order they are bought).
    */
   | { readonly kind: 'iceRatingFromActionLevel'; readonly sourceActionId: ActionId; readonly perLevel: number }
+  /**
+   * While owned, every critical success of `critActionId` (counted by `CritTally` in `sleeve.hardeningCrits`) adds `perCrit` to the ICE
+   * Rating each plain level of `levelActionId` gives, on top of the `perLevel` of its `iceRatingFromActionLevel` buyable (Hardened payload):
+   * the base ICE Rating bonus is `(perLevel + crits x perCrit) x level`. Added to the same base bonus, so the multipliers apply to it.
+   */
+  | {
+      readonly kind: 'hardenedPayloadFromCrits';
+      readonly critActionId: ActionId;
+      readonly levelActionId: ActionId;
+      readonly perCrit: number;
+    }
   /** Network nodes grow by this fraction of themselves per second (0.000001 = 0.0001 percent), compounding; only whole nodes are added, the rest is carried. */
   | { readonly kind: 'networkGrowth'; readonly ratePerSecond: number }
   /**

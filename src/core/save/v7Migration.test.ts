@@ -18,11 +18,12 @@ const read = (name: string): string => readFileSync(new URL(`../../testing/fixtu
 const FIXTURES = ['v6-early-before-resleeve.json', 'v6-after-three-resleeves.json'];
 const load = (text: string) => deserializeState(text, gameConfig, numberFactory);
 /**
- * The flat form of a loaded save, without the fields newer than the v6 fixtures: `peakNetworkIncome` (starts fresh, 0) and `seenItems`
+ * The flat form of a loaded save, without the fields newer than the v6 fixtures: `peakNetworkIncome` and `hardeningCrits` (start fresh, 0) and `seenItems`
  * (loading marks every held stack as seen, and nothing else).
  */
 const flatWithoutNewFields = (text: string) => {
-  const { peakNetworkIncome, seenItems, ...rest } = flatSave(text);
+  const { peakNetworkIncome, hardeningCrits, seenItems, ...rest } = flatSave(text);
+  expect(hardeningCrits).toBe(0);
   expect(peakNetworkIncome).toBe('0');
   const held = rest['inventory'] as Record<string, Record<string, number>>;
   const seenOf = (stacks: Record<string, number>) => Object.fromEntries(Object.keys(stacks).map((rarity) => [rarity, true]));

@@ -124,7 +124,10 @@ describe('sleeve levels and re-sleeving', () => {
     const g = createGame();
     (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
     expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(false);
-    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number }[]).push({ creditsPerSecond: 0, actionLevelsTotal: 0 });
+    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number }[]).push({
+      creditsPerSecond: 0,
+      actionLevelsTotal: 0,
+    });
     expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(true);
   });
 });

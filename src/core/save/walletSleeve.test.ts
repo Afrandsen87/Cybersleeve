@@ -43,6 +43,7 @@ const SLEEVE_KEYS = [
   'focusStacks',
   'focused',
   'hackingProficiency',
+  'hardeningCrits',
   'heat',
   'heatCooldownMs',
   'iceRating',

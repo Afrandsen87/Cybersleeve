@@ -9,7 +9,17 @@
  * the types without importing the registry that imports them. Called by: the entry files, `effectRegistry.ts`, `actionResolver.ts`, `sleeveResolver.ts`.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
-import type { ActionId, BuyableDefinition, BuyableEffect, ChainRule, GameState, ItemDropRule, PaysActionRule, RarityShift, StateSlice } from '../types';
+import type {
+  ActionId,
+  BuyableDefinition,
+  BuyableEffect,
+  ChainRule,
+  GameState,
+  ItemDropRule,
+  PaysActionRule,
+  RarityShift,
+  StateSlice,
+} from '../types';
 
 /** Facts about one kind of effect. */
 export interface EffectTraits {
@@ -105,7 +115,7 @@ export interface ActionHookContext {
 export interface SleeveHookContext {
   /** Copies of the buyable owned (>= 1). */
   readonly owned: number;
-  readonly state: StateSlice<'network' | 'inventory' | 'synths'>;
+  readonly state: StateSlice<'network' | 'inventory' | 'synths' | 'hardeningCrits'>;
   readonly factory: NumberFactory;
   /** Plain action level of an action (without level bonuses). */
   readonly actionLevelOf: (actionId: ActionId) => number;
