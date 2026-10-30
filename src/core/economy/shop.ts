@@ -75,9 +75,23 @@ export class Shop {
    */
   toggle(state: GameState, id: BuyableId): boolean {
     if (this.owned(state, id) <= 0 || !this.isToggleable(id)) return false;
-    if (state.sleeve.autoRunOff[id]) delete state.sleeve.autoRunOff[id];
-    else state.sleeve.autoRunOff[id] = true;
+    this.setEnabled(state, id, state.sleeve.autoRunOff[id] === true);
     return !state.sleeve.autoRunOff[id];
+  }
+
+  /**
+   * Sets an owned toggleable buyable (an auto-run) explicitly on or off (never flips it): the one writer of `autoRunOff`.
+   *
+   * Called by: {@link Shop.toggle}, {@link Shop.switchOff}, `ReflexArchive` (a bought-back Auto-run gets the state it had).
+   *
+   * @param state state to mutate (`autoRunOff`)
+   * @param id the buyable; nothing changes when it is not owned or not toggleable
+   * @param on true to switch it on, false to switch it off
+   */
+  setEnabled(state: GameState, id: BuyableId, on: boolean): void {
+    if (this.owned(state, id) <= 0 || !this.isToggleable(id)) return;
+    if (on) delete state.sleeve.autoRunOff[id];
+    else state.sleeve.autoRunOff[id] = true;
   }
 
   /**
@@ -89,7 +103,7 @@ export class Shop {
    * @param id the buyable; nothing changes when it is not owned or not toggleable
    */
   switchOff(state: GameState, id: BuyableId): void {
-    if (this.owned(state, id) > 0 && this.isToggleable(id)) state.sleeve.autoRunOff[id] = true;
+    this.setEnabled(state, id, false);
   }
 
   /**

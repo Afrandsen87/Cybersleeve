@@ -66,6 +66,11 @@ export interface Wallet {
    */
   lastLifePurchases: Record<BuyableId, number>;
   /**
+   * The toggleable purchases (Auto-runs) of `lastLifePurchases` that were switched ON when the last life ended (`true`; absent: off), so a
+   * bought-back Auto-run is set the way it was left. Written at every re-sleeve; empty in a new game; left out of the save text while empty.
+   */
+  lastLifeAutoRunOn: Record<BuyableId, true>;
+  /**
    * Every item and rarity that has ever entered the inventory, over all lives (`seenItems[itemId][rarityId] === true`; an absent entry is not
    * seen). Written only by `Inventory.add`. Decides which inventory groups and rows are shown. Survives re-sleeving. A save without it loads empty.
    */

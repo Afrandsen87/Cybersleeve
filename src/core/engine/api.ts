@@ -62,6 +62,8 @@ export interface ActionQueries {
   isAutoRun(id: ActionId): boolean;
   /** Overclock for the action (speed bonus, heat cost, on or off), or `null` while there is no toggle to show. */
   overclockStatus(id: ActionId): OverclockStatus | null;
+  /** The chance (0..1) that a completed run of the action makes its heat, with Overclock's factor while it is on. */
+  heatChance(id: ActionId): number;
   /** Focus for the action (speed bonus, slots, on or off), or `null` while there is no toggle to show. */
   focusStatus(id: ActionId): FocusStatus | null;
   /** Multiplier on the action's own reward per run, from purchases (>= 1). It scales that reward only. */

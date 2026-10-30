@@ -126,6 +126,17 @@ export class ToggleStats implements ModeStatuses {
   }
 
   /**
+   * The chance (0..1) that a completed run of the action makes its heat: the action's own `heatChance` times the factor of Overclock while it
+   * is on, never above 1. The one owner of this rule (the run batch draws with it, the action card shows it).
+   *
+   * Called by: `actionRunner.ts`, `GameEngine.heatChance`. Calls: {@link ToggleStats.activeOverclock}.
+   * @throws Error if the action id is unknown
+   */
+  heatChance(id: ActionId): number {
+    return Math.min(1, (this.definition(id).heatChance ?? 1) * (this.activeOverclock(id)?.heatChanceFactor ?? 1));
+  }
+
+  /**
    * Focus for an action: whether it is focused, and how many of the Focus slots are taken.
    * @returns the status, or `null` while the action's Focus is not unlocked (then there is no toggle)
    * @throws Error if the action id is unknown

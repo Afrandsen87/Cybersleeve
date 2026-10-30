@@ -110,7 +110,7 @@ export const itemTips: Pick<
     [label, `Give up one for ${molesPerItem} Moles`, `Each Mole is one point of heat that cools down ${boostPercent}% faster`].join('\n'),
   synths: ({ count, perSecond }) =>
     [
-      'Credits per Second = Sum of Credits per Second Then x min(1, Action Levels Now / Action Levels Then)',
+      'Credits per Second = Sum of ((1 + Credits per Second Then) ^ min(1, Action Levels Now / Action Levels Then) - 1)',
       '',
       'Each synthetic sleeve copies a finished sleeve-run: Then is the end of that run, Now is this sleeve',
       'A synthetic sleeve keeps its full amount once this sleeve has caught up with it',

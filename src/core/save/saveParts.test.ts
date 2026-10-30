@@ -13,10 +13,11 @@ import { createInitialState } from './state';
 import { serializeState } from './serialization';
 
 const fresh = () => createInitialState(testConfig, numberFactory);
-/** A state that has seen an item: `seenItems` is the one key that is left out of the saved text while it is empty. */
+/** A state that has seen an item and a switched-on Auto-run: `seenItems` and `lastLifeAutoRunOn` are left out of the saved text while empty. */
 const withSeen = () => {
   const state = fresh();
   state.wallet.seenItems = { file: { common: true } };
+  state.wallet.lastLifeAutoRunOn = { auto: true };
   return state;
 };
 const names = SAVE_PARTS.map((p) => p.name);

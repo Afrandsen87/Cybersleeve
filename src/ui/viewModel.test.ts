@@ -221,8 +221,9 @@ describe('view model - locked actions and heat', () => {
   it('shows heat that accrues per second on the card, in place of a per-run heat', () => {
     const g = game({ actions: [testConfig.actions[0]!, legendAction], buyables: [] });
     const card = buildViewModel(g).actions.find((a) => a.id === 'legend')!;
-    expect(card.rewardLine).toContain('+5 heat/s');
-    expect(card.rewardLine).not.toContain('+50 heat');
+    expect(card.costLine).toContain('+5 heat/s');
+    expect(card.costLine).not.toContain('+50 heat');
+    expect(card.rewardLine).not.toContain('heat');
   });
 
   it('an action needing access level 2 is locked until the access upgrade is bought', () => {
@@ -231,7 +232,8 @@ describe('view model - locked actions and heat', () => {
     expect(mal.unlocked).toBe(false);
     expect(mal.requiredAccessLevel).toBe(2);
     expect(mal.heatPerRun).toBe(1);
-    expect(mal.rewardLine).toContain('+1 heat');
+    expect(mal.costLine).toContain('+1 heat');
+    expect(mal.rewardLine).not.toContain('heat');
     setCredits(g, num(1000));
     g.buy('access');
     mal = buildViewModel(g).actions.find((a) => a.id === 'mal')!;

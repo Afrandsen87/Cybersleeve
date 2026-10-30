@@ -78,6 +78,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
     wallet: {
       ...(scalars.wallet as Pick<Wallet, 'credits' | 'allTimePeakCredits' | 'allTimePeakNetwork'>),
       lastLifePurchases: {},
+      lastLifeAutoRunOn: {},
       runs: [],
       synths: [],
       automation: createAutomationState(config),

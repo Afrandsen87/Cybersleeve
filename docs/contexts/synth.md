@@ -15,3 +15,4 @@ Code: `src/core/synth/` (see `docs/contexts/_folders.md`). Text below is moved v
 
 *Group: Decided 2026-10-30 (by the user)*
 - **A synthetic sleeve earns the PEAK credits per second of the run it copies** (own network only; see resleeve.md), not the rate at the moment that life ended.
+- **Synthetic income is interpolated in orders of magnitude** (decided 2026-10-30, by the user): `(1 + record)^p - 1` with `p = min(1, current levels / recorded levels)` and the current levels include the fraction of each action's current level, so one level no longer jumps a synth from 0 to millions.

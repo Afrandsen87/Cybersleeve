@@ -23,7 +23,9 @@ export interface Steppable {
  * until nothing more can be bought. The prices are the normal ones, paid in credits. Buying more than last life had never happens.
  * Costs nothing when the skill is not owned or nothing is left to buy back.
  *
- * Called by: `engine.ts` (every slice). Calls: `Shop.canBuy`, `Shop.buy`.
+ * Called by: `engine.ts` (every slice). Calls: `Shop.canBuy`, `Shop.buy`, `Shop.setEnabled`.
+ *
+ * A bought-back Auto-run (toggleable) is set explicitly: on when `lastLifeAutoRunOn` lists it (it was on when the last life ended), otherwise off.
  */
 export class ReflexArchive implements Steppable {
   /** The purchases that can be bought back, cheapest base price first (content order breaks ties). */
@@ -39,7 +41,7 @@ export class ReflexArchive implements Steppable {
   constructor(
     private readonly buyables: readonly BuyableDefinition[],
     private readonly state: GameState,
-    private readonly shop: Pick<Shop, 'canBuy' | 'buy'>,
+    private readonly shop: Pick<Shop, 'canBuy' | 'buy' | 'setEnabled'>,
   ) {
     this.candidates = buyables
       .filter(isActionCardPurchase)
@@ -63,6 +65,7 @@ export class ReflexArchive implements Steppable {
       for (const b of this.candidates) {
         if ((this.state.sleeve.purchased[b.id] ?? 0) >= (wanted[b.id] ?? 0) || !this.shop.canBuy(this.state, b.id)) continue;
         bought = this.shop.buy(this.state, b.id) === 'purchased';
+        if (bought) this.shop.setEnabled(this.state, b.id, this.state.wallet.lastLifeAutoRunOn[b.id] === true);
         if (bought) break; // start again from the cheapest: a purchase may have opened another one
       }
     }
