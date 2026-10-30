@@ -9,7 +9,7 @@ Task: $ARGUMENTS
 
 ## 1. Set up (always)
 
-1. If you are not already inside `.claude/worktrees/`, create a worktree with the EnterWorktree tool, named with a short kebab-case slug of the task (for example "corporation-widgets"). This is the **task branch**. Confirm its path and branch. State the context(s) in scope (`docs/contexts/`). Exception: a task that only edits markdown or skill files may work in the primary checkout and skip step 2; still never commit to `main` without the user's say-so.
+1. If you are not already inside `.claude/worktrees/`, create a worktree with the EnterWorktree tool, named with a short kebab-case slug of the task (for example "corporation-widgets"). This is the **task branch**. Confirm its path and branch. State the context(s) in scope (`docs/contexts/`). Exception: a tooling-only task (markdown docs, `CLAUDE.md`, `.claude/` skills, agents and settings; see "Parallel work" in `CLAUDE.md`) may work in the primary checkout and skip step 2; still never commit to `main` without the user's say-so.
 2. Run `npm install` in it (each worktree has its own `node_modules`).
 3. `CLAUDE.md` is already in context; do not re-read it. Read only the parts of `DESIGN.md` and `docs/DECISIONS.md` that cover the mechanic you will touch. Read `.claude/skills/incremental-design/SKILL.md` only if the task involves design, economy, pacing or balance, and `docs/REVEAL_RULES.md` only if it adds or changes a stat, skill, tree, buyable, tooltip or text. Give subagents the file paths to read, not copies of the rules.
 4. If you need the dev server, use a port derived from the worktree name (`npm run dev -- --port <port>`) and say which. Saves live in the browser per origin, so worktrees do not share saves.
