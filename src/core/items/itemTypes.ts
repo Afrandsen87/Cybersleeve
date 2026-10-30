@@ -106,6 +106,20 @@ export interface ItemsConfig {
 }
 
 /**
+ * One owned Rarity-refinement-style shift of drop ratios (the result of a `rarityShiftFromProficiency` buyable).
+ *
+ * @remarks
+ * Steps are continuous: `log_stepBase(1 + Hacking Proficiency)`. Each whole step moves `fractionPerStep` of every rarity's weight to the
+ * next rarity; the fractional rest is one more shift of `fractionPerStep x rest` (see `shiftWeightsBySteps`).
+ */
+export interface RarityShift {
+  /** Share (0..1] of each rarity's weight moved on per step. */
+  readonly fractionPerStep: number;
+  /** A step is a rise of (1 + proficiency) by this factor (> 1). */
+  readonly stepBase: number;
+}
+
+/**
  * Items an action drops when a run completes (the result of an `itemDrop` buyable).
  *
  * @remarks

@@ -101,11 +101,11 @@ describe('DerivedStats.dropSources', () => {
       description: '',
       actionId: 'a',
       cost: num(1),
-      effect: { kind: 'rarityShiftFromProficiency', fractionPerOrder: 0.5 },
+      effect: { kind: 'rarityShiftFromProficiency', fractionPerStep: 0.5, stepBase: 10 },
     };
     const g = game([drop('d', 'a', { chance: 1, rarityWeights: { common: 1 } }), shift]);
     expect(g.dropSources('file', 'rare')).toEqual([]);
-    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(10); // one order of magnitude: one shift
+    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(9); // 1 + 9 is one step of base 10: one shift
     expect(g.dropSources('file', 'common')).toEqual([{ actionId: 'a', chance: 0.5 }]);
     expect(g.dropSources('file', 'rare')).toEqual([{ actionId: 'a', chance: 0.5 }]);
   });
