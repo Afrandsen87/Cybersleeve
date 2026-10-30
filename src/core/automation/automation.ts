@@ -263,7 +263,15 @@ export class Automation implements AutomationControls {
     }
   }
 
-  /** Dispersal: gives all the schematics held to the actions with a share, in proportion, none left over. */
+  /**
+   * Dispersal: gives all the schematics held to the actions with a share, in proportion, none left over.
+   *
+   * @remarks
+   * An action whose Auto-run is not owned takes no augments (`Augments.applyMany` returns 0 and uses nothing up), so its part of
+   * the split is simply not applied this round: the schematics stay in the inventory, none consumed or lost. The split is still
+   * worked out over every action with a share (closed form, no retry), so the next step splits what is left again and the other
+   * actions keep getting their own proportion; buying that Auto-run makes the action take its share from then on.
+   */
   private disperse(): void {
     const augment = this.config.items.augment;
     if (!augment) return;

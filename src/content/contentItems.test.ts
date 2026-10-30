@@ -9,6 +9,7 @@ import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
   AUGMENT_SCHEMATIC,
+  AUTO_RUN,
   BURN_LEAD,
   BURN_LEADS,
   GROW_NETWORK,
@@ -149,6 +150,7 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
     const g = createGame({ random: () => 0 }); // every drop succeeds, always the most common rarity
     setCredits(g, num(100_000));
     g.buy(INDUSTRIAL_ESPIONAGE);
+    g.buy(AUTO_RUN); // augments only go on an action whose Auto-run is owned
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
     const held = g.getState().wallet.inventory[AUGMENT_SCHEMATIC]!['common']!;
@@ -183,6 +185,7 @@ describe('Augment schematics are applied, never paid out (real content)', () => 
 
   it('the rarities multiply: 3 common, 3 uncommon and 3 rare give (1 + 3 x bonus) cubed', () => {
     const g = createGame();
+    (g.getState().sleeve.purchased as Record<string, number>)[AUTO_RUN] = 1; // augments need the action's Auto-run
     const bonus = gameConfig.items.augment!.xpBonusPerItem;
     (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = {
       [AUGMENT_SCHEMATIC]: { common: 3, uncommon: 3, rare: 3 },
@@ -196,6 +199,7 @@ describe('Augment schematics are applied, never paid out (real content)', () => 
 
   it('only the chosen rarity is used up', () => {
     const g = createGame();
+    (g.getState().sleeve.purchased as Record<string, number>)[AUTO_RUN] = 1; // augments need the action's Auto-run
     (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { [AUGMENT_SCHEMATIC]: { common: 2, uncommon: 5 } };
     for (let i = 0; i < 3; i++) g.augmentAction(PRACTICE_HACKING, 'uncommon');
     expect(g.getState().sleeve.actions[PRACTICE_HACKING]!.augments).toEqual({ uncommon: 3 });

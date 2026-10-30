@@ -10,6 +10,23 @@ import type { ActionId, BuyableDefinition, StateSlice } from '../types';
 import { ownedEffects } from './ownedOfKind';
 
 /**
+ * True when the player owns the Auto-run buyable of an action, whether it is switched on or off.
+ *
+ * @remarks
+ * The one owner of "is Auto-run owned for this action" (used to gate Augments). It asks for the buyables of the `autoRun` effect
+ * and reads the action each one belongs to, so no content id is compared. A switched-off Auto-run still counts as owned.
+ * Called by: `app/createGame.ts` (the gate injected into `Augments`). Calls: {@link ownedEffects}.
+ *
+ * @param buyables all buyable definitions
+ * @param state current state (reads `purchased`)
+ * @param actionId the action asked about
+ * @returns true when at least one copy of an Auto-run buyable for that action is owned
+ */
+export function ownsAutoRun(buyables: readonly BuyableDefinition[], state: StateSlice<'purchased'>, actionId: ActionId): boolean {
+  return ownedEffects(buyables, state.sleeve.purchased, 'autoRun').some((k) => k.buyable.actionId === actionId);
+}
+
+/**
  * Level bonus an action gets from `levelBonusFromSleeveLevel` buyables: the sleeve level of the source action, per copy owned.
  *
  * @remarks
