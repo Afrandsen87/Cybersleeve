@@ -9,7 +9,7 @@ Task: $ARGUMENTS
 
 ## 1. Set up (always)
 
-1. If you are not already inside `.claude/worktrees/`, create a worktree with the EnterWorktree tool, named with a short kebab-case slug of the task (for example "corporation-widgets"). This is the **task branch**. Confirm its path and branch. State the context(s) in scope (`docs/contexts/`). Exception: a task that only edits markdown or skill files may work in the primary checkout and skip step 2; still never commit to `main` without the user's say-so.
+1. If you are not already inside `.claude/worktrees/`, create a worktree with the EnterWorktree tool, named with a short kebab-case slug of the task (for example "corporation-widgets"). This is the **task branch**. Confirm its path and branch. State the context(s) in scope (`docs/contexts/`). Exception: a tooling-only task (markdown docs, `CLAUDE.md`, `.claude/` skills, agents and settings; see "Parallel work" in `CLAUDE.md`) may work in the primary checkout and skip step 2; still never commit to `main` without the user's say-so.
 2. Run `npm install` in it (each worktree has its own `node_modules`).
 3. `CLAUDE.md` is already in context; do not re-read it. Read only the parts of `DESIGN.md` and `docs/DECISIONS.md` that cover the mechanic you will touch. Read `.claude/skills/incremental-design/SKILL.md` only if the task involves design, economy, pacing or balance, and `docs/REVEAL_RULES.md` only if it adds or changes a stat, skill, tree, buyable, tooltip or text. Give subagents the file paths to read, not copies of the rules.
 4. If you need the dev server, use a port derived from the worktree name (`npm run dev -- --port <port>`) and say which. Saves live in the browser per origin, so worktrees do not share saves.
@@ -26,7 +26,7 @@ Do it **yourself** in the task worktree by default. Each subagent starts cold an
 - Keep it to 3 subagents at most. More does not help; merging cost grows.
 - Write each subagent a self-contained prompt: the goal, its exact file scope, what is out of scope, the rules from `CLAUDE.md` that apply (SOLID, TSDoc, small files, no hard-coded tuning, tests split by feature), and the exact report format below. Do not assume it has seen this conversation.
 
-Spawn them in one message, in parallel, with the Agent tool, `isolation: "worktree"` and an explicit `model` (a subagent without one inherits the expensive orchestrator model): `haiku` for read-only survey, search or summary work, `sonnet` for implementation. Each subagent must:
+Spawn them in one message, in parallel, with the Agent tool and `isolation: "worktree"`, using the agent types in `.claude/agents/` (they fix the model): `scout` (haiku) for read-only survey, search or summary work, `implementer` (sonnet) for building. Any other subagent type needs an explicit `model`, or it inherits the Opus orchestrator. Your job as orchestrator is the plan: give each implementer the files to touch, the existing owner function of each rule it extends, and the tests to add, so it does not have to make design calls. Each subagent must:
 
 - Work only inside its scope; if it needs something outside, stop and describe it instead.
 - Commit small and often on its own worktree branch. Commit subjects follow the changelog rule in `CLAUDE.md`: one short player-facing line, or `chore:`/`docs:`/`test:`/`refactor:` for anything players do not see.
@@ -43,6 +43,7 @@ When subagents finish, from the task worktree:
 3. Resolve conflicts yourself. They should be rare given disjoint scopes; if one is a real design disagreement rather than mechanical, stop and ask the user.
 4. If a package is wrong or incomplete, fix it yourself or send the subagent back with SendMessage. Do not merge broken work.
 5. Integrate cross-package pieces (barrels, docs, wiring) yourself, with tests.
+6. If you fanned out, spawn one `reviewer` on the task branch (`git diff main...<task-branch>`) once everything is merged. Fix the bug and rule findings you agree with; mention the rest in your report.
 
 ## 4. Verify
 
