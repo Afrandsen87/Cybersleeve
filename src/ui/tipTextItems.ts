@@ -53,11 +53,19 @@ export const itemTips: Pick<
       selected === null ? `Select a rarity of ${item} in the Inventory first` : `Selected = ${selected} (${held} held)`,
       'Click to apply one of the selected rarity to this action. It will boost its XP gain.',
     ].join('\n'),
-  burnLead: ({ label, sharePercent, drops, heat, heatAfter, count, canUse }) =>
+  burnLead: ({ label, sharePercent, drops, heat, heatAfter, count, canUse, toggle }) =>
     [
       label,
       'Heat after Use = Heat x (1 - Share Removed)',
-      'Click the lead to burn it',
+      ...(toggle
+        ? [
+            `Click to switch burning ${toggle.on ? 'off' : 'on'}`,
+            toggle.hold
+              ? `While on, uses just enough leads to bring heat down to ${toggle.lower}, and none at or below it`
+              : 'While on, uses one lead every second while there is heat',
+            ...(toggle.reserve === null ? [] : [`Always keeps ${toggle.reserve} leads`]),
+          ]
+        : ['Click the lead to burn it']),
       '',
       `Share Removed = ${sharePercent}% of the current heat`,
       `Heat now = ${heat}`,

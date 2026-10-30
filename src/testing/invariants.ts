@@ -8,7 +8,10 @@ import type { BigNum } from '../numbers';
 import type { GameConfig, GameStateView } from '../core';
 import {
   type AUTOMATION_FEATURES,
+  AUTO_BURN_SWITCHES,
   BuyableCaps,
+  overclockMakesHeat,
+  ownsAutoBurnStep,
   isActionCardPurchase,
   SCALAR_FIELDS,
   scalarValue,
@@ -88,9 +91,27 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   if (spent > earned) problems.push(`more automation points spent (${spent}) than earned (${earned})`);
   const featureUnlocked = (feature: (typeof AUTOMATION_FEATURES)[number]): boolean =>
     isFeatureUnlocked(config.buyables, state.sleeve.purchased, feature);
-  if (!(Number.isFinite(auto.autoBurnCeiling) && auto.autoBurnCeiling >= 0))
-    problems.push(`autoBurnCeiling is not valid: ${auto.autoBurnCeiling}`);
-  if (auto.autoBurnOn && !featureUnlocked('autoBurn')) problems.push('Auto Burn is on but not unlocked');
+  const burn = auto.autoBurn;
+  if (!(Number.isFinite(burn.lower) && burn.lower >= 0 && Number.isFinite(burn.upper) && burn.upper > burn.lower))
+    problems.push(`Auto Burn thresholds are not valid: ${burn.lower} / ${burn.upper}`);
+  if (!(Number.isInteger(burn.reserve) && burn.reserve >= 0))
+    problems.push(`Auto Burn reserve is not a whole number >= 0: ${burn.reserve}`);
+  for (const name of AUTO_BURN_SWITCHES) {
+    if (burn.switches[name] && !ownsAutoBurnStep(config.buyables, state.sleeve.purchased, name))
+      problems.push(`Auto Burn switch ${name} is on but its skill is not owned`);
+  }
+  const burnLife = state.sleeve.autoBurn;
+  if (burnLife.on && !featureUnlocked('autoBurn')) problems.push('the Burn lead toggle is on but Auto Burn is not unlocked');
+  if (!(Number.isFinite(burnLife.seconds) && burnLife.seconds >= 0 && burnLife.seconds < 1 + 1e-9))
+    problems.push(`Auto Burn seconds is outside [0, 1): ${burnLife.seconds}`);
+  for (const id of Object.keys(burnLife.overclocksOff)) {
+    if (!config.actions.some((a) => a.id === id && overclockMakesHeat(a)))
+      problems.push(`Auto Burn recorded an Overclock that makes no heat: ${id}`);
+  }
+  for (const id of Object.keys(burnLife.autoRunsOff)) {
+    if (!config.buyables.some((b) => b.id === id && b.effect.kind === 'autoRun'))
+      problems.push(`Auto Burn recorded a buyable that is no Auto-run: ${id}`);
+  }
   if (Object.keys(auto.autosale).length > 0 && !featureUnlocked('autosale')) problems.push('autosale is set but not unlocked');
   if (Object.keys(auto.dispersal).length > 0 && !featureUnlocked('dispersal')) problems.push('augment dispersal is set but not unlocked');
   const shareTotal = Object.values(auto.dispersal).reduce((n, s) => n + s, 0);

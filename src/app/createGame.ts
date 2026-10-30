@@ -14,6 +14,9 @@ import {
   BurnLeads,
   CriticalLinks,
   Automation,
+  AutoBurn,
+  actionMakesHeat,
+  overclockMakesHeat,
   automationPointsEarned,
   Corporation,
   CorporationLevels,
@@ -128,6 +131,14 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     () => stats.heatCoolingBlocked(),
     () => stats.sleeveStats().burnLeadFlatHeat,
   );
+  const toggles = new ActionToggles(state, stats);
+  const heatMakingActions = new Set(config.actions.filter(actionMakesHeat).map((a) => a.id));
+  const autoBurn = new AutoBurn(config, state, inventory, burnLeads, {
+    overclockActions: config.actions.filter(overclockMakesHeat).map((a) => a.id),
+    autoRuns: config.buyables.filter((b) => b.effect.kind === 'autoRun' && heatMakingActions.has(b.actionId ?? '')).map((b) => b.id),
+    setOverclock: (id, on) => toggles.setOverclock(id, on),
+    setAutoRun: (id, on) => shop.setOn(state, id, on),
+  });
   const augments = new Augments(config, state, inventory, (id) => ownsAutoRun(config.buyables, state, id));
   const corporationLevels = new CorporationLevels(config, state, factory);
   const corporation = new Corporation(
@@ -173,12 +184,12 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     zeroDays,
     adminKeys,
     skillShards: new SkillShards(config, state, inventory, (id) => runner.isUnlocked(id), random),
-    toggles: new ActionToggles(state, stats),
+    toggles,
     critFeed,
     drops,
     augments,
     corporation,
-    automation: new Automation(config, state, inventory, burnLeads, augments, {
+    automation: new Automation(config, state, inventory, autoBurn, augments, {
       pointsAvailable: () => shop.pointsAvailable(state, 'automationPoints'),
       buy: (id) => shop.buy(state, id) === 'purchased',
     }),

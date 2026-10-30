@@ -62,7 +62,7 @@ const EXCEPTIONS: Readonly<Record<string, string>> = {
     'Economy reads the reward descriptors (actions/rewards.ts) to turn a payout into a currency; the descriptors belong in a lower layer.',
   'effects -> actions': 'Effect kinds name ActionId/ActionDefinition: type-only imports of action types.',
   'effects -> automation':
-    'effects/entries/automationEntries.ts and kinds/sleeve.ts import from automation/automation.ts (the feature names and table).',
+    'effects/entries/automationEntries.ts and kinds/sleeve.ts import from automation/automation.ts and autoBurnTypes.ts (the feature and step names and tables).',
   'effects -> corporation': 'The corporation kinds name CorporationEffect/ActionId: type-only imports of corporation types.',
   'effects -> heat': 'The effect registry composes the heat entries (heat/heatEffects.ts); entry files live with their mechanic.',
   'effects -> items': 'effects/kinds/items.ts names item ids (itemTypes) and entries/itemEntries.ts imports items/inventory.ts.',

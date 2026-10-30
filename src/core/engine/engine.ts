@@ -228,6 +228,7 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns true when auto-run is now on; false when it is now off or the buyable is not owned (nothing changes then)
    */
   toggleAutoRun(id: BuyableId): boolean {
+    this.automationUnit.playerSwitchedAutoRun(id); // a hand switch ends Auto Burn's claim on it
     return this.shop.toggle(this.state, id);
   }
 
@@ -315,6 +316,19 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.burnLeads.use(rarityId);
   }
 
+  /** Switches the Burn lead toggle (Auto Burn, once its first skill is owned). See `AutoBurn.toggle`. @returns true when it is now on */
+  toggleBurnLead(): boolean {
+    return this.automationUnit.autoBurn().toggle();
+  }
+
+  /** The Burn lead toggle and the rules in force, or `null` while the lead is still a click (Auto Burn's first skill is not owned). */
+  burnLeadToggle(): { readonly on: boolean; readonly hold: boolean; readonly lower: number; readonly reserve: number } | null {
+    const rules = this.automationUnit.autoBurn().rules();
+    return rules.toggle
+      ? { on: this.automationUnit.autoBurn().isOn(), hold: rules.hold, lower: rules.lower, reserve: rules.reserve }
+      : null;
+  }
+
   /**
    * Switches the Zero-day toggle. While it is on, every completed run of the Zero-day's action uses one Zero-day up and is a
    * critical success; the toggle switches itself off when none is left. Switching on needs a Zero-day in the Inventory. See `ZeroDays`.
@@ -349,6 +363,7 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns true when it is now on
    */
   toggleOverclock(id: ActionId): boolean {
+    this.automationUnit.playerSwitchedOverclock(id); // a hand switch ends Auto Burn's claim on it
     return this.toggles.toggleOverclock(id);
   }
 
@@ -832,7 +847,7 @@ export class GameEngine implements GameQueries, GameCommands {
     this.resleeveLockout.advance(deltaMs);
     this.runner.tickAll(deltaMs);
     this.corporationUnit.tickAll(deltaMs);
-    this.automationUnit.step();
+    this.automationUnit.step(deltaMs);
     this.reflexArchive?.step();
     this.overflowPolicy.apply(this.state);
     notePeaks(this.state);

@@ -8,6 +8,7 @@
  */
 import {
   AUTOMATION_FEATURES,
+  AUTO_BURN_SWITCHES,
   type CorporationQueries,
   type GameConfig,
   type SkillQueries,
@@ -160,6 +161,7 @@ export function automationView(
   revealAll = false,
 ): AutomationView {
   const automation = engine.automation();
+  const burn = automation.autoBurn();
   const owned = (id: string): number => viewById.get(id)?.owned ?? 0;
   const laneOf = (feature: string): SkillLaneView[] =>
     buildSkillLanes({
@@ -183,10 +185,21 @@ export function automationView(
       lanes: laneOf(id),
     })),
     autoBurn: {
-      on: automation.isAutoBurnOn(),
-      switchText: text.automation.autoBurnSwitch(automation.isAutoBurnOn()),
-      ceiling: automation.autoBurnCeiling(),
-      ceilingLabel: text.automation.autoBurnCeiling,
+      hint: text.automation.autoBurn.hint,
+      switches: AUTO_BURN_SWITCHES.map((name) => ({
+        name,
+        label: text.automation.autoBurn.switches[name],
+        on: burn.rules()[name],
+        visible: burn.stepOwned(name),
+      })),
+      thresholds: {
+        visible: burn.stepOwned('thresholds'),
+        lower: burn.rules().lower,
+        upper: burn.rules().upperAt,
+        lowerLabel: text.automation.autoBurn.lower,
+        upperLabel: text.automation.autoBurn.upper,
+      },
+      reserve: { visible: burn.stepOwned('reserve'), value: burn.rules().reserve, label: text.automation.autoBurn.reserve },
     },
     rarities: config.items.rarities.map((r) => ({ id: r.id, name: r.name, on: automation.isAutosaleOn(r.id) })),
     actions: config.actions.map((a) => ({ id: a.id, name: a.name, percent: automation.dispersal(a.id) })),

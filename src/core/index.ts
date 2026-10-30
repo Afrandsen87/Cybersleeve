@@ -7,6 +7,7 @@ export { SPEED_FACTOR_IDS, createSpeedModifiers, levelFactor, speedFactors, spee
 export { type FactorTerm, type SleeveStats, resolveEffects, resolveSleeveStats, earnedSpeedBeyond } from './effects/effects';
 export { coolHeat, coolHeatBoosted, heatTaxFactor } from './heat/heat';
 export { coolsNow, cycleMs, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heat/heatModel';
+export { actionMakesHeat, overclockMakesHeat } from './heat/heatMakers';
 export { applyCompletionEffects } from './actions/completion';
 export { SCALAR_FIELDS, scalarValue } from './kernel/fields';
 export { REWARDS, REWARD_KINDS, payReward, rewardOf } from './actions/rewards';
@@ -34,6 +35,16 @@ export {
   type AutomationControls,
   type AutomationFeature,
 } from './automation/automation';
+export { AutoBurn, type AutoBurnControls, type AutoBurnSwitches } from './automation/autoBurn';
+export { type AutoBurnRules, ownsAutoBurnStep } from './automation/autoBurnRules';
+export {
+  AUTO_BURN_STEPS,
+  AUTO_BURN_SWITCHES,
+  type AutoBurnLife,
+  type AutoBurnSettings,
+  type AutoBurnStep,
+  type AutoBurnSwitch,
+} from './automation/autoBurnTypes';
 export { CritFeed } from './crits/critFeed';
 export { CritTally } from './crits/critTally';
 export { hardeningBonusPerLevel } from './effects/entries/sleeveEntries';

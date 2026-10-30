@@ -33,7 +33,7 @@ const config: GameConfig = createConfig(testConfig, {
     },
     ...automationLaneBuyables(),
   ],
-  automation: { autoBurnCeiling: 10 },
+  automation: { autoBurnCeiling: 10, autoBurnUpper: 50 },
 });
 
 const mount = (points = 1) => {
@@ -80,7 +80,8 @@ describe('automation in the view model', () => {
       ['dispersal', true],
     ]);
     expect(view.pointsText).toBe('Automation points: 0');
-    expect(view.autoBurn.ceiling).toBe(10);
+    expect(view.autoBurn.thresholds).toMatchObject({ visible: false, lower: 10, upper: 50 });
+    expect(view.autoBurn.switches.some((sw) => sw.visible)).toBe(false); // nothing is shown before its skill is owned
     expect(view.rarities.map((r) => r.id)).toEqual(['common', 'rare']);
     expect(view.actions.find((a) => a.id === 'b')!.percent).toBe(40);
   });
@@ -119,23 +120,6 @@ describe('the Automation tab on the screen', () => {
     expect(panel(root).querySelector('.skills-points')!.textContent).toBe('Automation points: 0');
   });
 
-  it('the Auto Burn switch and ceiling change the setting', () => {
-    const { root, game } = mount(1);
-    game.automation().unlock('autoBurn');
-    tab(root, /Automation/).click();
-    const sw = panel(root).querySelector<HTMLButtonElement>('.automation-autoBurn .automation-switch')!;
-    expect(sw.textContent).toBe('Auto Burn: off');
-    sw.click();
-    expect(game.automation().isAutoBurnOn()).toBe(true);
-    expect(sw.textContent).toBe('Auto Burn: on');
-    expect(sw.classList.contains('on')).toBe(true);
-    const input = panel(root).querySelector<HTMLInputElement>('.automation-autoBurn input')!;
-    expect(input.value).toBe('10');
-    input.value = '35';
-    input.dispatchEvent(new Event('change'));
-    expect(game.automation().autoBurnCeiling()).toBe(35);
-  });
-
   it('autosale has a switch per rarity, and dispersal a share per action', () => {
     const { root, game } = mount(2);
     game.automation().unlock('autosale');
@@ -159,9 +143,9 @@ describe('the Automation tab on the screen', () => {
 
   it('does not overwrite what the player is typing while the screen redraws', () => {
     const { root, game, render } = mount(1);
-    game.automation().unlock('autoBurn');
+    game.automation().unlock('dispersal');
     tab(root, /Automation/).click();
-    const input = panel(root).querySelector<HTMLInputElement>('.automation-autoBurn input')!;
+    const input = panel(root).querySelector<HTMLInputElement>('.automation-dispersal input')!;
     input.focus();
     input.value = '7';
     render();

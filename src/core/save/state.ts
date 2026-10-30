@@ -6,6 +6,7 @@
 import type { NumberFactory } from '../../numbers';
 import { traitsOf } from '../effects/effectTraits';
 import { createAutomationState } from '../automation/automation';
+import { createAutoBurnLife } from '../automation/autoBurnTypes';
 import { createCorporationState } from '../corporation/corporationState';
 import { carryRetention, recordLastLife } from '../resleeve/resleeveCarry';
 import { CARRIED_OVER_CURRENCIES } from '../kernel/currencies';
@@ -110,6 +111,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
       focused: {},
       focusStacks: {},
       keyToggles: {},
+      autoBurn: createAutoBurnLife(),
       chains: {},
       bankedCriticals: {},
       actions,

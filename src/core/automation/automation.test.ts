@@ -46,7 +46,7 @@ const config: GameConfig = createConfig(testConfig, {
     { id: 'auto-b', name: 'Auto B', description: '', actionId: 'b', cost: num(10), effect: { kind: 'autoRun' } },
     ...automationLaneBuyables(),
   ],
-  automation: { autoBurnCeiling: 10 },
+  automation: { autoBurnCeiling: 10, autoBurnUpper: 50 },
 });
 
 type Loose = {
@@ -105,68 +105,6 @@ describe('automation points', () => {
     g.resleeve();
     expect(g.automation().pointsEarned()).toBe(0);
     expect(g.automation().isUnlocked('autosale')).toBe(false);
-  });
-});
-
-describe('Auto Burn', () => {
-  const burnGame = (heat: number, leads: number) => {
-    const g = game(1);
-    g.automation().unlock('autoBurn');
-    loose(g).heat = heat;
-    loose(g).inventory['lead'] = { common: leads };
-    return g;
-  };
-
-  it('settings only work once unlocked', () => {
-    const g = game(1);
-    expect(g.automation().setAutoBurn(true)).toBe(false);
-    expect(g.automation().setAutoBurnCeiling(5)).toBe(false);
-    expect(g.automation().autoBurnCeiling()).toBe(10);
-  });
-
-  it('does nothing while it is off', () => {
-    const g = burnGame(100, 50);
-    g.tick(1);
-    expect(loose(g).heat).toBeGreaterThan(99);
-    expect(loose(g).inventory['lead']!['common']).toBe(50);
-  });
-
-  it('uses just enough leads to bring heat down to the ceiling: 100 heat to 10 takes 45 leads at 5% each', () => {
-    const g = burnGame(100, 100);
-    g.automation().setAutoBurn(true);
-    g.tick(1);
-    // outcome: the fewest leads that leave at most the ceiling: 100 x 0.95^45 = 9.9, while 44 leads leave 10.46
-    expect(loose(g).inventory['lead']!['common']).toBe(55);
-    expect(loose(g).heat).toBeLessThanOrEqual(10);
-    expect(loose(g).heat).toBeGreaterThan(10 * 0.95);
-  });
-
-  it('uses every lead there is when they cannot reach the ceiling, and leaves heat below the ceiling alone', () => {
-    const few = burnGame(100, 3);
-    few.automation().setAutoBurn(true);
-    few.tick(1);
-    expect(loose(few).inventory['lead']?.['common'] ?? 0).toBe(0);
-    expect(loose(few).heat).toBeCloseTo(100 * 0.95 ** 3, 1);
-    const cool = burnGame(5, 10);
-    cool.automation().setAutoBurn(true);
-    cool.tick(1);
-    expect(loose(cool).inventory['lead']!['common']).toBe(10);
-  });
-
-  it('keeps heat at the ceiling the player sets', () => {
-    const g = burnGame(100, 1_000);
-    g.automation().setAutoBurn(true);
-    g.automation().setAutoBurnCeiling(50);
-    g.tick(1);
-    expect(loose(g).heat).toBeLessThanOrEqual(50);
-    expect(loose(g).heat).toBeGreaterThan(50 * 0.95);
-  });
-
-  it('rejects a ceiling that is negative or not a number', () => {
-    const g = burnGame(1, 1);
-    expect(g.automation().setAutoBurnCeiling(-1)).toBe(false);
-    expect(g.automation().setAutoBurnCeiling(Number.NaN)).toBe(false);
-    expect(g.automation().autoBurnCeiling()).toBe(10);
   });
 });
 
@@ -299,12 +237,13 @@ describe('Augment dispersal', () => {
 
 describe('automation is saved and keeps every invariant', () => {
   const setup = () => {
-    const g = game(3);
+    const g = game(4);
     g.automation().unlock('autoBurn');
+    g.buy(laneSkillId('autoBurn', 2));
     g.automation().unlock('autosale');
     g.automation().unlock('dispersal');
-    g.automation().setAutoBurn(true);
-    g.automation().setAutoBurnCeiling(42);
+    g.automation().autoBurn().setSwitch('hold', true);
+    g.toggleBurnLead();
     g.automation().setAutosale('rare', true);
     g.automation().setDispersal('b', 30);
     return g;
@@ -313,8 +252,8 @@ describe('automation is saved and keeps every invariant', () => {
   it('a save restores the unlocks and every setting', () => {
     const restored = deserializeState(serializeState(setup().getState()), config, numberFactory)!;
     expect(AUTOMATION_FEATURES.every((f) => isFeatureUnlocked(config.buyables, restored.sleeve.purchased, f))).toBe(true);
-    expect(restored.wallet.automation.autoBurnOn).toBe(true);
-    expect(restored.wallet.automation.autoBurnCeiling).toBe(42);
+    expect(restored.sleeve.autoBurn.on).toBe(true);
+    expect(restored.wallet.automation.autoBurn.switches.hold).toBe(true);
     expect(restored.wallet.automation.autosale).toEqual({ rare: true });
     expect(restored.wallet.automation.dispersal).toEqual({ b: 30 });
     expect(findInvariantViolations(restored, config)).toEqual([]);
@@ -328,11 +267,11 @@ describe('automation is saved and keeps every invariant', () => {
   it('a save cannot set what is not unlocked', () => {
     const data = flatSave(serializeState(setup().getState()));
     data.purchased = { core: 1, [laneSkillId('autoBurn', 1)]: 1 }; // only Auto Burn is unlocked
-    data.automation.autoBurnCeiling = -5;
+    data.automation.autoBurn = { lower: -5, switches: { hold: true } };
     data.automation.dispersal = { b: 30, nope: 10 };
     const restored = deserializeState(asSave(data), config, numberFactory)!;
     expect(AUTOMATION_FEATURES.filter((f) => isFeatureUnlocked(config.buyables, restored.sleeve.purchased, f))).toEqual(['autoBurn']);
-    expect(restored.wallet.automation.autoBurnCeiling).toBe(10); // the bad value is ignored: the default stays
+    expect(restored.wallet.automation.autoBurn.lower).toBe(10); // the bad value is ignored: the default stays
     expect(restored.wallet.automation.autosale).toEqual({});
     expect(restored.wallet.automation.dispersal).toEqual({});
     expect(findInvariantViolations(restored, config)).toEqual([]);
@@ -343,7 +282,7 @@ describe('automation is saved and keeps every invariant', () => {
     delete data.automation;
     const restored = deserializeState(asSave(data), config, numberFactory)!;
     expect(AUTOMATION_FEATURES.some((f) => isFeatureUnlocked(config.buyables, restored.sleeve.purchased, f))).toBe(false);
-    expect(restored.wallet.automation.autoBurnOn).toBe(false);
+    expect(restored.sleeve.autoBurn.on).toBe(false);
   });
 
   it('one long tick and many short ones sell and burn the same', () => {

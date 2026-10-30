@@ -86,8 +86,19 @@
       }
     },
     "automation": {
-      "autoBurnOn": false,
-      "autoBurnCeiling": 20,
+      "autoBurn": {
+        "lower": 20,
+        "upper": 70,
+        "reserve": 0,
+        "switches": {
+          "hold": false,
+          "upper": false,
+          "offOverclocks": false,
+          "offActions": false,
+          "onActions": false,
+          "onOverclocks": false
+        }
+      },
       "autosale": {},
       "dispersal": {}
     },
@@ -118,6 +129,12 @@
       "focused": {},
       "focusStacks": {},
       "keyToggles": {},
+      "autoBurn": {
+        "on": false,
+        "seconds": 0,
+        "overclocksOff": {},
+        "autoRunsOff": {}
+      },
       "chains": {},
       "bankedCriticals": {},
       "actions": {

@@ -33,7 +33,7 @@ Skills are buyables paid in **skill points**, drawn as a **skill tree** on the S
 | Tiered Informants | Back channel takes every rarity, and a file pays 5 Moles × its position in the rarity list (common ×1, uncommon ×2, rare ×3, legendary ×4, crisis ×5); child of Back Channel Deals |
 | Double Agent | Back channel pays twice the Moles for every rarity; child of Tiered Informants |
 | Obfuscation | Push malware's Overclock makes **2x** the heat per heat-making run instead of 3x (the factor is lowered, never raised; other actions are not affected). |
-| Scorched Earth | Each Burn lead takes **1 more point of heat** away, after its 5% (heat never goes below 0). Auto Burn counts it when working out how many leads it needs. |
+| Scorched Earth | Each Burn lead takes **1 more point of heat** away, after its 5% (heat never goes below 0). Auto Burn's Hold counts it when working out how many leads it needs. |
 | Silver Tongue | Burn leads drop **50% more often** (the Burn lead drop chance is multiplied by 1.5). |
 | Quiet Hours | While **no action is in progress**, heat cools **5 times as fast** (a placeholder strength; it may need to be much higher). "In progress" means an action is running: a manual action that has finished its run and waits does not count. Everything is read at the start of each slice of game time. |
 | Undercover | Quiet Hours also counts while **Grow network** is running **without Overclock**. Any other running action, or Grow network with Overclock on, still stops the idle cooling. Does nothing without Quiet Hours. |
