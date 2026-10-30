@@ -9,7 +9,7 @@ Read this before adding or changing any stat, bar, button, purchase, skill, tree
 
 ## Skills and skill trees
 
-- A skill branch can be gated, data-driven. Example: the anonymity tree stays fully hidden until heat is revealed.
+- The Skills tab shows once a skill point exists. Inside it every sleeve skill tree (every branch) is always visible; no branch is hidden until a stat is revealed. The re-sleeve trees show once a re-sleeve point has been earned.
 - A visible tree shows every node, icon and branch title. Only a skill's text reads `???` until it is readable: its `requires` gate is owned and every `parents` entry is readable (`ui/view/skillTree.ts`).
 - A masked skill is never highlighted, clickable or purchasable.
 - A parent is always in the same branch, and every parent-child pair is drawn as a line.
