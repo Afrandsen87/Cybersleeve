@@ -7,7 +7,7 @@
  * Called by: `actionView.ts`. Calls: the text table.
  */
 import type { BuyableDefinition, GameConfig } from '../../core';
-import { squareLocked } from './squareRules';
+import { type OwnsAutoRun, squareLocked } from './squareRules';
 import type { SquareCellId, UiText } from '../uiText';
 import type { ActionSquareView, AugmentButtonView, BuyableView, ModeButtonView, SquareCellView } from './viewTypes';
 
@@ -71,6 +71,7 @@ function unlockCell(id: SquareCellId, buyable: BuyableView | undefined, toggle: 
  * @param overclock the Overclock toggle view of the action (`null` while it is not unlocked)
  * @param focus the Focus toggle view of the action (`null` while it is not unlocked)
  * @param augment the Augment button view of the action (`null` when the game has no schematic)
+ * @param ownsAuto whether an action's Auto-run is owned (the square is locked until it is)
  * @param text the display text
  */
 export function squareView(
@@ -80,6 +81,7 @@ export function squareView(
   overclock: ModeButtonView | null,
   focus: ModeButtonView | null,
   augment: AugmentButtonView | null,
+  ownsAuto: OwnsAutoRun,
   text: UiText,
 ): ActionSquareView {
   const find = (kind: BuyableDefinition['effect']['kind']): BuyableView | undefined => {
@@ -102,7 +104,7 @@ export function squareView(
       }
     : emptyCell('augment', text);
   return {
-    locked: squareLocked(config, actionId, (id) => views.get(id)?.owned ?? 0),
+    locked: squareLocked(config, ownsAuto, actionId),
     cells: [
       auto,
       unlockCell('overclock', find('overclockUnlock'), overclock, text),

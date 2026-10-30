@@ -18,6 +18,7 @@ import {
   cycleMs as heatCycleMs,
   heatStopPoint,
   heatTaxShare,
+  ownsAutoRun,
 } from '../../core';
 import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
@@ -64,7 +65,12 @@ function iceBonusSource(config: GameConfig, ownedCount: (id: string) => number):
 function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig, text: UiText): StatRowView[] {
   const ownedCount = (id: string): number => state.sleeve.purchased[id] ?? 0;
   const { sleeve } = config;
-  const reveal = { config, accessLevel: stats.accessLevel, owned: ownedCount };
+  const reveal = {
+    config,
+    accessLevel: stats.accessLevel,
+    owned: ownedCount,
+    ownsAuto: (id: string): boolean => ownsAutoRun(config.buyables, state, id),
+  };
   // heat and ICE Rating appear together, so either having moved keeps both on show
   const heatOrIceShown = heatOrIceMoved(stats, config);
   const capped = stats.heatTaxCap < 1; // Blackout: the tax stops short of taking everything, so node credits never stop

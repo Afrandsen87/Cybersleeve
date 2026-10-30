@@ -6,7 +6,7 @@
  * Called by: `engine/stats.ts`, `engine/engine.ts`. Calls: `ownedEffects`.
  */
 import { saturate } from '../kernel/infinity';
-import type { ActionId, BuyableDefinition, StateSlice } from '../types';
+import type { ActionId, BuyableDefinition, StateSlice, StateSliceView } from '../types';
 import { ownedEffects } from './ownedOfKind';
 
 /**
@@ -15,14 +15,14 @@ import { ownedEffects } from './ownedOfKind';
  * @remarks
  * The one owner of "is Auto-run owned for this action" (used to gate Augments). It asks for the buyables of the `autoRun` effect
  * and reads the action each one belongs to, so no content id is compared. A switched-off Auto-run still counts as owned.
- * Called by: `app/createGame.ts` (the gate injected into `Augments`). Calls: {@link ownedEffects}.
+ * Called by: `app/createGame.ts` (the gate injected into `Augments`), `ui/view/squareRules.ts` and `ui/view/modeViews.ts` (the square lock and the Augment button). Calls: {@link ownedEffects}.
  *
  * @param buyables all buyable definitions
  * @param state current state (reads `purchased`)
  * @param actionId the action asked about
  * @returns true when at least one copy of an Auto-run buyable for that action is owned
  */
-export function ownsAutoRun(buyables: readonly BuyableDefinition[], state: StateSlice<'purchased'>, actionId: ActionId): boolean {
+export function ownsAutoRun(buyables: readonly BuyableDefinition[], state: StateSliceView<'purchased'>, actionId: ActionId): boolean {
   return ownedEffects(buyables, state.sleeve.purchased, 'autoRun').some((k) => k.buyable.actionId === actionId);
 }
 

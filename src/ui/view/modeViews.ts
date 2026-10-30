@@ -6,7 +6,7 @@
  * @remarks
  * Called by: `actionView.ts`, `squareView.ts`. Calls: `GameQueries`, the text table.
  */
-import { type ActionQueries, type StateQueries, itemCount } from '../../core';
+import { type ActionQueries, type StateQueries, itemCount, ownsAutoRun } from '../../core';
 import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
 import { dropSourceOwned } from './dropSource';
@@ -48,7 +48,7 @@ export function augmentView(
   const baseXp = definition ? definition.xpPerRun.mul(numberFactory.fromNumber(config.global.xpMultiplier)) : engine.xpPerRun(actionId);
   return {
     label: text.action.augment,
-    enabled: held > 0,
+    enabled: held > 0 && ownsAutoRun(config.buyables, state, actionId), // what `Augments.apply` accepts
     applied: total,
     get tip() {
       return text.tips.augment({

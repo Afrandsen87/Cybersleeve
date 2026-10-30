@@ -10,7 +10,7 @@
  */
 import type { ActionDefinition, BuyableDefinition, GameConfig, SleeveStats } from '../../core';
 import { numberFactory } from '../../numbers';
-import { overclockOnOffer } from './squareRules';
+import { type OwnsAutoRun, overclockOnOffer } from './squareRules';
 
 /** The stats that start hidden. */
 export type RevealableStat = 'heat' | 'iceRating' | 'legend';
@@ -22,6 +22,8 @@ export interface RevealContext {
   readonly accessLevel: number;
   /** Copies owned of a buyable. */
   readonly owned: (buyableId: string) => number;
+  /** Whether an action's Auto-run is owned (`ownsAutoRun` of the core). */
+  readonly ownsAuto: OwnsAutoRun;
 }
 
 /** Whether an action is open at the current access level. */
@@ -37,7 +39,7 @@ const overclockMakesHeat = (a: ActionDefinition): boolean =>
 
 /** The Overclock unlock of an action when the player owns it or its cell is shown in the square. */
 const overclockUnlockOf = (a: ActionDefinition, ctx: RevealContext): BuyableDefinition | undefined =>
-  overclockOnOffer(ctx.config, a.id, ctx.owned) ??
+  overclockOnOffer(ctx.config, a.id, ctx.ownsAuto) ??
   ctx.config.buyables.find((b) => b.actionId === a.id && b.effect.kind === 'overclockUnlock' && ctx.owned(b.id) > 0);
 
 /** Heat is made or on offer: an open action that makes heat, or an Overclock unlock (owned, or shown in the square) whose overclock makes heat. */

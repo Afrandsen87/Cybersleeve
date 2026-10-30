@@ -81,6 +81,18 @@ export class Shop {
   }
 
   /**
+   * Switches an owned toggleable buyable OFF (never flips it): what a first purchase from the player's click does.
+   *
+   * Called by: `GameEngine.activateBuyable`. Calls: {@link Shop.isToggleable}.
+   *
+   * @param state state to mutate (`autoRunOff`)
+   * @param id the buyable; nothing changes when it is not owned or not toggleable
+   */
+  switchOff(state: GameState, id: BuyableId): void {
+    if (this.owned(state, id) > 0 && this.isToggleable(id)) state.sleeve.autoRunOff[id] = true;
+  }
+
+  /**
    * True when every buyable listed in `requires` and in `parents` is owned and `revealAfterResleeves` re-sleeves have happened
    * (always true without either).
    */

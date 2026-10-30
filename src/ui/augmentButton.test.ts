@@ -45,6 +45,15 @@ describe('the Augment button in the view model', () => {
     expect(buildViewModel(g, undefined, undefined, { augmentRarityId: 'rare' }).actions[0]!.augment!.enabled).toBe(true);
   });
 
+  it('is disabled while the action has no Auto-run, even with a schematic held and selected', () => {
+    const g = newGame(config);
+    stock(g, { rare: 1 });
+    delete (g.getState().sleeve.purchased as Record<string, number>)['auto'];
+    const select = { augmentRarityId: 'rare' };
+    expect(buildViewModel(g, undefined, undefined, select).actions[0]!.augment!.enabled).toBe(false);
+    expect(g.augmentAction('a', 'rare')).toBe(false); // the same answer as Augments.apply
+  });
+
   it('is left out until a purchase that makes the schematic drop is owned, and shown by show-all', () => {
     const g = createGame({ config });
     expect(buildViewModel(g).actions[0]!.augment).toBeNull();

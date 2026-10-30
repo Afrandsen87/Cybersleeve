@@ -8,7 +8,7 @@
  * The rules are data (`BRANCH_REVEAL_STAT`): masking another branch adds one entry. The branch's whole subject (heat) is not known to the
  * player yet, so none of its skills may talk about it.
  */
-import type { GameConfig, SleeveStats, StateSliceView } from '../../core';
+import { type GameConfig, ownsAutoRun, type SleeveStats, type StateSliceView } from '../../core';
 import { BRANCH_ANONYMITY } from '../../content/ids';
 import { heatOrIceMoved, isStatHidden, type RevealableStat } from './statReveal';
 
@@ -28,7 +28,12 @@ export const BRANCH_REVEAL_STAT: Readonly<Record<string, RevealableStat>> = {
  * @returns a function from a branch id to `true` when every skill of the branch must read as hidden; branches without a rule are never masked
  */
 export function branchMaskedFn(config: GameConfig, state: StateSliceView<'purchased'>, stats: SleeveStats): (branchId: string) => boolean {
-  const reveal = { config, accessLevel: stats.accessLevel, owned: (id: string): number => state.sleeve.purchased[id] ?? 0 };
+  const reveal = {
+    config,
+    accessLevel: stats.accessLevel,
+    owned: (id: string): number => state.sleeve.purchased[id] ?? 0,
+    ownsAuto: (id: string): boolean => ownsAutoRun(config.buyables, state, id),
+  };
   const moved = heatOrIceMoved(stats, config);
   return (branchId) => {
     const stat = BRANCH_REVEAL_STAT[branchId];

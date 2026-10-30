@@ -14,6 +14,7 @@ import {
   type StateQueries,
   type GameStateView,
   SPEED_FACTOR_IDS,
+  ownsAutoRun,
 } from '../../core';
 import { type BigNum, formatBigNum, formatPlain, type NumberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
@@ -116,7 +117,7 @@ export function buildActionViews(
     const durationText = formatSeconds(duration, text);
     const cost = startCostText(def, engine.startCostOf(def.id), text);
     const auto = engine.isAutoRun(def.id);
-    const fast = fastBarView(duration, auto, text);
+    const fast = fastBarView(duration, s.running, auto, text);
     const rewardText = formatBigNum(engine.payoutPerRun(def.id));
     const rewardUnit = text.rewardUnits[def.rewardKind ?? 'credits'];
     const rewardMultiplierText = formatBigNum(engine.rewardMultiplier(def.id));
@@ -162,7 +163,7 @@ export function buildActionViews(
       rewardUnit,
       rewardMultiplierText,
       durationMs: duration,
-      progressPercent: fast.full && (s.running || auto) ? 100 : s.running ? Math.min(100, s.progress * 100) : 0,
+      progressPercent: fast.full ? 100 : s.running ? Math.min(100, s.progress * 100) : 0,
       barText: fast.rateText,
       running: s.running,
       auto,
@@ -190,7 +191,7 @@ export function buildActionViews(
         heatPerSecond,
       }),
       buyables: buyableViews.filter((b) => b.actionId === def.id),
-      square: squareView(config, def.id, viewById, overclock, focus, augment, text),
+      square: squareView(config, def.id, viewById, overclock, focus, augment, (id) => ownsAutoRun(config.buyables, state, id), text),
       augment,
       overclock,
       focus,
