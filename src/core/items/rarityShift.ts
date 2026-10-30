@@ -55,7 +55,7 @@ export function shiftWeightsBySteps(weights: readonly number[], steps: number, f
  * only the second step moves anything into the last rarity. The last rarity has nothing to move to and keeps what it has.
  * The total never changes.
  *
- * Called by: `stats.ts` (`DerivedStats.itemDrops`).
+ * Called by: {@link shiftWeightsBySteps}.
  *
  * @param weights relative weight per rarity, most common first
  * @param steps how many steps to take (a whole number >= 0)

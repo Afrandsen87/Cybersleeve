@@ -8,7 +8,7 @@ import type { EffectDefinition } from '../effectTypes';
  *
  * Called by: `hardenedPayloadFromCrits.sleeve`, `ui/view/buyableViews.ts`. Calls: nothing.
  *
- * @param crits the counted critical successes (`sleeve.hardeningCrits`)
+ * @param crits the counted critical successes (`sleeve.hardeningCrits[buyable id]`)
  * @param perCrit ICE Rating per level per critical success
  * @returns a number >= 0
  */
@@ -114,9 +114,11 @@ export const SLEEVE_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<Bu
         if (!actionIds.has(id)) errors.push(`${where}: hardened payload refers to unknown action "${id}"`);
       }
     },
-    sleeve: (acc, e, { owned, factory, actionLevelOf, state }) => {
+    sleeve: (acc, e, { id, owned, factory, actionLevelOf, state }) => {
       acc.iceRatingBonus = acc.iceRatingBonus.add(
-        factory.fromNumber(hardeningBonusPerLevel(state.sleeve.hardeningCrits, e.perCrit) * actionLevelOf(e.levelActionId) * owned),
+        factory.fromNumber(
+          hardeningBonusPerLevel(state.sleeve.hardeningCrits[id] ?? 0, e.perCrit) * actionLevelOf(e.levelActionId) * owned,
+        ),
       );
     },
   },

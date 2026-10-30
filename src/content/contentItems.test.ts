@@ -3,8 +3,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
-import { shiftWeights } from '../core';
-import { num } from '../numbers';
+import { proficiencySteps, shiftWeightsBySteps } from '../core';
+import { num, numberFactory } from '../numbers';
 import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
@@ -41,13 +41,26 @@ describe('Rarity refinement (real content)', () => {
     expect(def.cost.eq(num(10_000))).toBe(true);
   });
 
-  it('the first two orders of magnitude leave the last rarity at 0, the third lets it drop', () => {
+  it('the refinement keeps the total, moves weight to rarer drops as proficiency grows, and already shifts at proficiency 3', () => {
+    const def = gameConfig.buyables.find((b) => b.id === RARITY_REFINEMENT)!;
     const rule = gameConfig.buyables.find((b) => b.id === KOMPROMAT_HARVEST)!.effect;
-    if (rule.kind !== 'itemDrop') throw new Error('not a drop');
+    if (def.effect.kind !== 'rarityShiftFromProficiency' || rule.kind !== 'itemDrop') throw new Error('unexpected content');
+    const { fractionPerStep, stepBase } = def.effect;
     const ids = gameConfig.items.rarities.map((r) => r.id);
     const weights = ids.map((id) => rule.drop.rarityWeights?.[id] ?? 0);
-    expect(shiftWeights(weights, 2, 0.01).at(-1)).toBe(0);
-    expect(shiftWeights(weights, 3, 0.01).at(-1)).toBeGreaterThan(0);
+    const shiftedAt = (proficiency: number): number[] =>
+      shiftWeightsBySteps(weights, proficiencySteps(num(proficiency), stepBase, numberFactory), fractionPerStep);
+    const total = (w: readonly number[]): number => w.reduce((n, x) => n + x, 0);
+    const rarerShare = (w: readonly number[]): number => 1 - w[0]! / total(w);
+    const at3 = shiftedAt(3);
+    expect(total(at3)).toBeCloseTo(total(weights), 9);
+    expect(at3).not.toEqual(weights);
+    let previous = rarerShare(weights);
+    for (const proficiency of [3, 30, 300, 3000]) {
+      const share = rarerShare(shiftedAt(proficiency));
+      expect(share).toBeGreaterThan(previous);
+      previous = share;
+    }
   });
 
   it('the tooltip states the rule from the buyable description, without live numbers', () => {

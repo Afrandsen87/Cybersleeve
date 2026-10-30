@@ -12,7 +12,7 @@ const MAX_TALLY = Number.MAX_SAFE_INTEGER;
  * Counts the critical successes of the actions that owned `hardenedPayloadFromCrits` buyables listen to.
  *
  * @remarks
- * Context: crits. The count (`sleeve.hardeningCrits`) is per life: re-sleeving resets it, the save keeps it. It only grows while a buyable
+ * Context: crits. The count (`sleeve.hardeningCrits[buyable id]`, one per buyable) is per life: re-sleeving resets it, the save keeps it. It only grows while a buyable
  * that listens to the action is owned, so crits scored before buying it do not count. It is told the critical successes of each
  * batch (a number, so a batch of any size costs the same, and several crits of one run each count). The bonus itself is worked out by the
  * effect (`hardeningBonusPerLevel`), not here.
@@ -26,7 +26,7 @@ export class CritTally {
    * Creates the unit.
    *
    * @param buyables the configuration's buyables (only `hardenedPayloadFromCrits` ones matter)
-   * @param state the live game state (mutated: `sleeve.hardeningCrits`; read: `sleeve.purchased`)
+   * @param state the live game state (mutated: `sleeve.hardeningCrits`, keyed by buyable id; read: `sleeve.purchased`)
    */
   constructor(
     buyables: readonly BuyableDefinition[],
@@ -39,15 +39,18 @@ export class CritTally {
   }
 
   /**
-   * Adds the critical successes of one batch of runs to the count when an owned buyable listens to the action.
+   * Adds the critical successes of one batch of runs to the count to the count of every owned buyable that listens to the action.
    *
    * @param actionId the action whose runs completed
    * @param critical how many of them were critical successes (a whole number; NaN, negatives and 0 add nothing)
    */
   record(actionId: ActionId, critical: number): void {
     if (!(critical > 0)) return;
-    const ids = this.listeners.get(actionId);
-    if (ids === undefined || !ids.some((id) => (this.state.sleeve.purchased[id] ?? 0) > 0)) return;
-    this.state.sleeve.hardeningCrits = Math.min(MAX_TALLY, this.state.sleeve.hardeningCrits + Math.floor(critical));
+    const whole = Math.floor(critical);
+    for (const id of this.listeners.get(actionId) ?? []) {
+      if ((this.state.sleeve.purchased[id] ?? 0) <= 0) continue;
+      const counts = this.state.sleeve.hardeningCrits;
+      counts[id] = Math.min(MAX_TALLY, (counts[id] ?? 0) + whole);
+    }
   }
 }

@@ -26,12 +26,12 @@ export function isActionCardPurchase(b: BuyableDefinition): boolean {
  *
  * Called by: `state.ts` (`resetForResleeve`). Calls: {@link isActionCardPurchase}.
  *
- * @param old the state of the life that ends (reads `purchased`, `autoRunOff`)
+ * @param old the state of the life that ends (reads `purchased`, `autoRunOff`, `autoBurn.autoRunsOff`)
  * @param fresh the state of the new life (mutated: `lastLifePurchases`, `lastLifeAutoRunOn`)
  * @param buyables all purchasable definitions
  */
 export function recordLastLife(
-  old: StateSlice<'purchased' | 'autoRunOff'>,
+  old: StateSlice<'purchased' | 'autoRunOff' | 'autoBurn'>,
   fresh: StateSlice<'lastLifePurchases' | 'lastLifeAutoRunOn'>,
   buyables: readonly BuyableDefinition[],
 ): void {
@@ -39,7 +39,9 @@ export function recordLastLife(
     const owned = old.sleeve.purchased[b.id] ?? 0;
     if (owned <= 0 || !isActionCardPurchase(b)) continue;
     fresh.wallet.lastLifePurchases[b.id] = owned;
-    if (traitsOf(b).toggleable && !old.sleeve.autoRunOff[b.id]) fresh.wallet.lastLifeAutoRunOn[b.id] = true;
+    // an Auto-run that Auto Burn paused counts as on: the player left it on, the automation only paused it
+    const on = !old.sleeve.autoRunOff[b.id] || old.sleeve.autoBurn.autoRunsOff[b.id] === true;
+    if (traitsOf(b).toggleable && on) fresh.wallet.lastLifeAutoRunOn[b.id] = true;
   }
 }
 

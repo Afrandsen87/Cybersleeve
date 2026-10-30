@@ -15,8 +15,8 @@ import {
   CriticalLinks,
   Automation,
   AutoBurn,
-  actionMakesHeat,
-  overclockMakesHeat,
+  heatMakingAutoRuns,
+  heatMakingOverclockActions,
   automationPointsEarned,
   Corporation,
   CorporationLevels,
@@ -132,10 +132,9 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     () => stats.sleeveStats().burnLeadFlatHeat,
   );
   const toggles = new ActionToggles(state, stats);
-  const heatMakingActions = new Set(config.actions.filter(actionMakesHeat).map((a) => a.id));
   const autoBurn = new AutoBurn(config, state, inventory, burnLeads, {
-    overclockActions: config.actions.filter(overclockMakesHeat).map((a) => a.id),
-    autoRuns: config.buyables.filter((b) => b.effect.kind === 'autoRun' && heatMakingActions.has(b.actionId ?? '')).map((b) => b.id),
+    overclockActions: heatMakingOverclockActions(config.actions),
+    autoRuns: heatMakingAutoRuns(config.buyables, config.actions),
     setOverclock: (id, on) => toggles.setOverclock(id, on),
     setAutoRun: (id, on) => shop.setOn(state, id, on),
   });

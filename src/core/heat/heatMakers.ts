@@ -4,7 +4,8 @@
  * Which actions and Overclocks make heat: the one owner of that predicate, read by the Auto Burn automation (what it switches off and on)
  * and by the interface (heat shows once an Overclock that makes heat is on offer).
  */
-import type { ActionDefinition } from '../types';
+import { traitsOf } from '../effects/effectTraits';
+import type { ActionDefinition, ActionId, BuyableDefinition, BuyableId } from '../types';
 
 /**
  * True when running the action makes heat by itself (heat per run or per second).
@@ -26,4 +27,28 @@ export function actionMakesHeat(action: Pick<ActionDefinition, 'heatPerRun' | 'h
  */
 export function overclockMakesHeat(action: Pick<ActionDefinition, 'heatPerRun' | 'heatPerSecond' | 'overclock'>): boolean {
   return (action.overclock?.heatPerMinute ?? 0) > 0 || actionMakesHeat(action);
+}
+
+/**
+ * The Overclocks Auto Burn may switch: the actions whose Overclock makes heat.
+ *
+ * Called by: `app/createGame.ts`. Calls: {@link overclockMakesHeat}.
+ *
+ * @param actions all action definitions
+ */
+export function heatMakingOverclockActions(actions: readonly ActionDefinition[]): ActionId[] {
+  return actions.filter(overclockMakesHeat).map((a) => a.id);
+}
+
+/**
+ * The Auto-runs Auto Burn may switch: the toggleable buyables (the Auto-run trait) of actions that make heat by themselves.
+ *
+ * Called by: `app/createGame.ts`, `automation/automationSave.ts` (which recorded ids a save may keep). Calls: {@link actionMakesHeat}, `traitsOf`.
+ *
+ * @param buyables all buyable definitions
+ * @param actions all action definitions
+ */
+export function heatMakingAutoRuns(buyables: readonly BuyableDefinition[], actions: readonly ActionDefinition[]): BuyableId[] {
+  const heatMaking = new Set(actions.filter(actionMakesHeat).map((a) => a.id));
+  return buyables.filter((b) => traitsOf(b).toggleable && heatMaking.has(b.actionId ?? '')).map((b) => b.id);
 }

@@ -240,7 +240,7 @@ export class GameEngine implements GameQueries, GameCommands {
   /**
    * What a click on a purchase does: an owned auto-run buyable is switched on or off, anything else is bought. The first copy of a
    * toggleable buyable is left switched OFF (through `Shop.switchOff`, which sets the flag rather than flipping it): buying Auto-run never starts
-   * it. Only this player command does so; `buy` (setup, automation, buy-back) leaves a new auto-run on.
+   * it. Only this player command does so; `buy` (setup, automation) leaves a new auto-run on; Reflex Archive buy-back sets it explicitly through `Shop.setOn`.
    * @returns what happened
    */
   activateBuyable(id: BuyableId): ActivateResult {

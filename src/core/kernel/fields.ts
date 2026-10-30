@@ -81,7 +81,6 @@ export const SCALAR_FIELDS: readonly ScalarField[] = [
   { kind: 'num', owner: 'sleeve', key: 'resleeveLockoutMs', initial: () => 0 },
   { kind: 'num', owner: 'sleeve', key: 'networkRemainder', below: 1, initial: () => 0 },
   { kind: 'big', owner: 'sleeve', key: 'nodePayoutBonus', initial: (_c, f) => f.fromNumber(0) },
-  { kind: 'num', owner: 'sleeve', key: 'hardeningCrits', whole: true, initial: () => 0 },
   { kind: 'big', owner: 'sleeve', key: 'hackingProficiency', initial: (_c, f) => f.fromNumber(0) },
 ];
 

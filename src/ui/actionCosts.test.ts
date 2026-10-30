@@ -46,6 +46,16 @@ describe('action card costs line (view model)', () => {
     expect(buildViewModel(g).actions[0]!.costItems).toEqual(['+3 heat/min (Overclock)', '5 nodes per run (Overclock)']);
   });
 
+  it('lists that an Overclock holds heat in place, from the rule, only while it is on', () => {
+    const rule = { rewardBonus: 1, stopsHeatCooling: true } as const;
+    const base = createConfig(config, { actions: config.actions.map((a) => (a.id === 'a' ? { ...a, overclock: rule } : a)) });
+    const g = createGame({ config: base });
+    own(g, 'oc-a');
+    expect(buildViewModel(g).actions[0]!.costItems).toEqual([]);
+    g.toggleOverclock('a');
+    expect(buildViewModel(g).actions[0]!.costItems).toEqual(['holds heat in place (Overclock)']);
+  });
+
   it('shows the heat chance the run uses, Overclock factor included', () => {
     const rule = { heatChanceFactor: 2 } as const;
     const chancy = { ...config.actions[0]!, heatPerRun: 1, heatChance: 0.25, overclock: rule };

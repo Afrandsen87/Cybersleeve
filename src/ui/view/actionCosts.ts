@@ -5,7 +5,7 @@
  *
  * @remarks
  * Each value comes from its owner and is only formatted here: the heat chance from `GameQueries.heatChance`, the start cost from
- * `startCostOf` (formatted by the caller), the Overclock values from `overclockStatus`. Nothing is recomputed.
+ * `startCostOf` (formatted by the caller), the Overclock values from `overclockStatus` (including `blocksHeatCooling`, from the Overclock rule's `stopsHeatCooling`). Nothing is recomputed.
  */
 import type { ActionDefinition, ActionQueries } from '../../core';
 import { formatPlain } from '../../numbers';
@@ -13,7 +13,7 @@ import type { UiText } from '../uiText';
 import { MODE_DECIMALS } from './viewFormat';
 
 /**
- * The cost items of one action, in a fixed order: heat of a run, heat per second, start cost, then the Overclock costs (only while Overclock is on).
+ * The cost items of one action, in a fixed order: heat of a run, heat per second, start cost, then the Overclock costs (only while Overclock is on: its heat per minute, nodes per run, and holding heat in place).
  *
  * Called by: `actionView.ts` (`buildActionViews`). Calls: `GameQueries.heatChance`, `GameQueries.overclockStatus`, the text table.
  *
@@ -40,6 +40,7 @@ export function actionCostItems(
     if (overclock.heatPerMinute > 0) items.push(text.action.cost.heatPerMinute(formatPlain(overclock.heatPerMinute, MODE_DECIMALS)));
     const nodes = overclock.completionEffects.reduce((sum, e) => (e.kind === 'removeNodes' ? sum + e.amount : sum), 0);
     if (nodes > 0) items.push(text.action.cost.nodesPerRun(formatPlain(nodes)));
+    if (overclock.blocksHeatCooling) items.push(text.action.cost.holdsHeat);
   }
   return items;
 }

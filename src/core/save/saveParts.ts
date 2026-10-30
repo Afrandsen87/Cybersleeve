@@ -67,6 +67,7 @@ export const SLEEVE_KEY_ORDER: readonly string[] = [
   'autoBurn',
   'chains',
   'bankedCriticals',
+  'hardeningCrits',
   'actions',
   'purchased',
 ];

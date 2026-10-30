@@ -12,6 +12,7 @@ import type { BigNum, NumberFactory } from '../../numbers';
 import type {
   ActionId,
   BuyableDefinition,
+  BuyableId,
   BuyableEffect,
   ChainRule,
   GameState,
@@ -113,6 +114,8 @@ export interface ActionHookContext {
 
 /** What a sleeve hook may look at besides the effect. */
 export interface SleeveHookContext {
+  /** The buyable whose effect this is (for per-buyable state such as the hardening count). */
+  readonly id: BuyableId;
   /** Copies of the buyable owned (>= 1). */
   readonly owned: number;
   readonly state: StateSlice<'network' | 'inventory' | 'synths' | 'hardeningCrits'>;

@@ -137,6 +137,7 @@
       },
       "chains": {},
       "bankedCriticals": {},
+      "hardeningCrits": {},
       "actions": {
         "grow-network": {
           "xp": "210",
@@ -224,7 +225,6 @@
       "resleeveLockoutMs": 0,
       "networkRemainder": 0,
       "nodePayoutBonus": "0.016",
-      "hardeningCrits": 0,
       "hackingProficiency": "1.06"
     }
   }

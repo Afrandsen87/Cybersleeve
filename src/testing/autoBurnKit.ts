@@ -2,7 +2,7 @@
  * @module testing
  *
  * Shared setup for the Auto Burn tests: a small config with a Burn lead, three actions with different Overclocks (one makes heat through the
- * action, one through its Overclock only, one makes none), the Auto-run and Overclock unlocks, the Auto Burn lane and the automation points to buy it.
+ * action, one through its Overclock only, one makes none, and `freeze` whose Overclock stops heat cooling), the Auto-run and Overclock unlocks, the Auto Burn lane and the automation points to buy it.
  *
  * @remarks
  * Called by: `core/automation/autoBurn*.test.ts`, `ui/autoBurnUi.test.ts`. Calls: `testConfig`, `automationKit`, `createGame`.
@@ -34,6 +34,7 @@ export const burnConfig: GameConfig = createConfig(testConfig, {
     slowAction('hot', { heatPerRun: 1, overclock: { heatPerMinute: 6 } }),
     slowAction('warm', { overclock: { heatPerMinute: 6 } }),
     slowAction('cold', { overclock: { speedBonus: 0.5 } }),
+    slowAction('freeze', { overclock: { rewardBonus: 1, stopsHeatCooling: true } }),
   ],
   items: {
     rarities: testConfig.items.rarities,
@@ -62,6 +63,7 @@ export const burnConfig: GameConfig = createConfig(testConfig, {
         effect: { kind: 'overclockUnlock' as const },
       },
     ]),
+    { id: 'oc-freeze', name: 'Overclock freeze', description: '', actionId: 'freeze', cost: num(1), effect: { kind: 'overclockUnlock' } },
     ...automationLaneBuyables(),
   ],
   automation: { autoBurnCeiling: 10, autoBurnUpper: 50 },
@@ -98,6 +100,13 @@ export function burnGame(steps: number, leads = 0, heat = 0): GameEngine {
 /** Throws when a lane skill could not be bought (a test setup mistake, not a test result). */
 function expect_bought(result: string, step: number): void {
   if (result !== 'purchased') throw new Error(`lane skill ${step} was not bought: ${result}`);
+}
+
+/** Runs the `freeze` action overclocked, so heat cooling stands still and Burn leads cannot be used (see {@link burnConfig}). */
+export function blockCooling(g: GameEngine): void {
+  g.buy('oc-freeze');
+  g.toggleOverclock('freeze');
+  g.startAction('freeze');
 }
 
 /** Switches the Overclock and the Auto-run of every action on (the Auto-runs are on after buying; this sets the Overclocks). */

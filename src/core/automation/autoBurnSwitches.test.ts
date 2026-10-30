@@ -56,6 +56,7 @@ describe('switching off when out of leads (skills 4 and 5)', () => {
   const outOfLeads = (steps: number) => {
     const g = burnGame(steps, 0, 100);
     allOn(g);
+    g.toggleBurnLead(); // the off rules act only while the Burn lead toggle is on
     return g;
   };
 
@@ -85,8 +86,20 @@ describe('switching off when out of leads (skills 4 and 5)', () => {
     allOn(g);
     burn(g).setReserve(5);
     burn(g).setSwitch('offOverclocks', true);
+    g.toggleBurnLead();
     g.tick(100);
     expect(ocOn(g, 'hot')).toBe(false);
+  });
+
+  it('acts only while the Burn lead toggle is on', () => {
+    const g = burnGame(STEP.offOverclocks, 0, 100);
+    allOn(g);
+    burn(g).setSwitch('offOverclocks', true);
+    g.tick(100);
+    expect(ocOn(g, 'hot') && ocOn(g, 'warm')).toBe(true);
+    g.toggleBurnLead();
+    g.tick(100);
+    expect(ocOn(g, 'hot') || ocOn(g, 'warm')).toBe(false);
   });
 
   it('is not triggered while a lead can be used', () => {
@@ -121,6 +134,7 @@ describe('switching back on (skills 6 and 7)', () => {
     allOn(g);
     burn(g).setSwitch('offOverclocks', true);
     burn(g).setSwitch('offActions', true);
+    g.toggleBurnLead(); // the off rules act only while the Burn lead toggle is on
     g.tick(100);
     expect(ocOn(g, 'hot') || autoOn(g, 'hot')).toBe(false);
     return g;
@@ -134,6 +148,7 @@ describe('switching back on (skills 6 and 7)', () => {
   it('switches back on only what it switched off, and the toggle', () => {
     const g = switchedOff(STEP.onOverclocks);
     g.toggleOverclock('cold'); // the player turns a harmless one off by hand: not the automation's to restore
+    g.toggleBurnLead(); // the player switches the toggle off; the on rules switch it back on
     burn(g).setSwitch('onActions', true);
     burn(g).setSwitch('onOverclocks', true);
     cooledWithLeads(g);

@@ -74,8 +74,8 @@ export const uiText: UiText = {
       switches: {
         hold: 'Hold at lower threshold',
         upper: 'Switch on at upper threshold',
-        offOverclocks: 'Out of leads: switch off Overclocks that make heat',
-        offActions: 'Out of leads: switch off Auto-run of actions that make heat',
+        offOverclocks: 'Toggle on, out of leads: switch off Overclocks that make heat',
+        offActions: 'Toggle on, out of leads: switch off Auto-run of actions that make heat',
         onActions: 'Heat low, leads available: switch Auto-runs back on',
         onOverclocks: 'Heat low, leads available: switch Overclocks back on',
       },
@@ -176,6 +176,7 @@ export const uiText: UiText = {
       heatPerMinute: (amount) => `+${amount} heat/min (Overclock)`,
       start: (cost) => `costs ${cost}`,
       nodesPerRun: (amount) => `${amount} nodes per run (Overclock)`,
+      holdsHeat: 'holds heat in place (Overclock)',
     },
     augment: 'Augment',
     xpFactors: { lever: 'XP Boost', augments: 'Augment Boost', mirror: 'Mirror Boost' },

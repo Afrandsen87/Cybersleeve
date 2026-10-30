@@ -3,6 +3,7 @@
  *
  * The automation settings' part of a save (wallet `automation`, and Auto Burn's per-life part, sleeve `autoBurn`).
  */
+import { heatMakingAutoRuns, overclockMakesHeat } from '../heat/heatMakers';
 import { isRecord, readCount } from '../kernel/readValues';
 import type { SavePart } from '../kernel/savePart';
 import type { GameConfig } from '../types';
@@ -16,10 +17,12 @@ import { AUTO_BURN_SWITCHES } from './autoBurnTypes';
  * are kept only for skills that are owned, and autosale and dispersal keep only known rarities and actions (shares
  * clamped to 1..100). Anything missing loads fresh.
  *
- * A save written before the Auto Burn lane had real skills (`autoBurnOn: true`, `autoBurnCeiling`) loads with the Burn lead toggle on and the
- * old ceiling as the lower threshold.
+ * A save written before the Auto Burn lane had real skills (`autoBurnOn: true`, `autoBurnCeiling`) loads with the Burn lead toggle on, the
+ * Hold switch on when its skill is owned (the old meaning was "hold heat at the ceiling") and the old ceiling as the lower threshold.
+ * The records of what Auto Burn switched off keep only heat-making Overclocks and Auto-runs of heat-making actions. `upperArmed` is saved
+ * only when false (missing loads true: a life starts below the upper threshold).
  *
- * Called by: `save/saveParts.ts`. Calls: `isFeatureUnlocked`.
+ * Called by: `save/saveParts.ts`. Calls: `isFeatureUnlocked`, `overclockMakesHeat`, `heatMakingAutoRuns`.
  */
 export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>> = {
   name: 'automation',
@@ -35,7 +38,13 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
         },
       },
       sleeve: {
-        autoBurn: { on: life.on, seconds: life.seconds, overclocksOff: { ...life.overclocksOff }, autoRunsOff: { ...life.autoRunsOff } },
+        autoBurn: {
+          on: life.on,
+          seconds: life.seconds,
+          ...(life.upperArmed ? {} : { upperArmed: false }),
+          overclocksOff: { ...life.overclocksOff },
+          autoRunsOff: { ...life.autoRunsOff },
+        },
       },
     };
   },
@@ -59,16 +68,20 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
       auto.autoBurn.switches[name] =
         savedSwitches[name] === true && unlocked('autoBurn') && ownsAutoBurnStep(config.buyables, state.sleeve.purchased, name);
     }
+    const legacyOn = raw['autoBurnOn'] === true && unlocked('autoBurn');
+    if (legacyOn && ownsAutoBurnStep(config.buyables, state.sleeve.purchased, 'hold')) auto.autoBurn.switches.hold = true;
     const life = state.sleeve.autoBurn;
     const savedLife = isRecord(saved.sleeve['autoBurn']) ? saved.sleeve['autoBurn'] : {};
-    life.on = (savedLife['on'] === true || raw['autoBurnOn'] === true) && unlocked('autoBurn');
+    life.on = (savedLife['on'] === true && unlocked('autoBurn')) || legacyOn;
+    life.upperArmed = savedLife['upperArmed'] !== false;
     const seconds = savedLife['seconds'];
     life.seconds = finite(seconds) && seconds >= 0 && seconds < 1 ? seconds : 0;
     const keep = (from: unknown, into: Record<string, true>, known: (id: string) => boolean): void => {
       if (isRecord(from)) for (const id of Object.keys(from)) if (from[id] === true && known(id)) into[id] = true;
     };
-    keep(savedLife['overclocksOff'], life.overclocksOff, (id) => config.actions.some((a) => a.id === id));
-    keep(savedLife['autoRunsOff'], life.autoRunsOff, (id) => config.buyables.some((b) => b.id === id && b.effect.kind === 'autoRun'));
+    keep(savedLife['overclocksOff'], life.overclocksOff, (id) => config.actions.some((a) => a.id === id && overclockMakesHeat(a)));
+    const heatAutoRuns = new Set(heatMakingAutoRuns(config.buyables, config.actions));
+    keep(savedLife['autoRunsOff'], life.autoRunsOff, (id) => heatAutoRuns.has(id));
     const savedSale = isRecord(raw['autosale']) ? raw['autosale'] : {};
     const savedShares = isRecord(raw['dispersal']) ? raw['dispersal'] : {};
     if (unlocked('autosale')) for (const r of config.items.rarities) if (savedSale[r.id] === true) auto.autosale[r.id] = true;

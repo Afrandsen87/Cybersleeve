@@ -89,6 +89,7 @@ describe('scalar field registry', () => {
       'lastLifeAutoRunOn',
       'keyToggles',
       'autoBurn',
+      'hardeningCrits',
       'chains',
       'bankedCriticals',
       'automation',

@@ -39,7 +39,7 @@ describe('Forensic hardening (real content)', () => {
 
   it('its tooltip shows the critical successes counted and the ICE Rating they added, from the owner', () => {
     const g = createGame();
-    flat<{ hardeningCrits: number }>(g).hardeningCrits = 12;
+    flat<{ hardeningCrits: Record<string, number> }>(g).hardeningCrits[FORENSIC_HARDENING] = 12;
     (g.getState().sleeve.purchased as Record<string, number>)[FORENSIC_HARDENING] = 1;
     const tip = buildViewModel(g)
       .actions.find((a) => a.id === KILL_SERVERS)!

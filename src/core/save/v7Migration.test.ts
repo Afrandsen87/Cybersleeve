@@ -18,12 +18,12 @@ const read = (name: string): string => readFileSync(new URL(`../../testing/fixtu
 const FIXTURES = ['v6-early-before-resleeve.json', 'v6-after-three-resleeves.json'];
 const load = (text: string) => deserializeState(text, gameConfig, numberFactory);
 /**
- * The flat form of a loaded save, without the fields newer than the v6 fixtures: `peakNetworkIncome` and `hardeningCrits` (start fresh, 0) and `seenItems`
+ * The flat form of a loaded save, without the fields newer than the v6 fixtures: `peakNetworkIncome` and `hardeningCrits` (start fresh, empty) and `seenItems`
  * (loading marks every held stack as seen, and nothing else).
  */
 const flatWithoutNewFields = (text: string) => {
   const { peakNetworkIncome, hardeningCrits, seenItems, autoBurn, ...rest } = flatSave(text);
-  expect(hardeningCrits).toBe(0);
+  expect(hardeningCrits).toEqual({});
   expect(peakNetworkIncome).toBe('0');
   expect(autoBurn).toEqual({ on: false, seconds: 0, overclocksOff: {}, autoRunsOff: {} }); // Auto Burn's per-life part is new: it starts fresh
   const held = rest['inventory'] as Record<string, Record<string, number>>;

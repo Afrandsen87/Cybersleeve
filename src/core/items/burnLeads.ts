@@ -16,7 +16,7 @@ import type { GameConfig, GameState, RarityId } from '../types';
  * The result may be a fraction of a point of heat; the cooldown then removes whole points only (see `coolHeat`).
  * The lead is not used up when there is no heat to remove. Leads are not sold: the item is declared `sellable: false`.
  *
- * Called by: `engine.ts` (`GameEngine.useBurnLead`). Calls: {@link Inventory} (`take`).
+ * Called by: `engine.ts` (`GameEngine.useBurnLead`), `automation/autoBurn.ts`. Calls: {@link Inventory} (`take`).
  */
 export class BurnLeads {
   /**
@@ -39,7 +39,7 @@ export class BurnLeads {
   /**
    * How many leads it takes to bring the current heat down to `target` (closed form: each lead turns `h` into `h x keep - flat`).
    *
-   * Called by: `automation.ts` (Auto Burn).
+   * Called by: `automation/autoBurn.ts` (Auto Burn "hold", with `heatHoldTarget`).
    *
    * @param target the heat to reach (> 0)
    * @returns the whole number of leads, 0 when heat is already at or below `target`, `Infinity` when no number of leads gets there
@@ -57,6 +57,16 @@ export class BurnLeads {
   }
 
   /**
+   * True when leads can be used at all right now: the game has leads and heat is not held in place (an Overclock that stops heat cooling is
+   * not running). Auto Burn counts no lead as available while this is false.
+   *
+   * Called by: `automation/autoBurn.ts`.
+   */
+  usable(): boolean {
+    return this.config.items.burnLead !== undefined && !this.blocked();
+  }
+
+  /**
    * True when pressing the button for this stack would do something: the game has leads, one of this rarity is held, there is heat
    * and heat is not being held in place.
    *
@@ -64,7 +74,7 @@ export class BurnLeads {
    */
   canUse(rarityId: RarityId): boolean {
     const lead = this.config.items.burnLead;
-    return lead !== undefined && !this.blocked() && this.state.sleeve.heat > 0 && itemCount(this.state, lead.itemId, rarityId) > 0;
+    return lead !== undefined && this.usable() && this.state.sleeve.heat > 0 && itemCount(this.state, lead.itemId, rarityId) > 0;
   }
 
   /**

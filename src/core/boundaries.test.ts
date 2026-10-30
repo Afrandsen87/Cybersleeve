@@ -44,6 +44,7 @@ const SAME_LAYER: readonly string[] = [
   'actions -> sleeve',
   'crits -> items',
   'automation -> items',
+  'automation -> heat',
   'economy -> heat',
   'corporation -> synth',
   'engine -> save',

@@ -10,6 +10,34 @@
  */
 const HEAT_EPSILON = 1e-9;
 
+/**
+ * True when the heat still needs cooling: at least one whole point. The cooldown only removes whole points, so a leftover below 1 stays
+ * until more heat is added; Auto Burn treats it as cooled and spends no leads on it. The ONE owner of this "cooled" line.
+ *
+ * Called by: `automation/autoBurn.ts`. Calls: nothing.
+ *
+ * @param heat heat points (>= 0)
+ */
+export function heatNeedsCooling(heat: number): boolean {
+  return heat >= 1 - HEAT_EPSILON;
+}
+
+/** The heat that counts as cooled, as a target for closed-form work: a hair under 1, so reaching it leaves heat for which {@link heatNeedsCooling} is false. */
+const COOLED_HEAT_TARGET = 1 - 1e-6;
+
+/**
+ * The heat Auto Burn's "hold" brings heat down to: the lower threshold, but never below what counts as cooled (heat under 1 is cooled, so a
+ * lower threshold of 0 would otherwise ask for endless leads).
+ *
+ * Called by: `automation/autoBurn.ts`. Calls: nothing.
+ *
+ * @param lower the lower threshold (>= 0)
+ * @returns `max(lower, a hair under 1)`, always > 0
+ */
+export function heatHoldTarget(lower: number): number {
+  return Math.max(lower, COOLED_HEAT_TARGET);
+}
+
 /** Heat and the progress of its current cooldown cycle. */
 export interface HeatCooldownState {
   /** Current heat (>= 0). It may hold fractions of a point; the cooldown only removes whole `amount`s. */

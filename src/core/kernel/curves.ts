@@ -4,9 +4,8 @@
  * "Per order of magnitude" helpers: the few ways the game turns a big amount into a count of powers of ten.
  *
  * @remarks
- * Two meanings exist on purpose and have different names. `orders` / `bigOrders` are CONTINUOUS (log10, so 50 is 1.7 orders) and feed
- * smooth curves (heat reduction, Sleeve Euphoria, Deep Cover); `wholeOrders` is the FLOOR (50 is 1 order) and feeds step effects
- * (rarity shifts). Both clamp at 0: a value that is not above 1 (or above 10 for the whole count), NaN and negatives have none.
+ * `orders` / `bigOrders` are CONTINUOUS (log10, so 50 is 1.7 orders) and feed smooth curves (heat reduction, Sleeve Euphoria, Deep Cover). They
+ * clamp at 0: a value that is not above 1, NaN and negatives have none.
  */
 
 import type { BigNum } from '../../numbers';
@@ -33,20 +32,6 @@ export function orders(value: number): number {
  */
 export function bigOrders(value: BigNum): number {
   const result = value.log10();
-  return Number.isFinite(result) && result > 0 ? result : 0;
-}
-
-/**
- * Whole orders of magnitude: `floor(log10(value))`, never below 0 (a value under 10 has none).
- *
- * Called by: `engine/stats.ts` (`DerivedStats.itemDrops`), `ui/viewModel.ts`. Calls: `BigNum.floorLog10`.
- *
- * @param value the amount (Hacking Proficiency)
- * @returns a whole number >= 0 (0 for zero, negatives, NaN and values under 10)
- */
-export function wholeOrders(value: BigNum): number {
-  if (value.isZero() || value.isNegative() || value.isNaN()) return 0;
-  const result = value.floorLog10();
   return Number.isFinite(result) && result > 0 ? result : 0;
 }
 

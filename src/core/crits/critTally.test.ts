@@ -35,7 +35,8 @@ function played(buys: readonly string[], cfg = config()) {
   for (const id of buys) expect(g.buy(id), id).toBe('purchased');
   return g;
 }
-const tally = (g: { getState(): { sleeve: { hardeningCrits: number } } }): number => g.getState().sleeve.hardeningCrits;
+const tally = (g: { getState(): { sleeve: { hardeningCrits: Readonly<Record<string, number>> } } }, id = 'forensic'): number =>
+  g.getState().sleeve.hardeningCrits[id] ?? 0;
 
 describe('the critical success counter', () => {
   it('counts nothing before the buyable is owned, then every critical success of its action', () => {
@@ -99,7 +100,33 @@ describe('the critical success counter', () => {
     g.tick(25_000);
     expect(findInvariantViolations(g.getState(), config())).toEqual([]);
     const bad = flatSave(serializeState(g.getState()));
-    bad['hardeningCrits'] = -3.5;
+    bad['hardeningCrits'] = { forensic: -3.5, ghost: 4 };
+    expect(tally({ getState: () => deserializeState(asSave(bad), config(), numberFactory)! })).toBe(0);
+    bad['hardeningCrits'] = 7; // the old scalar form is not a record: ignored
+    expect(tally({ getState: () => deserializeState(asSave(bad), config(), numberFactory)! })).toBe(0);
+  });
+
+  it('keeps one count per buyable: a second one bought later starts from its own purchase', () => {
+    const second = forensic({ id: 'forensic2' });
+    const g = played(['crit', 'forensic', 'auto'], config([forensic(), second]));
+    g.startAction('a');
+    g.tick(20_000);
+    const first = tally(g);
+    expect(first).toBeGreaterThan(0);
+    expect(tally(g, 'forensic2')).toBe(0);
+    expect(g.buy('forensic2')).toBe('purchased');
+    g.tick(20_000);
+    expect(tally(g)).toBeGreaterThan(first);
+    expect(tally(g, 'forensic2')).toBeGreaterThan(0);
+    expect(tally(g, 'forensic2')).toBeLessThan(tally(g));
+    expect(findInvariantViolations(g.getState(), config([forensic(), second]))).toEqual([]);
+  });
+
+  it('saves an empty record as {}, and drops a saved count whose buyable is not owned', () => {
+    const g = played(['crit', 'auto']);
+    expect(flatSave(serializeState(g.getState()))['hardeningCrits']).toEqual({});
+    const bad = flatSave(serializeState(g.getState()));
+    bad['hardeningCrits'] = { forensic: 5 };
     expect(tally({ getState: () => deserializeState(asSave(bad), config(), numberFactory)! })).toBe(0);
   });
 });

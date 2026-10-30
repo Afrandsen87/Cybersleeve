@@ -9,7 +9,6 @@ import {
   shiftWeights,
   shiftWeightsBySteps,
   validateConfig,
-  wholeOrders,
   type BuyableDefinition,
   type GameConfig,
 } from '..';
@@ -131,27 +130,6 @@ describe('shiftWeightsBySteps', () => {
       expect(last).toBeGreaterThanOrEqual(previous);
       previous = last;
     }
-  });
-});
-
-describe('wholeOrders', () => {
-  it.each([
-    ['0', 0],
-    ['0.262', 0],
-    ['1', 0],
-    ['9.99', 0],
-    ['10', 1],
-    ['99', 1],
-    ['100', 2],
-    ['1e50', 50],
-    ['1e1000', 1000],
-  ])('%s has %d whole orders', (value, orders) => {
-    expect(wholeOrders(num(value))).toBe(orders);
-  });
-
-  it('negative and NaN values have none', () => {
-    expect(wholeOrders(num(-500))).toBe(0);
-    expect(wholeOrders(num(Number.NaN))).toBe(0);
   });
 });
 

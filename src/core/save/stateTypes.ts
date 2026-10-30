@@ -123,8 +123,8 @@ export interface SleeveState {
   networkRemainder: number;
   /** Gained from actions paying `nodePayout`: credits per second added to the BASE value of what each node produces (`network.creditsPerNodePerSecond + this`; buyables multiply the sum). Reset by re-sleeving. */
   nodePayoutBonus: BigNum;
-  /** Critical successes of the action named by an owned `hardenedPayloadFromCrits` buyable, counted only while it is owned (a whole number >= 0; see `CritTally`). Reset by re-sleeving. */
-  hardeningCrits: number;
+  /** Per `hardenedPayloadFromCrits` buyable: the critical successes of its action counted while that buyable is owned (whole numbers > 0; absent = 0; see `CritTally`). Reset by re-sleeving. */
+  hardeningCrits: Record<BuyableId, number>;
   /** Hacking Proficiency: gained from actions paying `hackingProficiency`; the hacking multiplier on interface speed is a concave function of it. Reset by re-sleeving. */
   hackingProficiency: BigNum;
   /** Auto-run buyables the player has switched off (absent or false: running). Reset by re-sleeving. */

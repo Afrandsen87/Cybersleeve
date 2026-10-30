@@ -161,6 +161,8 @@ export interface UiText {
       start(cost: string): string;
       /** Nodes each completed run takes while Overclock is on. */
       nodesPerRun(amount: string): string;
+      /** The Overclock holds heat in place (no cooling, no Burn leads) while the action runs. */
+      holdsHeat: string;
     };
     /** The label of the button in the top right corner of an action card that applies a schematic. */
     readonly augment: string;

@@ -7,7 +7,7 @@ export { SPEED_FACTOR_IDS, createSpeedModifiers, levelFactor, speedFactors, spee
 export { type FactorTerm, type SleeveStats, resolveEffects, resolveSleeveStats, earnedSpeedBeyond } from './effects/effects';
 export { coolHeat, coolHeatBoosted, heatTaxFactor } from './heat/heat';
 export { coolsNow, cycleMs, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heat/heatModel';
-export { actionMakesHeat, overclockMakesHeat } from './heat/heatMakers';
+export { actionMakesHeat, heatMakingAutoRuns, heatMakingOverclockActions, overclockMakesHeat } from './heat/heatMakers';
 export { applyCompletionEffects } from './actions/completion';
 export { SCALAR_FIELDS, scalarValue } from './kernel/fields';
 export { REWARDS, REWARD_KINDS, payReward, rewardOf } from './actions/rewards';
@@ -51,7 +51,6 @@ export { hardeningBonusPerLevel } from './effects/entries/sleeveEntries';
 export { LinkedPayouts } from './actions/linkedPayouts';
 export { CriticalSuccesses, criticalRuleFor } from './crits/critical';
 export { proficiencySteps, shiftWeights, shiftWeightsBySteps } from './items/rarityShift';
-export { wholeOrders } from './kernel/curves';
 export { isPointCurrency } from './kernel/currencies';
 export type { RandomSource } from './kernel/sampling';
 export { createClampOverflowPolicy } from './kernel/overflow';

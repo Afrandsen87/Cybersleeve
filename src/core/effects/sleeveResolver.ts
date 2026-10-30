@@ -105,7 +105,7 @@ export function resolveSleeveStats(
     if (owned <= 0) continue;
     const payoutBefore = acc.nodePayoutFactor;
     const iceBefore = acc.iceRatingFactor;
-    definitionOf(b).sleeve?.(acc, b.effect, { owned, state, factory, actionLevelOf, sleeveLevelOf, augmentRaritiesHeld });
+    definitionOf(b).sleeve?.(acc, b.effect, { id: b.id, owned, state, factory, actionLevelOf, sleeveLevelOf, augmentRaritiesHeld });
     // A buyable's term is how much it moved the running product, so every effect kind reports itself without extra code.
     if (acc.nodePayoutFactor !== payoutBefore)
       nodePayoutTerms.push({ buyableId: b.id, factor: saturate(acc.nodePayoutFactor / payoutBefore) });

@@ -82,7 +82,7 @@ function purchaseValues(
   text: UiText,
 ): BuyableValues | null {
   if (b.effect.kind === 'hardenedPayloadFromCrits') {
-    const crits = engine.getState().sleeve.hardeningCrits;
+    const crits = engine.getState().sleeve.hardeningCrits[b.id] ?? 0;
     return text.tips.hardeningValues({
       crits: formatPlain(crits, 0),
       perLevel: formatPlain(hardeningBonusPerLevel(crits, b.effect.perCrit) * Math.max(1, owned), 0),

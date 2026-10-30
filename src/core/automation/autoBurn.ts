@@ -3,6 +3,7 @@
  *
  * Auto Burn: the Burn lead Inventory toggle, and the rules that grow with the ten skills of its lane.
  */
+import { heatHoldTarget, heatNeedsCooling } from '../heat/heat';
 import type { Inventory } from '../items/inventory';
 import type { BurnLeads } from '../items/burnLeads';
 import type { ActionId, BuyableId, GameConfig, GameState } from '../types';
@@ -50,10 +51,14 @@ const SECOND_EPSILON = 1e-9;
  *
  * @remarks
  * Context: automation. Per slice (closed form, so one long slice equals many short ones) and in this order:
- * 1. With the "upper" switch and heat at or above the upper threshold, the toggle is switched on.
- * 2. With the toggle on and heat above 0: one lead a second (a fractional-second accumulator in the sleeve state), or with "hold" just
- *    enough leads to bring heat down to the lower threshold (`BurnLeads.leadsNeeded`), none at or below it. Never below the reserve.
- * 3. Out of leads (held minus reserve is 0) with heat above the lower threshold: the off rules switch heat-making Overclocks and/or the
+ * 1. With the "upper" switch and heat REACHING the upper threshold (rising to it from below: `sleeve.autoBurn.upperArmed`, re-armed when heat
+ *    falls below it), the toggle is switched on once. Heat is looked at per slice like everything here, so a long slice sees only where heat
+ *    ends up, and a rise and fall inside one slice is missed; a player who switches the toggle off while heat stays up is left alone.
+ * 2. With the toggle on and heat that still needs cooling (at least 1 point, `heatNeedsCooling`: the cooldown removes whole points only, so
+ *    a fraction below 1 counts as cooled): one lead a second (a fractional-second accumulator in the sleeve state), or with "hold" just
+ *    enough leads to bring heat down to the lower threshold, or below 1 when that is lower (`BurnLeads.leadsNeeded`, `heatHoldTarget`).
+ *    Never below the reserve.
+ * 3. With the toggle on, out of leads (held minus reserve is 0, or leads cannot be used now: an Overclock that stops heat cooling is running) with heat above the lower threshold: the off rules switch heat-making Overclocks and/or the
  *    Auto-run of heat-making actions off, and record what they switched.
  * 4. Heat below the lower threshold with leads available: the on rules switch back on only what was recorded, and switch the toggle on.
  * Switching goes through the toggle owners (`AutoBurnSwitches`); a player's own press on an item forgets its record (`playerSwitched*`).
@@ -169,14 +174,18 @@ export class AutoBurn implements AutoBurnControls {
     const stack = this.config.items.rarities[0];
     if (!rules.toggle || !this.config.items.burnLead || !stack) return;
     const life = this.state.sleeve.autoBurn;
-    if (rules.upper && this.state.sleeve.heat >= rules.upperAt) life.on = true;
+    if (this.state.sleeve.heat >= rules.upperAt) {
+      if (life.upperArmed && rules.upper) life.on = true;
+      life.upperArmed = false;
+    } else life.upperArmed = true;
     this.burn(rules, deltaMs, stack.id);
     this.switchOff(rules);
     this.switchOn(rules);
   }
 
-  /** Leads that may be used: the leads held minus the reserve. */
+  /** Leads that may be used: the leads held minus the reserve, none while leads cannot be used (heat cooling is held in place). */
   private available(rules: AutoBurnRules): number {
+    if (!this.burnLeads.usable()) return 0;
     return Math.max(0, this.held() - rules.reserve);
   }
 
@@ -184,14 +193,14 @@ export class AutoBurn implements AutoBurnControls {
   private burn(rules: AutoBurnRules, deltaMs: number, rarityId: string): void {
     const life = this.state.sleeve.autoBurn;
     const { heat } = this.state.sleeve;
-    if (!life.on || !(heat > 0)) {
+    if (!life.on || !heatNeedsCooling(heat)) {
       life.seconds = 0;
       return;
     }
     let wanted: number;
     if (rules.hold) {
       life.seconds = 0;
-      wanted = this.burnLeads.leadsNeeded(rules.lower);
+      wanted = this.burnLeads.leadsNeeded(heatHoldTarget(rules.lower));
     } else {
       life.seconds += Math.max(0, deltaMs) / 1000;
       wanted = Math.floor(life.seconds + SECOND_EPSILON);
@@ -201,9 +210,15 @@ export class AutoBurn implements AutoBurnControls {
     if (count >= 1) this.burnLeads.useMany(rarityId, count);
   }
 
-  /** The off rules: out of leads while heat is above the lower threshold, switch the heat-making things off and record them. */
+  /** The off rules (only while the Burn lead toggle is on): out of leads while heat is above the lower threshold, switch the heat-making things off and record them. */
   private switchOff(rules: AutoBurnRules): void {
-    if (!(rules.offOverclocks || rules.offActions) || this.available(rules) > 0 || !(this.state.sleeve.heat > rules.lower)) return;
+    if (
+      !this.state.sleeve.autoBurn.on ||
+      !(rules.offOverclocks || rules.offActions) ||
+      this.available(rules) > 0 ||
+      !(this.state.sleeve.heat > rules.lower)
+    )
+      return;
     const life = this.state.sleeve.autoBurn;
     if (rules.offOverclocks) {
       for (const id of this.switches.overclockActions) {

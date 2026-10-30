@@ -49,6 +49,11 @@ export interface AutoBurnLife {
   on: boolean;
   /** The part of a second (0..1) that has passed towards the next lead. */
   seconds: number;
+  /**
+   * The "upper" switch fires only when heat REACHES the upper threshold: true while heat has been below it since the last time it fired (or
+   * since the life began), false from the moment it fires until heat falls below the threshold again. Saved only when false (missing loads true).
+   */
+  upperArmed: boolean;
   /** Actions whose heat-making Overclock this automation switched off (and not yet back on or touched by hand). */
   overclocksOff: Record<ActionId, true>;
   /** Auto-run buyables of heat-making actions this automation switched off (and not yet back on or touched by hand). */
@@ -77,5 +82,5 @@ export function createAutoBurnSettings(config: Pick<GameConfig, 'automation'>): 
  * Called by: `save/state.ts`, `automationSave.ts`. Calls: nothing.
  */
 export function createAutoBurnLife(): AutoBurnLife {
-  return { on: false, seconds: 0, overclocksOff: {}, autoRunsOff: {} };
+  return { on: false, seconds: 0, upperArmed: true, overclocksOff: {}, autoRunsOff: {} };
 }

@@ -149,7 +149,7 @@ describe('a re-sleeve keeps exactly the fields on the positive lists', () => {
     s.sleeve.chains = { a: 1 };
     s.sleeve.bankedCriticals = { a: 1 };
     s.sleeve.keyToggles = { zeroDay: true };
-    s.sleeve.autoBurn = { on: true, seconds: 0.5, overclocksOff: { a: true }, autoRunsOff: { ghost: true } };
+    s.sleeve.autoBurn = { on: true, upperArmed: true, seconds: 0.5, overclocksOff: { a: true }, autoRunsOff: { ghost: true } };
     const action = s.sleeve.actions['a']!;
     Object.assign(action, {
       xp: num(9),
