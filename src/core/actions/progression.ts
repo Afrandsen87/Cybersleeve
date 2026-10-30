@@ -6,7 +6,7 @@
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { LevelRule } from './level';
-import { sleeveLevelsGateId } from '../effects/ownedOfKind';
+import { SleeveLevels, levelRuleOf, requireActionState } from './sleeveLevels';
 import { countRunsTowardSleeveXp, wholeCount } from './sleeveXp';
 import type { XpCurve } from './xpCurve';
 import { XpReductions } from './xpReductions';
@@ -19,15 +19,13 @@ import type { ActionId, ActionState, GameConfig, GameState } from '../types';
  * Owns no mutable state of its own; it mutates the `GameState` passed in.
  * Every action has its own action XP/level and its own sleeve XP/level.
  * Reduction buyables are answered by {@link XpReductions}; the level queries here measure XP against the unreduced thresholds.
- * Called by: `engine.ts`. Calls: {@link XpReductions}, `countRunsTowardSleeveXp`.
+ * Called by: `engine.ts`. Calls: {@link XpReductions}, {@link SleeveLevels}, `countRunsTowardSleeveXp`.
  */
 export class Progression {
   private readonly actionRules = new Map<ActionId, LevelRule>();
-  private readonly sleeveRules = new Map<ActionId, LevelRule>();
+  private readonly sleeve: SleeveLevels;
   private readonly reductions: XpReductions;
   private readonly sleeveXpPerGrant: BigNum;
-  /** Id of the buyable that opens sleeve levels, or `null` when the content has none. */
-  private readonly sleeveLevelsGateId: string | null;
   /** Levels one Skill shard delays the action XP scaling by (0 when the game has none). */
   private readonly levelsPerShard: number;
 
@@ -42,10 +40,9 @@ export class Progression {
     private readonly factory: NumberFactory,
   ) {
     this.reductions = new XpReductions(config.buyables ?? [], config.progression.runsPerSleeveXp, config.progression.maxSleeveXpReduction);
-    this.sleeveLevelsGateId = sleeveLevelsGateId(config.buyables);
+    this.sleeve = new SleeveLevels(config, this.reductions, factory);
     for (const a of config.actions) {
       this.actionRules.set(a.id, new LevelRule(a.levels ?? config.progression.actionLevels, factory));
-      this.sleeveRules.set(a.id, new LevelRule(a.sleeveLevels ?? config.progression.sleeveLevels, factory));
     }
     this.sleeveXpPerGrant = factory.fromNumber(config.progression.sleeveXpPerGrant);
     this.levelsPerShard = config.items?.skillShard?.levelsDelayed ?? 0;
@@ -81,20 +78,7 @@ export class Progression {
     const action = this.requireAction(state, actionId);
     action.xp = action.xp.add(xp);
 
-    if (this.sleeveXpOpen(state)) countRunsTowardSleeveXp(action, runs, this.runsPerSleeveXp(state), this.sleeveXpPerGrant, this.factory);
-  }
-
-  /**
-   * Whether sleeve XP exists yet: the Sleeve levels unlock is owned (a game without that buyable has it from the start).
-   *
-   * @remarks
-   * The one owner of this rule: {@link Progression.recordRuns} (XP and the run counter accrue only while open) and the sleeve level
-   * (reads 0 while closed, which only matters for XP saved before the unlock was owned).
-   *
-   * @param state current state (reads `purchased`)
-   */
-  private sleeveXpOpen(state: GameState): boolean {
-    return this.sleeveLevelsGateId === null || (state.sleeve.purchased[this.sleeveLevelsGateId] ?? 0) > 0;
+    if (this.sleeve.isOpen(state)) countRunsTowardSleeveXp(action, runs, this.runsPerSleeveXp(state), this.sleeveXpPerGrant, this.factory);
   }
 
   /**
@@ -204,75 +188,39 @@ export class Progression {
     return this.rule(this.actionRules, actionId).progressFraction(this.scaledActionXp(state, actionId), this.xpDelay(state, actionId));
   }
 
-  /**
-   * Sleeve level of an action.
-   * @throws Error if the action id is unknown
-   */
+  /** Sleeve level of an action (see {@link SleeveLevels.level}). Called by: `engine.ts`, `runStats.ts`, `toggleStats.ts`, `stats.ts`, `sleeveLevelGate.ts`. */
   sleeveLevel(state: GameState, actionId: ActionId): number {
-    return this.sleeveLevelAt(state, actionId, this.sleeveXpKeep(state, actionId));
+    return this.sleeve.level(state, actionId);
   }
 
-  /**
-   * The share of the normal XP that one action's sleeve levels ask for: `1 / divisor` of the owned `sleeveXpReduction` buyables (Study
-   * methods). 1 without one; it tends to 0 as the source sleeve level grows but never reaches it. Kept as a share, not as `1 - reduction`,
-   * so it stays exact at any level.
-   *
-   * @param state current state (reads `purchased` and sleeve XP)
-   * @param actionId the action whose sleeve levels are asked about
-   * @returns a number in (0, 1]
-   */
+  /** The share of the normal XP the action's sleeve levels ask for (see {@link SleeveLevels.xpKeep}). Called by: `engine.ts`, `stats.ts`. */
   sleeveXpKeep(state: GameState, actionId: ActionId): number {
-    return 1 / this.reductions.sleeveXpDivisor(state, actionId, (id) => this.sleeveLevelAt(state, id, 1));
+    return this.sleeve.xpKeep(state, actionId);
   }
 
-  /**
-   * Fraction by which the owned `sleeveXpReduction` buyables lower the XP that one action's sleeve levels need (`1 - sleeveXpKeep`), for
-   * display. With Study methods at source level L it is `L / (L + 1)`.
-   *
-   * @returns a fraction in [0, 1)
-   */
+  /** Fraction by which Study methods lower the sleeve XP needed (see {@link SleeveLevels.xpReduction}). Called by: `engine.ts`. */
   sleeveXpReduction(state: GameState, actionId: ActionId): number {
-    return 1 - this.sleeveXpKeep(state, actionId);
+    return this.sleeve.xpReduction(state, actionId);
   }
 
-  /**
-   * Total sleeve XP at which the action's next sleeve level is reached (all earlier levels included).
-   * @throws Error if the action id is unknown
-   */
+  /** Total sleeve XP at which the next sleeve level is reached (see {@link SleeveLevels.nextLevelXp}). Called by: `engine.ts`. */
   nextSleeveLevelXp(state: GameState, actionId: ActionId): BigNum {
-    const keep = this.sleeveXpKeep(state, actionId);
-    const level = this.sleeveLevelAt(state, actionId, keep);
-    return this.rule(this.sleeveRules, actionId).xpForNextLevel(level).mul(this.factory.fromNumber(keep));
+    return this.sleeve.nextLevelXp(state, actionId);
   }
 
-  /**
-   * Sleeve XP gathered inside the action's current sleeve level, in the reduced units the player pays in.
-   * @throws Error if the action id is unknown
-   */
+  /** Sleeve XP gathered inside the current sleeve level (see {@link SleeveLevels.xpIntoLevel}). Called by: `engine.ts`. */
   sleeveXpIntoLevel(state: GameState, actionId: ActionId): BigNum {
-    const keep = this.sleeveXpKeep(state, actionId);
-    return this.rule(this.sleeveRules, actionId)
-      .xpIntoLevel(this.scaledSleeveXp(state, actionId, keep))
-      .mul(this.factory.fromNumber(keep));
+    return this.sleeve.xpIntoLevel(state, actionId);
   }
 
-  /**
-   * Sleeve XP that leaving the action's current sleeve level costs on its own, after any reduction.
-   * @throws Error if the action id is unknown
-   */
+  /** Sleeve XP that leaving the current sleeve level costs (see {@link SleeveLevels.xpForLevel}). Called by: `engine.ts`. */
   sleeveXpForLevel(state: GameState, actionId: ActionId): BigNum {
-    const keep = this.sleeveXpKeep(state, actionId);
-    return this.rule(this.sleeveRules, actionId)
-      .xpCostOfLevel(this.sleeveLevelAt(state, actionId, keep))
-      .mul(this.factory.fromNumber(keep));
+    return this.sleeve.xpForLevel(state, actionId);
   }
 
-  /**
-   * Fraction (0..1) of the way from the action's current sleeve level to the next.
-   * @throws Error if the action id is unknown
-   */
+  /** Fraction of the way to the next sleeve level (see {@link SleeveLevels.levelProgress}). Called by: `engine.ts`. */
   sleeveLevelProgress(state: GameState, actionId: ActionId): number {
-    return this.rule(this.sleeveRules, actionId).progressFraction(this.scaledSleeveXp(state, actionId, this.sleeveXpKeep(state, actionId)));
+    return this.sleeve.levelProgress(state, actionId);
   }
 
   /**
@@ -301,18 +249,9 @@ export class Progression {
     };
   }
 
-  /**
-   * The level curve of an action's sleeve levels: no delay, the Study-methods reduction. Called by: `GameEngine.sleeveXpCurve`.
-   * @throws Error if the action id is unknown
-   */
+  /** The level curve of an action's sleeve levels (see {@link SleeveLevels.curve}). Called by: `GameEngine.sleeveXpCurve`. */
   sleeveXpCurve(state: GameState, actionId: ActionId): XpCurve {
-    const rule = this.rule(this.sleeveRules, actionId);
-    return {
-      firstLevelXp: rule.firstLevelXp,
-      growthFactor: rule.growthFactor,
-      delay: 0,
-      reduction: this.sleeveXpReduction(state, actionId),
-    };
+    return this.sleeve.curve(state, actionId);
   }
 
   /** Sleeve XP one batch of runs grants (`progression.sleeveXpPerGrant`). */
@@ -327,27 +266,11 @@ export class Progression {
     return reduction > 0 ? xp.div(this.factory.fromNumber(1 - reduction)) : xp;
   }
 
-  /** Sleeve level of an action if its thresholds were scaled to the share `keep` of the normal XP (1 = normal). */
-  private sleeveLevelAt(state: GameState, actionId: ActionId, keep: number): number {
-    if (!this.sleeveXpOpen(state)) return 0;
-    return this.rule(this.sleeveRules, actionId).levelForXp(this.scaledSleeveXp(state, actionId, keep));
-  }
-
-  /** Sleeve XP measured against the normal thresholds: `xp / keep`. */
-  private scaledSleeveXp(state: GameState, actionId: ActionId, keep: number): BigNum {
-    const xp = this.requireAction(state, actionId).sleeveXp;
-    return keep < 1 ? xp.div(this.factory.fromNumber(keep)) : xp;
-  }
-
   private rule(rules: ReadonlyMap<ActionId, LevelRule>, actionId: ActionId): LevelRule {
-    const rule = rules.get(actionId);
-    if (!rule) throw new Error(`Unknown action: ${actionId}`);
-    return rule;
+    return levelRuleOf(rules, actionId);
   }
 
   private requireAction(state: GameState, actionId: ActionId): ActionState {
-    const action = state.sleeve.actions[actionId];
-    if (!action) throw new Error(`Unknown action: ${actionId}`);
-    return action;
+    return requireActionState(state, actionId);
   }
 }
