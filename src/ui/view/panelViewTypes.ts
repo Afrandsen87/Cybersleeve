@@ -42,7 +42,12 @@ export interface AutomationView {
    */
   readonly autoBurn: {
     readonly hint: string;
-    readonly switches: readonly { readonly name: AutoBurnSwitch; readonly label: string; readonly on: boolean; readonly visible: boolean }[];
+    readonly switches: readonly {
+      readonly name: AutoBurnSwitch;
+      readonly label: string;
+      readonly on: boolean;
+      readonly visible: boolean;
+    }[];
     readonly thresholds: {
       readonly visible: boolean;
       readonly lower: number;

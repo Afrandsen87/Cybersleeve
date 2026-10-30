@@ -324,7 +324,9 @@ export class GameEngine implements GameQueries, GameCommands {
   /** The Burn lead toggle and the rules in force, or `null` while the lead is still a click (Auto Burn's first skill is not owned). */
   burnLeadToggle(): { readonly on: boolean; readonly hold: boolean; readonly lower: number; readonly reserve: number } | null {
     const rules = this.automationUnit.autoBurn().rules();
-    return rules.toggle ? { on: this.automationUnit.autoBurn().isOn(), hold: rules.hold, lower: rules.lower, reserve: rules.reserve } : null;
+    return rules.toggle
+      ? { on: this.automationUnit.autoBurn().isOn(), hold: rules.hold, lower: rules.lower, reserve: rules.reserve }
+      : null;
   }
 
   /**

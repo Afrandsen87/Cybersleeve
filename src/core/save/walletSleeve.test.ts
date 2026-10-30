@@ -37,6 +37,7 @@ const WALLET_KEYS = [
 ];
 const SLEEVE_KEYS = [
   'actions',
+  'autoBurn',
   'autoRunOff',
   'bankedCriticals',
   'chains',
@@ -130,7 +131,7 @@ describe('a re-sleeve keeps exactly the fields on the positive lists', () => {
     s.wallet.runs = [{ creditsPerSecond: num(1), actionLevelsTotal: 2 }];
     s.wallet.synths = [{ runIndex: 0 }];
     s.wallet.corporation.stocks = 5;
-    s.wallet.automation.autoBurnCeiling = 9;
+    s.wallet.automation.autoBurn.lower = 9;
     s.wallet.inventory = { file: { common: 3 } };
     s.wallet.seenItems = { file: { common: true } };
     s.wallet.lastLifePurchases = { ghost: 1 };
@@ -145,6 +146,7 @@ describe('a re-sleeve keeps exactly the fields on the positive lists', () => {
     s.sleeve.chains = { a: 1 };
     s.sleeve.bankedCriticals = { a: 1 };
     s.sleeve.keyToggles = { zeroDay: true };
+    s.sleeve.autoBurn = { on: true, seconds: 0.5, overclocksOff: { a: true }, autoRunsOff: { ghost: true } };
     const action = s.sleeve.actions['a']!;
     Object.assign(action, {
       xp: num(9),

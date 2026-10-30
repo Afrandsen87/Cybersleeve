@@ -33,17 +33,18 @@ describe('the retention effects are valid content', () => {
 });
 
 describe('Daemon Persistence', () => {
-  /** A game with two automation points bought, Auto Burn unlocked and set to a ceiling of 3. */
+  /** A game with two automation points bought, Auto Burn unlocked, its Hold switch on and its toggle on. */
   function automated(withDaemon: boolean): ReturnType<typeof newGame> {
     const g = newGame(config);
     if (withDaemon) {
       resleeveTimes(g, 1);
       expect(tryBuy(g, 'daemon')).toBe('purchased');
     }
-    for (let i = 0; i < 2; i++) expect(tryBuy(g, 'core')).toBe('purchased');
+    for (let i = 0; i < 3; i++) expect(tryBuy(g, 'core')).toBe('purchased');
     expect(g.automation().unlock('autoBurn')).toBe(true);
-    g.automation().setAutoBurnCeiling(3);
-    g.automation().setAutoBurn(true);
+    expect(tryBuy(g, laneSkillId('autoBurn', 2))).toBe('purchased');
+    expect(g.automation().autoBurn().setSwitch('hold', true)).toBe(true);
+    g.toggleBurnLead();
     expect(tryBuy(g, 'boost')).toBe('purchased');
     return g;
   }
@@ -53,21 +54,21 @@ describe('Daemon Persistence', () => {
     g.resleeve();
     expect(g.automation().pointsEarned()).toBe(0);
     expect(g.automation().isUnlocked('autoBurn')).toBe(false);
-    expect(g.automation().autoBurnCeiling()).toBe(10);
+    expect(g.automation().autoBurn().rules().hold).toBe(false);
   });
 
   it('keeps the automation core, the automation skills and the settings, so the points stay balanced, and wipes the rest', () => {
     const g = automated(true);
     const earned = g.automation().pointsEarned();
     const available = g.automation().pointsAvailable();
-    expect(earned).toBe(2);
+    expect(earned).toBe(3);
     expect(available).toBe(1);
     g.resleeve();
     expect(g.automation().pointsEarned(), 'no extra points, and none lost').toBe(earned);
     expect(g.automation().pointsAvailable()).toBe(available);
     expect(g.automation().isUnlocked('autoBurn')).toBe(true);
-    expect(g.automation().isAutoBurnOn()).toBe(true);
-    expect(g.automation().autoBurnCeiling()).toBe(3);
+    expect(g.automation().autoBurn().rules().hold, 'the settings are carried').toBe(true);
+    expect(g.burnLeadToggle()?.on, 'the toggle belongs to the life and starts off').toBe(false);
     expect(g.ownedCount(laneSkillId('autoBurn', 1))).toBe(1);
     expect(g.ownedCount('boost'), 'other purchases still reset').toBe(0);
     expect(findInvariantViolations(g.getState(), config)).toEqual([]);
@@ -76,9 +77,9 @@ describe('Daemon Persistence', () => {
   it('does not let the carried copies be bought again for free: the next copy keeps its raised price', () => {
     const g = automated(true);
     g.resleeve();
-    expect(g.ownedCount('core')).toBe(2);
+    expect(g.ownedCount('core')).toBe(3);
     expect(tryBuy(g, 'core')).toBe('purchased');
-    expect(g.automation().pointsEarned()).toBe(3);
+    expect(g.automation().pointsEarned()).toBe(4);
   });
 });
 

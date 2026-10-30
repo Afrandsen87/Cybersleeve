@@ -87,6 +87,7 @@ describe('scalar field registry', () => {
       'focusStacks',
       'lastLifePurchases',
       'keyToggles',
+      'autoBurn',
       'chains',
       'bankedCriticals',
       'automation',

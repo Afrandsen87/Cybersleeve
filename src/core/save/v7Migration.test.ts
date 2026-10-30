@@ -22,8 +22,9 @@ const load = (text: string) => deserializeState(text, gameConfig, numberFactory)
  * (loading marks every held stack as seen, and nothing else).
  */
 const flatWithoutNewFields = (text: string) => {
-  const { peakNetworkIncome, seenItems, ...rest } = flatSave(text);
+  const { peakNetworkIncome, seenItems, autoBurn, ...rest } = flatSave(text);
   expect(peakNetworkIncome).toBe('0');
+  expect(autoBurn).toEqual({ on: false, seconds: 0, overclocksOff: {}, autoRunsOff: {} }); // Auto Burn's per-life part is new: it starts fresh
   const held = rest['inventory'] as Record<string, Record<string, number>>;
   const seenOf = (stacks: Record<string, number>) => Object.fromEntries(Object.keys(stacks).map((rarity) => [rarity, true]));
   expect(seenItems).toEqual(Object.fromEntries(Object.entries(held).map(([item, stacks]) => [item, seenOf(stacks)])));
@@ -33,7 +34,20 @@ const flatWithoutNewFields = (text: string) => {
 /** The same flat save as the v8 reader gives it back: a life that owned Sleeve levels (the old unlock) now also owns Unlock resleeving. */
 function inV8(raw: FlatSave): FlatSave {
   const purchased = raw['purchased'] as Record<string, number>;
-  return (purchased[SLEEVE_LEVELS] ?? 0) > 0 ? { ...raw, purchased: { ...purchased, [RESLEEVE_UNLOCK]: 1 } } : raw;
+  const withUnlock = (purchased[SLEEVE_LEVELS] ?? 0) > 0 ? { ...raw, purchased: { ...purchased, [RESLEEVE_UNLOCK]: 1 } } : raw;
+  // Auto Burn's old ceiling is its lower threshold now; the rest of its settings start fresh (the old on/off lives in the sleeve's Burn lead toggle)
+  const { autoBurnOn, autoBurnCeiling, ...automation } = withUnlock['automation'] as Record<string, unknown>;
+  expect(autoBurnOn).toBe(false);
+  const auto = {
+    ...automation,
+    autoBurn: {
+      lower: autoBurnCeiling,
+      upper: gameConfig.automation!.autoBurnUpper,
+      reserve: 0,
+      switches: { hold: false, upper: false, offOverclocks: false, offActions: false, onActions: false, onOverclocks: false },
+    },
+  };
+  return { ...withUnlock, automation: auto };
 }
 
 describe.each(FIXTURES)('v6 fixture %s', (name) => {

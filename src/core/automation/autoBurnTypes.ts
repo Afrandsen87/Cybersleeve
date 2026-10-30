@@ -65,7 +65,7 @@ export interface AutoBurnLife {
 export function createAutoBurnSettings(config: Pick<GameConfig, 'automation'>): AutoBurnSettings {
   return {
     lower: config.automation?.autoBurnCeiling ?? 0,
-    upper: config.automation?.autoBurnUpper ?? 0,
+    upper: config.automation?.autoBurnUpper ?? 1, // without an automation section the values are unused, but still a valid pair
     reserve: 0,
     switches: { hold: false, upper: false, offOverclocks: false, offActions: false, onActions: false, onOverclocks: false },
   };

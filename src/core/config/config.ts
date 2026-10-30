@@ -63,7 +63,9 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
     criticalSuccess: { ...base.criticalSuccess, ...overrides.criticalSuccess },
     focus: { ...base.focus, ...overrides.focus },
     resleeve: { ...base.resleeve, ...overrides.resleeve },
-    ...(base.automation || overrides.automation ? { automation: { autoBurnCeiling: 0, autoBurnUpper: 100, ...base.automation, ...overrides.automation } } : {}),
+    ...(base.automation || overrides.automation
+      ? { automation: { autoBurnCeiling: 0, autoBurnUpper: 100, ...base.automation, ...overrides.automation } }
+      : {}),
     ...(base.corporation || overrides.corporation ? { corporation: overrides.corporation ?? base.corporation! } : {}),
     ...(base.reveal || overrides.reveal ? { reveal: { buyableOrders: Infinity, ...base.reveal, ...overrides.reveal } } : {}),
     progression: { ...base.progression, ...overrides.progression },
@@ -352,7 +354,10 @@ export function validateConfig(config: GameConfig): string[] {
   if (config.automation && !(Number.isFinite(config.automation.autoBurnCeiling) && config.automation.autoBurnCeiling >= 0)) {
     errors.push('automation.autoBurnCeiling must be >= 0');
   }
-  if (config.automation && !(Number.isFinite(config.automation.autoBurnUpper) && config.automation.autoBurnUpper > config.automation.autoBurnCeiling)) {
+  if (
+    config.automation &&
+    !(Number.isFinite(config.automation.autoBurnUpper) && config.automation.autoBurnUpper > config.automation.autoBurnCeiling)
+  ) {
     errors.push('automation.autoBurnUpper must be a finite number above automation.autoBurnCeiling');
   }
   if (config.reveal && !(config.reveal.buyableOrders >= 0)) errors.push('reveal.buyableOrders must be >= 0 (Infinity shows everything)');

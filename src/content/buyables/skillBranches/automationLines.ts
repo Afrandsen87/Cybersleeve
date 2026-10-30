@@ -46,12 +46,14 @@ const AUTO_BURN_SKILLS: readonly { readonly name: string; readonly description: 
   },
   {
     name: 'Hold Down',
-    description: 'Adds the switch "Hold at lower threshold": use just enough leads to bring heat down to the lower threshold, none at or below it.',
+    description:
+      'Adds the switch "Hold at lower threshold": use just enough leads to bring heat down to the lower threshold, none at or below it.',
     step: 'hold',
   },
   {
     name: 'Redline Trigger',
-    description: 'Adds the switch "Switch on at upper threshold": the Burn lead toggle switches itself on when heat reaches the upper threshold.',
+    description:
+      'Adds the switch "Switch on at upper threshold": the Burn lead toggle switches itself on when heat reaches the upper threshold.',
     step: 'upper',
   },
   {

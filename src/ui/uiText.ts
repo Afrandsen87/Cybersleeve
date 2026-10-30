@@ -57,7 +57,8 @@ export const uiText: UiText = {
     features: {
       autoBurn: {
         name: 'Auto Burn',
-        description: 'Burns leads for you from the Inventory and cools or restarts your heat-making Overclocks and actions, as its skills allow.',
+        description:
+          'Burns leads for you from the Inventory and cools or restarts your heat-making Overclocks and actions, as its skills allow.',
       },
       autosale: {
         name: 'Kompromat autosale',

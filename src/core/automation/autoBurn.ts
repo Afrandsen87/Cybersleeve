@@ -124,7 +124,8 @@ export class AutoBurn implements AutoBurnControls {
 
   /** See {@link AutoBurnControls.setThresholds}. Mutates `wallet.automation.autoBurn`. */
   setThresholds(lower: number, upper: number): boolean {
-    if (!this.stepOwned('thresholds') || !Number.isFinite(lower) || !Number.isFinite(upper) || !(lower >= 0) || !(lower < upper)) return false;
+    if (!this.stepOwned('thresholds') || !Number.isFinite(lower) || !Number.isFinite(upper) || !(lower >= 0) || !(lower < upper))
+      return false;
     const settings = this.state.wallet.automation.autoBurn;
     settings.lower = lower;
     settings.upper = upper;

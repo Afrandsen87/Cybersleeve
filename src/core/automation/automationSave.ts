@@ -7,12 +7,13 @@ import { isRecord, readCount } from '../kernel/readValues';
 import type { SavePart } from '../kernel/savePart';
 import type { GameConfig } from '../types';
 import { type AUTOMATION_FEATURES, isFeatureUnlocked } from './automation';
+import { ownsAutoBurnStep } from './autoBurnRules';
 import { AUTO_BURN_SWITCHES } from './autoBurnTypes';
 
 /**
  * Reads the automation settings (a feature is unlocked when its skill is owned, so this part runs after the purchases are read): the Burn lead
  * toggle is on only when Auto Burn is unlocked, the thresholds must be finite with 0 <= lower < upper, the reserve a whole number >= 0, switches
- * are kept as saved (a switch only counts once its skill is owned), and autosale and dispersal keep only known rarities and actions (shares
+ * are kept only for skills that are owned, and autosale and dispersal keep only known rarities and actions (shares
  * clamped to 1..100). Anything missing loads fresh.
  *
  * A save written before the Auto Burn lane had real skills (`autoBurnOn: true`, `autoBurnCeiling`) loads with the Burn lead toggle on and the
@@ -53,7 +54,11 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
     if (auto.autoBurn.upper <= auto.autoBurn.lower) auto.autoBurn.upper = auto.autoBurn.lower + 1;
     auto.autoBurn.reserve = Math.min(readCount(savedBurn['reserve']), Number.MAX_SAFE_INTEGER);
     const savedSwitches = isRecord(savedBurn['switches']) ? savedBurn['switches'] : {};
-    for (const name of AUTO_BURN_SWITCHES) auto.autoBurn.switches[name] = savedSwitches[name] === true;
+    for (const name of AUTO_BURN_SWITCHES) {
+      // a switch counts only with its skill
+      auto.autoBurn.switches[name] =
+        savedSwitches[name] === true && unlocked('autoBurn') && ownsAutoBurnStep(config.buyables, state.sleeve.purchased, name);
+    }
     const life = state.sleeve.autoBurn;
     const savedLife = isRecord(saved.sleeve['autoBurn']) ? saved.sleeve['autoBurn'] : {};
     life.on = (savedLife['on'] === true || raw['autoBurnOn'] === true) && unlocked('autoBurn');

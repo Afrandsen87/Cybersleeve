@@ -89,7 +89,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
           (isAdminKey && engine.canToggleAdminKeys()),
         toggleable,
         on:
-          (burnToggle?.on === true) ||
+          burnToggle?.on === true ||
           (isZeroDay && state.sleeve.keyToggles['zeroDay'] === true) ||
           (isAdminKey && state.sleeve.keyToggles['adminKey'] === true),
         backChannel,

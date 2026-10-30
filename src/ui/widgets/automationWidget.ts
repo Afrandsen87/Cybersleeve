@@ -105,7 +105,8 @@ export function buildAutomationWidget(
   for (const f of view.features) {
     const box = h('section', `automation-feature automation-${f.id}`);
     const body = h('div', 'automation-controls');
-    if (f.id === 'autoBurn') body.append(h('p', 'automation-hint', view.autoBurn.hint), ...autoBurnSwitches.values(), lower.row, upper.row, reserve.row);
+    if (f.id === 'autoBurn')
+      body.append(h('p', 'automation-hint', view.autoBurn.hint), ...autoBurnSwitches.values(), lower.row, upper.row, reserve.row);
     else if (f.id === 'autosale') {
       for (const r of view.rarities) {
         const b = h('button', 'automation-switch', r.name) as HTMLButtonElement;
@@ -131,7 +132,17 @@ export function buildAutomationWidget(
     features.set(f.id, { box, controls: body, tree });
     root.append(box);
   }
-  return { root, points, features, autoBurnSwitches, autoBurnLower: lower, autoBurnUpper: upper, autoBurnReserve: reserve, rarities, shares };
+  return {
+    root,
+    points,
+    features,
+    autoBurnSwitches,
+    autoBurnLower: lower,
+    autoBurnUpper: upper,
+    autoBurnReserve: reserve,
+    rarities,
+    shares,
+  };
 }
 
 /** Sets an input's value from the game unless the player is typing in it (their text is not overwritten). */
