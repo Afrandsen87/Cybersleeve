@@ -32,6 +32,8 @@ interface ActionCard {
   readonly crit: HTMLElement;
   readonly info: HTMLElement;
   readonly bar: HTMLElement;
+  /** The runs per second written on the bar (empty unless the runs are too short to animate and Auto-run is on). */
+  readonly barLabel: HTMLElement;
   readonly reward: HTMLElement;
   readonly levelXp: XpBar;
   readonly sleeveXp: XpBar;
@@ -179,7 +181,8 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
     const info = h('div', 'action-info');
     const bar = h('div', 'bar-fill');
     const track = h('div', 'bar');
-    track.append(bar);
+    const barLabel = h('div', 'bar-label');
+    track.append(bar, barLabel);
     const reward = h('div', 'action-reward');
     button.append(title, info, track);
     button.addEventListener('click', () => engine.startAction(a.id));
@@ -226,7 +229,7 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
     crit.hidden = true;
     card.append(button, reward, levelXp.root, sleeveXp.root, squareEl, upgrades, startBtn, poster, crit);
     root.append(card);
-    cards.set(a.id, { root: card, poster, button, start: startBtn, title, crit, info, bar, reward, levelXp, sleeveXp, buyables, square });
+    cards.set(a.id, { root: card, poster, button, start: startBtn, title, crit, info, bar, barLabel, reward, levelXp, sleeveXp, buyables, square });
   }
 
   for (let i = initial.length; i < ACTION_GRID_SLOTS; i++) root.append(h('div', 'action empty'));
@@ -252,6 +255,7 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
         card.root.classList.toggle('locked', !a.unlocked);
         setText(card.poster, a.posterText);
         setFill(card.bar, a.progressPercent);
+        setText(card.barLabel, a.barText ?? '');
         card.root.classList.toggle('running', a.running);
         renderUpgrades(card.buyables, a.buyables, tips);
         renderSquare(card.square, a.square, tips);

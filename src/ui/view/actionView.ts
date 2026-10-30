@@ -19,6 +19,7 @@ import { type BigNum, formatBigNum, formatPlain, type NumberFactory } from '../.
 import type { UiText } from '../uiText';
 import { sleeveLevelsOpen } from './sleeveGate';
 import { SPEED_DECIMALS, formatSeconds } from './viewFormat';
+import { fastBarView } from './fastBar';
 import { augmentView, focusView, overclockView } from './modeViews';
 import { squareView } from './squareView';
 import type { ActionView, BuyableView, ViewSelection } from './viewTypes';
@@ -114,6 +115,7 @@ export function buildActionViews(
     const durationText = formatSeconds(duration, text);
     const cost = startCostText(def, engine.startCostOf(def.id), text);
     const auto = engine.isAutoRun(def.id);
+    const fast = fastBarView(duration, auto, text);
     const rewardText = formatBigNum(engine.payoutPerRun(def.id));
     const rewardUnit = text.rewardUnits[def.rewardKind ?? 'credits'];
     const rewardMultiplierText = formatBigNum(engine.rewardMultiplier(def.id));
@@ -152,7 +154,9 @@ export function buildActionViews(
       rewardText,
       rewardUnit,
       rewardMultiplierText,
-      progressPercent: s.running ? Math.min(100, s.progress * 100) : 0,
+      durationMs: duration,
+      progressPercent: fast.full && (s.running || auto) ? 100 : s.running ? Math.min(100, s.progress * 100) : 0,
+      barText: fast.rateText,
       running: s.running,
       auto,
       unlocked,

@@ -426,6 +426,7 @@ button:not(:disabled):hover {
   text-overflow: ellipsis;
 }
 .bar {
+  position: relative;
   height: 12px;
   background: #0a0e18;
   border: 1px solid var(--line);
@@ -444,6 +445,20 @@ button:not(:disabled):hover {
   transform-origin: left center;
   transition: transform var(--render-ms, 100ms) linear;
   will-change: transform;
+}
+.bar-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 3px #000;
+  pointer-events: none;
+}
+.bar-label:empty {
+  display: none;
 }
 .bar-fill {
   background: linear-gradient(90deg, var(--cyan), var(--magenta));
