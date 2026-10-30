@@ -9,19 +9,20 @@
 import { type ActionQueries, type StateQueries, itemCount } from '../../core';
 import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
+import { dropSourceOwned } from './dropSource';
 import { AUGMENT_BONUS_DECIMALS, AUGMENT_XP_DECIMALS, MODE_DECIMALS } from './viewFormat';
 import type { AugmentButtonView, ModeButtonView, ViewSelection } from './viewTypes';
 
 /**
  * The Augment button of one action.
  *
- * Called by: {@link buildViewModel}. Calls: `itemCount`, `GameQueries.xpPerRun`, the text table.
+ * Called by: {@link buildViewModel}. Calls: `itemCount`, `dropSourceOwned`, `GameQueries.xpPerRun`, the text table.
  *
  * @param engine the engine to read from
  * @param actionId the action
  * @param text the display text
  * @param selection what the player has selected in the Inventory (the button is enabled only while a held rarity is selected)
- * @returns the button, or `null` when the content has no schematic to apply
+ * @returns the button, or `null` when the content has no schematic or no owned purchase makes it drop (unless show-all is on)
  */
 export function augmentView(
   engine: ActionQueries & StateQueries,
@@ -33,6 +34,8 @@ export function augmentView(
   const augment = config.items.augment;
   if (!augment) return null;
   const state = engine.getState();
+  // the button waits for the upgrade that makes schematics drop (the show-all test aid shows it anyway)
+  if (!selection.revealAll && !dropSourceOwned(config, augment.itemId, (id) => state.sleeve.purchased[id] ?? 0)) return null;
   const chosen = config.items.rarities.find((r) => r.id === selection.augmentRarityId);
   const held = chosen ? itemCount(state, augment.itemId, chosen.id) : 0;
   const appliedByRarity = state.sleeve.actions[actionId]?.augments ?? {};

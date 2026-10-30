@@ -10,7 +10,7 @@ import { hoverText } from '../testing/hover';
 import { setCredits } from '../testing/testConfig';
 import { mountTestUi } from '../testing/domMountKit';
 import { buildViewModel } from './viewModel';
-import { config, augmentConfig, own, state, NOT } from './modesKit';
+import { config, augmentConfig, own, ownSchematicDrop, state, NOT } from './modesKit';
 
 describe('the square on an action card (view model)', () => {
   const squareOf = (g: ReturnType<typeof createGame>, id = 'a', augmentRarityId: string | null = null) =>
@@ -28,6 +28,7 @@ describe('the square on an action card (view model)', () => {
 
   it('once Auto-run is owned there are always four cells: Auto-run, Overclock, Focus, Augment', () => {
     const g = createGame({ config: augmentConfig });
+    ownSchematicDrop(g);
     own(g, 'auto');
     const square = squareOf(g);
     expect(square.locked).toBe(false);
@@ -70,6 +71,7 @@ describe('the square on an action card (view model)', () => {
     own(none, 'auto');
     expect(squareOf(none).cells[3]).toMatchObject({ id: 'augment', mode: 'empty' });
     const g = createGame({ config: augmentConfig });
+    ownSchematicDrop(g);
     own(g, 'auto');
     expect(squareOf(g).cells[3]).toMatchObject({ mode: 'press', clickable: false });
     state(g).inventory['file'] = { common: 1 };
@@ -94,6 +96,7 @@ describe('the square on an action card (view model)', () => {
 
   it('the tips of the cells say what things do and never what they do not', () => {
     const g = createGame({ config: augmentConfig });
+    ownSchematicDrop(g);
     own(g, 'auto');
     own(g, 'oc-a');
     for (const c of squareOf(g).cells) expect(c.tip, c.id).not.toMatch(NOT);
@@ -239,6 +242,7 @@ describe('the square on the screen', () => {
   it('the Augment cell applies a schematic', () => {
     const { root, game, render, cell } = mount(augmentConfig);
     own(game, 'auto');
+    ownSchematicDrop(game);
     state(game).inventory['file'] = { common: 1 };
     render();
     expect(cell(0, 'augment').disabled).toBe(true); // nothing selected in the Inventory yet
@@ -252,6 +256,7 @@ describe('the square on the screen', () => {
     const root = document.createElement('div');
     document.body.append(root);
     const game = createGame({ config: augmentConfig });
+    ownSchematicDrop(game);
     own(game, 'auto');
     const icons = { urlFor: (id: string) => (id === 'overclock' || id === 'focus' ? `url("icon-${id}")` : null) };
     mountTestUi(root, game, { icons });
