@@ -23,6 +23,7 @@ import { SPEED_DECIMALS, formatSeconds } from './viewFormat';
 import { fastBarView } from './fastBar';
 import { augmentView, focusView, overclockView } from './modeViews';
 import { squareView } from './squareView';
+import { actionCostItems } from './actionCosts';
 import { levelXpTipParts, sleeveXpTipParts } from './xpTipView';
 import type { ActionView, BuyableView, ViewSelection } from './viewTypes';
 
@@ -122,8 +123,7 @@ export function buildActionViews(
     const rewardUnit = text.rewardUnits[def.rewardKind ?? 'credits'];
     const rewardMultiplierText = formatBigNum(engine.rewardMultiplier(def.id));
     const heatPerRun = def.heatPerRun ?? 0;
-    const heatPerSecond = def.heatPerSecond ?? 0;
-    const heatChance = def.heatChance ?? 1;
+    const costItems = actionCostItems(engine, def, cost, text);
     const xpText = formatBigNum(engine.actionXpIntoLevel(def.id));
     const nextLevelXpText = formatBigNum(engine.actionXpForLevel(def.id));
     const sleeveLevel = engine.sleeveLevel(def.id);
@@ -179,17 +179,16 @@ export function buildActionViews(
           ? speedTip(engine, config, def, durationText, formatPlain(engine.currentSpeed(def.id), SPEED_DECIMALS), sleeveShown, text)
           : '';
       },
-      infoText: reason ? text.action.locked(reason) : text.action.info({ speed: speedText, duration: durationText, startCost: cost, auto }),
+      infoText: reason ? text.action.locked(reason) : text.action.info({ speed: speedText, duration: durationText, auto }),
       levelBarText: text.action.levelBar(level, xpText, nextLevelXpText),
       sleeveBarText: text.action.sleeveBar(sleeveLevel, sleeveXpText, sleeveNextText, runsToNextXp),
       rewardLine: text.action.reward({
         amount: rewardText,
         unit: rewardUnit,
         multiplier: rewardMultiplierText === '1' ? null : rewardMultiplierText,
-        heatPerRun,
-        heatChancePercent: heatChance < 1 ? formatPlain(heatChance * 100) : null,
-        heatPerSecond,
       }),
+      costItems,
+      costLine: text.action.costs(costItems),
       buyables: buyableViews.filter((b) => b.actionId === def.id),
       square: squareView(config, def.id, viewById, overclock, focus, augment, (id) => ownsAutoRun(config.buyables, state, id), text),
       augment,

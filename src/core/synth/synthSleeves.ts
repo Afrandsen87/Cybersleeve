@@ -39,7 +39,10 @@ export function synthCreditsPerSecond(record: SleeveRunRecord, currentLevels: nu
   if (!(recorded > 0) || currentLevels >= recorded) return record.creditsPerSecond;
   if (!(currentLevels > 0) || !record.creditsPerSecond.gt(factory.fromNumber(0))) return factory.fromNumber(0);
   const one = factory.fromNumber(1);
-  const interpolated = record.creditsPerSecond.add(one).pow(currentLevels / recorded).sub(one);
+  const interpolated = record.creditsPerSecond
+    .add(one)
+    .pow(currentLevels / recorded)
+    .sub(one);
   if (!interpolated.isFinite() || !interpolated.gt(factory.fromNumber(0))) return factory.fromNumber(0);
   return interpolated.gt(record.creditsPerSecond) ? record.creditsPerSecond : interpolated;
 }

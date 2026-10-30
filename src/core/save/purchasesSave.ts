@@ -37,7 +37,8 @@ function readPurchases(
   rawPurchased: unknown,
   rawLastLife: unknown,
   rawAutoRunOn: unknown,
-  buyables: GameConfig['buyables']): void {
+  buyables: GameConfig['buyables'],
+): void {
   const owned: Record<string, number> = {};
   if (isRecord(rawPurchased)) for (const [id, n] of Object.entries(rawPurchased)) owned[id] = readCount(n);
   const purchased = state.sleeve.purchased;
@@ -56,7 +57,8 @@ function readPurchases(
   // which of those Auto-runs were on: only toggleable ones that are on the list above (a missing field means all off)
   const savedOn = isRecord(rawAutoRunOn) ? rawAutoRunOn : {};
   for (const b of buyables) {
-    if (savedOn[b.id] === true && traitsOf(b).toggleable && state.wallet.lastLifePurchases[b.id] !== undefined) state.wallet.lastLifeAutoRunOn[b.id] = true;
+    if (savedOn[b.id] === true && traitsOf(b).toggleable && state.wallet.lastLifePurchases[b.id] !== undefined)
+      state.wallet.lastLifeAutoRunOn[b.id] = true;
   }
   // a skill dropped above may have been the one that allowed the extra copies of another buyable
   for (const b of buyables) {
@@ -79,5 +81,6 @@ export const purchasesSavePart: SavePart<Pick<GameConfig, 'buyables'>> = {
     },
     sleeve: { purchased: { ...state.sleeve.purchased } },
   }),
-  read: (state, raw, config) => readPurchases(state, raw.sleeve['purchased'], raw.wallet['lastLifePurchases'], raw.wallet['lastLifeAutoRunOn'], config.buyables),
+  read: (state, raw, config) =>
+    readPurchases(state, raw.sleeve['purchased'], raw.wallet['lastLifePurchases'], raw.wallet['lastLifeAutoRunOn'], config.buyables),
 };

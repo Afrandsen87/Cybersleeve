@@ -148,8 +148,12 @@ export interface ActionView {
   readonly levelBarText: string;
   /** Label of the sleeve level bar. */
   readonly sleeveBarText: string;
-  /** The reward line at the bottom of the card. */
+  /** The gains line of the card: what a run pays or teaches. */
   readonly rewardLine: string;
+  /** The cost items of the card (heat, start cost, Overclock costs), each a short phrase; empty for an action with no costs. */
+  readonly costItems: readonly string[];
+  /** The costs line of the card: {@link ActionView.costItems} joined; empty text for none (the line is still drawn, so all cards line up). */
+  readonly costLine: string;
   /** The purchases that belong to this action (those flagged `inSquare` are shown in its square, the others in its row of purchases). */
   readonly buyables: readonly BuyableView[];
   /** The square beside the bars: Auto-run, Overclock, Focus and Augment. */

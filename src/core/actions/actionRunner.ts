@@ -225,7 +225,7 @@ export class ActionRunner {
     const rule = this.stats.criticalRule(def.id);
     const overclock = this.stats.activeOverclock(def.id);
     this.payBatch(def, runs, plainRuns, critical, rule.rewardMultiplier);
-    this.chargeRunHeat(def, runs, overclock);
+    this.chargeRunHeat(def, runs);
     this.drops.roll(def.id, runs);
     this.extendChain(def.id, runs);
     this.applyEffects(def, runs, critical, rule, overclock);
@@ -260,9 +260,8 @@ export class ActionRunner {
   }
 
   /** Adds the heat of the batch: one binomial draw for the runs that add heat (no draw at a chance of 1). */
-  private chargeRunHeat(def: ActionDefinition, runs: number, overclock: ReturnType<DerivedStats['activeOverclock']>): void {
-    const heatChance = Math.min(1, (def.heatChance ?? 1) * (overclock?.heatChanceFactor ?? 1));
-    const heatRuns = perRunEvents(runs, heatChance, this.random);
+  private chargeRunHeat(def: ActionDefinition, runs: number): void {
+    const heatRuns = perRunEvents(runs, this.stats.heatChance(def.id), this.random);
     this.state.sleeve.heat += heatRuns * (def.heatPerRun ?? 0);
   }
 

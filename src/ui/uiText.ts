@@ -152,12 +152,18 @@ export const uiText: UiText = {
   },
   action: {
     locked: (reason) => `Locked: ${reason}`,
-    info: ({ speed, duration, startCost, auto }) =>
-      `Action speed ${speed} | ${duration}${startCost ? ` | costs ${startCost}` : ''}${auto ? ' | auto' : ''}`,
+    info: ({ speed, duration, auto }) => `Action speed ${speed} | ${duration}${auto ? ' | auto' : ''}`,
     levelBar: (level, xp, next) => `Lv ${level} - ${xp}/${next} XP`,
     sleeveBar: (level, xp, next, runsToNext) => `Sleeve Lv ${level} - ${xp}/${next} XP | ${runsToNext} runs`,
-    reward: ({ amount, unit, multiplier, heatPerRun, heatChancePercent, heatPerSecond }) =>
-      `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}${heatPerRun > 0 ? ` | ${heatChancePercent === null ? '' : `${heatChancePercent}% chance of `}+${heatPerRun} heat` : ''}${heatPerSecond > 0 ? ` | +${heatPerSecond} heat/s` : ''}`,
+    reward: ({ amount, unit, multiplier }) => `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}`,
+    costs: (items) => items.join(' | '),
+    cost: {
+      heatPerRun: (amount, chancePercent) => `${chancePercent === null ? '' : `${chancePercent}% chance of `}+${amount} heat`,
+      heatPerSecond: (amount) => `+${amount} heat/s`,
+      heatPerMinute: (amount) => `+${amount} heat/min (Overclock)`,
+      start: (cost) => `costs ${cost}`,
+      nodesPerRun: (amount) => `${amount} nodes per run (Overclock)`,
+    },
     augment: 'Augment',
     xpFactors: { lever: 'XP Boost', augments: 'Augment Boost', mirror: 'Mirror Boost' },
     critFlash: (count, perSecond) => (count > 1 ? `${perSecond} crits/s` : 'CRITICAL!'),

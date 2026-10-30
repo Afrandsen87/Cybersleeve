@@ -139,7 +139,6 @@ export interface CriticalTipParts {
 export interface ActionInfoParts {
   readonly speed: string;
   readonly duration: string;
-  readonly startCost: string | null;
   readonly auto: boolean;
 }
 
@@ -149,11 +148,6 @@ export interface RewardLineParts {
   readonly unit: string;
   /** The reward multiplier, or `null` when it is 1. */
   readonly multiplier: string | null;
-  readonly heatPerRun: number;
-  /** The chance in percent that a run makes its heat, or `null` when every run does. */
-  readonly heatChancePercent: string | null;
-  /** Heat added per second while the action runs. */
-  readonly heatPerSecond: number;
 }
 
 /** Pre-formatted pieces of the live numbers of the network-growth purchase. */

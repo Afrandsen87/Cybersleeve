@@ -52,7 +52,7 @@ describe('Reflex Archive keeps Auto-run on or off', () => {
 
   it('a record without the field (an older save) brings every Auto-run back off', () => {
     const g = afterLife(true);
-    g.getState().wallet.lastLifeAutoRunOn = {};
+    delete (g.getState().wallet.lastLifeAutoRunOn as Record<string, true>)['reflex-auto'];
     setCredits(g, num(1000));
     g.tick(1000);
     expect(g.getState().sleeve.autoRunOff['reflex-auto']).toBe(true);
@@ -66,4 +66,3 @@ describe('Reflex Archive keeps Auto-run on or off', () => {
     expect(serializeState(afterLife(false).getState())).not.toContain('lastLifeAutoRunOn');
   });
 });
-

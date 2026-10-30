@@ -209,6 +209,11 @@ export class DerivedStats implements ModeStatuses {
     return this.toggles.activeOverclock(id);
   }
 
+  /** The chance that a completed run of an action makes its heat, Overclock included (see {@link ToggleStats.heatChance}). */
+  heatChance(id: ActionId): number {
+    return this.toggles.heatChance(id);
+  }
+
   /** Focus for an action: whether it is focused, and how many of the Focus slots are taken (see {@link ToggleStats.focusStatus}). */
   focusStatus(id: ActionId): FocusStatus | null {
     return this.toggles.focusStatus(id);

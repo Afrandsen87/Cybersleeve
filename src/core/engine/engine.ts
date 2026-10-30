@@ -433,6 +433,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.overclockStatus(id);
   }
 
+  /** The chance (0..1) that a completed run of the action makes its heat, with Overclock's factor while it is on. */
+  heatChance(id: ActionId): number {
+    return this.stats.heatChance(id);
+  }
+
   /** Focus for an action (its speed bonus, the slots and whether it is on), or `null` when there is no toggle to show. */
   focusStatus(id: ActionId): FocusStatus | null {
     return this.stats.focusStatus(id);
