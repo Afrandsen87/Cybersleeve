@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import type { BuyableDefinition } from '../core';
 import { skillViews } from '../testing/skillViews';
+import { BRANCH_REVEAL_STAT } from '../ui/view/branchMask';
 import { buildViewModel } from '../ui/viewModel';
 import {
   CRITICAL_SUCCESS,
@@ -48,9 +49,6 @@ const HEAT_KINDS = [
 ];
 const SLEEVE_LEVEL_KINDS = ['heatCooldownAmountFromSleeveLevel', 'levelBonusFromSleeveLevel', 'sleeveXpReduction'];
 
-/** Heat skills with no Overclock unlock in their gate chain (see the heat test); shrink this list as gates are added. */
-const KNOWN_OPEN_HEAT_SKILLS = ['skill-cold-trail', 'skill-quiet-hours', 'skill-undercover'];
-
 /** The purchases outside the re-sleeve tree (that tree is hidden as a whole until re-sleeving is unlocked). */
 const everyday = gameConfig.buyables.filter((b) => b.currency !== 'resleevePoints');
 
@@ -77,14 +75,12 @@ describe('critical successes', () => {
 });
 
 describe('heat', () => {
-  it('every heat skill is behind an Overclock unlock (the thing that makes heat), except the known open ones', () => {
-    // Since every skill tree shows from the start (no branch is hidden until heat is revealed), a heat skill reads in plain text unless its
-    // own gate chain holds an Overclock unlock. These skills have no such gate yet; REPORTED to the user, not fixed here.
-    const open = everyday
-      .filter((x) => HEAT_KINDS.includes(x.effect.kind) && !chain(x).some((c) => c.effect.kind === 'overclockUnlock'))
-      .map((x) => x.id)
-      .sort();
-    expect(open).toEqual([...KNOWN_OPEN_HEAT_SKILLS].sort());
+  it('every heat skill is in a branch whose text waits for heat to be revealed, or behind an Overclock unlock (the thing that makes heat)', () => {
+    for (const b of everyday.filter((x) => HEAT_KINDS.includes(x.effect.kind))) {
+      const inHeatBranch = b.branch !== undefined && BRANCH_REVEAL_STAT[b.branch] === 'heat';
+      const behindOverclock = chain(b).some((c) => c.effect.kind === 'overclockUnlock');
+      expect(inHeatBranch || behindOverclock, b.id).toBe(true);
+    }
   });
 
   it('the Moles skills (heat outside the heat branch) wait for an Overclock unlock', () => {

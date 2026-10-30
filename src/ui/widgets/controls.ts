@@ -33,7 +33,7 @@ export interface ResleeveRow {
 }
 
 /**
- * Builds the re-sleeve row, which sits at the bottom of the Sleeve widget. Once Sleeve levels is owned the button shows; until Unlock resleeving is owned (and in reach) it IS that
+ * Builds the re-sleeve row, which sits at the bottom of the Sleeve widget. Once Sleeve levels is owned the button shows; until Unlock resleeving is owned it IS that
  * purchase (one click buys it); then it turns into the Re-sleeve action. Re-sleeving wipes most progress, so it takes two clicks: the
  * first arms the gate, the second confirms.
  *

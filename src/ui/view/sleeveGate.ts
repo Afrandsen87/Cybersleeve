@@ -47,7 +47,7 @@ export function resleeveSkillsShown(state: StateSliceView<'runs'>): boolean {
  * @param state the game state (reads `purchased`)
  * @param config game configuration (finds the unlock buyable)
  * @param viewById the view of every buyable
- * @returns the text, tip and affordability to put on the button, or `null` when there is no such unlock, it is owned, or it is not in reach yet
+ * @returns the text, tip and affordability to put on the button, or `null` when there is no such unlock, it is owned, or Sleeve levels is not owned yet (the price-reach rule does not apply: owning Sleeve levels is enough)
  */
 export function resleeveBuyView(
   state: StateSliceView<'purchased'>,
@@ -56,7 +56,7 @@ export function resleeveBuyView(
 ): ResleeveBuyView | null {
   const id = resleeveGateId(config.buyables);
   const view = id === null ? undefined : viewById.get(id);
-  if (!id || !view || (state.sleeve.purchased[id] ?? 0) > 0 || !view.available) return null;
+  if (!id || !view || (state.sleeve.purchased[id] ?? 0) > 0 || !sleeveLevelsOpen(state, config)) return null;
   return { id, text: `${view.name}: ${view.costText} ${view.costUnit}`, tip: view.tip, affordable: view.affordable };
 }
 

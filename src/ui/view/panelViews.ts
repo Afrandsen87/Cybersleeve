@@ -6,9 +6,17 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the text table.
  */
-import { AUTOMATION_FEATURES, type CorporationQueries, type GameConfig, type SkillQueries, type GameStateView } from '../../core';
+import {
+  AUTOMATION_FEATURES,
+  type CorporationQueries,
+  type GameConfig,
+  type SkillQueries,
+  type SleeveStats,
+  type GameStateView,
+} from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
+import { branchMaskedFn } from './branchMask';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
 import type { AutomationView, BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
@@ -81,6 +89,7 @@ export function tabsView(engine: SkillQueries & CorporationQueries, state: GameS
  * @param state the game state
  * @param config game configuration
  * @param viewById the view of every buyable, by id
+ * @param stats the sleeve stats (for the branches whose text waits for a stat to be revealed)
  * @param text the display text
  * @param revealAll test aid: no skill is masked
  */
@@ -89,6 +98,7 @@ export function skillsView(
   state: GameStateView,
   config: GameConfig,
   viewById: ReadonlyMap<string, BuyableView>,
+  stats: SleeveStats,
   text: UiText,
   revealAll = false,
 ): SkillsView {
@@ -98,6 +108,7 @@ export function skillsView(
   const lanes = buildSkillLanes({
     ...common,
     skills: config.buyables.filter((b) => b.currency === 'skillPoints'),
+    branchMasked: branchMaskedFn(config, state, stats),
     laneTitle: branchTitle,
     open: true,
   });

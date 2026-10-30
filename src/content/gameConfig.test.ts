@@ -265,6 +265,17 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(buildViewModel(g).canResleeve).toBe(true);
   });
 
+  it('once Sleeve levels is owned the Re-sleeve button is the Unlock resleeving purchase with its price, affordable or not', () => {
+    const g = createGame();
+    setCredits(g, num('1e8'));
+    expect(g.buy(SLEEVE_LEVELS)).toBe('purchased');
+    setCredits(g, num(0));
+    const vm = buildViewModel(g);
+    expect(vm.resleeveShown).toBe(true);
+    expect(vm.resleeveBuy).toMatchObject({ id: RESLEEVE_UNLOCK, affordable: false });
+    expect(vm.resleeveBuy!.text).toContain('Unlock resleeving');
+  });
+
   it('the player is never charged a negative or non-finite price', () => {
     const g = createGame();
     for (const b of gameConfig.buyables) {
