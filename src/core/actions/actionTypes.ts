@@ -127,8 +127,6 @@ export interface OverclockRule {
   readonly rewardBonus?: number;
   /** Heat the action adds per minute of game time while it is running overclocked (>= 0). Fractions of a point of heat are kept. Default: 0. */
   readonly heatPerMinute?: number;
-  /** The heat each completed run adds (`heatPerRun`) is multiplied by this (>= 1; 3 = three times as much). Default: 1. */
-  readonly heatPerRunFactor?: number;
   /** The chance that a completed run makes heat (`heatPerRun`) is multiplied by this (>= 1; 2 = twice as likely), capped at a chance of 1. Default: 1. */
   readonly heatChanceFactor?: number;
   /** Applied once for each completed run while Overclock is on, after the ordinary completion effects. Default: none. */

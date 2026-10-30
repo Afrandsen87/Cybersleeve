@@ -6,7 +6,7 @@
  * @remarks
  * Split out of `uiText.ts`, which holds the default words and re-exports this type, so import it from there.
  */
-import type { AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
+import type { AutoBurnSwitch, AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
 import type { TipTexts } from './tipTextTypes';
 
 import type { ActionInfoParts, RewardLineParts, SleeveSectionId, SquareCellId, StatId } from './uiTextParts';
@@ -81,9 +81,14 @@ export interface UiText {
     points(points: string): string;
     /** The name and what each feature does. */
     readonly features: Readonly<Record<AutomationFeature, { readonly name: string; readonly description: string }>>;
-    /** Auto Burn's switch (shows the state) and the label of its heat ceiling. */
-    autoBurnSwitch(on: boolean): string;
-    readonly autoBurnCeiling: string;
+    /** Auto Burn: where the toggle is, the label of each switch, and the labels of the thresholds and the reserve. */
+    readonly autoBurn: {
+      readonly hint: string;
+      readonly switches: Readonly<Record<AutoBurnSwitch, string>>;
+      readonly lower: string;
+      readonly upper: string;
+      readonly reserve: string;
+    };
     /** The label of the share an action gets from Augment dispersal, in percent. */
     readonly dispersalShare: string;
   };
@@ -142,8 +147,27 @@ export interface UiText {
     levelBar(level: number, xp: string, next: string): string;
     sleeveBar(level: number, xp: string, next: string, runsToNext: number): string;
     reward(parts: RewardLineParts): string;
+    /** The costs line under the reward line of a card: its cost items joined (empty text for none). */
+    costs(items: readonly string[]): string;
+    /** The cost items of a run (everything a run costs or makes worse), each a short phrase. */
+    readonly cost: {
+      /** Heat of a completed run, with the chance in percent that it happens (`null`: every run). */
+      heatPerRun(amount: string, chancePercent: string | null): string;
+      /** Heat per second the action runs. */
+      heatPerSecond(amount: string): string;
+      /** Heat per minute the action runs while Overclock is on. */
+      heatPerMinute(amount: string): string;
+      /** What starting the action costs (already formatted). */
+      start(cost: string): string;
+      /** Nodes each completed run takes while Overclock is on. */
+      nodesPerRun(amount: string): string;
+      /** The Overclock holds heat in place (no cooling, no Burn leads) while the action runs. */
+      holdsHeat: string;
+    };
     /** The label of the button in the top right corner of an action card that applies a schematic. */
     readonly augment: string;
+    /** The names of the factors in the XP per run tip (a factor of 1 is left out of the tip). */
+    readonly xpFactors: { readonly lever: string; readonly augments: string; readonly mirror: string };
     /** The critical success highlight of a card: just a mark for one success in the last second, an average per second for several. */
     critFlash(count: number, perSecond: string): string;
     /** The cells of the square on an action card: the symbol on the square button and the name read out for it. */

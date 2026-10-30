@@ -41,7 +41,7 @@ Code: `src/core/app/` (see `docs/contexts/_folders.md`). Text below is moved ver
 - Before reporting work done: run `npm run check` (typecheck, Biome, tests, build).
 
 *Group: Working conventions (in use)*
-- New mechanics extend `testing/invariants.ts` when they add state, and are covered by the random play in `core/engine/properties.test.ts` (seeded, so failures reproduce).
+- New mechanics extend `testing/invariants.ts` (checks by area in `testing/invariantChecks/`) when they add state, and are covered by the random play in `core/engine/properties.test.ts` (seeded, so failures reproduce).
 
 *Group: Decided 2026-10-26 (by the user, after the full review)*
 - `DESIGN.md` describes the game as it is now (no changelog inside); history lives in git. A docs/CI workflow (`.github/workflows/check.yml`) runs `npm run check`.

@@ -29,8 +29,8 @@ export const testConfig: GameConfig = {
   ],
   items: {
     rarities: [
-      { id: 'common', name: 'Common', sellValue: num(10) },
-      { id: 'rare', name: 'Rare', sellValue: num(100) },
+      { id: 'common', name: 'Common', sellValue: num(10), sellSeconds: 0 },
+      { id: 'rare', name: 'Rare', sellValue: num(100), sellSeconds: 0 },
     ],
     definitions: [{ id: 'file', name: 'File' }],
   },

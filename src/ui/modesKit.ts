@@ -44,8 +44,21 @@ export const config: GameConfig = (() => {
   return createConfig(base, { actions: [{ ...base.actions[0]!, overclock: { speedBonus: 0.5, heatPerMinute: 1 } }, networkAction] });
 })();
 
-/** The same configuration with an Augment schematic item (1% per item). */
+/** A purchase that makes the Augment schematic drop; owning it is what shows the Augment cell. */
+export const SCHEMATIC_DROP: BuyableDefinition = buyable({
+  id: 'schem-drop',
+  actionId: 'a',
+  effect: { kind: 'itemDrop', drop: { itemId: 'file', chance: 0.1, rarityWeights: { common: 1 } } },
+});
+
+/** Marks the schematic drop purchase as owned without paying (the Augment cell then shows). */
+export const ownSchematicDrop = (g: { getState(): unknown }): void => {
+  (g.getState() as { sleeve: { purchased: Record<string, number> } }).sleeve.purchased[SCHEMATIC_DROP.id] = 1;
+};
+
+/** The same configuration with an Augment schematic item (1% per item) and the purchase that makes it drop. */
 export const augmentConfig: GameConfig = createConfig(config, {
+  buyables: [...config.buyables, SCHEMATIC_DROP],
   items: { ...config.items, augment: { itemId: 'file', xpBonusPerItem: 0.01 } },
 });
 

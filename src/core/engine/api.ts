@@ -23,6 +23,8 @@ import type { SleeveStats } from '../effects/effects';
 import type { BackChannelRule } from '../items/leverageEffects';
 import type { RecentCrits } from '../crits/critFeed';
 import type { PurchaseResult } from '../economy/shop';
+import type { XpCurve } from '../actions/xpCurve';
+import type { XpPerRunBreakdown } from '../actions/runStats';
 import type { SpeedFactor } from '../actions/speed';
 import type { ActionId, BuyableId, Currency, GameConfig, GameStateView, ItemId, RarityId } from '../types';
 
@@ -60,6 +62,8 @@ export interface ActionQueries {
   isAutoRun(id: ActionId): boolean;
   /** Overclock for the action (speed bonus, heat cost, on or off), or `null` while there is no toggle to show. */
   overclockStatus(id: ActionId): OverclockStatus | null;
+  /** The chance (0..1) that a completed run of the action makes its heat, with Overclock's factor while it is on. */
+  heatChance(id: ActionId): number;
   /** Focus for the action (speed bonus, slots, on or off), or `null` while there is no toggle to show. */
   focusStatus(id: ActionId): FocusStatus | null;
   /** Multiplier on the action's own reward per run, from purchases (>= 1). It scales that reward only. */
@@ -68,6 +72,8 @@ export interface ActionQueries {
   payoutPerRun(id: ActionId): BigNum;
   /** Action XP one completed run gives now (after any Augment schematics applied to the action). */
   xpPerRun(id: ActionId): BigNum;
+  /** The parts of the XP one run gives now (base, XP lever, Augments, Neural Mirror, critical), for explaining it. */
+  xpPerRunBreakdown(id: ActionId): XpPerRunBreakdown;
   /** Critical successes of an action in the last second of game time (the count and the average per second). */
   recentCrits(id: ActionId): RecentCrits;
 }
@@ -96,6 +102,12 @@ export interface LevelQueries {
   sleeveLevelProgress(id: ActionId): number;
   /** Completed runs one batch of sleeve XP takes right now. */
   runsPerSleeveXp(): number;
+  /** Sleeve XP one batch of runs grants. */
+  sleeveXpGrant(): BigNum;
+  /** The level curve of an action (first level, growth, Skill-shard delay, reduction). */
+  actionXpCurve(id: ActionId): XpCurve;
+  /** The level curve of an action's sleeve levels (first level, growth, Study-methods reduction). */
+  sleeveXpCurve(id: ActionId): XpCurve;
 }
 
 /** Read-only questions about the sleeve as a whole and the network it carries. */
@@ -126,14 +138,23 @@ export interface SleeveQueries {
 export interface ItemQueries {
   /** The actions that can drop one stack of items now, with the chance that one completed run of each drops it (0..1). */
   dropSources(itemId: ItemId, rarityId: RarityId): readonly { readonly actionId: ActionId; readonly chance: number }[];
+  /** Credits one item of this rarity sells for now (`Inventory.sellValue`: the floor or the seconds of peak income, whichever is more). */
+  sellValue(rarityId: RarityId): BigNum;
   /** The back channel unlocked by a skill, or `null`. */
   backChannel(): BackChannelRule | null;
   /** True when using a Burn lead of this rarity would do something (one is held and there is heat). */
   canUseBurnLead(rarityId: RarityId): boolean;
+  /**
+   * The Burn lead toggle, or `null` while the lead is still a click that uses one lead (the Auto Burn lane's first skill is not owned).
+   * `hold`, `lower` and `reserve` are the rules in force (see `AutoBurnRules`).
+   */
+  burnLeadToggle(): { readonly on: boolean; readonly hold: boolean; readonly lower: number; readonly reserve: number } | null;
   /** True when pressing the Zero-day toggle would do something (it is on, or a Zero-day is held). */
   canToggleZeroDays(): boolean;
   /** True when pressing the Admin key toggle would do something (it is on, or an Admin key is held). */
   canToggleAdminKeys(): boolean;
+  /** True when this item in this rarity has ever entered the inventory (over all lives, kept by a re-sleeve). */
+  hasSeenItem(itemId: ItemId, rarityId: RarityId): boolean;
   /** True when using a Skill shard would do something (one is held and some action is unlocked). */
   canUseSkillShard(): boolean;
 }
@@ -223,6 +244,8 @@ export interface ShopCommands {
 export interface ItemCommands {
   /** Uses one Burn lead of a rarity: it is used up and takes a share of the current heat away. @returns true when one was used */
   useBurnLead(rarityId: RarityId): boolean;
+  /** Switches the Burn lead toggle (only once the Auto Burn lane's first skill is owned; works with no lead held). @returns true when it is now on */
+  toggleBurnLead(): boolean;
   /** Switches the Zero-day toggle (needs a Zero-day to switch on; switches itself off at 0). @returns true when it is now on */
   toggleZeroDays(): boolean;
   /** Switches the Admin key toggle (needs an Admin key to switch on; switches itself off at 0). @returns true when it is now on */

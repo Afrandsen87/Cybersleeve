@@ -23,6 +23,26 @@ export interface CriticalLimits {
 }
 
 /**
+ * The parts of the XP one run gives, for explaining it (the owner of each part is named; nothing here is recomputed by a view).
+ *
+ * Called by: `RunStats.xpBreakdown`, `ui/tipTextXp.ts` through the engine.
+ */
+export interface XpPerRunBreakdown {
+  /** The action's own XP per run, before any factor. */
+  readonly base: BigNum;
+  /** The XP lever (`global.xpMultiplier`). */
+  readonly lever: number;
+  /** What the Augment schematics applied to the action multiply it by (1 when none). */
+  readonly augmentFactor: number;
+  /** What Neural Mirror multiplies it by (1 when it does not apply). */
+  readonly mirrorFactor: number;
+  /** What a critical success multiplies this action's XP by, or `null` while a critical run is not possible. */
+  readonly criticalXpMultiplier: number | null;
+  /** The XP one non-critical run gives now: `base x lever x augmentFactor x mirrorFactor` (equals `xpPerRun`). */
+  readonly total: BigNum;
+}
+
+/**
  * Answers the questions about one run of an action. Holds no state; reads the `GameState` it was given every time.
  *
  * Called by: `DerivedStats` (the facade), `actionRunner.ts` through it.
@@ -113,10 +133,36 @@ export class RunStats {
   /** Action XP gained per completed run now. @throws Error if the action id is unknown */
   xpPerRun(id: ActionId): BigNum {
     const base = this.economy.xpPerRun(this.definition(id));
-    const bonus = this.config.items.augment?.xpBonusPerItem ?? 0;
-    const augments = bonus > 0 ? augmentXpFactor(this.state.sleeve.actions[id]?.augments ?? {}, bonus) : 1;
-    const factor = augments * this.synthMirrorFactor(id);
+    const factor = this.augmentFactor(id) * this.synthMirrorFactor(id);
     return factor === 1 ? base : base.mul(this.factory.fromNumber(factor));
+  }
+
+  /**
+   * The parts of {@link RunStats.xpPerRun}, so a tooltip can show the calculation. `total` is `xpPerRun` itself.
+   *
+   * Called by: `DerivedStats.xpPerRunBreakdown`. Calls: {@link RunStats.xpPerRun}, the factors it multiplies.
+   *
+   * @throws Error if the action id is unknown
+   */
+  xpBreakdown(id: ActionId): XpPerRunBreakdown {
+    return {
+      base: this.definition(id).xpPerRun,
+      lever: this.economy.xpLeverValue(),
+      augmentFactor: this.augmentFactor(id),
+      mirrorFactor: this.synthMirrorFactor(id),
+      criticalXpMultiplier: this.critical.maxCritsPerRun(id) > 0 ? this.critical.criticalRule(id).xpMultiplier : null,
+      total: this.xpPerRun(id),
+    };
+  }
+
+  /**
+   * What the Augment schematics applied to an action multiply its XP per run by (1 when the game has none or none is applied).
+   *
+   * Called by: {@link RunStats.xpPerRun}, {@link RunStats.xpBreakdown}.
+   */
+  private augmentFactor(id: ActionId): number {
+    const bonus = this.config.items.augment?.xpBonusPerItem ?? 0;
+    return bonus > 0 ? augmentXpFactor(this.state.sleeve.actions[id]?.augments ?? {}, bonus) : 1;
   }
 
   /**

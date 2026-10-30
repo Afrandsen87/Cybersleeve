@@ -25,6 +25,7 @@ import {
   ADMIN_KEY,
   BLACK_BOX_RECORDER,
   CASCADE_FAILURE,
+  FORENSIC_HARDENING,
   CREDIT_SIPHON,
   DECOMMISSION_PROTOCOL,
   SKILL_SHARD,
@@ -38,6 +39,7 @@ import {
   ZERO_DAY_EXPLOITS,
   CRITICAL_SUCCESS,
   FASTER_CONDITIONING,
+  SLEEVE_LEVELS,
   FOCUS_UPGRADE,
   GROW_NETWORK,
   ICE_RATING_BOOST,
@@ -1135,6 +1137,7 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   [CREDIT_SIPHON]: 'credit-siphon',
   [KILL_CHAIN]: 'kill-chain',
   [CASCADE_FAILURE]: 'multiplier',
+  [FORENSIC_HARDENING]: 'hardened-payload', // shares the grid of Hardened payload, the purchase it feeds
   [PERSISTENCE]: 'persistence',
   [RANSOMWARE]: 'ransomware',
   [INDUSTRIAL_ESPIONAGE]: 'chip',
@@ -1163,6 +1166,7 @@ export const ENTITY_ICONS: Readonly<Record<string, string>> = {
   ...Object.fromEntries([GROW_NETWORK, PRACTICE_HACKING, PUSH_MALWARE, KILL_SERVERS, LEGEND].map((id) => [focusUnlockId(id), 'focus'])),
   [CRITICAL_SUCCESS]: 'critical-success',
   [FASTER_CONDITIONING]: 'conditioning',
+  [SLEEVE_LEVELS]: 'conditioning', // shares the conditioning picture until it gets its own
   // One icon for every auto-run (the cell in the square of an action card asks for `autoRun`) and one for every reward multiplier: they
   // do the same thing on each action.
   autoRun: 'auto-run',

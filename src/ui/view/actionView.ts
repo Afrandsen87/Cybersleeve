@@ -14,13 +14,17 @@ import {
   type StateQueries,
   type GameStateView,
   SPEED_FACTOR_IDS,
+  ownsAutoRun,
 } from '../../core';
 import { type BigNum, formatBigNum, formatPlain, type NumberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
 import { sleeveLevelsOpen } from './sleeveGate';
 import { SPEED_DECIMALS, formatSeconds } from './viewFormat';
+import { fastBarView } from './fastBar';
 import { augmentView, focusView, overclockView } from './modeViews';
 import { squareView } from './squareView';
+import { actionCostItems } from './actionCosts';
+import { levelXpTipParts, sleeveXpTipParts } from './xpTipView';
 import type { ActionView, BuyableView, ViewSelection } from './viewTypes';
 
 /** What starting an action costs, for the card (the share of the balance is shown with today's amount). */
@@ -114,12 +118,12 @@ export function buildActionViews(
     const durationText = formatSeconds(duration, text);
     const cost = startCostText(def, engine.startCostOf(def.id), text);
     const auto = engine.isAutoRun(def.id);
+    const fast = fastBarView(duration, s.running, auto, text);
     const rewardText = formatBigNum(engine.payoutPerRun(def.id));
     const rewardUnit = text.rewardUnits[def.rewardKind ?? 'credits'];
     const rewardMultiplierText = formatBigNum(engine.rewardMultiplier(def.id));
     const heatPerRun = def.heatPerRun ?? 0;
-    const heatPerSecond = def.heatPerSecond ?? 0;
-    const heatChance = def.heatChance ?? 1;
+    const costItems = actionCostItems(engine, def, cost, text);
     const xpText = formatBigNum(engine.actionXpIntoLevel(def.id));
     const nextLevelXpText = formatBigNum(engine.actionXpForLevel(def.id));
     const sleeveLevel = engine.sleeveLevel(def.id);
@@ -147,12 +151,20 @@ export function buildActionViews(
         progressPercent: engine.sleeveLevelProgress(def.id) * 100,
         runsToNextXp,
       },
+      get levelXpTip() {
+        return text.tips.levelXp(levelXpTipParts(engine, def.id, text));
+      },
+      get sleeveXpTip() {
+        return text.tips.sleeveXp(sleeveXpTipParts(engine, def.id));
+      },
       speedText,
       durationText,
       rewardText,
       rewardUnit,
       rewardMultiplierText,
-      progressPercent: s.running ? Math.min(100, s.progress * 100) : 0,
+      durationMs: duration,
+      progressPercent: fast.full ? 100 : s.running ? Math.min(100, s.progress * 100) : 0,
+      barText: fast.rateText,
       running: s.running,
       auto,
       unlocked,
@@ -167,19 +179,18 @@ export function buildActionViews(
           ? speedTip(engine, config, def, durationText, formatPlain(engine.currentSpeed(def.id), SPEED_DECIMALS), sleeveShown, text)
           : '';
       },
-      infoText: reason ? text.action.locked(reason) : text.action.info({ speed: speedText, duration: durationText, startCost: cost, auto }),
+      infoText: reason ? text.action.locked(reason) : text.action.info({ speed: speedText, duration: durationText, auto }),
       levelBarText: text.action.levelBar(level, xpText, nextLevelXpText),
       sleeveBarText: text.action.sleeveBar(sleeveLevel, sleeveXpText, sleeveNextText, runsToNextXp),
       rewardLine: text.action.reward({
         amount: rewardText,
         unit: rewardUnit,
         multiplier: rewardMultiplierText === '1' ? null : rewardMultiplierText,
-        heatPerRun,
-        heatChancePercent: heatChance < 1 ? formatPlain(heatChance * 100) : null,
-        heatPerSecond,
       }),
+      costItems,
+      costLine: text.action.costs(costItems),
       buyables: buyableViews.filter((b) => b.actionId === def.id),
-      square: squareView(config, def.id, viewById, overclock, focus, augment, text),
+      square: squareView(config, def.id, viewById, overclock, focus, augment, (id) => ownsAutoRun(config.buyables, state, id), text),
       augment,
       overclock,
       focus,

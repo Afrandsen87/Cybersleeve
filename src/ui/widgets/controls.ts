@@ -17,9 +17,9 @@ import type { ResleeveBuyView } from '../viewModel';
 export interface ResleeveButtonState {
   /** A re-sleeve is possible now. */
   readonly canResleeve: boolean;
-  /** The button is the Re-sleeve action (the sleeve-levels unlock is owned); otherwise it is that unlock's purchase. */
+  /** The button shows at all (the Sleeve levels unlock is owned). It is the purchase of Unlock resleeving while `buy` is set, the Re-sleeve action otherwise. */
   readonly shown: boolean;
-  /** The purchase to show on the button while it is not yet the Re-sleeve action; `null` hides the button. */
+  /** The purchase (Unlock resleeving) to show on the button while it is not yet owned; `null` when the button is the Re-sleeve action. */
   readonly buy: ResleeveBuyView | null;
   /** Sleeve levels held and needed while the next re-sleeve is short of them; `null` otherwise. Drives the button's tip. */
   readonly shortfall: { readonly held: number; readonly needed: number } | null;
@@ -28,12 +28,12 @@ export interface ResleeveButtonState {
 /** The re-sleeve button with its cancel button. */
 export interface ResleeveRow {
   readonly root: HTMLElement;
-  /** Draws the button as the purchase of the sleeve-levels unlock, as the Re-sleeve action, or hides it. */
+  /** Draws the button as the purchase of Unlock resleeving, as the Re-sleeve action, or hides it. */
   render(state: ResleeveButtonState): void;
 }
 
 /**
- * Builds the re-sleeve row, which sits at the bottom of the Sleeve widget. Until the sleeve-levels unlock is owned the button IS that
+ * Builds the re-sleeve row, which sits at the bottom of the Sleeve widget. Once Sleeve levels is owned the button shows; until Unlock resleeving is owned it IS that
  * purchase (one click buys it); then it turns into the Re-sleeve action. Re-sleeving wipes most progress, so it takes two clicks: the
  * first arms the gate, the second confirms.
  *
@@ -62,15 +62,15 @@ export function buildResleeveRow(ctx: UiContext): ResleeveRow {
   return {
     root,
     render({ canResleeve, shown, buy, shortfall }) {
-      buyId = shown ? null : (buy?.id ?? null);
-      root.hidden = !shown && buy === null;
-      if (root.hidden || !shown) gate.cancel();
+      buyId = buy?.id ?? null;
+      root.hidden = !shown;
+      if (root.hidden || buy !== null) gate.cancel();
       const armed = gate.isArmed && canResleeve;
-      button.classList.toggle('buy', !shown);
-      if (!shown) {
-        button.disabled = !(buy?.affordable ?? false);
-        setText(button, buy?.text ?? '');
-        tips.set(button, buy ? () => buy.tip : null);
+      button.classList.toggle('buy', buy !== null);
+      if (buy !== null) {
+        button.disabled = !buy.affordable;
+        setText(button, buy.text);
+        tips.set(button, () => buy.tip);
       } else {
         button.disabled = !canResleeve;
         setText(button, armed ? text.resleeve.armed : text.resleeve.idle);

@@ -209,6 +209,7 @@ describe('selling items', () => {
   const stocked = () => {
     const g = createGame({ config: testConfig });
     (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { file: { common: 5, rare: 2 } };
+    (g.getState() as unknown as { wallet: { seenItems: unknown } }).wallet.seenItems = { file: { common: true, rare: true } };
     return g;
   };
 
@@ -251,11 +252,13 @@ describe('selling items', () => {
     expect(g.getState().wallet.credits.eq(num(10))).toBe(true);
   });
 
-  it('every rarity sells for three orders of magnitude more than the one before, in the real content', async () => {
+  it('in the real content a rarer rarity has a larger floor and asks for more seconds of peak income', async () => {
     const { gameConfig } = await import('../../content/gameConfig');
-    const values = gameConfig.items.rarities.map((r) => r.sellValue.toNumber());
-    expect(values[0]).toBe(100);
-    for (let i = 1; i < values.length; i++) expect(values[i]! / values[i - 1]!).toBe(1000);
+    const rarities = gameConfig.items.rarities;
+    for (let i = 1; i < rarities.length; i++) {
+      expect(rarities[i]!.sellValue.gt(rarities[i - 1]!.sellValue)).toBe(true);
+      expect(rarities[i]!.sellSeconds).toBeGreaterThan(rarities[i - 1]!.sellSeconds);
+    }
   });
 });
 
@@ -263,6 +266,7 @@ describe('inventory in saves and resets', () => {
   const stocked = () => {
     const g = createGame({ config: testConfig });
     (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { file: { common: 5, rare: 2 } };
+    (g.getState() as unknown as { wallet: { seenItems: unknown } }).wallet.seenItems = { file: { common: true, rare: true } };
     return g;
   };
 
@@ -333,8 +337,8 @@ describe('item configuration is validated', () => {
     const dup = createConfig(testConfig, {
       items: {
         rarities: [
-          { id: 'common', name: 'C', sellValue: num(1) },
-          { id: 'common', name: 'C', sellValue: num(-1) },
+          { id: 'common', name: 'C', sellValue: num(1), sellSeconds: 0 },
+          { id: 'common', name: 'C', sellValue: num(-1), sellSeconds: 0 },
         ],
         definitions: [
           { id: 'file', name: 'F' },

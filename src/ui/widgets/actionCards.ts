@@ -32,7 +32,12 @@ interface ActionCard {
   readonly crit: HTMLElement;
   readonly info: HTMLElement;
   readonly bar: HTMLElement;
+  /** The runs per second written on the bar (empty unless the runs are too short to animate and Auto-run is on). */
+  readonly barLabel: HTMLElement;
+  /** The gains line: what a run pays or teaches. */
   readonly reward: HTMLElement;
+  /** The costs line under it (heat, start cost, Overclock costs); always drawn, empty for an action with no costs, so all cards line up. */
+  readonly costs: HTMLElement;
   readonly levelXp: XpBar;
   readonly sleeveXp: XpBar;
   /** Square purchase buttons of this action, by buyable id. */
@@ -179,8 +184,12 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
     const info = h('div', 'action-info');
     const bar = h('div', 'bar-fill');
     const track = h('div', 'bar');
-    track.append(bar);
-    const reward = h('div', 'action-reward');
+    const barLabel = h('div', 'bar-label');
+    track.append(bar, barLabel);
+    const gains = h('div', 'action-gains');
+    const costs = h('div', 'action-costs');
+    const rewardArea = h('div', 'action-reward');
+    rewardArea.append(gains, costs);
     button.append(title, info, track);
     button.addEventListener('click', () => engine.startAction(a.id));
 
@@ -224,9 +233,25 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
     const poster = h('div', 'action-poster');
     const crit = h('div', 'crit-badge');
     crit.hidden = true;
-    card.append(button, reward, levelXp.root, sleeveXp.root, squareEl, upgrades, startBtn, poster, crit);
+    card.append(button, rewardArea, levelXp.root, sleeveXp.root, squareEl, upgrades, startBtn, poster, crit);
     root.append(card);
-    cards.set(a.id, { root: card, poster, button, start: startBtn, title, crit, info, bar, reward, levelXp, sleeveXp, buyables, square });
+    cards.set(a.id, {
+      root: card,
+      poster,
+      button,
+      start: startBtn,
+      title,
+      crit,
+      info,
+      bar,
+      barLabel,
+      reward: gains,
+      costs,
+      levelXp,
+      sleeveXp,
+      buyables,
+      square,
+    });
   }
 
   for (let i = initial.length; i < ACTION_GRID_SLOTS; i++) root.append(h('div', 'action empty'));
@@ -244,14 +269,18 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
         setText(card.info, a.infoText);
         tips.set(card.info, a.unlocked ? () => a.speedTip : null);
         setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
+        tips.set(card.levelXp.root, () => a.levelXpTip);
         card.sleeveXp.root.hidden = !a.sleeveShown;
         setXpBar(card.sleeveXp, a.sleeveBarText, a.sleeve.progressPercent);
+        tips.set(card.sleeveXp.root, a.sleeveShown ? () => a.sleeveXpTip : null);
         setText(card.reward, a.rewardLine);
+        setText(card.costs, a.costLine);
         card.button.disabled = !a.startable;
         card.start.disabled = !a.startable || a.running; // greyed out until the run is over
         card.root.classList.toggle('locked', !a.unlocked);
         setText(card.poster, a.posterText);
         setFill(card.bar, a.progressPercent);
+        setText(card.barLabel, a.barText ?? '');
         card.root.classList.toggle('running', a.running);
         renderUpgrades(card.buyables, a.buyables, tips);
         renderSquare(card.square, a.square, tips);

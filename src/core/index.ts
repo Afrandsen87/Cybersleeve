@@ -7,14 +7,16 @@ export { SPEED_FACTOR_IDS, createSpeedModifiers, levelFactor, speedFactors, spee
 export { type FactorTerm, type SleeveStats, resolveEffects, resolveSleeveStats, earnedSpeedBeyond } from './effects/effects';
 export { coolHeat, coolHeatBoosted, heatTaxFactor } from './heat/heat';
 export { coolsNow, cycleMs, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heat/heatModel';
+export { actionMakesHeat, heatMakingAutoRuns, heatMakingOverclockActions, overclockMakesHeat } from './heat/heatMakers';
 export { applyCompletionEffects } from './actions/completion';
 export { SCALAR_FIELDS, scalarValue } from './kernel/fields';
 export { REWARDS, REWARD_KINDS, payReward, rewardOf } from './actions/rewards';
 export { StartCosts } from './actions/startCosts';
 export { RewardPayer } from './actions/rewardPayer';
+export { ownsAutoRun } from './effects/queries';
 export { EFFECT_TRAITS, traitsOf } from './effects/effectTraits';
 export { Economy } from './economy/economy';
-export { Inventory, itemCount } from './items/inventory';
+export { Inventory, hasSeenItem, itemCount } from './items/inventory';
 export { Augments, augmentXpFactor } from './items/augments';
 export { BackChannel } from './items/backChannel';
 export { BurnLeads } from './items/burnLeads';
@@ -33,15 +35,28 @@ export {
   type AutomationControls,
   type AutomationFeature,
 } from './automation/automation';
+export { AutoBurn, type AutoBurnControls, type AutoBurnSwitches } from './automation/autoBurn';
+export { type AutoBurnRules, ownsAutoBurnStep } from './automation/autoBurnRules';
+export {
+  AUTO_BURN_STEPS,
+  AUTO_BURN_SWITCHES,
+  type AutoBurnLife,
+  type AutoBurnSettings,
+  type AutoBurnStep,
+  type AutoBurnSwitch,
+} from './automation/autoBurnTypes';
 export { CritFeed } from './crits/critFeed';
+export { CritTally } from './crits/critTally';
+export { hardeningBonusPerLevel } from './effects/entries/sleeveEntries';
 export { LinkedPayouts } from './actions/linkedPayouts';
 export { CriticalSuccesses, criticalRuleFor } from './crits/critical';
-export { shiftWeights } from './items/rarityShift';
-export { wholeOrders } from './kernel/curves';
+export { proficiencySteps, shiftWeights, shiftWeightsBySteps } from './items/rarityShift';
 export { isPointCurrency } from './kernel/currencies';
 export type { RandomSource } from './kernel/sampling';
 export { createClampOverflowPolicy } from './kernel/overflow';
 export { Progression } from './actions/progression';
+export type { XpCurve } from './actions/xpCurve';
+export type { XpPerRunBreakdown } from './actions/runStats';
 export { BuyableCaps } from './effects/buyableCaps';
 export { ReflexArchive } from './resleeve/reflexArchive';
 export { isActionCardPurchase } from './resleeve/resleeveCarry';
@@ -50,7 +65,8 @@ export { SynthSleeves, synthCreditsPerSecond } from './synth/synthSleeves';
 export { Resleever } from './resleeve/resleever';
 export { allOf } from './resleeve/resleeve';
 export { SleeveLevelGate } from './resleeve/sleeveLevelGate';
-export { ResleeveGate, sleeveLevelsGateId } from './resleeve/resleeveGate';
+export { ResleeveGate, resleeveGateId } from './resleeve/resleeveGate';
+export { sleeveLevelsGateId } from './effects/ownedOfKind';
 export { CARRIED_OVER_ACTION_FIELDS, CARRIED_OVER_WALLET_FIELDS, createInitialState, resetForResleeve } from './save/state';
 export type {
   ActionQueries,

@@ -106,6 +106,10 @@ export interface ActionView {
   readonly sleeveShown: boolean;
   /** This action's own sleeve level and XP. */
   readonly sleeve: XpTrackView & { readonly runsToNextXp: number };
+  /** Hover text of the level XP bar: XP per run and the cost of a level. Built when read (a getter). */
+  readonly levelXpTip: string;
+  /** Hover text of the sleeve XP bar: the sleeve XP grant and the cost of a sleeve level. Built when read (a getter). */
+  readonly sleeveXpTip: string;
   readonly speedText: string;
   readonly durationText: string;
   /** Amount actually received per run (all multipliers applied), in units of `rewardUnit`. */
@@ -114,7 +118,12 @@ export interface ActionView {
   readonly rewardUnit: string;
   /** Multiplier on this action's reward per run from purchases (`1` when none). */
   readonly rewardMultiplierText: string;
+  /** Current duration of one run in milliseconds (the engine's value, with speed, Overclock and Focus applied). */
+  readonly durationMs: number;
+  /** Run bar: 0..100; held at 100 while the runs are too short to animate and the action runs or auto-runs. */
   readonly progressPercent: number;
+  /** Runs per second written on the bar: only while the runs are too short to animate and Auto-run is on, else `null`. */
+  readonly barText: string | null;
   readonly running: boolean;
   readonly auto: boolean;
   /** The action can be performed (access level high enough). */
@@ -139,8 +148,12 @@ export interface ActionView {
   readonly levelBarText: string;
   /** Label of the sleeve level bar. */
   readonly sleeveBarText: string;
-  /** The reward line at the bottom of the card. */
+  /** The gains line of the card: what a run pays or teaches. */
   readonly rewardLine: string;
+  /** The cost items of the card (heat, start cost, Overclock costs), each a short phrase; empty for an action with no costs. */
+  readonly costItems: readonly string[];
+  /** The costs line of the card: {@link ActionView.costItems} joined; empty text for none (the line is still drawn, so all cards line up). */
+  readonly costLine: string;
   /** The purchases that belong to this action (those flagged `inSquare` are shown in its square, the others in its row of purchases). */
   readonly buyables: readonly BuyableView[];
   /** The square beside the bars: Auto-run, Overclock, Focus and Augment. */

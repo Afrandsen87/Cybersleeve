@@ -41,7 +41,7 @@ function dropChances(engine: ItemQueries & ShopQueries & StateQueries, itemId: s
  */
 export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, factory: NumberFactory, text: UiText): InventoryView {
   const state = engine.getState();
-  const { items, buyables } = engine.getConfig();
+  const { items } = engine.getConfig();
   const channel = engine.backChannel();
   const burnLead = items.burnLead;
   const zeroDay = items.zeroDay;
@@ -53,28 +53,23 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
     id === undefined ? undefined : engine.getConfig().actions.find((a) => a.id === id)?.name;
   const zeroDayAction = actionNameOf(zeroDay?.actionId);
   const adminKeyAction = actionNameOf(adminKey?.actionId);
-  /** An item is unlocked once a purchase that drops it is owned, or some of it (in any rarity) is held. */
-  const unlockedItems = new Set(
-    items.definitions
-      .filter(
-        (item) =>
-          items.rarities.some((r) => itemCount(state, item.id, r.id) > 0) ||
-          buyables.some((b) => b.effect.kind === 'itemDrop' && b.effect.drop.itemId === item.id && engine.ownedCount(b.id) > 0),
-      )
-      .map((item) => item.id),
-  );
   const rows = items.definitions.flatMap((item) =>
     // An item without rarity is one stack (kept under the most common rarity) and is named by the item alone.
     (item.hasRarity === false ? items.rarities.slice(0, 1) : items.rarities).map((rarity): InventoryRowView => {
       const count = itemCount(state, item.id, rarity.id);
+      const price = engine.sellValue(rarity.id); // the one owner of the sale price
       const label = item.hasRarity === false ? item.name : text.inventory.label(rarity.name, item.name);
       const channelMoles = channel?.itemId === item.id ? channel.molesByRarity[rarity.id] : undefined;
       const backChannel = channelMoles !== undefined;
       const isZeroDay = zeroDay?.itemId === item.id;
       const isAdminKey = adminKey?.itemId === item.id;
       const isShard = skillShard?.itemId === item.id;
-      const usable = burnLead?.itemId === item.id || isShard;
-      const toggleable = isZeroDay || isAdminKey;
+      const isBurnLead = burnLead?.itemId === item.id;
+      // Once Auto Burn's first skill is owned the Burn lead is a toggle like the Zero-day; before that a click uses one lead.
+      const burnToggle = isBurnLead ? engine.burnLeadToggle() : null;
+      const isBurnToggle = burnToggle !== null;
+      const usable = (isBurnLead && !isBurnToggle) || isShard;
+      const toggleable = isZeroDay || isAdminKey || isBurnToggle;
       return {
         itemId: item.id,
         rarityId: rarity.id,
@@ -82,7 +77,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
         symbol: initials(item.name),
         rarityIndex: item.hasRarity === false ? null : items.rarities.indexOf(rarity),
         count,
-        unlocked: unlockedItems.has(item.id),
+        unlocked: engine.hasSeenItem(item.id, rarity.id), // seen once (loading a save marks what it holds)
         countText: formatBigNum(factory.fromNumber(count)),
         augmentable: augment?.itemId === item.id,
         sellable: item.sellable !== false,
@@ -90,10 +85,14 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
         canUse:
           (usable && !isShard && engine.canUseBurnLead(rarity.id)) ||
           (isShard && engine.canUseSkillShard()) ||
+          isBurnToggle ||
           (isZeroDay && engine.canToggleZeroDays()) ||
           (isAdminKey && engine.canToggleAdminKeys()),
         toggleable,
-        on: (isZeroDay && state.sleeve.keyToggles['zeroDay'] === true) || (isAdminKey && state.sleeve.keyToggles['adminKey'] === true),
+        on:
+          burnToggle?.on === true ||
+          (isZeroDay && state.sleeve.keyToggles['zeroDay'] === true) ||
+          (isAdminKey && state.sleeve.keyToggles['adminKey'] === true),
         backChannel,
         get backChannelTip() {
           return backChannel && channel && channelMoles !== undefined
@@ -123,8 +122,18 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
                   : [],
             });
           }
-          if (usable && burnLead) {
+          if (isBurnLead && burnLead) {
             return text.tips.burnLead({
+              ...(burnToggle
+                ? {
+                    toggle: {
+                      on: burnToggle.on,
+                      hold: burnToggle.hold,
+                      lower: formatPlain(burnToggle.lower),
+                      reserve: burnToggle.reserve > 0 ? formatPlain(burnToggle.reserve) : null,
+                    },
+                  }
+                : {}),
               label,
               drops,
               sharePercent: formatPlain(burnLead.heatFraction * 100),
@@ -161,19 +170,18 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
             : text.tips.stack({
                 label,
                 drops,
-                sellValue: formatBigNum(rarity.sellValue),
+                sellValue: formatBigNum(price),
                 count: formatBigNum(factory.fromNumber(count)),
-                total: formatBigNum(rarity.sellValue.mul(factory.fromNumber(count))),
+                total: formatBigNum(price.mul(factory.fromNumber(count))),
                 unit: text.costUnits.credits,
               });
         },
       };
     }),
   );
-  const dropSource = buyables.some((b) => b.effect.kind === 'itemDrop' && engine.ownedCount(b.id) > 0);
   return {
     title: text.titles.inventory,
-    visible: dropSource || rows.some((r) => r.count > 0), // an unlocked item is either held or has a drop source
+    visible: rows.some((r) => r.unlocked), // nothing shows until an item has been seen or is held
     rows,
   };
 }

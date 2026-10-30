@@ -57,7 +57,8 @@ export const uiText: UiText = {
     features: {
       autoBurn: {
         name: 'Auto Burn',
-        description: 'Keeps using Burn leads while heat is above the ceiling you set, just enough of them to bring it back down.',
+        description:
+          'Burns leads for you from the Inventory and cools or restarts your heat-making Overclocks and actions, as its skills allow.',
       },
       autosale: {
         name: 'Kompromat autosale',
@@ -68,8 +69,20 @@ export const uiText: UiText = {
         description: 'Applies the Augment schematics you hold to the actions by the shares you set.',
       },
     },
-    autoBurnSwitch: (on) => (on ? 'Auto Burn: on' : 'Auto Burn: off'),
-    autoBurnCeiling: 'Use leads above this heat',
+    autoBurn: {
+      hint: 'The Burn lead toggle is in the Inventory.',
+      switches: {
+        hold: 'Hold at lower threshold',
+        upper: 'Switch on at upper threshold',
+        offOverclocks: 'Toggle on, out of leads: switch off Overclocks that make heat',
+        offActions: 'Toggle on, out of leads: switch off Auto-run of actions that make heat',
+        onActions: 'Heat low, leads available: switch Auto-runs back on',
+        onOverclocks: 'Heat low, leads available: switch Overclocks back on',
+      },
+      lower: 'Lower threshold (heat)',
+      upper: 'Upper threshold (heat)',
+      reserve: 'Burn leads to always keep',
+    },
     dispersalShare: 'Share (%)',
   },
   skills: {
@@ -152,13 +165,21 @@ export const uiText: UiText = {
   },
   action: {
     locked: (reason) => `Locked: ${reason}`,
-    info: ({ speed, duration, startCost, auto }) =>
-      `Action speed ${speed} | ${duration}${startCost ? ` | costs ${startCost}` : ''}${auto ? ' | auto' : ''}`,
+    info: ({ speed, duration, auto }) => `Action speed ${speed} | ${duration}${auto ? ' | auto' : ''}`,
     levelBar: (level, xp, next) => `Lv ${level} - ${xp}/${next} XP`,
     sleeveBar: (level, xp, next, runsToNext) => `Sleeve Lv ${level} - ${xp}/${next} XP | ${runsToNext} runs`,
-    reward: ({ amount, unit, multiplier, heatPerRun, heatChancePercent, heatPerSecond }) =>
-      `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}${heatPerRun > 0 ? ` | ${heatChancePercent === null ? '' : `${heatChancePercent}% chance of `}+${heatPerRun} heat` : ''}${heatPerSecond > 0 ? ` | +${heatPerSecond} heat/s` : ''}`,
+    reward: ({ amount, unit, multiplier }) => `+${amount} ${unit}/run${multiplier === null ? '' : ` | x${multiplier}`}`,
+    costs: (items) => items.join(' | '),
+    cost: {
+      heatPerRun: (amount, chancePercent) => `${chancePercent === null ? '' : `${chancePercent}% chance of `}+${amount} heat`,
+      heatPerSecond: (amount) => `+${amount} heat/s`,
+      heatPerMinute: (amount) => `+${amount} heat/min (Overclock)`,
+      start: (cost) => `costs ${cost}`,
+      nodesPerRun: (amount) => `${amount} nodes per run (Overclock)`,
+      holdsHeat: 'holds heat in place (Overclock)',
+    },
     augment: 'Augment',
+    xpFactors: { lever: 'XP Boost', augments: 'Augment Boost', mirror: 'Mirror Boost' },
     critFlash: (count, perSecond) => (count > 1 ? `${perSecond} crits/s` : 'CRITICAL!'),
     modes: {
       autoRun: { symbol: '↻', name: 'Auto-run' },

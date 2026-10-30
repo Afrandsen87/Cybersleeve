@@ -111,8 +111,7 @@ export class ToggleStats implements ModeStatuses {
       speedBonus: (rule.speedBonus ?? 0) * strength,
       rewardBonus: (rule.rewardBonus ?? 0) * strength,
       heatPerMinute: rule.heatPerMinute ?? 0,
-      heatPerRunFactor: Math.min(rule.heatPerRunFactor ?? 1, this.sleeveStats().overclockHeatFactors[id] ?? Infinity),
-      heatChanceFactor: rule.heatChanceFactor ?? 1,
+      heatChanceFactor: Math.max(1, (rule.heatChanceFactor ?? 1) * (this.sleeveStats().overclockHeatChanceFactors[id] ?? 1)),
       completionEffects: rule.completionEffects ?? [],
       alsoPays: rule.alsoPays ?? null,
       strength,
@@ -124,6 +123,17 @@ export class ToggleStats implements ModeStatuses {
     if (this.state.sleeve.overclocked[id] !== true) return null;
     const status = this.overclockStatus(id);
     return status?.on ? status : null;
+  }
+
+  /**
+   * The chance (0..1) that a completed run of the action makes its heat: the action's own `heatChance` times the factor of Overclock while it
+   * is on, never above 1. The one owner of this rule (the run batch draws with it, the action card shows it).
+   *
+   * Called by: `actionRunner.ts`, `GameEngine.heatChance`. Calls: {@link ToggleStats.activeOverclock}.
+   * @throws Error if the action id is unknown
+   */
+  heatChance(id: ActionId): number {
+    return Math.min(1, (this.definition(id).heatChance ?? 1) * (this.activeOverclock(id)?.heatChanceFactor ?? 1));
   }
 
   /**

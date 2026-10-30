@@ -30,18 +30,22 @@ const WALLET_KEYS = [
   'corporation',
   'credits',
   'inventory',
+  'lastLifeAutoRunOn',
   'lastLifePurchases',
   'runs',
+  'seenItems',
   'synths',
 ];
 const SLEEVE_KEYS = [
   'actions',
+  'autoBurn',
   'autoRunOff',
   'bankedCriticals',
   'chains',
   'focusStacks',
   'focused',
   'hackingProficiency',
+  'hardeningCrits',
   'heat',
   'heatCooldownMs',
   'iceRating',
@@ -55,6 +59,7 @@ const SLEEVE_KEYS = [
   'overclocked',
   'peakCredits',
   'peakNetwork',
+  'peakNetworkIncome',
   'purchased',
   'resleeveLockoutMs',
 ];
@@ -86,7 +91,10 @@ describe('ownership of the state', () => {
 
 describe('the v7 save shape', () => {
   it('is nested: the wallet, and the sleeves keyed by id with one entry', () => {
-    const data = JSON.parse(serializeState(fresh()));
+    const state = fresh();
+    state.wallet.seenItems = { file: { common: true } }; // an empty set is left out of the text
+    state.wallet.lastLifeAutoRunOn = { auto: true }; // likewise
+    const data = JSON.parse(serializeState(state));
     expect(data.version).toBe(SAVE_VERSION);
     expect(Object.keys(data).sort()).toEqual(['sleeves', 'version', 'wallet']);
     expect(Object.keys(data.sleeves)).toEqual(['main']);
@@ -126,8 +134,9 @@ describe('a re-sleeve keeps exactly the fields on the positive lists', () => {
     s.wallet.runs = [{ creditsPerSecond: num(1), actionLevelsTotal: 2 }];
     s.wallet.synths = [{ runIndex: 0 }];
     s.wallet.corporation.stocks = 5;
-    s.wallet.automation.autoBurnCeiling = 9;
+    s.wallet.automation.autoBurn.lower = 9;
     s.wallet.inventory = { file: { common: 3 } };
+    s.wallet.seenItems = { file: { common: true } };
     s.wallet.lastLifePurchases = { ghost: 1 };
     for (const f of SCALAR_FIELDS) {
       if (f.owner === 'sleeve') (s.sleeve as unknown as Record<string, unknown>)[f.key] = f.kind === 'big' ? num(7) : 7;
@@ -140,6 +149,7 @@ describe('a re-sleeve keeps exactly the fields on the positive lists', () => {
     s.sleeve.chains = { a: 1 };
     s.sleeve.bankedCriticals = { a: 1 };
     s.sleeve.keyToggles = { zeroDay: true };
+    s.sleeve.autoBurn = { on: true, upperArmed: true, seconds: 0.5, overclocksOff: { a: true }, autoRunsOff: { ghost: true } };
     const action = s.sleeve.actions['a']!;
     Object.assign(action, {
       xp: num(9),

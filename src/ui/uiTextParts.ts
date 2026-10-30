@@ -10,5 +10,6 @@
 export * from './parts/idParts';
 export * from './parts/sleeveTipParts';
 export * from './parts/actionTipParts';
+export * from './parts/xpTipParts';
 export * from './parts/itemTipParts';
 export * from './parts/buyableTipParts';

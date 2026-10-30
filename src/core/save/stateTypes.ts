@@ -4,6 +4,7 @@
  * The state of a running game: what changes while playing, and its read-only view.
  */
 import type { AutomationState } from '../automation/automation';
+import type { AutoBurnLife } from '../automation/autoBurnTypes';
 import type { BigNum } from '../../numbers';
 import type { ActionId } from '../actions/actionTypes';
 import type { CorporationState } from '../corporation/corporationTypes';
@@ -32,7 +33,7 @@ export interface ActionState {
  * What is kept of one finished sleeve-run (the life that ended with a re-sleeve). Synthetic sleeves are copies of such a run.
  */
 export interface SleeveRunRecord {
-  /** The credits per second the sleeve's own network was producing when it was re-sleeved (after the heat tax; synthetic income is not part of it). */
+  /** The highest credits per second the sleeve's own network produced during that life (after the heat tax; synthetic income is not part of it): the peak, not the rate at the moment of re-sleeving. */
   readonly creditsPerSecond: BigNum;
   /** The total of all action levels the sleeve had reached at that moment (a whole number >= 0). */
   readonly actionLevelsTotal: number;
@@ -65,6 +66,16 @@ export interface Wallet {
    * at every re-sleeve whatever skills are owned; empty in a new game. Whole counts.
    */
   lastLifePurchases: Record<BuyableId, number>;
+  /**
+   * The toggleable purchases (Auto-runs) of `lastLifePurchases` that were switched ON when the last life ended (`true`; absent: off), so a
+   * bought-back Auto-run is set the way it was left. Written at every re-sleeve; empty in a new game; left out of the save text while empty.
+   */
+  lastLifeAutoRunOn: Record<BuyableId, true>;
+  /**
+   * Every item and rarity that has ever entered the inventory, over all lives (`seenItems[itemId][rarityId] === true`; an absent entry is not
+   * seen). Written only by `Inventory.add`. Decides which inventory groups and rows are shown. Survives re-sleeving. A save without it loads empty.
+   */
+  seenItems: Record<ItemId, Record<RarityId, true>>;
   /** What the player unlocked and set in the Automation tab. Reset by re-sleeving unless a retention skill keeps it. */
   automation: AutomationState;
   /** Progress of the corporation's actions. Survives re-sleeving: the corporation is not the character. (The save keeps corporations as a map keyed by id, with one entry.) */
@@ -84,6 +95,12 @@ export interface SleeveState {
   network: BigNum;
   /** The most nodes held at any moment of this life (see `RevealConfig`). Reset by re-sleeving. */
   peakNetwork: BigNum;
+  /**
+   * The highest credits per second the sleeve's own network produced at any moment of this life (after the heat tax; synthetic income
+   * is not part of it). Noted by `NetworkSystem.payPassiveIncome` every slice and read by the re-sleeve record, which keeps the larger of
+   * this and the rate at the moment of re-sleeving. Reset by re-sleeving; an older save without it starts at 0.
+   */
+  peakNetworkIncome: BigNum;
   /**
    * Current heat: starts at `sleeve.baseHeat`, raised by actions, lowered by the cooldown and by Burn leads. Reset by re-sleeving.
    * It may hold fractions of a point (Overclock adds heat continuously), but the cooldown only ever removes whole points: it waits
@@ -106,6 +123,8 @@ export interface SleeveState {
   networkRemainder: number;
   /** Gained from actions paying `nodePayout`: credits per second added to the BASE value of what each node produces (`network.creditsPerNodePerSecond + this`; buyables multiply the sum). Reset by re-sleeving. */
   nodePayoutBonus: BigNum;
+  /** Per `hardenedPayloadFromCrits` buyable: the critical successes of its action counted while that buyable is owned (whole numbers > 0; absent = 0; see `CritTally`). Reset by re-sleeving. */
+  hardeningCrits: Record<BuyableId, number>;
   /** Hacking Proficiency: gained from actions paying `hackingProficiency`; the hacking multiplier on interface speed is a concave function of it. Reset by re-sleeving. */
   hackingProficiency: BigNum;
   /** Auto-run buyables the player has switched off (absent or false: running). Reset by re-sleeving. */
@@ -123,6 +142,8 @@ export interface SleeveState {
    * key item up and are critical. A toggle switches itself off when none is left. Reset by re-sleeving.
    */
   keyToggles: Record<string, boolean>;
+  /** Auto Burn's part of this life: the Burn lead toggle, the second counter, and what it switched off. Reset by re-sleeving. */
+  autoBurn: AutoBurnLife;
   /** Links of each action's Overclock chain (absent: 0). Only counts while the action is overclocked and running. Reset by re-sleeving. */
   chains: Record<ActionId, number>;
 }

@@ -54,8 +54,6 @@ export interface OverclockTipParts {
   readonly reward: { readonly basePercent: string; readonly percent: string } | null;
   /** Heat added per minute while the action runs overclocked, or `null` when there is none. */
   readonly heatPerMinute: string | null;
-  /** What the heat of each run is multiplied by, or `null` when it is not. */
-  readonly heatPerRunFactor: string | null;
   /** What the chance that a run makes heat is multiplied by, or `null` when it is not. */
   readonly heatChanceFactor: string | null;
   /** Nodes each completed run costs, or `null` when it costs none. */
@@ -141,7 +139,6 @@ export interface CriticalTipParts {
 export interface ActionInfoParts {
   readonly speed: string;
   readonly duration: string;
-  readonly startCost: string | null;
   readonly auto: boolean;
 }
 
@@ -151,11 +148,14 @@ export interface RewardLineParts {
   readonly unit: string;
   /** The reward multiplier, or `null` when it is 1. */
   readonly multiplier: string | null;
-  readonly heatPerRun: number;
-  /** The chance in percent that a run makes its heat, or `null` when every run does. */
-  readonly heatChancePercent: string | null;
-  /** Heat added per second while the action runs. */
-  readonly heatPerSecond: number;
+}
+
+/** Pre-formatted pieces of the live numbers of the Forensic hardening purchase. */
+export interface HardeningValueParts {
+  /** Critical successes counted so far. */
+  readonly crits: string;
+  /** ICE Rating added to every level of the level action so far. */
+  readonly perLevel: string;
 }
 
 /** Pre-formatted pieces of the live numbers of the network-growth purchase. */

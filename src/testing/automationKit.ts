@@ -8,22 +8,30 @@
  * Called by: the automation tests (core and ui) and the random play in `core/properties.test.ts`.
  */
 import type { AutomationFeature, BuyableDefinition } from '../core';
-import { AUTOMATION_FEATURES } from '../core';
+import { AUTOMATION_FEATURES, AUTO_BURN_STEPS } from '../core';
 import { num } from '../numbers';
 
 /** Id of the `step`-th (1-based) skill of a feature's test lane. */
 export const laneSkillId = (feature: AutomationFeature, step: number): string => `lane-${feature}-${step}`;
 
+/** The effect of the `step`-th skill of a feature's test lane. */
+function laneEffect(feature: AutomationFeature, step: number): BuyableDefinition['effect'] {
+  if (step === 1) return { kind: 'unlocksAutomation', feature };
+  const autoBurnStep = AUTO_BURN_STEPS[step - 2];
+  return feature === 'autoBurn' && autoBurnStep !== undefined ? { kind: 'autoBurnStep', step: autoBurnStep } : { kind: 'placeholder' };
+}
+
 /**
  * A lane of skills for every feature: step 1 unlocks the feature, each later step is a placeholder that needs the one before it. All
- * cost 1 automation point and sit in a branch named after the feature.
+ * cost 1 automation point and sit in a branch named after the feature. The Auto Burn lane is always the full ten skills, with the
+ * real steps (`autoBurnStep`, in the order of `AUTO_BURN_STEPS`) from step 2 on.
  *
- * @param length skills per lane (default 3)
+ * @param length skills per lane for the other features (default 3)
  * @returns the buyables, to add to a test config
  */
 export function automationLaneBuyables(length = 3): BuyableDefinition[] {
   return AUTOMATION_FEATURES.flatMap((feature) =>
-    Array.from({ length }, (_, i): BuyableDefinition => {
+    Array.from({ length: feature === 'autoBurn' ? AUTO_BURN_STEPS.length + 1 : length }, (_, i): BuyableDefinition => {
       const step = i + 1;
       return {
         id: laneSkillId(feature, step),
@@ -33,7 +41,7 @@ export function automationLaneBuyables(length = 3): BuyableDefinition[] {
         branch: feature,
         ...(step > 1 ? { parents: [laneSkillId(feature, step - 1)] } : {}),
         cost: num(1),
-        effect: step === 1 ? { kind: 'unlocksAutomation', feature } : { kind: 'placeholder' },
+        effect: laneEffect(feature, step),
       };
     }),
   );

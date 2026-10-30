@@ -7,7 +7,7 @@
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { type ActionAccumulator, definitionOf } from './effectRegistry';
-import type { ActionId, BuyableDefinition, ChainRule, ItemDropRule, StateSlice } from '../types';
+import type { ActionId, BuyableDefinition, ChainRule, ItemDropRule, RarityShift, StateSlice } from '../types';
 
 /** Aggregated purchase effects for one action. */
 export interface ActionEffects {
@@ -31,8 +31,8 @@ export interface ActionEffects {
   readonly siphonSeconds: number;
   /** Items the action may drop per completed run (one rule per owned `itemDrop` buyable). */
   readonly drops: readonly ItemDropRule[];
-  /** The share of each rarity's weight that moves on per order of magnitude of Hacking Proficiency, one entry per owned `rarityShiftFromProficiency` buyable. */
-  readonly rarityShifts: readonly number[];
+  /** The share of each rarity's weight that moves on per step (a step is a `stepBase`-fold rise of 1 + Hacking Proficiency), one entry per owned `rarityShiftFromProficiency` buyable. */
+  readonly rarityShifts: readonly RarityShift[];
 }
 
 /**

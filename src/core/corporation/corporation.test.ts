@@ -35,9 +35,9 @@ const contentWith = (actions: readonly CorporationActionDefinition[], extra: Par
     ],
     items: {
       rarities: [
-        { id: 'common', name: 'Common', sellValue: num(1) },
-        { id: 'uncommon', name: 'Uncommon', sellValue: num(10) },
-        { id: 'rare', name: 'Rare', sellValue: num(100) },
+        { id: 'common', name: 'Common', sellValue: num(1), sellSeconds: 0 },
+        { id: 'uncommon', name: 'Uncommon', sellValue: num(10), sellSeconds: 0 },
+        { id: 'rare', name: 'Rare', sellValue: num(100), sellSeconds: 0 },
       ],
       definitions: [{ id: 'file', name: 'File' }],
     },
@@ -57,6 +57,9 @@ const openGame = (cfg: GameConfig = config, random = seededRandom(1)) => {
 type Loose = { inventory: Record<string, Record<string, number>> };
 const stock = (g: { getState(): unknown }, held: Record<string, number>): void => {
   flat<Loose>(g).inventory = { file: held };
+  flat<{ seenItems: Record<string, Record<string, true>> }>(g).seenItems = {
+    file: Object.fromEntries(Object.keys(held).map((r) => [r, true as const])),
+  }; // what the held stacks would have recorded
 };
 const held = (g: { getState(): unknown }, rarity: string): number => flat<Loose>(g).inventory['file']?.[rarity] ?? 0;
 /** The run state of action `c1` (its XP is left out: levels are tested in `corporationLevels.test.ts`). */

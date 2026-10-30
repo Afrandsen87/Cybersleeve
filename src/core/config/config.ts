@@ -63,7 +63,9 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
     criticalSuccess: { ...base.criticalSuccess, ...overrides.criticalSuccess },
     focus: { ...base.focus, ...overrides.focus },
     resleeve: { ...base.resleeve, ...overrides.resleeve },
-    ...(base.automation || overrides.automation ? { automation: { autoBurnCeiling: 0, ...base.automation, ...overrides.automation } } : {}),
+    ...(base.automation || overrides.automation
+      ? { automation: { autoBurnCeiling: 0, autoBurnUpper: 100, ...base.automation, ...overrides.automation } }
+      : {}),
     ...(base.corporation || overrides.corporation ? { corporation: overrides.corporation ?? base.corporation! } : {}),
     ...(base.reveal || overrides.reveal ? { reveal: { buyableOrders: Infinity, ...base.reveal, ...overrides.reveal } } : {}),
     progression: { ...base.progression, ...overrides.progression },
@@ -124,8 +126,7 @@ function checkCompletionEffects(where: string, effects: GameConfig['actions'][nu
 
 /** Checks the numbers of an action's Overclock rule: every field that is given must make sense, and at least one must be given. */
 function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions'][number]['overclock']>, errors: string[]): void {
-  const { speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, heatChanceFactor, alsoPays, completionEffects, stopsHeatCooling } =
-    rule;
+  const { speedBonus, rewardBonus, heatPerMinute, heatChanceFactor, alsoPays, completionEffects, stopsHeatCooling } = rule;
   if (speedBonus !== undefined && !(Number.isFinite(speedBonus) && speedBonus > 0))
     errors.push(`${where}: overclock speedBonus must be > 0`);
   if (rewardBonus !== undefined && !(Number.isFinite(rewardBonus) && rewardBonus > 0))
@@ -133,15 +134,12 @@ function checkOverclockRule(where: string, rule: NonNullable<GameConfig['actions
   if (heatPerMinute !== undefined && !(Number.isFinite(heatPerMinute) && heatPerMinute >= 0)) {
     errors.push(`${where}: overclock heatPerMinute must be >= 0`);
   }
-  if (heatPerRunFactor !== undefined && !(Number.isFinite(heatPerRunFactor) && heatPerRunFactor >= 1)) {
-    errors.push(`${where}: overclock heatPerRunFactor must be >= 1`);
-  }
   if (heatChanceFactor !== undefined && !(Number.isFinite(heatChanceFactor) && heatChanceFactor >= 1)) {
     errors.push(`${where}: overclock heatChanceFactor must be >= 1`);
   }
   checkCompletionEffects(`${where} overclock`, completionEffects, errors);
   const anything =
-    [speedBonus, rewardBonus, heatPerMinute, heatPerRunFactor, heatChanceFactor, alsoPays].some((v) => v !== undefined) ||
+    [speedBonus, rewardBonus, heatPerMinute, heatChanceFactor, alsoPays].some((v) => v !== undefined) ||
     stopsHeatCooling === true ||
     (completionEffects?.length ?? 0) > 0;
   if (!anything) errors.push(`${where}: overclock needs at least one effect`);
@@ -180,6 +178,7 @@ function checkItems(
     if (rarityIds.has(rarity.id)) errors.push(`duplicate rarity id "${rarity.id}"`);
     rarityIds.add(rarity.id);
     if (!rarity.sellValue.isFinite() || rarity.sellValue.isNegative()) errors.push(`rarity "${rarity.id}": sellValue must be >= 0`);
+    if (!(Number.isFinite(rarity.sellSeconds) && rarity.sellSeconds >= 0)) errors.push(`rarity "${rarity.id}": sellSeconds must be >= 0`);
   }
   if (items.definitions.length > 0 && items.rarities.length === 0) errors.push('items need at least one rarity');
   if (items.augment) {
@@ -356,6 +355,12 @@ export function validateConfig(config: GameConfig): string[] {
   if (config.automation && !(Number.isFinite(config.automation.autoBurnCeiling) && config.automation.autoBurnCeiling >= 0)) {
     errors.push('automation.autoBurnCeiling must be >= 0');
   }
+  if (
+    config.automation &&
+    !(Number.isFinite(config.automation.autoBurnUpper) && config.automation.autoBurnUpper > config.automation.autoBurnCeiling)
+  ) {
+    errors.push('automation.autoBurnUpper must be a finite number above automation.autoBurnCeiling');
+  }
   if (config.reveal && !(config.reveal.buyableOrders >= 0)) errors.push('reveal.buyableOrders must be >= 0 (Infinity shows everything)');
   if (!positive(config.focus.speedBonus)) errors.push('focus.speedBonus must be > 0');
   if (!positiveInt(config.focus.baseSlots)) errors.push('focus.baseSlots must be an integer >= 1');
@@ -372,6 +377,9 @@ export function validateConfig(config: GameConfig): string[] {
   if (lockout !== undefined && !(Number.isFinite(lockout) && lockout >= 0)) errors.push('resleeve.lockoutMs must be >= 0');
   if (config.buyables.filter((b) => b.effect.kind === 'unlockSleeveLevels').length > 1) {
     errors.push('at most one buyable may have the unlockSleeveLevels effect');
+  }
+  if (config.buyables.filter((b) => b.effect.kind === 'unlockResleeve').length > 1) {
+    errors.push('at most one buyable may have the unlockResleeve effect');
   }
 
   const p = config.progression;

@@ -2,11 +2,11 @@
  * @module content
  *
  * The three automation lanes (Auto Burn, Compromat Autosale, Augment Dispersal), bought with automation points and drawn inside each
- * automation's box in the Automation tab. Each lane is a chain of `AUTOMATION_LINE_LENGTH` skills that will become progressively more
- * complicated versions of that automation. The FIRST skill is the unlock (`unlocksAutomation`); the rest are PLACEHOLDERS (no effect
- * yet). Replace a lane's generated entries with real ones, one file per lane, when designed.
+ * automation's box in the Automation tab. Each lane is a chain of `AUTOMATION_LINE_LENGTH` skills. The FIRST skill of a lane is the
+ * unlock (`unlocksAutomation`). The Auto Burn lane is designed: its other nine skills each add one step of Auto Burn (`autoBurnStep`).
+ * The other two lanes are PLACEHOLDERS (no effect yet); replace a lane's generated entries with real ones, one file per lane, when designed.
  */
-import type { AutomationFeature, BuyableDefinition } from '../../../core';
+import type { AutoBurnStep, AutomationFeature, BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import { AUTOMATION_LINE_LENGTH, BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL, automationSkillId } from '../../ids';
 
@@ -37,9 +37,80 @@ function placeholderLine(branch: AutomationFeature, name: string, symbol: string
   });
 }
 
+/** The ten skills of the Auto Burn lane, in order: name, what it adds, and the step it grants (`null` for the first, which is the unlock). */
+const AUTO_BURN_SKILLS: readonly { readonly name: string; readonly description: string; readonly step: AutoBurnStep | null }[] = [
+  {
+    name: 'Burn Toggle',
+    description: 'Burn leads become a toggle in the Inventory. While it is on, one Burn lead is used every second while there is heat.',
+    step: null,
+  },
+  {
+    name: 'Hold Down',
+    description:
+      'Adds the switch "Hold at lower threshold": use just enough leads to bring heat down to the lower threshold, none at or below it.',
+    step: 'hold',
+  },
+  {
+    name: 'Redline Trigger',
+    description:
+      'Adds the switch "Switch on at upper threshold": the Burn lead toggle switches itself on when heat reaches the upper threshold.',
+    step: 'upper',
+  },
+  {
+    name: 'Cool Overclocks',
+    description: 'Adds a switch: when out of leads while heat is above the lower threshold, switch off every Overclock that makes heat.',
+    step: 'offOverclocks',
+  },
+  {
+    name: 'Cool Auto-runs',
+    description: 'Adds a switch: in that situation also switch off the Auto-run of every action that makes heat.',
+    step: 'offActions',
+  },
+  {
+    name: 'Resume Auto-runs',
+    description:
+      'Adds a switch: when heat is below the lower threshold and leads are available, switch back on the Auto-runs this switched off, and the Burn lead toggle.',
+    step: 'onActions',
+  },
+  {
+    name: 'Resume Overclocks',
+    description: 'Adds a switch: in that situation also switch back on the Overclocks this switched off.',
+    step: 'onOverclocks',
+  },
+  {
+    name: 'Pick Targets',
+    description: 'Choose separately whether Overclocks and actions are switched off, and whether they are switched back on.',
+    step: 'choose',
+  },
+  { name: 'Tune Thresholds', description: 'Edit the lower and the upper threshold.', step: 'thresholds' },
+  {
+    name: 'Lead Reserve',
+    description: 'Set a number of Burn leads to always keep: every rule above treats only the leads beyond it as available.',
+    step: 'reserve',
+  },
+];
+
+/** The Auto Burn lane: one chain, each skill 1 automation point, the first the unlock and the rest granting the steps of {@link AUTO_BURN_SKILLS}. */
+function autoBurnLine(): BuyableDefinition[] {
+  return AUTO_BURN_SKILLS.map((skill, i): BuyableDefinition => {
+    const step = i + 1;
+    return {
+      id: automationSkillId(BRANCH_AUTO_BURN, step),
+      name: skill.name,
+      symbol: `B${step}`,
+      description: skill.description,
+      currency: 'automationPoints',
+      branch: BRANCH_AUTO_BURN,
+      ...(step > 1 ? { parents: [automationSkillId(BRANCH_AUTO_BURN, step - 1)] } : {}),
+      cost: num(1), // placeholder price
+      effect: skill.step === null ? { kind: 'unlocksAutomation', feature: BRANCH_AUTO_BURN } : { kind: 'autoBurnStep', step: skill.step },
+    };
+  });
+}
+
 /** The automation lanes of the skill tree, lane by lane. */
 export const automationSkills: BuyableDefinition[] = [
-  ...placeholderLine(BRANCH_AUTO_BURN, 'Auto Burn', 'B'),
+  ...autoBurnLine(),
   ...placeholderLine(BRANCH_AUTOSALE, 'Autosale', 'S'),
   ...placeholderLine(BRANCH_DISPERSAL, 'Dispersal', 'D'),
 ];

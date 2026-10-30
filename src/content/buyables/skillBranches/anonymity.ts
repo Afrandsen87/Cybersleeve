@@ -44,13 +44,13 @@ export const anonymitySkills: BuyableDefinition[] = [
     id: SKILL_OBFUSCATION,
     name: 'Obfuscation',
     symbol: 'OB',
-    description: 'Lowers the heat Push malware makes per overclocked run that makes heat from 3x to 2x.',
+    description: 'Halves the heat chance Overclock raises on Push malware: overclocked runs are half as likely to make heat.',
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_COLD_TRAIL],
     requires: [overclockUnlockId(PUSH_MALWARE)], // reveal gate: the purchase that makes it useful
     cost: num(1),
-    effect: { kind: 'overclockHeatFactor', targetActionId: PUSH_MALWARE, factor: 2 },
+    effect: { kind: 'overclockHeatChanceFactor', targetActionId: PUSH_MALWARE, factor: 0.5 },
   },
 
   {
@@ -61,7 +61,7 @@ export const anonymitySkills: BuyableDefinition[] = [
     currency: 'skillPoints',
     branch: BRANCH_ANONYMITY,
     parents: [SKILL_OBFUSCATION],
-    requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once re-sleeving is unlocked
+    requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once the Sleeve levels upgrade is owned
     cost: num(1), // placeholder; a late-stage skill, since sleeve levels of Build Legend come slowly
     effect: { kind: 'heatCooldownAmountFromSleeveLevel', sourceActionId: LEGEND, perLevel: 1 },
   },

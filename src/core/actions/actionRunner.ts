@@ -9,6 +9,7 @@ import { applyCompletionEffects } from './completion';
 import type { CriticalSuccesses } from '../crits/critical';
 import type { LinkedPayouts } from './linkedPayouts';
 import type { CritFeed } from '../crits/critFeed';
+import type { CritTally } from '../crits/critTally';
 import { type Diagnostics, silentDiagnostics } from '../kernel/diagnostics';
 import type { ItemDrops } from '../items/drops';
 import type { Progression } from './progression';
@@ -58,6 +59,7 @@ export class ActionRunner {
    * @param adminKeys uses up the Admin keys that make runs critical for sure (and may drop Skill shards)
    * @param links spends and banks the guaranteed critical successes of critical links
    * @param feed told about the critical successes of every batch (for the highlight on the action card)
+   * @param tally told about the critical successes of every batch (counts them for `hardenedPayloadFromCrits`)
    * @param linked draws the extra rewards completed runs pay for other actions (`paysActionReward` buyables)
    * @param diagnostics receives a warning when game time has to be dropped (default: ignored)
    */
@@ -76,6 +78,7 @@ export class ActionRunner {
     private readonly adminKeys: ZeroDays,
     private readonly links: CriticalLinks,
     private readonly feed: CritFeed,
+    private readonly tally: CritTally,
     private readonly linked: LinkedPayouts,
     private readonly random: RandomSource,
     private readonly diagnostics: Diagnostics = silentDiagnostics,
@@ -225,7 +228,7 @@ export class ActionRunner {
     const rule = this.stats.criticalRule(def.id);
     const overclock = this.stats.activeOverclock(def.id);
     this.payBatch(def, runs, plainRuns, critical, rule.rewardMultiplier);
-    this.chargeRunHeat(def, runs, overclock);
+    this.chargeRunHeat(def, runs);
     this.drops.roll(def.id, runs);
     this.extendChain(def.id, runs);
     this.applyEffects(def, runs, critical, rule, overclock);
@@ -245,6 +248,7 @@ export class ActionRunner {
     const { crits: critical, plainRuns } = this.criticals.settle(runs, covered);
     this.links.bank(id, critical);
     this.feed.record(id, critical);
+    this.tally.record(id, critical);
     return { critical, plainRuns };
   }
 
@@ -260,10 +264,9 @@ export class ActionRunner {
   }
 
   /** Adds the heat of the batch: one binomial draw for the runs that add heat (no draw at a chance of 1). */
-  private chargeRunHeat(def: ActionDefinition, runs: number, overclock: ReturnType<DerivedStats['activeOverclock']>): void {
-    const heatChance = Math.min(1, (def.heatChance ?? 1) * (overclock?.heatChanceFactor ?? 1));
-    const heatRuns = perRunEvents(runs, heatChance, this.random);
-    this.state.sleeve.heat += heatRuns * (def.heatPerRun ?? 0) * (overclock?.heatPerRunFactor ?? 1);
+  private chargeRunHeat(def: ActionDefinition, runs: number): void {
+    const heatRuns = perRunEvents(runs, this.stats.heatChance(def.id), this.random);
+    this.state.sleeve.heat += heatRuns * (def.heatPerRun ?? 0);
   }
 
   /** Applies the completion effects of the action (every run), of the critical rule (every critical success) and of Overclock (every run). */

@@ -9,14 +9,19 @@ import {
   DerivedStats,
   ActionToggles,
   Augments,
+  ownsAutoRun,
   BackChannel,
   BurnLeads,
   CriticalLinks,
   Automation,
+  AutoBurn,
+  heatMakingAutoRuns,
+  heatMakingOverclockActions,
   automationPointsEarned,
   Corporation,
   CorporationLevels,
   CritFeed,
+  CritTally,
   CriticalSuccesses,
   LinkedPayouts,
   RewardPayer,
@@ -116,6 +121,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
   const adminKeys = new ZeroDays(config, state, inventory, 'adminKey', random);
   const links = new CriticalLinks(stats, state);
   const critFeed = new CritFeed();
+  const critTally = new CritTally(config.buyables, state);
   const linked = new LinkedPayouts(stats, random);
   const payer = new RewardPayer(state, economy, stats, definition);
   const burnLeads = new BurnLeads(
@@ -125,7 +131,14 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     () => stats.heatCoolingBlocked(),
     () => stats.sleeveStats().burnLeadFlatHeat,
   );
-  const augments = new Augments(config, state, inventory);
+  const toggles = new ActionToggles(state, stats);
+  const autoBurn = new AutoBurn(config, state, inventory, burnLeads, {
+    overclockActions: heatMakingOverclockActions(config.actions),
+    autoRuns: heatMakingAutoRuns(config.buyables, config.actions),
+    setOverclock: (id, on) => toggles.setOverclock(id, on),
+    setAutoRun: (id, on) => shop.setOn(state, id, on),
+  });
+  const augments = new Augments(config, state, inventory, (id) => ownsAutoRun(config.buyables, state, id));
   const corporationLevels = new CorporationLevels(config, state, factory);
   const corporation = new Corporation(
     config,
@@ -154,6 +167,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     adminKeys,
     links,
     critFeed,
+    critTally,
     linked,
     random,
     diagnostics,
@@ -169,12 +183,12 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     zeroDays,
     adminKeys,
     skillShards: new SkillShards(config, state, inventory, (id) => runner.isUnlocked(id), random),
-    toggles: new ActionToggles(state, stats),
+    toggles,
     critFeed,
     drops,
     augments,
     corporation,
-    automation: new Automation(config, state, inventory, burnLeads, augments, {
+    automation: new Automation(config, state, inventory, autoBurn, augments, {
       pointsAvailable: () => shop.pointsAvailable(state, 'automationPoints'),
       buy: (id) => shop.buy(state, id) === 'purchased',
     }),

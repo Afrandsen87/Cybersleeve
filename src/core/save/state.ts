@@ -6,6 +6,7 @@
 import type { NumberFactory } from '../../numbers';
 import { traitsOf } from '../effects/effectTraits';
 import { createAutomationState } from '../automation/automation';
+import { createAutoBurnLife } from '../automation/autoBurnTypes';
 import { createCorporationState } from '../corporation/corporationState';
 import { carryRetention, recordLastLife } from '../resleeve/resleeveCarry';
 import { CARRIED_OVER_CURRENCIES } from '../kernel/currencies';
@@ -39,6 +40,7 @@ export const CARRIED_OVER_WALLET_FIELDS = [
   'corporation',
   'allTimePeakCredits',
   'allTimePeakNetwork',
+  'seenItems',
 ] as const satisfies readonly (keyof Wallet)[];
 
 /** The carried-over part of one action's state. */
@@ -77,11 +79,13 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
     wallet: {
       ...(scalars.wallet as Pick<Wallet, 'credits' | 'allTimePeakCredits' | 'allTimePeakNetwork'>),
       lastLifePurchases: {},
+      lastLifeAutoRunOn: {},
       runs: [],
       synths: [],
       automation: createAutomationState(config),
       corporation: createCorporationState(config.corporation, factory),
       inventory: {},
+      seenItems: {},
     },
     sleeve: {
       ...(scalars.sleeve as Pick<
@@ -89,6 +93,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
         | 'peakCredits'
         | 'network'
         | 'peakNetwork'
+        | 'peakNetworkIncome'
         | 'heat'
         | 'heatCooldownMs'
         | 'iceRating'
@@ -100,11 +105,13 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
         | 'nodePayoutBonus'
         | 'hackingProficiency'
       >),
+      hardeningCrits: {},
       autoRunOff: {},
       overclocked: {},
       focused: {},
       focusStacks: {},
       keyToggles: {},
+      autoBurn: createAutoBurnLife(),
       chains: {},
       bankedCriticals: {},
       actions,

@@ -76,6 +76,19 @@ export function sleeveLevelsGateId(buyables: readonly BuyableDefinition[] | unde
 }
 
 /**
+ * Id of the buyable that allows re-sleeving (the one with the `unlockResleeve` effect). Lives here, next to
+ * {@link sleeveLevelsGateId}, so the gate and the UI read the same rule.
+ *
+ * Called by: `resleeve/resleeveGate.ts`, `ui/view/sleeveGate.ts`. Calls: nothing (pure).
+ *
+ * @param buyables the content
+ * @returns its id, or `null` when the content has none (re-sleeving is always allowed)
+ */
+export function resleeveGateId(buyables: readonly BuyableDefinition[] | undefined): string | null {
+  return buyables?.find((b) => b.effect.kind === 'unlockResleeve')?.id ?? null;
+}
+
+/**
  * True when at least one copy of a buyable with this effect kind is owned.
  *
  * @param buyables every buyable definition of the content

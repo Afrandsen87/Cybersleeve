@@ -31,8 +31,6 @@ export interface OverclockStatus {
   readonly rewardBonus: number;
   /** Heat the action adds per minute of game time while it is running overclocked (0 when the rule has none). */
   readonly heatPerMinute: number;
-  /** What the heat of each completed run is multiplied by while it is on (1 when the rule has no such cost). */
-  readonly heatPerRunFactor: number;
   /** What the chance that a completed run makes heat is multiplied by while it is on (1 when the rule has no such cost). */
   readonly heatChanceFactor: number;
   /** Effects applied for each completed run while it is on, after the ordinary completion effects. */
@@ -104,9 +102,24 @@ export class ActionToggles {
   toggleOverclock(id: ActionId): boolean {
     const status = this.modes.overclockStatus(id);
     if (!status || !this.state.sleeve.actions[id]) return false;
-    if (status.on) delete this.state.sleeve.overclocked[id];
-    else this.state.sleeve.overclocked[id] = true;
-    return !status.on;
+    return this.setOverclock(id, !status.on);
+  }
+
+  /**
+   * Sets Overclock explicitly on or off for an action (never flips it): the one writer of `overclocked`.
+   *
+   * Called by: {@link ActionToggles.toggleOverclock}, `app/createGame.ts` (Auto Burn's switches).
+   *
+   * @param id the action
+   * @param on the wanted state
+   * @returns true when it is now on; false when it is now off, or when nothing could change (not owned, no rule, unknown action)
+   */
+  setOverclock(id: ActionId, on: boolean): boolean {
+    const status = this.modes.overclockStatus(id);
+    if (!status || !this.state.sleeve.actions[id]) return false;
+    if (on) this.state.sleeve.overclocked[id] = true;
+    else delete this.state.sleeve.overclocked[id];
+    return on;
   }
 
   /**

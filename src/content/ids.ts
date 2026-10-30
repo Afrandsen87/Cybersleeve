@@ -46,8 +46,10 @@ export const NODE_UPLINK = 'node-uplink';
 export const NODE_PAYOUT = 'node-payout';
 /** Id of the sleeve buyable that multiplies ICE Rating. */
 export const ICE_RATING_BOOST = 'ice-rating-boost';
-/** Id of the one-time sleeve buyable that unlocks sleeve levels and re-sleeving. */
+/** Id of the one-time sleeve buyable that unlocks sleeve levels (sleeve XP starts accruing) and shows the Re-sleeve button. */
 export const SLEEVE_LEVELS = 'sleeve-levels';
+/** Id of the one-time sleeve buyable ('Unlock resleeving') that allows re-sleeving; needs Sleeve levels first. */
+export const RESLEEVE_UNLOCK = 'resleeve-unlock';
 /** Id of the sleeve buyable that gives automation points (each unlocks one automation feature). */
 export const AUTOMATION_CORE = 'automation-core';
 /** Id of the Push malware auto-run buyable. */
@@ -204,6 +206,8 @@ export const DECOMMISSION_PROTOCOL = 'decommission-protocol';
 export const CREDIT_SIPHON = 'credit-siphon';
 /** Id of the Kill servers buyable that multiplies the ICE Rating each run pays. */
 export const CASCADE_FAILURE = 'cascade-failure';
+/** Id of the Kill servers buyable whose critical successes raise the per-level ICE Rating of Hardened payload. */
+export const FORENSIC_HARDENING = 'forensic-hardening';
 /** Id of the Push malware buyable that lets its runs drop Zero-days. */
 export const ZERO_DAY_EXPLOITS = 'zero-day-exploits';
 /** Id of the Push malware buyable that triples what its critical successes do. */

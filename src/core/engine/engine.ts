@@ -27,11 +27,13 @@ import type { CritFeed, RecentCrits } from '../crits/critFeed';
 import type { SkillShards } from '../items/skillShards';
 import type { ZeroDays } from '../crits/zeroDays';
 import type { ItemDrops } from '../items/drops';
-import type { Inventory } from '../items/inventory';
+import { type Inventory, hasSeenItem } from '../items/inventory';
 import type { NetworkSystem } from '../economy/network';
 import type { OverflowPolicy } from '../kernel/overflow';
 import { notePeaks } from '../economy/reveal';
 import type { Progression } from '../actions/progression';
+import type { XpCurve } from '../actions/xpCurve';
+import type { XpPerRunBreakdown } from '../actions/runStats';
 import type { ResleevePolicy, ResleeveRequirement } from '../resleeve/resleeve';
 import type { ResleeveGate } from '../resleeve/resleeveGate';
 import type { Resleever } from '../resleeve/resleever';
@@ -226,6 +228,7 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns true when auto-run is now on; false when it is now off or the buyable is not owned (nothing changes then)
    */
   toggleAutoRun(id: BuyableId): boolean {
+    this.automationUnit.playerSwitchedAutoRun(id); // a hand switch ends Auto Burn's claim on it
     return this.shop.toggle(this.state, id);
   }
 
@@ -235,12 +238,16 @@ export class GameEngine implements GameQueries, GameCommands {
   }
 
   /**
-   * What a click on a purchase does: an owned auto-run buyable is switched on or off, anything else is bought.
+   * What a click on a purchase does: an owned auto-run buyable is switched on or off, anything else is bought. The first copy of a
+   * toggleable buyable is left switched OFF (through `Shop.switchOff`, which sets the flag rather than flipping it): buying Auto-run never starts
+   * it. Only this player command does so; `buy` (setup, automation) leaves a new auto-run on; Reflex Archive buy-back sets it explicitly through `Shop.setOn`.
    * @returns what happened
    */
   activateBuyable(id: BuyableId): ActivateResult {
     if (this.shop.isToggleable(id) && this.ownedCount(id) > 0) return this.toggleAutoRun(id) ? 'switched-on' : 'switched-off';
-    return this.buy(id);
+    const result = this.buy(id);
+    if (result === 'purchased') this.shop.switchOff(this.state, id);
+    return result;
   }
 
   /**
@@ -309,6 +316,19 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.burnLeads.use(rarityId);
   }
 
+  /** Switches the Burn lead toggle (Auto Burn, once its first skill is owned). See `AutoBurn.toggle`. @returns true when it is now on */
+  toggleBurnLead(): boolean {
+    return this.automationUnit.autoBurn().toggle();
+  }
+
+  /** The Burn lead toggle and the rules in force, or `null` while the lead is still a click (Auto Burn's first skill is not owned). */
+  burnLeadToggle(): { readonly on: boolean; readonly hold: boolean; readonly lower: number; readonly reserve: number } | null {
+    const rules = this.automationUnit.autoBurn().rules();
+    return rules.toggle
+      ? { on: this.automationUnit.autoBurn().isOn(), hold: rules.hold, lower: rules.lower, reserve: rules.reserve }
+      : null;
+  }
+
   /**
    * Switches the Zero-day toggle. While it is on, every completed run of the Zero-day's action uses one Zero-day up and is a
    * critical success; the toggle switches itself off when none is left. Switching on needs a Zero-day in the Inventory. See `ZeroDays`.
@@ -343,6 +363,7 @@ export class GameEngine implements GameQueries, GameCommands {
    * @returns true when it is now on
    */
   toggleOverclock(id: ActionId): boolean {
+    this.automationUnit.playerSwitchedOverclock(id); // a hand switch ends Auto Burn's claim on it
     return this.toggles.toggleOverclock(id);
   }
 
@@ -427,6 +448,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.overclockStatus(id);
   }
 
+  /** The chance (0..1) that a completed run of the action makes its heat, with Overclock's factor while it is on. */
+  heatChance(id: ActionId): number {
+    return this.stats.heatChance(id);
+  }
+
   /** Focus for an action (its speed bonus, the slots and whether it is on), or `null` when there is no toggle to show. */
   focusStatus(id: ActionId): FocusStatus | null {
     return this.stats.focusStatus(id);
@@ -467,6 +493,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.xpPerRun(id);
   }
 
+  /** The parts of the XP one run gives now. Called by: `ui/view/xpTipView.ts`. @throws Error if unknown */
+  xpPerRunBreakdown(id: ActionId): XpPerRunBreakdown {
+    return this.stats.xpPerRunBreakdown(id);
+  }
+
   // ---- queries about levels -------------------------------------------------------------------------------------
 
   /** Level of an action. @throws Error if unknown */
@@ -482,6 +513,21 @@ export class GameEngine implements GameQueries, GameCommands {
   /** XP that leaving the action's current level costs on its own. @throws Error if unknown */
   actionXpForLevel(id: ActionId): BigNum {
     return this.progression.actionXpForLevel(this.state, id);
+  }
+
+  /** Sleeve XP one batch of runs grants. Called by: `ui/view/xpTipView.ts`. */
+  sleeveXpGrant(): BigNum {
+    return this.progression.sleeveXpGrant();
+  }
+
+  /** The level curve of an action. Called by: `ui/view/xpTipView.ts`. @throws Error if unknown */
+  actionXpCurve(id: ActionId): XpCurve {
+    return this.progression.actionXpCurve(this.state, id);
+  }
+
+  /** The level curve of an action's sleeve levels. Called by: `ui/view/xpTipView.ts`. @throws Error if unknown */
+  sleeveXpCurve(id: ActionId): XpCurve {
+    return this.progression.sleeveXpCurve(this.state, id);
   }
 
   /** Sleeve XP gathered inside the action's current sleeve level. @throws Error if unknown */
@@ -559,6 +605,16 @@ export class GameEngine implements GameQueries, GameCommands {
   /** True while heat cannot cool or be reduced at all (an action is running with an Overclock that stops heat cooling). */
   heatCoolingBlocked(): boolean {
     return this.stats.heatCoolingBlocked();
+  }
+
+  /** True when this item in this rarity has ever entered the inventory (over all lives). Called by: `ui/view/inventoryView.ts`. */
+  hasSeenItem(itemId: ItemId, rarityId: RarityId): boolean {
+    return hasSeenItem(this.state, itemId, rarityId);
+  }
+
+  /** Credits one item of this rarity sells for now. See `Inventory.sellValue`. Called by: `ui/view/inventoryView.ts`. */
+  sellValue(rarityId: RarityId): BigNum {
+    return this.inventory.sellValue(rarityId);
   }
 
   /** The back channel unlocked by a skill (which item and rarity can be given up, and for how many Moles each), or `null`. */
@@ -791,7 +847,7 @@ export class GameEngine implements GameQueries, GameCommands {
     this.resleeveLockout.advance(deltaMs);
     this.runner.tickAll(deltaMs);
     this.corporationUnit.tickAll(deltaMs);
-    this.automationUnit.step();
+    this.automationUnit.step(deltaMs);
     this.reflexArchive?.step();
     this.overflowPolicy.apply(this.state);
     notePeaks(this.state);

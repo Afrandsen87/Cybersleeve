@@ -8,12 +8,26 @@ import { setCredits, testConfig } from '../testing/testConfig';
 import { buildViewModel } from './viewModel';
 import { flat } from '../testing/flatState';
 import { mountTestUi } from '../testing/domMountKit';
+import { ownSchematicDrop, SCHEMATIC_DROP } from './modesKit';
 
-const config = createConfig(testConfig, { items: { ...testConfig.items, augment: { itemId: 'file', xpBonusPerItem: 0.01 } } });
+const config = createConfig(testConfig, {
+  items: { ...testConfig.items, augment: { itemId: 'file', xpBonusPerItem: 0.01 } },
+  buyables: [...testConfig.buyables, SCHEMATIC_DROP],
+});
+
+/** A game on the config whose schematic drop purchase is already owned (the Augment button shows). */
+const newGame = (cfg: typeof config) => {
+  const g = createGame({ config: cfg });
+  ownSchematicDrop(g);
+  return g;
+};
 
 type Loose = { inventory: unknown };
-const stock = (g: { getState(): unknown }, held: Record<string, number>): void => {
+/** Gives the game schematics and Auto-run for action `a` (augments only go on an action whose Auto-run is owned). */
+const stock = (g: ReturnType<typeof createGame>, held: Record<string, number>): void => {
   flat<Loose>(g).inventory = { file: held };
+  flat<{ seenItems: unknown }>(g).seenItems = { file: Object.fromEntries(Object.keys(held).map((r) => [r, true])) };
+  (g.getState().sleeve.purchased as Record<string, number>)['auto'] = 1;
 };
 
 beforeEach(() => {
@@ -22,7 +36,7 @@ beforeEach(() => {
 
 describe('the Augment button in the view model', () => {
   it('every action has one, disabled while no schematic is held', () => {
-    const g = createGame({ config });
+    const g = newGame(config);
     for (const a of buildViewModel(g).actions) {
       expect(a.augment).toMatchObject({ label: 'Augment', enabled: false, applied: 0 });
     }
@@ -32,12 +46,30 @@ describe('the Augment button in the view model', () => {
     expect(buildViewModel(g, undefined, undefined, { augmentRarityId: 'rare' }).actions[0]!.augment!.enabled).toBe(true);
   });
 
+  it('is disabled while the action has no Auto-run, even with a schematic held and selected', () => {
+    const g = newGame(config);
+    stock(g, { rare: 1 });
+    delete (g.getState().sleeve.purchased as Record<string, number>)['auto'];
+    const select = { augmentRarityId: 'rare' };
+    expect(buildViewModel(g, undefined, undefined, select).actions[0]!.augment!.enabled).toBe(false);
+    expect(g.augmentAction('a', 'rare')).toBe(false); // the same answer as Augments.apply
+  });
+
+  it('is left out until a purchase that makes the schematic drop is owned, and shown by show-all', () => {
+    const g = createGame({ config });
+    expect(buildViewModel(g).actions[0]!.augment).toBeNull();
+    expect(buildViewModel(g, undefined, undefined, { augmentRarityId: null, revealAll: true }).actions[0]!.augment).not.toBeNull();
+    setCredits(g, num(100));
+    expect(g.buy(SCHEMATIC_DROP.id)).toBe('purchased');
+    expect(buildViewModel(g).actions[0]!.augment).not.toBeNull();
+  });
+
   it('is left out when the game has no schematic', () => {
     expect(buildViewModel(createGame({ config: testConfig })).actions[0]!.augment).toBeNull();
   });
 
   it('the tip shows the calculation with the numbers and what the click does', () => {
-    const g = createGame({ config });
+    const g = newGame(config);
     stock(g, { common: 2, rare: 1 });
     g.augmentAction('a', 'common');
     g.augmentAction('a', 'common');
@@ -50,13 +82,13 @@ describe('the Augment button in the view model', () => {
 
   it('says what things do and never what they do not (no "not", "never" or "no")', () => {
     for (const augmentRarityId of [null, 'common']) {
-      const tip = buildViewModel(createGame({ config }), undefined, undefined, { augmentRarityId }).actions[0]!.augment!.tip;
+      const tip = buildViewModel(newGame(config), undefined, undefined, { augmentRarityId }).actions[0]!.augment!.tip;
       expect(tip).not.toMatch(/\b(not|never|no)\b/i);
     }
   });
 
   it('asks for a selection in the Inventory while no rarity is selected', () => {
-    const tip = buildViewModel(createGame({ config })).actions[0]!.augment!.tip;
+    const tip = buildViewModel(newGame(config)).actions[0]!.augment!.tip;
     expect(tip).toContain('Select a rarity of File in the Inventory first');
   });
 });
@@ -65,7 +97,7 @@ describe('the Augment button on the screen', () => {
   const mount = () => {
     const root = document.createElement('div');
     document.body.append(root);
-    const game = createGame({ config });
+    const game = newGame(config);
     const render = mountTestUi(root, game);
     // The Augment button is a cell of the square, which shows its four cells once Auto-run is owned.
     setCredits(game, num(100));
@@ -144,12 +176,12 @@ describe('items that cannot be paid out, in the Inventory', () => {
   const kept = createConfig(config, { items: { ...config.items, definitions: [{ id: 'file', name: 'File', sellable: false }] } });
 
   it('the row has no sell buttons and says how the item is used', () => {
-    const g = createGame({ config: kept });
+    const g = newGame(kept);
     stock(g, { common: 2 });
     const row = buildViewModel(g).inventory.rows[0]!;
     expect(row.sellable).toBe(false);
     expect(row.tip).toBe(
-      'Common File\nClick to select this rarity, then apply it to an action with its Augment button\n\nDrop Chance = 0%\nOwned = 2',
+      'Common File\nClick to select this rarity, then apply it to an action with its Augment button\n\nDrop Chance = 10% per A run\nOwned = 2',
     );
     expect(row.tip).not.toMatch(/\b(not|never|no)\b/i);
   });
@@ -162,7 +194,7 @@ describe('items that cannot be paid out, in the Inventory', () => {
       document.body.innerHTML = '';
       const root = document.createElement('div');
       document.body.append(root);
-      const game = createGame({ config: cfg });
+      const game = newGame(cfg);
       stock(game, { common: 2 });
       mountTestUi(root, game);
       const sections = [...root.querySelectorAll<HTMLElement>('.inventory-section')];
@@ -185,12 +217,12 @@ describe('the XP per Run line writes out the whole calculation with the numbers 
       .find((l) => l.startsWith('XP per Run = ') && l.includes(' = ', 14))!;
 
   it('with no augment it is the base XP and the result', () => {
-    const g = createGame({ config });
+    const g = newGame(config);
     expect(buildViewModel(g).actions[0]!.augment!.tip).toContain('\nXP per Run = 1 = 1\n');
   });
 
   it('shows the boost of every rarity that has augments, multiplied, then the result', () => {
-    const g = createGame({ config });
+    const g = newGame(config);
     stock(g, { common: 3, rare: 2 });
     for (let i = 0; i < 3; i++) g.augmentAction('a', 'common');
     for (let i = 0; i < 2; i++) g.augmentAction('a', 'rare');
@@ -198,7 +230,7 @@ describe('the XP per Run line writes out the whole calculation with the numbers 
   });
 
   it('starts from the base XP of the action with the XP lever applied, not from the augmented amount', () => {
-    const g = createGame({ config: createConfig(config, { global: { xpMultiplier: 2 } }) });
+    const g = newGame(createConfig(config, { global: { xpMultiplier: 2 } }));
     stock(g, { common: 1 });
     g.augmentAction('a', 'common');
     expect(line(g)).toBe('XP per Run = 2 x (1 + 0.01 x 1) = 2.02');

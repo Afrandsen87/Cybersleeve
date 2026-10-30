@@ -15,6 +15,7 @@ import {
   ACCESS_UPGRADE,
   PERSISTENCE,
   RANSOMWARE,
+  RESLEEVE_UNLOCK,
   SLEEVE_LEVELS,
   SKILL_INCORPORATION,
   SKILL_DEEP_CONDITIONING,
@@ -218,7 +219,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     const vm = buildViewModel(createGame());
     expect(vm.actions.map((a) => a.id)).toEqual(gameConfig.actions.map((a) => a.id));
     for (const b of gameConfig.buyables) {
-      if (b.id === SLEEVE_LEVELS) continue; // it is the Re-sleeve button, not in a list (tested below)
+      if (b.id === RESLEEVE_UNLOCK) continue; // it is the Re-sleeve button, not in a list (tested below)
       const owner =
         b.currency === 'skillPoints'
           ? skillViews(vm.skills.lanes)
@@ -237,15 +238,23 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it('the sleeve-levels unlock is the Re-sleeve button: for sale once in reach, then the Re-sleeve action after a lockout', () => {
+  it('Sleeve levels shows the Re-sleeve button; Unlock resleeving is that button: for sale, then the Re-sleeve action after a lockout', () => {
     const g = createGame();
     expect(buildViewModel(g).resleeveBuy).toBeNull(); // not in reach in a new game
     setCredits(g, num('1e11'));
     (g.getState() as unknown as { sleeve: { peakCredits: unknown } }).sleeve.peakCredits = num('1e11');
     const vm = buildViewModel(g);
     expect(vm.resleeveShown).toBe(false);
-    expect(vm.resleeveBuy).toMatchObject({ id: SLEEVE_LEVELS, affordable: true });
+    expect(vm.resleeveBuy, 'Unlock resleeving waits for Sleeve levels').toBeNull();
+    expect(vm.sleeve.buyables.map((b) => b.id)).toContain(SLEEVE_LEVELS);
     g.buy(SLEEVE_LEVELS);
+    setCredits(g, num('1e12'));
+    const shown = buildViewModel(g);
+    expect(shown.resleeveShown).toBe(true);
+    expect(shown.sleeve.buyables.map((b) => b.id)).not.toContain(RESLEEVE_UNLOCK);
+    expect(shown.resleeveBuy).toMatchObject({ id: RESLEEVE_UNLOCK, affordable: true });
+    expect(shown.canResleeve).toBe(false);
+    g.buy(RESLEEVE_UNLOCK);
     const after = buildViewModel(g);
     expect(after.resleeveShown).toBe(true);
     expect(after.resleeveBuy).toBeNull();
@@ -254,6 +263,17 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(buildViewModel(g).canResleeve, 'the lockout is over but no sleeve level is held yet').toBe(false);
     setSleeveXp(g, num('1e30'), gameConfig.actions[0]!.id);
     expect(buildViewModel(g).canResleeve).toBe(true);
+  });
+
+  it('once Sleeve levels is owned the Re-sleeve button is the Unlock resleeving purchase with its price, affordable or not', () => {
+    const g = createGame();
+    setCredits(g, num('1e8'));
+    expect(g.buy(SLEEVE_LEVELS)).toBe('purchased');
+    setCredits(g, num(0));
+    const vm = buildViewModel(g);
+    expect(vm.resleeveShown).toBe(true);
+    expect(vm.resleeveBuy).toMatchObject({ id: RESLEEVE_UNLOCK, affordable: false });
+    expect(vm.resleeveBuy!.text).toContain('Unlock resleeving');
   });
 
   it('the player is never charged a negative or non-finite price', () => {

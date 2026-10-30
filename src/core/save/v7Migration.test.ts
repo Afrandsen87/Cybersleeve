@@ -10,12 +10,46 @@ import { describe, expect, it } from 'vitest';
 import { gameConfig } from '../../content/gameConfig';
 import { numberFactory } from '../../numbers';
 import { type FlatSave, asSave, flatSave } from '../../testing/saveKit';
+import { RESLEEVE_UNLOCK, SLEEVE_LEVELS } from '../../content/ids';
 import { SAVE_VERSION, deserializeState, serializeState } from '..';
 import { migrateSave } from './migrate';
 
 const read = (name: string): string => readFileSync(new URL(`../../testing/fixtures/saves/${name}`, import.meta.url), 'utf8');
 const FIXTURES = ['v6-early-before-resleeve.json', 'v6-after-three-resleeves.json'];
 const load = (text: string) => deserializeState(text, gameConfig, numberFactory);
+/**
+ * The flat form of a loaded save, without the fields newer than the v6 fixtures: `peakNetworkIncome` and `hardeningCrits` (start fresh, empty) and `seenItems`
+ * (loading marks every held stack as seen, and nothing else).
+ */
+const flatWithoutNewFields = (text: string) => {
+  const { peakNetworkIncome, hardeningCrits, seenItems, autoBurn, ...rest } = flatSave(text);
+  expect(hardeningCrits).toEqual({});
+  expect(peakNetworkIncome).toBe('0');
+  expect(autoBurn).toEqual({ on: false, seconds: 0, overclocksOff: {}, autoRunsOff: {} }); // Auto Burn's per-life part is new: it starts fresh
+  const held = rest['inventory'] as Record<string, Record<string, number>>;
+  const seenOf = (stacks: Record<string, number>) => Object.fromEntries(Object.keys(stacks).map((rarity) => [rarity, true]));
+  expect(seenItems).toEqual(Object.fromEntries(Object.entries(held).map(([item, stacks]) => [item, seenOf(stacks)])));
+  return rest;
+};
+
+/** The same flat save as the v8 reader gives it back: a life that owned Sleeve levels (the old unlock) now also owns Unlock resleeving. */
+function inV8(raw: FlatSave): FlatSave {
+  const purchased = raw['purchased'] as Record<string, number>;
+  const withUnlock = (purchased[SLEEVE_LEVELS] ?? 0) > 0 ? { ...raw, purchased: { ...purchased, [RESLEEVE_UNLOCK]: 1 } } : raw;
+  // Auto Burn's old ceiling is its lower threshold now; the rest of its settings start fresh (the old on/off lives in the sleeve's Burn lead toggle)
+  const { autoBurnOn, autoBurnCeiling, ...automation } = withUnlock['automation'] as Record<string, unknown>;
+  expect(autoBurnOn).toBe(false);
+  const auto = {
+    ...automation,
+    autoBurn: {
+      lower: autoBurnCeiling,
+      upper: gameConfig.automation!.autoBurnUpper,
+      reserve: 0,
+      switches: { hold: false, upper: false, offOverclocks: false, offActions: false, onActions: false, onOverclocks: false },
+    },
+  };
+  return { ...withUnlock, automation: auto };
+}
 
 describe.each(FIXTURES)('v6 fixture %s', (name) => {
   const text = read(name);
@@ -32,7 +66,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
   });
 
   it('migrate, load and save gives back every value of the old save (field by field)', () => {
-    expect(flatSave(serializeState(load(migrated)!))).toEqual(raw);
+    expect(flatWithoutNewFields(serializeState(load(migrated)!))).toEqual(inV8(raw));
   });
 
   it('starts the all-time peaks at the peak of the life being lived', () => {
@@ -47,7 +81,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
     expect(Object.keys(data.wallet.corporations)).toEqual(['main']);
     expect(data.wallet.runs).toEqual(raw['runs']);
     expect(data.wallet.inventory).toEqual(raw['inventory']);
-    expect(data.sleeves.main.purchased).toEqual(raw['purchased']);
+    expect(data.sleeves.main.purchased).toEqual(inV8(raw)['purchased']);
     expect(data.sleeves.main.actions).toEqual(raw['actions']);
   });
 
@@ -78,7 +112,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
 
   it('ignores unknown keys and unknown ids', () => {
     const extra = { ...raw, mystery: 1, purchased: { ...raw['purchased'], 'no-such-buyable': 3 } };
-    expect(flatSave(serializeState(load(asSave(extra))!))).toEqual(raw);
+    expect(flatWithoutNewFields(serializeState(load(asSave(extra))!))).toEqual(inV8(raw));
   });
 
   it('repairs garbage in plain-number fields to the fresh value', () => {

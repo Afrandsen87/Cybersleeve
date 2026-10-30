@@ -68,20 +68,15 @@ describe('the Overclock tip of an action with its own effect', () => {
     expect(tip).not.toContain('heat');
   });
 
-  it('a node cost, an extra payment and a heat factor are each named, and carry no strength', () => {
-    const tip = tipOf({ alsoPays: 'net', heatPerRunFactor: 3, completionEffects: [{ kind: 'removeNodes', amount: 5 }] });
+  it('a node cost and an extra payment are each named, and carry no strength', () => {
+    const tip = tipOf({ alsoPays: 'net', completionEffects: [{ kind: 'removeNodes', amount: 5 }] });
     expect(tip).toContain('Each completed run also pays the nodes of one Net run');
-    expect(tip).toContain('Each run makes 3x as much heat');
     expect(tip).toContain('Each completed run costs 5 nodes');
     expect(tip).not.toContain('Strength');
   });
 
   it('say what things do and never what they do not', () => {
-    for (const rule of [
-      { rewardBonus: 2 },
-      { alsoPays: 'net', heatPerRunFactor: 3 },
-      { completionEffects: [{ kind: 'removeNodes', amount: 5 }] },
-    ]) {
+    for (const rule of [{ rewardBonus: 2 }, { alsoPays: 'net' }, { completionEffects: [{ kind: 'removeNodes', amount: 5 }] }]) {
       expect(tipOf(rule)).not.toMatch(NOT);
     }
   });

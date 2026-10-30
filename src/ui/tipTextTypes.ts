@@ -24,10 +24,13 @@ import type {
   InterfaceSpeedTipParts,
   LegendTipParts,
   MolesTipParts,
+  HardeningValueParts,
   NetworkGrowthValueParts,
   OverclockTipParts,
   PayoutTipParts,
+  LevelXpTipParts,
   SkillShardTipParts,
+  SleeveXpTipParts,
   StackKeptTipParts,
   StackTipParts,
   SynthTipParts,
@@ -50,6 +53,10 @@ export interface TipTexts {
   iceRating(parts: IceRatingTipParts): string;
   legend(parts: LegendTipParts): string;
   critical(parts: CriticalTipParts): string;
+  /** The tip of an action's level XP bar: XP per run and the cost of a level. */
+  levelXp(parts: LevelXpTipParts): string;
+  /** The tip of an action's sleeve XP bar: the sleeve XP grant and the cost of a sleeve level. */
+  sleeveXp(parts: SleeveXpTipParts): string;
   buyable(parts: BuyableTipParts): string;
   stack(parts: StackTipParts): string;
   augment(parts: AugmentTipParts): string;
@@ -65,4 +72,5 @@ export interface TipTexts {
   moles(parts: MolesTipParts): string;
   synths(parts: SynthTipParts): string;
   networkGrowthValues(parts: NetworkGrowthValueParts): BuyableValues;
+  hardeningValues(parts: HardeningValueParts): BuyableValues;
 }

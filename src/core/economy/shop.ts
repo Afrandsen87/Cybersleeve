@@ -75,9 +75,36 @@ export class Shop {
    */
   toggle(state: GameState, id: BuyableId): boolean {
     if (this.owned(state, id) <= 0 || !this.isToggleable(id)) return false;
-    if (state.sleeve.autoRunOff[id]) delete state.sleeve.autoRunOff[id];
+    return this.setOn(state, id, state.sleeve.autoRunOff[id] === true);
+  }
+
+  /**
+   * Sets an owned toggleable buyable (an auto-run) explicitly on or off (never flips it): the one writer of `autoRunOff`.
+   *
+   * Called by: {@link Shop.toggle}, {@link Shop.switchOff}, `app/createGame.ts` (Auto Burn's switches), `ReflexArchive` (a bought-back Auto-run gets the state it had).
+   *
+   * @param state state to mutate (`autoRunOff`)
+   * @param id the buyable
+   * @param on the wanted state
+   * @returns true when it is now on; false when it is now off, or when it is not owned or not toggleable (nothing changes then)
+   */
+  setOn(state: GameState, id: BuyableId, on: boolean): boolean {
+    if (this.owned(state, id) <= 0 || !this.isToggleable(id)) return false;
+    if (on) delete state.sleeve.autoRunOff[id];
     else state.sleeve.autoRunOff[id] = true;
-    return !state.sleeve.autoRunOff[id];
+    return on;
+  }
+
+  /**
+   * Switches an owned toggleable buyable OFF (never flips it): what a first purchase from the player's click does.
+   *
+   * Called by: `GameEngine.activateBuyable`. Calls: {@link Shop.isToggleable}.
+   *
+   * @param state state to mutate (`autoRunOff`)
+   * @param id the buyable; nothing changes when it is not owned or not toggleable
+   */
+  switchOff(state: GameState, id: BuyableId): void {
+    this.setOn(state, id, false);
   }
 
   /**

@@ -86,6 +86,6 @@ export interface SleeveStats {
   readonly focusStacking: boolean;
   /** What an action's XP per run is multiplied by while its level is below the best synthetic sleeve's level on it (1 without Neural Mirror). */
   readonly synthXpFactor: number;
-  /** The heat factor `overclockHeatFactor` buyables set for an action's Overclock (lowest wins); an action without an entry keeps its rule's own factor. */
-  readonly overclockHeatFactors: Readonly<Record<ActionId, number>>;
+  /** The factor `overclockHeatChanceFactor` buyables put on an action's Overclock heat chance (lowest wins); an action without an entry keeps its rule's own factor. */
+  readonly overclockHeatChanceFactors: Readonly<Record<ActionId, number>>;
 }

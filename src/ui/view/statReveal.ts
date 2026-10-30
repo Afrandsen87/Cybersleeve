@@ -5,11 +5,13 @@
  * player is never shown a number nothing can change yet.
  *
  * @remarks
- * Called by: `sleeveView.ts`. Calls: nothing outside `core` types. Pure: no DOM, no state of its own.
+ * Called by: `sleeveView.ts`. Calls: the core heat predicates (`actionMakesHeat`, `overclockMakesHeat`), `squareRules.ts`. Pure: no DOM, no state of its own.
  * The rules are data (`REVEAL_RULES`): a new hidden stat adds one entry, it does not add an `if` to the view.
  */
+import { actionMakesHeat, overclockMakesHeat } from '../../core';
 import type { ActionDefinition, BuyableDefinition, GameConfig, SleeveStats } from '../../core';
 import { numberFactory } from '../../numbers';
+import { type OwnsAutoRun, overclockOnOffer } from './squareRules';
 
 /** The stats that start hidden. */
 export type RevealableStat = 'heat' | 'iceRating' | 'legend';
@@ -21,6 +23,8 @@ export interface RevealContext {
   readonly accessLevel: number;
   /** Copies owned of a buyable. */
   readonly owned: (buyableId: string) => number;
+  /** Whether an action's Auto-run is owned (`ownsAutoRun` of the core). */
+  readonly ownsAuto: OwnsAutoRun;
 }
 
 /** Whether an action is open at the current access level. */
@@ -30,15 +34,15 @@ const isOpen = (a: ActionDefinition, ctx: RevealContext): boolean => (a.required
 const ownsEffect = (ctx: RevealContext, kinds: readonly BuyableDefinition['effect']['kind'][]): boolean =>
   ctx.config.buyables.some((b) => kinds.includes(b.effect.kind) && ctx.owned(b.id) > 0);
 
-/** Heat is made or unlocked: an open action that makes heat, or an owned Overclock unlock whose overclock makes heat. */
+/** The Overclock unlock of an action when the player owns it or its cell is shown in the square. */
+const overclockUnlockOf = (a: ActionDefinition, ctx: RevealContext): BuyableDefinition | undefined =>
+  overclockOnOffer(ctx.config, a.id, ctx.ownsAuto) ??
+  ctx.config.buyables.find((b) => b.actionId === a.id && b.effect.kind === 'overclockUnlock' && ctx.owned(b.id) > 0);
+
+/** Heat is made or on offer: an open action that makes heat, or an Overclock unlock (owned, or shown in the square) whose overclock makes heat. */
 const heatExists = (ctx: RevealContext): boolean =>
-  ctx.config.actions.some((a) => isOpen(a, ctx) && ((a.heatPerRun ?? 0) > 0 || (a.heatPerSecond ?? 0) > 0)) ||
-  ctx.config.buyables.some(
-    (b) =>
-      b.effect.kind === 'overclockUnlock' &&
-      ctx.owned(b.id) > 0 &&
-      (ctx.config.actions.find((a) => a.id === b.actionId)?.overclock?.heatPerMinute ?? 0) > 0,
-  );
+  ctx.config.actions.some((a) => isOpen(a, ctx) && actionMakesHeat(a)) ||
+  ctx.config.actions.some((a) => overclockMakesHeat(a) && overclockUnlockOf(a, ctx) !== undefined);
 
 /** ICE Rating is boosted or earned: an owned buyable that boosts it, or an open action that earns it. */
 const iceExists = (ctx: RevealContext): boolean =>
@@ -51,8 +55,8 @@ const heatAndIce = (ctx: RevealContext): boolean => heatExists(ctx) || iceExists
 /**
  * One rule per stat: `true` once something that produces or boosts the stat is unlocked.
  *
- * - Heat and ICE Rating (linked, one shared rule): an open action that makes heat (`heatPerRun`, `heatPerSecond`), an owned Overclock
- *   unlock whose overclock makes heat (`heatPerMinute`), an owned buyable that boosts ICE Rating, or an open action that earns it.
+ * - Heat and ICE Rating (linked, one shared rule): an open action that makes heat (`heatPerRun`, `heatPerSecond`), an Overclock
+ *   unlock (owned, or shown in the square) whose overclock makes heat (`heatPerMinute`, or the action makes heat itself), an owned buyable that boosts ICE Rating, or an open action that earns it.
  * - Legend: an open action that earns it.
  */
 export const REVEAL_RULES: Readonly<Record<RevealableStat, (ctx: RevealContext) => boolean>> = {
@@ -79,7 +83,7 @@ export function isStatHidden(stat: RevealableStat, ctx: RevealContext, hasValue:
 /**
  * Whether heat or ICE Rating has already moved off its starting value (they are revealed together, so either one keeps both shown).
  *
- * Called by: `sleeveView.ts`, `branchGates.ts`.
+ * Called by: `sleeveView.ts`, `branchMask.ts`.
  *
  * @param stats the sleeve stats now
  * @param config game configuration (reads the base ICE Rating)

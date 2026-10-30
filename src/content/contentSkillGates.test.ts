@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import type { BuyableDefinition } from '../core';
 import { skillViews } from '../testing/skillViews';
-import { BRANCH_REVEAL_STAT } from '../ui/view/branchGates';
+import { BRANCH_REVEAL_STAT } from '../ui/view/branchMask';
 import { buildViewModel } from '../ui/viewModel';
 import {
   CRITICAL_SUCCESS,
@@ -15,6 +15,7 @@ import {
   SKILL_BACK_CHANNEL,
   SKILL_SIGNAL_AMPLIFIER,
   SKILL_TRANSFER,
+  STUDY_METHODS,
   SLEEVE_LEVELS,
   gameConfig,
 } from './gameConfig';
@@ -36,7 +37,7 @@ function chain(b: BuyableDefinition, seen = new Set<string>()): BuyableDefinitio
 const CRIT_KINDS = ['criticalExtraChance', 'criticalRewardMultiplier', 'criticalBoost', 'criticalLink'];
 const HEAT_KINDS = [
   'heatCooldownSpeed',
-  'overclockHeatFactor',
+  'overclockHeatChanceFactor',
   'burnLeadFlatHeat',
   'idleHeatCooldown',
   'idleHeatCooldownAction',
@@ -75,7 +76,7 @@ describe('critical successes', () => {
 });
 
 describe('heat', () => {
-  it('every heat skill is in a branch that waits for heat to be revealed, or behind an Overclock unlock (the thing that makes heat)', () => {
+  it('every heat skill is in a branch whose text waits for heat to be revealed, or behind an Overclock unlock (the thing that makes heat)', () => {
     for (const b of everyday.filter((x) => HEAT_KINDS.includes(x.effect.kind))) {
       const inHeatBranch = b.branch !== undefined && BRANCH_REVEAL_STAT[b.branch] === 'heat';
       const behindOverclock = chain(b).some((c) => c.effect.kind === 'overclockUnlock');
@@ -105,8 +106,8 @@ describe('sleeve levels and re-sleeving', () => {
       ).toBe(true);
   });
 
-  it('Faster conditioning and Skill transfer wait for the second sleeve run', () => {
-    for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(byId.get(id)!.revealAfterResleeves, id).toBe(1);
+  it('Faster conditioning, Skill transfer and Study methods wait for the second sleeve run', () => {
+    for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER, STUDY_METHODS]) expect(byId.get(id)!.revealAfterResleeves, id).toBe(1);
   });
 
   it('they are unavailable in a new game and available after one finished sleeve-run', () => {
@@ -117,6 +118,17 @@ describe('sleeve levels and re-sleeving', () => {
       actionLevelsTotal: 0,
     });
     for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(g.isBuyableAvailable(id), id).toBe(true);
+  });
+
+  it('Study methods stays unavailable before the first re-sleeve even with Sleeve levels owned, and opens after it', () => {
+    const g = createGame();
+    (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
+    expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(false);
+    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number }[]).push({
+      creditsPerSecond: 0,
+      actionLevelsTotal: 0,
+    });
+    expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(true);
   });
 });
 

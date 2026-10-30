@@ -17,6 +17,7 @@ import {
 } from '../../testing/testConfig';
 import {
   AUTOMATION_FEATURES,
+  AUTO_BURN_SWITCHES,
   createConfig,
   deserializeState,
   serializeState,
@@ -40,7 +41,7 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     networkAction,
     killAction,
     percentKillAction,
-    { ...payoutAction, overclock: { alsoPays: 'net', heatPerRunFactor: 3 } },
+    { ...payoutAction, overclock: { alsoPays: 'net' } },
     legendAction,
     { ...practiceAction, overclock: { rewardBonus: 2, completionEffects: [{ kind: 'removeNodes', amount: 5 }] } },
     malwareAction,
@@ -111,8 +112,9 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     buyable({ id: 'slots', costGrowth: 3, maxPurchases: 3, effect: { kind: 'focusSlots', perCopy: 1 } }),
     buyable({ id: 'boost', actionId: 'push', effect: { kind: 'criticalBoost', factor: 3 } }),
     buyable({ id: 'link', actionId: 'push', effect: { kind: 'criticalLink', targetActionId: 'net' } }),
-    buyable({ id: 'obf', effect: { kind: 'overclockHeatFactor', targetActionId: 'push', factor: 2 } }),
+    buyable({ id: 'obf', effect: { kind: 'overclockHeatChanceFactor', targetActionId: 'push', factor: 0.5 } }),
     buyable({ id: 'crit', maxPurchases: 3, effect: { kind: 'criticalChance', chance: 0.3 } }),
+    buyable({ id: 'forensic', effect: { kind: 'hardenedPayloadFromCrits', critActionId: 'push', levelActionId: 'a', perCrit: 1 } }),
     buyable({ id: 'zds', actionId: 'push', effect: { kind: 'itemDrop', drop: { itemId: 'zd', chance: 0.5 } } }),
     buyable({
       id: 'leads',
@@ -177,9 +179,18 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
     const feature = pick(random, AUTOMATION_FEATURES);
     const r = random();
     if (r < 0.3) auto.unlock(feature);
-    else if (r < 0.5) auto.setAutoBurn(random() < 0.7);
-    else if (r < 0.6) auto.setAutoBurnCeiling(randomInt(random, 120) / 2);
-    else if (r < 0.7) auto.setAutosale(pick(random, config.items.rarities).id, random() < 0.7);
+    else if (r < 0.4) g.toggleBurnLead();
+    else if (r < 0.5) {
+      // Auto Burn's skills (bought in lane order when their parent is owned) and the switches they add
+      const next = config.buyables.find((b) => b.branch === 'autoBurn' && b.currency === 'automationPoints' && g.ownedCount(b.id) === 0);
+      if (next) g.buy(next.id);
+      auto.autoBurn().setSwitch(pick(random, AUTO_BURN_SWITCHES), random() < 0.7);
+      const heatMaker = pick(random, config.actions).id;
+      if (random() < 0.5) g.toggleOverclock(heatMaker);
+    } else if (r < 0.6) {
+      auto.autoBurn().setThresholds(randomInt(random, 60) / 2, randomInt(random, 120) / 2);
+      auto.autoBurn().setReserve(randomInt(random, 20) - 3);
+    } else if (r < 0.7) auto.setAutosale(pick(random, config.items.rarities).id, random() < 0.7);
     else if (r < 0.8) auto.setDispersal(pick(random, config.actions).id, randomInt(random, 120));
     else {
       // some stock for the automation to work on
@@ -187,6 +198,7 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
       const rarity = pick(random, config.items.rarities);
       const stack = (state.inventory[item.id] ??= {});
       stack[rarity.id] = (stack[rarity.id] ?? 0) + randomInt(random, 50);
+      ((state as unknown as { seenItems: Record<string, Record<string, true>> }).seenItems[item.id] ??= {})[rarity.id] = true;
     }
   } else g.tick(pick(random, TICKS));
 }

@@ -54,7 +54,16 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
 export function resolveSleeveStats(
   buyables: readonly BuyableDefinition[],
   state: StateSlice<
-    'purchased' | 'heat' | 'hackingProficiency' | 'network' | 'iceRating' | 'legend' | 'nodePayoutBonus' | 'inventory' | 'synths'
+    | 'purchased'
+    | 'heat'
+    | 'hackingProficiency'
+    | 'network'
+    | 'iceRating'
+    | 'legend'
+    | 'nodePayoutBonus'
+    | 'inventory'
+    | 'synths'
+    | 'hardeningCrits'
   >,
   sleeve: SleeveConfig,
   factory: NumberFactory,
@@ -87,7 +96,7 @@ export function resolveSleeveStats(
     extraFocusSlots: 0,
     focusStacking: false,
     synthXpFactor: 1,
-    overclockHeatFactors: {},
+    overclockHeatChanceFactors: {},
   };
   const nodePayoutTerms: FactorTerm[] = [];
   const iceRatingTerms: FactorTerm[] = [];
@@ -96,7 +105,7 @@ export function resolveSleeveStats(
     if (owned <= 0) continue;
     const payoutBefore = acc.nodePayoutFactor;
     const iceBefore = acc.iceRatingFactor;
-    definitionOf(b).sleeve?.(acc, b.effect, { owned, state, factory, actionLevelOf, sleeveLevelOf, augmentRaritiesHeld });
+    definitionOf(b).sleeve?.(acc, b.effect, { id: b.id, owned, state, factory, actionLevelOf, sleeveLevelOf, augmentRaritiesHeld });
     // A buyable's term is how much it moved the running product, so every effect kind reports itself without extra code.
     if (acc.nodePayoutFactor !== payoutBefore)
       nodePayoutTerms.push({ buyableId: b.id, factor: saturate(acc.nodePayoutFactor / payoutBefore) });
@@ -160,7 +169,7 @@ export function resolveSleeveStats(
     extraFocusSlots: acc.extraFocusSlots,
     focusStacking: acc.focusStacking,
     synthXpFactor: acc.synthXpFactor,
-    overclockHeatFactors: acc.overclockHeatFactors,
+    overclockHeatChanceFactors: acc.overclockHeatChanceFactors,
   };
 }
 

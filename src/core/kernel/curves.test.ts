@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { num } from '../../numbers';
-import { bigOrders, logScaled, orders, synthBoost, wholeOrders } from './curves';
+import { bigOrders, logScaled, orders, synthBoost } from './curves';
 
 /** The hand-written forms these helpers replaced, kept here as the reference the outputs are pinned to. */
 const oldMoleOrders = (moles: number) => (moles > 1 ? Math.log10(moles) : 0);
@@ -39,20 +39,6 @@ describe('bigOrders (continuous, BigNum)', () => {
 
   it('stays finite for a huge value (1e300 is 300 orders)', () => {
     expect(bigOrders(num(1e300))).toBeCloseTo(300, 6);
-  });
-});
-
-describe('wholeOrders (floor, BigNum)', () => {
-  it('floors: 9 -> 0, 10 -> 1, 99 -> 1, 100 -> 2', () => {
-    expect([9, 10, 99, 100].map((v) => wholeOrders(num(v)))).toEqual([0, 1, 1, 2]);
-  });
-
-  it('is 0 for zero, negatives, NaN and values under 10', () => {
-    for (const v of [0, -500, Number.NaN, 0.5]) expect(wholeOrders(num(v))).toBe(0);
-  });
-
-  it('counts a huge value (1e300 is 300 whole orders)', () => {
-    expect(wholeOrders(num(1e300))).toBe(300);
   });
 });
 

@@ -91,6 +91,24 @@ export class LevelRule {
   }
 
   /**
+   * What the first level costs (`firstLevelXp`), before any delay or reduction.
+   *
+   * Called by: `Progression.actionXpCurve`, `SleeveLevels.curve`.
+   */
+  get firstLevelXp(): BigNum {
+    return this.first;
+  }
+
+  /**
+   * How much more each further level costs (`growthFactor`).
+   *
+   * Called by: `Progression.actionXpCurve`, `SleeveLevels.curve`.
+   */
+  get growthFactor(): number {
+    return this.growth.toNumber();
+  }
+
+  /**
    * Total experience at which `level + 1` is reached.
    *
    * @param level current level (integer >= 0)

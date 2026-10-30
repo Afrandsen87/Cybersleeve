@@ -4,7 +4,8 @@
  * Automation: features the player unlocks with automation points and that then play part of the game for them.
  */
 import type { Augments } from '../items/augments';
-import type { BurnLeads } from '../items/burnLeads';
+import type { AutoBurn, AutoBurnControls } from './autoBurn';
+import { type AutoBurnSettings, createAutoBurnSettings } from './autoBurnTypes';
 import type { Inventory } from '../items/inventory';
 import type { ActionId, BuyableDefinition, BuyableId, GameConfig, GameState, RarityId } from '../types';
 
@@ -66,10 +67,8 @@ export interface AutomationShop {
  * Whether a feature is unlocked is not stored: it is owning the skill that unlocks it (see {@link isFeatureUnlocked}).
  */
 export interface AutomationState {
-  /** Auto Burn is switched on (only possible once unlocked). */
-  autoBurnOn: boolean;
-  /** Auto Burn uses Burn leads whenever heat is above this many points (>= 0). */
-  autoBurnCeiling: number;
+  /** What the player set for Auto Burn: thresholds, reserve and switches (the Burn lead toggle itself is per sleeve: `sleeve.autoBurn`). */
+  autoBurn: AutoBurnSettings;
   /** Rarities whose sellable items are sold automatically (absent or false: not sold). */
   autosale: Record<RarityId, boolean>;
   /** Share (percent, 0..100) of the Augment schematics each action gets (absent: 0). All shares together are at most 100. */
@@ -77,14 +76,14 @@ export interface AutomationState {
 }
 
 /**
- * A fresh automation state: nothing unlocked, Auto Burn off at the configured default ceiling.
+ * A fresh automation state: nothing unlocked, Auto Burn with every switch off and the configured thresholds.
  *
- * Called by: `state.ts`, `serialization.ts`.
+ * Called by: `state.ts`, `serialization.ts`. Calls: `createAutoBurnSettings`.
  *
- * @param config reads `automation.autoBurnCeiling`
+ * @param config reads `automation.autoBurnCeiling` and `automation.autoBurnUpper`
  */
 export function createAutomationState(config: Pick<GameConfig, 'automation'>): AutomationState {
-  return { autoBurnOn: false, autoBurnCeiling: config.automation?.autoBurnCeiling ?? 0, autosale: {}, dispersal: {} };
+  return { autoBurn: createAutoBurnSettings(config), autosale: {}, dispersal: {} };
 }
 
 /** What the screen and the commands use (satisfied by {@link Automation}). */
@@ -99,14 +98,8 @@ export interface AutomationControls {
   isUnlocked(feature: AutomationFeature): boolean;
   /** Buys the first skill of the feature's lane (one point); false when there is none to spend, it is unlocked already, or the game has no automation. */
   unlock(feature: AutomationFeature): boolean;
-  /** Auto Burn: on or off. */
-  isAutoBurnOn(): boolean;
-  /** Auto Burn: the heat above which Burn leads are used. */
-  autoBurnCeiling(): number;
-  /** Switches Auto Burn; only works once unlocked. @returns true when it is now on */
-  setAutoBurn(on: boolean): boolean;
-  /** Sets the Auto Burn ceiling (a finite number >= 0; anything else is ignored). @returns true when it was set */
-  setAutoBurnCeiling(heat: number): boolean;
+  /** Auto Burn: its toggle, switches, thresholds and reserve. */
+  autoBurn(): AutoBurnControls;
   /** Autosale: whether the rarity is sold automatically. */
   isAutosaleOn(rarityId: RarityId): boolean;
   /** Switches the autosale of a rarity; only works once unlocked and for a known rarity. @returns true when it is now on */
@@ -124,13 +117,12 @@ export interface AutomationControls {
  * Points are not stored: earned points are `perCopy` of every owned `automationPoints` buyable, and the points available are those
  * minus the price of the owned skills paid in automation points (the Shop works that out). Each feature has a lane of skills in the
  * Automation tab; owning the first one (`unlocksAutomation`) is what unlocks it, so "unlock" buys that skill. All three features work in closed form, so a slice of any length costs the same:
- * - **Auto Burn** uses `k` Burn leads at once, where `k` is the smallest number that brings heat to the ceiling
- *   (`heat x (1 - fraction)^k <= ceiling`), at most what is held.
+ * - **Auto Burn** (`autoBurn.ts`) is the Burn lead Inventory toggle and the rules the ten skills of its lane add.
  * - **Autosale** sells whole stacks of the switched-on rarities of every sellable item.
  * - **Augment dispersal** hands the schematics held to the actions in proportion to their shares (largest remainder, so none is lost).
  *
  * Called by: `engine.ts` (`GameEngine.advance` calls {@link Automation.step}; the screen uses {@link AutomationControls}).
- * Calls: {@link BurnLeads}, {@link Augments}, {@link Inventory}, {@link AutomationShop}.
+ * Calls: {@link AutoBurn}, {@link Augments}, {@link Inventory}, {@link AutomationShop}.
  */
 export class Automation implements AutomationControls {
   /**
@@ -139,7 +131,7 @@ export class Automation implements AutomationControls {
    * @param config reads `automation`, the buyables (the point sources and the unlocking skills), the items (rarities, what is sellable, the leads and schematics) and the actions
    * @param state the live game state (mutated: `automation`, and through the other units heat, the inventory and augments)
    * @param inventory where autosale sells from
-   * @param burnLeads uses the leads for Auto Burn
+   * @param autoBurnUnit Auto Burn: the toggle, its switches and the leads it uses
    * @param augments applies the schematics for dispersal
    * @param shop the automation points still to spend, and buying the unlocking skill
    */
@@ -147,7 +139,7 @@ export class Automation implements AutomationControls {
     private readonly config: Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>,
     private readonly state: GameState,
     private readonly inventory: Inventory,
-    private readonly burnLeads: BurnLeads,
+    private readonly autoBurnUnit: AutoBurn,
     private readonly augments: Augments,
     private readonly shop: AutomationShop,
   ) {}
@@ -179,27 +171,19 @@ export class Automation implements AutomationControls {
     return this.shop.buy(skill);
   }
 
-  /** See {@link AutomationControls.isAutoBurnOn}. */
-  isAutoBurnOn(): boolean {
-    return this.state.wallet.automation.autoBurnOn;
+  /** See {@link AutomationControls.autoBurn}. */
+  autoBurn(): AutoBurnControls {
+    return this.autoBurnUnit;
   }
 
-  /** See {@link AutomationControls.autoBurnCeiling}. */
-  autoBurnCeiling(): number {
-    return this.state.wallet.automation.autoBurnCeiling;
+  /** The player switched an action's Overclock by hand: Auto Burn forgets that it had switched it off. Called by `engine.ts`. */
+  playerSwitchedOverclock(id: ActionId): void {
+    this.autoBurnUnit.playerSwitchedOverclock(id);
   }
 
-  /** See {@link AutomationControls.setAutoBurn}. Mutates `state.automation.autoBurnOn`. */
-  setAutoBurn(on: boolean): boolean {
-    if (this.isUnlocked('autoBurn')) this.state.wallet.automation.autoBurnOn = on;
-    return this.state.wallet.automation.autoBurnOn;
-  }
-
-  /** See {@link AutomationControls.setAutoBurnCeiling}. Mutates `state.automation.autoBurnCeiling`. */
-  setAutoBurnCeiling(heat: number): boolean {
-    if (!this.isUnlocked('autoBurn') || !Number.isFinite(heat) || heat < 0) return false;
-    this.state.wallet.automation.autoBurnCeiling = heat;
-    return true;
+  /** The player switched an Auto-run by hand: Auto Burn forgets that it had switched it off. Called by `engine.ts`. */
+  playerSwitchedAutoRun(id: BuyableId): void {
+    this.autoBurnUnit.playerSwitchedAutoRun(id);
   }
 
   /** See {@link AutomationControls.isAutosaleOn}. */
@@ -234,22 +218,14 @@ export class Automation implements AutomationControls {
   /**
    * Runs every unlocked and switched-on feature once. Called by the engine after each slice of game time.
    * Order: Auto Burn (heat), then autosale, then dispersal.
+   *
+   * @param deltaMs the length of the slice in milliseconds (Auto Burn counts seconds)
    */
-  step(): void {
+  step(deltaMs: number): void {
     if (!this.available()) return;
-    if (this.isUnlocked('autoBurn') && this.state.wallet.automation.autoBurnOn) this.burn();
+    this.autoBurnUnit.step(deltaMs);
     if (this.isUnlocked('autosale')) this.sell();
     if (this.isUnlocked('dispersal')) this.disperse();
-  }
-
-  /** Auto Burn: uses just enough leads to bring heat down to the ceiling, or all there are. */
-  private burn(): void {
-    const lead = this.config.items.burnLead;
-    const stack = this.config.items.rarities[0];
-    const { heat } = this.state.sleeve;
-    const { automation } = this.state.wallet;
-    if (!lead || !stack || !(heat > automation.autoBurnCeiling) || !this.burnLeads.canUse(stack.id)) return;
-    this.burnLeads.useMany(stack.id, this.burnLeads.leadsNeeded(automation.autoBurnCeiling));
   }
 
   /** Autosale: sells every stack of a switched-on rarity, for every item that can be sold and has rarities. */
@@ -263,7 +239,15 @@ export class Automation implements AutomationControls {
     }
   }
 
-  /** Dispersal: gives all the schematics held to the actions with a share, in proportion, none left over. */
+  /**
+   * Dispersal: gives all the schematics held to the actions with a share, in proportion. An action whose Auto-run is not owned takes none: its share stays in the inventory until it is.
+   *
+   * @remarks
+   * An action whose Auto-run is not owned takes no augments (`Augments.applyMany` returns 0 and uses nothing up), so its part of
+   * the split is simply not applied this round: the schematics stay in the inventory, none consumed or lost. The split is still
+   * worked out over every action with a share (closed form, no retry), so the next step splits what is left again and the other
+   * actions keep getting their own proportion; buying that Auto-run makes the action take its share from then on.
+   */
   private disperse(): void {
     const augment = this.config.items.augment;
     if (!augment) return;

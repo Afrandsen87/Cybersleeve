@@ -15,28 +15,38 @@ import { setCredits, setSleeveXp, testConfig } from '../testing/testConfig';
 import { buildViewModel } from './viewModel';
 import { mountTestUi } from '../testing/domMountKit';
 
-const gate = {
+const levels = {
   id: 'levels',
   name: 'Sleeve levels',
-  description: 'Opens re-sleeving.',
+  description: 'Sleeve XP starts.',
   cost: num(10),
   effect: { kind: 'unlockSleeveLevels' },
+} as const;
+
+const unlock = {
+  id: 'unlock',
+  name: 'Unlock resleeving',
+  description: 'Opens re-sleeving.',
+  cost: num(10),
+  requires: ['levels'],
+  effect: { kind: 'unlockResleeve' },
 } as const;
 
 function mount(base: number, perResleeve: number) {
   const root = document.createElement('div');
   document.body.append(root);
   const config = createConfig(testConfig, {
-    buyables: [...testConfig.buyables, gate],
+    buyables: [...testConfig.buyables, levels, unlock],
     resleeve: { ...testConfig.resleeve, lockoutMs: 0, sleeveLevelsNeeded: { base, perResleeve } },
   });
   const game = createGame({ config });
   const render = mountTestUi(root, game);
   const button = () => root.querySelector<HTMLButtonElement>('.sleeve-widget .resleeve')!;
   const open = () => {
-    setCredits(game, num(10));
+    setCredits(game, num(20));
+    game.buy('levels');
     render();
-    button().click();
+    button().click(); // the button is the purchase of Unlock resleeving
   };
   return { game, render, button, open };
 }

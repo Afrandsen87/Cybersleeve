@@ -3,12 +3,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
-import { shiftWeights } from '../core';
-import { num } from '../numbers';
+import { proficiencySteps, shiftWeightsBySteps } from '../core';
+import { num, numberFactory } from '../numbers';
 import { setCredits } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
   AUGMENT_SCHEMATIC,
+  AUTO_RUN,
   BURN_LEAD,
   BURN_LEADS,
   GROW_NETWORK,
@@ -40,28 +41,37 @@ describe('Rarity refinement (real content)', () => {
     expect(def.cost.eq(num(10_000))).toBe(true);
   });
 
-  it('the first two orders of magnitude leave the last rarity at 0, the third lets it drop', () => {
+  it('the refinement keeps the total, moves weight to rarer drops as proficiency grows, and already shifts at proficiency 3', () => {
+    const def = gameConfig.buyables.find((b) => b.id === RARITY_REFINEMENT)!;
     const rule = gameConfig.buyables.find((b) => b.id === KOMPROMAT_HARVEST)!.effect;
-    if (rule.kind !== 'itemDrop') throw new Error('not a drop');
+    if (def.effect.kind !== 'rarityShiftFromProficiency' || rule.kind !== 'itemDrop') throw new Error('unexpected content');
+    const { fractionPerStep, stepBase } = def.effect;
     const ids = gameConfig.items.rarities.map((r) => r.id);
     const weights = ids.map((id) => rule.drop.rarityWeights?.[id] ?? 0);
-    expect(shiftWeights(weights, 2, 0.01).at(-1)).toBe(0);
-    expect(shiftWeights(weights, 3, 0.01).at(-1)).toBeGreaterThan(0);
+    const shiftedAt = (proficiency: number): number[] =>
+      shiftWeightsBySteps(weights, proficiencySteps(num(proficiency), stepBase, numberFactory), fractionPerStep);
+    const total = (w: readonly number[]): number => w.reduce((n, x) => n + x, 0);
+    const rarerShare = (w: readonly number[]): number => 1 - w[0]! / total(w);
+    const at3 = shiftedAt(3);
+    expect(total(at3)).toBeCloseTo(total(weights), 9);
+    expect(at3).not.toEqual(weights);
+    let previous = rarerShare(weights);
+    for (const proficiency of [3, 30, 300, 3000]) {
+      const share = rarerShare(shiftedAt(proficiency));
+      expect(share).toBeGreaterThan(previous);
+      previous = share;
+    }
   });
 
-  it('the tooltip just says that it raises the rarity of Kompromat drops with Hacking Proficiency', () => {
+  it('the tooltip states the rule from the buyable description, without live numbers', () => {
     const g = createGame();
     (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(250);
     const tip = buildViewModel(g)
       .actions.find((a) => a.id === PRACTICE_HACKING)!
       .buyables.find((b) => b.id === RARITY_REFINEMENT)!.tip;
-    expect(tip.split('\n').slice(0, 2)).toEqual([
-      'Rarity refinement',
-      'Increases the rarity of Kompromat drops based on Hacking Proficiency.',
-    ]);
-    expect(tip).not.toContain('Shifts');
+    const def = gameConfig.buyables.find((b) => b.id === RARITY_REFINEMENT)!;
+    expect(tip.split('\n').slice(0, 2)).toEqual(['Rarity refinement', def.description]);
     expect(tip).not.toContain('250');
-    expect(tip).not.toMatch(/\b(not|never|no)\b/i);
   });
 });
 
@@ -72,13 +82,12 @@ describe('Rarity refinement counts Hacking Proficiency the way the drops do (rea
     state.hackingProficiency = num(9.6);
     state.purchased[KOMPROMAT_HARVEST] = 1;
     state.purchased[RARITY_REFINEMENT] = 1;
-    if (muscleMemory) state.purchased[SKILL_MUSCLE_MEMORY] = 1; // 9.6 x 1.05 = 10.08: one order of magnitude
+    if (muscleMemory) state.purchased[SKILL_MUSCLE_MEMORY] = 1; // raises the effective proficiency
     return g.dropSources(KOMPROMAT, 'uncommon')[0]!.chance;
   };
 
   it('the proficiency raised by Muscle Memory moves the drop ratios, as the Sleeve row shows it', () => {
-    expect(uncommonChance(false)).toBeCloseTo(0.05 * 0.1, 12); // no shift: 10 of 100
-    expect(uncommonChance(true)).toBeCloseTo(0.05 * 0.108, 12); // one shift: 10 - 0.1 + 0.9 = 10.8 of 100
+    expect(uncommonChance(true)).toBeGreaterThan(uncommonChance(false)); // more proficiency, more shift out of the common rarity
   });
 });
 
@@ -149,6 +158,7 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
     const g = createGame({ random: () => 0 }); // every drop succeeds, always the most common rarity
     setCredits(g, num(100_000));
     g.buy(INDUSTRIAL_ESPIONAGE);
+    g.buy(AUTO_RUN); // augments only go on an action whose Auto-run is owned
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
     const held = g.getState().wallet.inventory[AUGMENT_SCHEMATIC]!['common']!;
@@ -160,9 +170,12 @@ describe('Industrial Espionage and the Augment button (real content)', () => {
     expect(g.getState().wallet.inventory[AUGMENT_SCHEMATIC]!['common']).toBe(held - 1);
   });
 
-  it('every action card has the button, and the Augment schematic is a normal item in the Inventory', () => {
-    const vm = buildViewModel(createGame());
-    for (const a of vm.actions) expect(a.augment, a.id).not.toBeNull();
+  it('every action card has the button once a purchase makes schematics drop, and the Augment schematic is a normal item in the Inventory', () => {
+    const g = createGame();
+    for (const a of buildViewModel(g).actions) expect(a.augment, a.id).toBeNull();
+    const drop = gameConfig.buyables.find((b) => b.effect.kind === 'itemDrop' && b.effect.drop.itemId === AUGMENT_SCHEMATIC)!;
+    (g.getState() as unknown as { sleeve: { purchased: Record<string, number> } }).sleeve.purchased[drop.id] = 1;
+    for (const a of buildViewModel(g).actions) expect(a.augment, a.id).not.toBeNull();
     expect(gameConfig.items.definitions.map((d) => d.id)).toContain(AUGMENT_SCHEMATIC);
     expect(gameConfig.items.augment?.itemId).toBe(AUGMENT_SCHEMATIC);
     expect(gameConfig.items.augment!.xpBonusPerItem).toBeGreaterThan(0);
@@ -183,6 +196,7 @@ describe('Augment schematics are applied, never paid out (real content)', () => 
 
   it('the rarities multiply: 3 common, 3 uncommon and 3 rare give (1 + 3 x bonus) cubed', () => {
     const g = createGame();
+    (g.getState().sleeve.purchased as Record<string, number>)[AUTO_RUN] = 1; // augments need the action's Auto-run
     const bonus = gameConfig.items.augment!.xpBonusPerItem;
     (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = {
       [AUGMENT_SCHEMATIC]: { common: 3, uncommon: 3, rare: 3 },
@@ -196,6 +210,7 @@ describe('Augment schematics are applied, never paid out (real content)', () => 
 
   it('only the chosen rarity is used up', () => {
     const g = createGame();
+    (g.getState().sleeve.purchased as Record<string, number>)[AUTO_RUN] = 1; // augments need the action's Auto-run
     (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { [AUGMENT_SCHEMATIC]: { common: 2, uncommon: 5 } };
     for (let i = 0; i < 3; i++) g.augmentAction(PRACTICE_HACKING, 'uncommon');
     expect(g.getState().sleeve.actions[PRACTICE_HACKING]!.augments).toEqual({ uncommon: 3 });

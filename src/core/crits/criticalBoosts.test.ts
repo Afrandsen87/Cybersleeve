@@ -27,7 +27,7 @@ function configWith(extra: BuyableDefinition[] = []): GameConfig {
     progression: { actionLevels: { firstLevelXp: 1e12, growthFactor: 10 }, sleeveLevels: { firstLevelXp: 1e12, growthFactor: 10 } },
     network: { creditsPerNodePerSecond: 0 },
   });
-  const a = { ...base.actions[0]!, heatPerRun: 1, overclock: { heatPerRunFactor: 3 } };
+  const a = { ...base.actions[0]!, heatPerRun: 1, overclock: { heatChanceFactor: 2 } };
   return createConfig(base, { actions: [a, { ...a, id: 'b', name: 'B', heatPerRun: undefined, overclock: undefined }] });
 }
 
@@ -182,41 +182,29 @@ describe('critical link (Ransomware)', () => {
   });
 });
 
-describe('Overclock heat factor (Obfuscation)', () => {
+describe('Overclock heat chance factor (Obfuscation)', () => {
   const unlock = buy({ id: 'ocu', actionId: 'a', effect: { kind: 'overclockUnlock' } });
-  const factor = (f: number) => buy({ id: 'obf', effect: { kind: 'overclockHeatFactor', targetActionId: 'a', factor: f } });
+  const factor = (f: number) => buy({ id: 'obf', effect: { kind: 'overclockHeatChanceFactor', targetActionId: 'a', factor: f } });
 
-  it('lowers the heat factor of that action Overclock from 3 to 2', () => {
-    const g = game(configWith([unlock, factor(2)]));
+  it('halves the doubled heat chance of that action Overclock back to 1, and leaves the heat per run alone', () => {
+    const g = game(configWith([unlock, factor(0.5)]));
     g.buy('ocu');
-    expect(g.overclockStatus('a')!.heatPerRunFactor).toBe(3);
+    expect(g.overclockStatus('a')!.heatChanceFactor).toBe(2);
     g.buy('obf');
-    expect(g.overclockStatus('a')!.heatPerRunFactor).toBe(2);
+    expect(g.overclockStatus('a')!.heatChanceFactor).toBe(1);
   });
 
-  it('really lowers the heat of a run: one overclocked run makes exactly 1 heat less', () => {
-    const heatAfterOneRun = (withSkill: boolean): number => {
-      const g = game(configWith([unlock, factor(2)]));
-      g.buy('ocu');
-      if (withSkill) g.buy('obf');
-      g.toggleOverclock('a');
-      g.startAction('a');
-      g.tick(g.currentDurationMs('a') + 1);
-      return g.getState().sleeve.heat;
-    };
-    expect(heatAfterOneRun(false) - heatAfterOneRun(true)).toBeCloseTo(1, 9);
-  });
-
-  it('never raises the factor', () => {
-    const g = game(configWith([unlock, factor(5)]));
+  it('never takes the factor below 1: Overclock does not lower the chance under the action own', () => {
+    const g = game(configWith([unlock, factor(0.1)]));
     g.buy('ocu');
     g.buy('obf');
-    expect(g.overclockStatus('a')!.heatPerRunFactor).toBe(3);
+    expect(g.overclockStatus('a')!.heatChanceFactor).toBe(1);
   });
 
-  it('is rejected for an unknown action or a factor below 1', () => {
-    const unknown = configWith([buy({ id: 'bad', effect: { kind: 'overclockHeatFactor', targetActionId: 'ghost', factor: 2 } })]);
-    expect(validateConfig(unknown).join('|')).toContain('overclockHeatFactor refers to unknown action "ghost"');
-    expect(validateConfig(configWith([factor(0.5)])).join('|')).toContain('factor must be >= 1');
+  it('is rejected for an unknown action or a factor outside (0, 1]', () => {
+    const unknown = configWith([buy({ id: 'bad', effect: { kind: 'overclockHeatChanceFactor', targetActionId: 'ghost', factor: 0.5 } })]);
+    expect(validateConfig(unknown).join('|')).toContain('overclockHeatChanceFactor refers to unknown action "ghost"');
+    expect(validateConfig(configWith([factor(2)])).join('|')).toContain('factor must be in (0, 1]');
+    expect(validateConfig(configWith([factor(0)])).join('|')).toContain('factor must be in (0, 1]');
   });
 });

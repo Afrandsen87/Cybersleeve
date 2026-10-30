@@ -9,7 +9,18 @@
  * the types without importing the registry that imports them. Called by: the entry files, `effectRegistry.ts`, `actionResolver.ts`, `sleeveResolver.ts`.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
-import type { ActionId, BuyableDefinition, BuyableEffect, ChainRule, GameState, ItemDropRule, PaysActionRule, StateSlice } from '../types';
+import type {
+  ActionId,
+  BuyableDefinition,
+  BuyableId,
+  BuyableEffect,
+  ChainRule,
+  GameState,
+  ItemDropRule,
+  PaysActionRule,
+  RarityShift,
+  StateSlice,
+} from '../types';
 
 /** Facts about one kind of effect. */
 export interface EffectTraits {
@@ -44,7 +55,7 @@ export interface ActionAccumulator {
   /** Seconds of node income paid per node destroyed by the start cost (0 without a `creditSiphon`). */
   siphonSeconds: number;
   drops: ItemDropRule[];
-  rarityShifts: number[];
+  rarityShifts: RarityShift[];
 }
 
 /** What owned effects add up to for the sleeve (the running result of the sleeve hooks). Plain factors start at 1, amounts at 0. */
@@ -88,8 +99,8 @@ export interface SleeveAccumulator {
   focusStacking: boolean;
   /** What action XP is multiplied by while an action is behind the best synthetic sleeve's level on it (1 without Neural Mirror). */
   synthXpFactor: number;
-  /** The lowest heat factor of Overclock set by `overclockHeatFactor` buyables, by action. */
-  overclockHeatFactors: Record<ActionId, number>;
+  /** The lowest factor on Overclock's heat chance set by `overclockHeatChanceFactor` buyables, by action. */
+  overclockHeatChanceFactors: Record<ActionId, number>;
 }
 
 /** What an action hook may look at besides the effect. */
@@ -103,9 +114,11 @@ export interface ActionHookContext {
 
 /** What a sleeve hook may look at besides the effect. */
 export interface SleeveHookContext {
+  /** The buyable whose effect this is (for per-buyable state such as the hardening count). */
+  readonly id: BuyableId;
   /** Copies of the buyable owned (>= 1). */
   readonly owned: number;
-  readonly state: StateSlice<'network' | 'inventory' | 'synths'>;
+  readonly state: StateSlice<'network' | 'inventory' | 'synths' | 'hardeningCrits'>;
   readonly factory: NumberFactory;
   /** Plain action level of an action (without level bonuses). */
   readonly actionLevelOf: (actionId: ActionId) => number;

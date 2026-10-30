@@ -19,8 +19,16 @@ const harvest: BuyableDefinition = {
 };
 const config = createConfig(testConfig, { buyables: [...testConfig.buyables, harvest] });
 
+/** Holds stacks the way the game does: every held stack is also recorded as seen (the invariant). */
 const stock = (g: { getState(): unknown }, inventory: Record<string, Record<string, number>>): void => {
-  (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = inventory;
+  const wallet = (g.getState() as unknown as { wallet: { inventory: unknown; seenItems: Record<string, Record<string, true>> } }).wallet;
+  wallet.inventory = inventory;
+  for (const [item, stacks] of Object.entries(inventory)) for (const r of Object.keys(stacks)) (wallet.seenItems[item] ??= {})[r] = true;
+};
+
+/** Marks stacks as seen without holding them (what a drop that was since sold would have left behind). */
+const see = (g: { getState(): unknown }, seen: Record<string, Record<string, true>>): void => {
+  (g.getState() as unknown as { wallet: { seenItems: unknown } }).wallet.seenItems = seen;
 };
 
 beforeEach(() => {
@@ -55,7 +63,7 @@ describe('inventory view model', () => {
     expect(rare!.tip).toContain('\nDrop Chance = 0%\n');
   });
 
-  it('is hidden until something can drop or is held', () => {
+  it('is hidden until an item has been seen or is held; owning a drop source alone does not show it', () => {
     const g = createGame({ config });
     expect(buildViewModel(g).inventory.visible).toBe(false);
     stock(g, { file: { common: 1 } });
@@ -63,7 +71,16 @@ describe('inventory view model', () => {
     const owner = createGame({ config });
     setCredits(owner, num(10));
     owner.buy('harvest');
-    expect(buildViewModel(owner).inventory.visible).toBe(true);
+    expect(buildViewModel(owner).inventory.visible).toBe(false);
+    const seen = createGame({ config });
+    see(seen, { file: { common: true } }); // found once, none left
+    expect(buildViewModel(seen).inventory.visible).toBe(true);
+  });
+
+  it('show-all shows the inventory and every row', () => {
+    const vm = buildViewModel(createGame({ config }), undefined, undefined, { augmentRarityId: null, revealAll: true });
+    expect(vm.inventory.visible).toBe(true);
+    expect(vm.inventory.rows.every((r) => r.unlocked)).toBe(true);
   });
 
   it('takes its words from the text table', () => {
@@ -105,6 +122,7 @@ describe('inventory widget', () => {
     render();
     expect(widget.hidden).toBe(false);
     expect(tiles()).toHaveLength(2); // Common File and Rare File
+    expect(tiles().map((t) => t.hidden)).toEqual([true, false]); // the common one was never seen
     expect(tiles().map((t) => t.querySelector('.item-count')!.textContent)).toEqual(['0', '2']);
     expect(tiles().map((t) => t.classList.contains('empty'))).toEqual([true, false]);
     // the count comes after the icon in the tile, so it is shown below it
@@ -112,37 +130,70 @@ describe('inventory widget', () => {
     expect(hoverText(tiles()[1]!)).toContain('Payment = 200 credits');
   });
 
-  it('shows the tiles as soon as something can drop, even before anything is held', () => {
+  it('owning a drop source shows nothing; the first drop shows the rarity that dropped, and it stays when sold', () => {
     const { game, render, widget, tiles } = mount();
     setCredits(game, num(10));
     game.buy('harvest');
     render();
+    expect(widget.hidden).toBe(true);
+    game.startAction('a');
+    game.tick(10_001); // every drop is common
+    render();
     expect(widget.hidden).toBe(false);
-    expect(tiles().map((t) => t.querySelector('.item-count')!.textContent)).toEqual(['0', '0']);
+    expect(tiles().map((t) => t.hidden)).toEqual([false, true]); // the rare one has not been found
+    game.sellItems('file', 'common', 'all');
+    render();
+    expect(tiles().map((t) => [t.hidden, t.querySelector('.item-count')!.textContent])).toEqual([
+      [false, '0'],
+      [true, '0'],
+    ]);
   });
 
-  it('hides an item that is not unlocked, and shows all its rarities (even at 0) once a purchase that drops it is owned', () => {
+  it('hides an item until one of its rarities is seen, and then only the rarities seen or held', () => {
     const { game, render, widget } = mount();
     render();
     expect(widget.querySelector<HTMLElement>('.item-group')!.hidden).toBe(true);
     expect(buildViewModel(game).inventory.rows.every((r) => !r.unlocked)).toBe(true);
-    setCredits(game, num(10));
-    game.buy('harvest');
+    see(game, { file: { rare: true } });
     render();
     expect(widget.querySelector<HTMLElement>('.item-group')!.hidden).toBe(false);
-    expect(buildViewModel(game).inventory.rows.every((r) => r.unlocked)).toBe(true);
+    expect(buildViewModel(game).inventory.rows.map((r) => r.unlocked)).toEqual([false, true]);
+    stock(game, { file: { common: 1 } });
+    expect(buildViewModel(game).inventory.rows.map((r) => r.unlocked)).toEqual([true, true]);
+    stock(game, { file: {} }); // the last one used: the tile stays
+    expect(buildViewModel(game).inventory.rows.map((r) => r.unlocked)).toEqual([true, true]);
   });
 
-  it('an item held without a drop source (a shard) is unlocked by being held', () => {
+  it('an item without rarity is one row, shown by the same rule', () => {
+    const none = createConfig(config, {
+      items: {
+        ...config.items,
+        definitions: [...config.items.definitions, { id: 'tool', name: 'Tool', sellable: false, hasRarity: false }],
+      },
+    });
+    const g = createGame({ config: none });
+    expect(
+      buildViewModel(g)
+        .inventory.rows.filter((r) => r.itemId === 'tool')
+        .map((r) => r.unlocked),
+    ).toEqual([false]);
+    see(g, { tool: { common: true } });
+    expect(
+      buildViewModel(g)
+        .inventory.rows.filter((r) => r.itemId === 'tool')
+        .map((r) => r.unlocked),
+    ).toEqual([true]);
+  });
+
+  it('an item held without a drop source (a shard) is shown by being held, in the rarity held', () => {
     const g = createGame({ config });
     stock(g, { file: { rare: 1 } });
-    expect(buildViewModel(g).inventory.rows.every((r) => r.unlocked)).toBe(true);
+    expect(buildViewModel(g).inventory.rows.map((r) => r.unlocked)).toEqual([false, true]);
   });
 
   it('puts sellable items in their own section to the right of the others', () => {
     const { game, render, widget } = mount();
-    setCredits(game, num(10));
-    game.buy('harvest');
+    see(game, { file: { common: true, rare: true } });
     render();
     const sections = [...widget.querySelectorAll<HTMLElement>('.inventory-section')];
     expect(sections).toHaveLength(2);
