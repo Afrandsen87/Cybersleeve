@@ -9,7 +9,10 @@ import type { BurnLeads } from '../items/burnLeads';
 import type { ActionId, BuyableId, GameConfig, GameState } from '../types';
 import { isFeatureUnlocked } from './automation';
 import { type AutoBurnRules, autoBurnRules, ownsAutoBurnStep } from './autoBurnRules';
+import { AutoBurnSwitcher, type AutoBurnSwitches } from './autoBurnSwitcher';
 import type { AutoBurnStep, AutoBurnSwitch } from './autoBurnTypes';
+
+export type { AutoBurnSwitches } from './autoBurnSwitcher';
 
 /** What the screen and the commands use of Auto Burn (satisfied by {@link AutoBurn}). */
 export interface AutoBurnControls {
@@ -23,24 +26,16 @@ export interface AutoBurnControls {
   stepOwned(step: AutoBurnStep): boolean;
   /** Burn leads held (all of them, the reserve included). */
   held(): number;
-  /** Sets a switch; only works once its skill is owned. Before `choose` is owned, the "also" switches follow the ones before them. @returns the switch's state now */
+  /** Sets a switch; only works once its skill is owned. @returns the switch's state now */
   setSwitch(name: AutoBurnSwitch, on: boolean): boolean;
+  /** Ticks or unticks an Overclock for the resume switch; only works once `onOverclocks` is owned and for an Overclock that makes heat. @returns true when it is ticked now */
+  setResumeOverclock(id: ActionId, on: boolean): boolean;
+  /** Ticks or unticks an Auto-run for the resume switch; only works once `onActions` is owned and for an Auto-run of an action that makes heat. @returns true when it is ticked now */
+  setResumeAutoRun(id: BuyableId, on: boolean): boolean;
   /** Sets both thresholds (finite, 0 <= lower < upper); only works once `thresholds` is owned. @returns true when they were set */
   setThresholds(lower: number, upper: number): boolean;
   /** Sets the number of leads always kept (a whole number >= 0, fractions are cut off); only works once `reserve` is owned. @returns true when it was set */
   setReserve(count: number): boolean;
-}
-
-/** What Auto Burn switches, injected so it never writes toggle state itself: the heat-making things and the owners that set them. */
-export interface AutoBurnSwitches {
-  /** Actions whose Overclock makes heat (`overclockMakesHeat`). */
-  readonly overclockActions: readonly ActionId[];
-  /** The Auto-run buyables of the actions that make heat (`actionMakesHeat`). */
-  readonly autoRuns: readonly BuyableId[];
-  /** Sets an action's Overclock explicitly (`ActionToggles.setOverclock`). */
-  setOverclock(id: ActionId, on: boolean): boolean;
-  /** Sets an Auto-run explicitly (`Shop.setOn`). */
-  setAutoRun(id: BuyableId, on: boolean): boolean;
 }
 
 /** Floating-point slack when counting whole seconds out of many slices. */
@@ -58,15 +53,19 @@ const SECOND_EPSILON = 1e-9;
  *    a fraction below 1 counts as cooled): one lead a second (a fractional-second accumulator in the sleeve state), or with "hold" just
  *    enough leads to bring heat down to the lower threshold, or below 1 when that is lower (`BurnLeads.leadsNeeded`, `heatHoldTarget`).
  *    Never below the reserve.
- * 3. With the toggle on, out of leads (held minus reserve is 0, or leads cannot be used now: an Overclock that stops heat cooling is running) with heat above the lower threshold: the off rules switch heat-making Overclocks and/or the
- *    Auto-run of heat-making actions off, and record what they switched.
- * 4. Heat below the lower threshold with leads available: the on rules switch back on only what was recorded, and switch the toggle on.
- * Switching goes through the toggle owners (`AutoBurnSwitches`); a player's own press on an item forgets its record (`playerSwitched*`).
+ * 3. With the toggle on, out of leads (held minus reserve is 0, or leads cannot be used now: an Overclock that stops heat cooling is running) with heat above
+ *    the lower threshold: the off rules switch heat-making Overclocks and/or the Auto-run of heat-making actions off, and record what they switched.
+ * 4. Heat below the lower threshold with leads available: the on rules switch on every ticked (resume checklist) owned Overclock and Auto-run
+ *    that is off, even one the player switched off by hand, and when one changed, the toggle on. Every switch is independent of the others.
+ * Switching goes through {@link AutoBurnSwitcher} and the toggle owners (`AutoBurnSwitches`); a player's own press on an item forgets its record (`playerSwitched*`).
  *
  * Called by: `Automation.step`, `engine.ts` (the screen uses {@link AutoBurnControls}).
  * Calls: {@link BurnLeads}, {@link Inventory}, {@link AutoBurnSwitches}, {@link autoBurnRules}.
  */
 export class AutoBurn implements AutoBurnControls {
+  /** Switches the heat-making Overclocks and Auto-runs off and on. */
+  private readonly switcher: AutoBurnSwitcher;
+
   /**
    * Creates the unit.
    *
@@ -82,7 +81,9 @@ export class AutoBurn implements AutoBurnControls {
     private readonly inventory: Inventory,
     private readonly burnLeads: BurnLeads,
     private readonly switches: AutoBurnSwitches,
-  ) {}
+  ) {
+    this.switcher = new AutoBurnSwitcher(state, switches);
+  }
 
   /** See {@link AutoBurnControls.rules}. */
   rules(): AutoBurnRules {
@@ -117,13 +118,24 @@ export class AutoBurn implements AutoBurnControls {
     const sw = this.state.wallet.automation.autoBurn.switches;
     if (!this.stepOwned(name)) return sw[name];
     sw[name] = on;
-    if (!this.stepOwned('choose')) {
-      // before the player can choose, the "also" switch implies the one before it (5 implies 4, 7 implies 6)
-      if (name === 'offActions' && on) sw.offOverclocks = true;
-      if (name === 'offOverclocks' && !on) sw.offActions = false;
-      if (name === 'onOverclocks' && on) sw.onActions = true;
-      if (name === 'onActions' && !on) sw.onOverclocks = false;
-    }
+    return on;
+  }
+
+  /** See {@link AutoBurnControls.setResumeOverclock}. Mutates `wallet.automation.autoBurn.resumeOverclocks`. */
+  setResumeOverclock(id: ActionId, on: boolean): boolean {
+    const ticked = this.state.wallet.automation.autoBurn.resumeOverclocks;
+    if (!this.stepOwned('onOverclocks') || !this.switches.overclockActions.includes(id)) return ticked[id] === true;
+    if (on) ticked[id] = true;
+    else delete ticked[id];
+    return on;
+  }
+
+  /** See {@link AutoBurnControls.setResumeAutoRun}. Mutates `wallet.automation.autoBurn.resumeAutoRuns`. */
+  setResumeAutoRun(id: BuyableId, on: boolean): boolean {
+    const ticked = this.state.wallet.automation.autoBurn.resumeAutoRuns;
+    if (!this.stepOwned('onActions') || !this.switches.autoRuns.includes(id)) return ticked[id] === true;
+    if (on) ticked[id] = true;
+    else delete ticked[id];
     return on;
   }
 
@@ -150,7 +162,7 @@ export class AutoBurn implements AutoBurnControls {
    * Called by: `Automation.playerSwitchedOverclock`.
    */
   playerSwitchedOverclock(id: ActionId): void {
-    delete this.state.sleeve.autoBurn.overclocksOff[id];
+    this.switcher.forgetOverclock(id);
   }
 
   /**
@@ -159,7 +171,7 @@ export class AutoBurn implements AutoBurnControls {
    * Called by: `Automation.playerSwitchedAutoRun`.
    */
   playerSwitchedAutoRun(id: BuyableId): void {
-    delete this.state.sleeve.autoBurn.autoRunsOff[id];
+    this.switcher.forgetAutoRun(id);
   }
 
   /**
@@ -210,56 +222,13 @@ export class AutoBurn implements AutoBurnControls {
     if (count >= 1) this.burnLeads.useMany(rarityId, count);
   }
 
-  /** The off rules (only while the Burn lead toggle is on): out of leads while heat is above the lower threshold, switch the heat-making things off and record them. */
+  /** The off rules (only while the Burn lead toggle is on): out of leads while heat is above the lower threshold, see {@link AutoBurnSwitcher.switchOff}. */
   private switchOff(rules: AutoBurnRules): void {
-    if (
-      !this.state.sleeve.autoBurn.on ||
-      !(rules.offOverclocks || rules.offActions) ||
-      this.available(rules) > 0 ||
-      !(this.state.sleeve.heat > rules.lower)
-    )
-      return;
-    const life = this.state.sleeve.autoBurn;
-    if (rules.offOverclocks) {
-      for (const id of this.switches.overclockActions) {
-        if (this.state.sleeve.overclocked[id] !== true) continue;
-        this.switches.setOverclock(id, false);
-        if (this.state.sleeve.overclocked[id] !== true) life.overclocksOff[id] = true;
-      }
-    }
-    if (rules.offActions) {
-      for (const id of this.switches.autoRuns) {
-        if (!this.autoRunIsOn(id)) continue;
-        this.switches.setAutoRun(id, false);
-        if (!this.autoRunIsOn(id)) life.autoRunsOff[id] = true;
-      }
-    }
+    if (this.state.sleeve.autoBurn.on && this.available(rules) <= 0 && this.state.sleeve.heat > rules.lower) this.switcher.switchOff(rules);
   }
 
-  /** The on rules: heat below the lower threshold with leads available, switch back on what was recorded, and the toggle on. */
+  /** The on rules: heat below the lower threshold with leads available, see {@link AutoBurnSwitcher.switchOn}; a change also switches the toggle on. */
   private switchOn(rules: AutoBurnRules): void {
-    if (!(rules.onOverclocks || rules.onActions) || this.available(rules) <= 0 || !(this.state.sleeve.heat < rules.lower)) return;
-    const life = this.state.sleeve.autoBurn;
-    let restored = false;
-    if (rules.onOverclocks) {
-      for (const id of Object.keys(life.overclocksOff)) {
-        delete life.overclocksOff[id];
-        this.switches.setOverclock(id, true);
-        restored = true;
-      }
-    }
-    if (rules.onActions) {
-      for (const id of Object.keys(life.autoRunsOff)) {
-        delete life.autoRunsOff[id];
-        this.switches.setAutoRun(id, true);
-        restored = true;
-      }
-    }
-    if (restored) life.on = true;
-  }
-
-  /** True when the Auto-run is owned and not switched off. */
-  private autoRunIsOn(id: BuyableId): boolean {
-    return (this.state.sleeve.purchased[id] ?? 0) > 0 && this.state.sleeve.autoRunOff[id] !== true;
+    if (this.available(rules) > 0 && this.state.sleeve.heat < rules.lower && this.switcher.switchOn(rules)) this.state.sleeve.autoBurn.on = true;
   }
 }
