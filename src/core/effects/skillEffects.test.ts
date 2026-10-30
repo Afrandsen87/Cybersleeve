@@ -193,8 +193,8 @@ describe('item skills', () => {
         actions: [...testConfig.actions, inert],
         items: {
           rarities: [
-            { id: 'common', name: 'C', sellValue: num(1) },
-            { id: 'uncommon', name: 'U', sellValue: num(2) },
+            { id: 'common', name: 'C', sellValue: num(1), sellSeconds: 0 },
+            { id: 'uncommon', name: 'U', sellValue: num(2), sellSeconds: 0 },
           ],
           definitions: [{ id: 'file', name: 'F' }],
         },

@@ -592,6 +592,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return hasSeenItem(this.state, itemId, rarityId);
   }
 
+  /** Credits one item of this rarity sells for now. See `Inventory.sellValue`. Called by: `ui/view/inventoryView.ts`. */
+  sellValue(rarityId: RarityId): BigNum {
+    return this.inventory.sellValue(rarityId);
+  }
+
   /** The back channel unlocked by a skill (which item and rarity can be given up, and for how many Moles each), or `null`. */
   backChannel(): BackChannelRule | null {
     return this.stats.backChannel();

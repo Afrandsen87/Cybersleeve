@@ -57,6 +57,7 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
     // An item without rarity is one stack (kept under the most common rarity) and is named by the item alone.
     (item.hasRarity === false ? items.rarities.slice(0, 1) : items.rarities).map((rarity): InventoryRowView => {
       const count = itemCount(state, item.id, rarity.id);
+      const price = engine.sellValue(rarity.id); // the one owner of the sale price
       const label = item.hasRarity === false ? item.name : text.inventory.label(rarity.name, item.name);
       const channelMoles = channel?.itemId === item.id ? channel.molesByRarity[rarity.id] : undefined;
       const backChannel = channelMoles !== undefined;
@@ -151,9 +152,9 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
             : text.tips.stack({
                 label,
                 drops,
-                sellValue: formatBigNum(rarity.sellValue),
+                sellValue: formatBigNum(price),
                 count: formatBigNum(factory.fromNumber(count)),
-                total: formatBigNum(rarity.sellValue.mul(factory.fromNumber(count))),
+                total: formatBigNum(price.mul(factory.fromNumber(count))),
                 unit: text.costUnits.credits,
               });
         },

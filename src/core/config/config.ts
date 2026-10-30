@@ -176,6 +176,7 @@ function checkItems(
     if (rarityIds.has(rarity.id)) errors.push(`duplicate rarity id "${rarity.id}"`);
     rarityIds.add(rarity.id);
     if (!rarity.sellValue.isFinite() || rarity.sellValue.isNegative()) errors.push(`rarity "${rarity.id}": sellValue must be >= 0`);
+    if (!(Number.isFinite(rarity.sellSeconds) && rarity.sellSeconds >= 0)) errors.push(`rarity "${rarity.id}": sellSeconds must be >= 0`);
   }
   if (items.definitions.length > 0 && items.rarities.length === 0) errors.push('items need at least one rarity');
   if (items.augment) {

@@ -17,8 +17,10 @@ export interface RarityDefinition {
   readonly id: RarityId;
   /** Display name (placeholder, may be renamed freely). */
   readonly name: string;
-  /** Credits one item of this rarity sells for (>= 0). */
+  /** The least credits one item of this rarity sells for (>= 0): the floor of the sale price (see `Inventory.sellValue`). */
   readonly sellValue: BigNum;
+  /** Seconds of the life's peak network income one item sells for (>= 0); the sale price is the larger of this and `sellValue`. */
+  readonly sellSeconds: number;
 }
 
 /** Static description of a kind of item that actions can drop. It exists in every rarity. */

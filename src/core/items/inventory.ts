@@ -4,6 +4,7 @@
  * The inventory: items held, and selling them for credits.
  */
 import type { BigNum, NumberFactory } from '../../numbers';
+import { INFINITY } from '../kernel/infinity';
 import type { GameConfig, GameState, ItemId, RarityId, StateSlice } from '../types';
 
 /** Most of one stack that can be held; counts are plain numbers and stay whole and exact below this. */
@@ -40,12 +41,14 @@ export function hasSeenItem(state: StateSlice<'seenItems'>, itemId: ItemId, rari
  * The inventory rules: adding drops and selling stacks.
  *
  * @remarks
- * Selling pays the rarity's `sellValue` per item in credits. It is a trade, not an earning: the heat tax and
+ * Selling pays {@link Inventory.sellValue} per item in credits: the larger of the rarity's `sellValue` floor and `sellSeconds` times the life's peak
+ * network income (`sleeve.peakNetworkIncome`). That method is the ONE owner of the price (sale, autosale and tooltips). It is a trade, not an earning: the heat tax and
  * `global.creditMultiplier` (which scale run rewards and passive income) do not touch it.
  * Called by: `drops.ts` (`ItemDrops`), `engine.ts` (`GameEngine.sellItems`).
  */
 export class Inventory {
-  private readonly values = new Map<RarityId, BigNum>();
+  private readonly floors = new Map<RarityId, BigNum>();
+  private readonly seconds = new Map<RarityId, number>();
   private readonly items = new Set<ItemId>();
   private readonly unsellable = new Set<ItemId>();
   /** The first (most common) rarity: where an item without rarity keeps its single stack. */
@@ -64,16 +67,33 @@ export class Inventory {
     private readonly factory: NumberFactory,
   ) {
     this.first = config.items.rarities[0]?.id;
-    for (const r of config.items.rarities) this.values.set(r.id, r.sellValue);
+    for (const r of config.items.rarities) {
+      this.floors.set(r.id, r.sellValue);
+      this.seconds.set(r.id, r.sellSeconds);
+    }
     for (const i of config.items.definitions) {
       this.items.add(i.id);
       if (i.sellable === false) this.unsellable.add(i.id);
     }
   }
 
-  /** Credits one item of this rarity sells for (0 for an unknown rarity). */
+  /**
+   * Credits one item of this rarity sells for: `max(sellValue, sellSeconds x peak network income of this life)`.
+   *
+   * Called by: {@link Inventory.sell}, `GameEngine.sellValue` (the inventory tooltips). Calls: nothing.
+   *
+   * @param rarityId the rarity
+   * @returns the price (0 for an unknown rarity). A NaN or negative peak counts as 0 (only the floor applies); a peak above Infinity (1e308) is clamped to it.
+   */
   sellValue(rarityId: RarityId): BigNum {
-    return this.values.get(rarityId) ?? this.factory.fromNumber(0);
+    const floor = this.floors.get(rarityId);
+    if (floor === undefined) return this.factory.fromNumber(0);
+    const seconds = this.seconds.get(rarityId) ?? 0;
+    const peak = this.state.sleeve.peakNetworkIncome;
+    if (!(seconds > 0) || peak.isNaN() || peak.isNegative() || peak.isZero()) return floor;
+    const cap = this.factory.fromNumber(INFINITY);
+    const scaled = (peak.gt(cap) || !peak.isFinite() ? cap : peak).mul(this.factory.fromNumber(seconds));
+    return scaled.gt(floor) ? scaled : floor;
   }
 
   /**
@@ -85,7 +105,7 @@ export class Inventory {
    * @param count how many (a whole number >= 0)
    */
   add(itemId: ItemId, rarityId: RarityId, count: number): void {
-    if (!this.items.has(itemId) || !this.values.has(rarityId) || !(count > 0)) return;
+    if (!this.items.has(itemId) || !this.floors.has(rarityId) || !(count > 0)) return;
     const stacks = (this.state.wallet.inventory[itemId] ??= {});
     stacks[rarityId] = Math.min(MAX_STACK, (stacks[rarityId] ?? 0) + Math.floor(count));
     (this.state.wallet.seenItems[itemId] ??= {})[rarityId] = true;

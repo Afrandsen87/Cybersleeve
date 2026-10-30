@@ -9,13 +9,13 @@ import { PRACTICE_HACKING, PUSH_MALWARE, KOMPROMAT, AUGMENT_SCHEMATIC, BURN_LEAD
 
 /** The items of the game: rarities (with their sell values), the item kinds and the special items. */
 export const itemsConfig: GameConfig['items'] = {
-  /** Most common first. Common sells for 100 credits; each tier is three orders of magnitude above the one before. */
+  /** Most common first. The sale price is the larger of `sellValue` (floor) and `sellSeconds` of the life's peak network income: 60 s for common, 5x more per tier. */
   rarities: [
-    { id: 'common', name: 'Common', sellValue: num(100) },
-    { id: 'uncommon', name: 'Uncommon', sellValue: num(100_000) },
-    { id: 'rare', name: 'Rare', sellValue: num(100_000_000) },
-    { id: 'legendary', name: 'Legendary', sellValue: num(100_000_000_000) },
-    { id: 'crisis', name: 'Crisis level', sellValue: num(100_000_000_000_000) },
+    { id: 'common', name: 'Common', sellValue: num(100), sellSeconds: 60 },
+    { id: 'uncommon', name: 'Uncommon', sellValue: num(100_000), sellSeconds: 300 },
+    { id: 'rare', name: 'Rare', sellValue: num(100_000_000), sellSeconds: 1500 },
+    { id: 'legendary', name: 'Legendary', sellValue: num(100_000_000_000), sellSeconds: 7500 },
+    { id: 'crisis', name: 'Crisis level', sellValue: num(100_000_000_000_000), sellSeconds: 37500 },
   ],
   definitions: [
     { id: KOMPROMAT, name: 'Kompromat file' },
