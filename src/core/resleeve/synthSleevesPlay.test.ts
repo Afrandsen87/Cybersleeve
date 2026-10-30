@@ -55,9 +55,9 @@ describe('synthetic sleeves', () => {
       atLevel(g, level);
       return g.synthCreditsPerSecond().toNumber();
     };
-    expect(incomeAt(1)).toBeCloseTo(12.5, 9);
-    expect(incomeAt(2)).toBeCloseTo(25, 9);
-    expect(incomeAt(3)).toBeCloseTo(37.5, 9);
+    expect(incomeAt(1)).toBeCloseTo(51 ** (1 / 4) - 1, 9);
+    expect(incomeAt(2)).toBeCloseTo(51 ** (2 / 4) - 1, 9);
+    expect(incomeAt(3)).toBeCloseTo(51 ** (3 / 4) - 1, 9);
     expect(incomeAt(4)).toBeCloseTo(50, 9);
     mutable(g).actions['a']!.xp = num('1e9'); // far past the recorded levels
     expect(g.actionLevel('a')).toBeGreaterThan(4);
@@ -114,9 +114,9 @@ describe('synthetic sleeves', () => {
     state.runs.push({ creditsPerSecond: num(100), actionLevelsTotal: 4 }, { creditsPerSecond: num(30), actionLevelsTotal: 2 });
     state.synths.push({ runIndex: 2 }, { runIndex: 3 });
     atLevel(g, 1); // a quarter of the way to run 2, half of the way to run 3
-    expect(g.synthCreditsPerSecond().toNumber()).toBeCloseTo(100 * 0.25 + 30 * 0.5, 9);
+    expect(g.synthCreditsPerSecond().toNumber()).toBeCloseTo(101 ** 0.25 - 1 + (31 ** 0.5 - 1), 9);
     atLevel(g, 3);
-    expect(g.synthCreditsPerSecond().toNumber()).toBeCloseTo(100 * 0.75 + 30, 9); // the second has caught up and stays at 30
+    expect(g.synthCreditsPerSecond().toNumber()).toBeCloseTo(101 ** 0.75 - 1 + 30, 9); // the second has caught up and stays at 30
     expect(g.synthCount()).toBe(3);
   });
 
@@ -129,13 +129,38 @@ describe('synthCreditsPerSecond', () => {
   const record = { creditsPerSecond: num(80), actionLevelsTotal: 8 };
   it.each([
     [0, 0],
-    [1, 10],
-    [4, 40],
+    [1, 81 ** (1 / 8) - 1],
+    [4, 81 ** 0.5 - 1],
     [8, 80],
     [9, 80],
     [1e9, 80],
   ])('at %d levels of a run of 8 levels and 80 per second it earns %d', (levels, expected) => {
     expect(synthCreditsPerSecond(record, levels, numberFactory).toNumber()).toBeCloseTo(expected, 9);
+  });
+
+  it('rises without a jump: a tiny step in levels gives a tiny step in income, and never a fall', () => {
+    let previous = 0;
+    for (let levels = 0; levels <= 8.5; levels += 0.01) {
+      const v = synthCreditsPerSecond(record, levels, numberFactory).toNumber();
+      expect(v).toBeGreaterThanOrEqual(previous);
+      expect(v - previous).toBeLessThan(5);
+      previous = v;
+    }
+  });
+
+  it('moves in orders of magnitude: a record of 3.5e8 at 350 levels gives about 0.058 at 1 level and 1.9e4 at half', () => {
+    const big = { creditsPerSecond: num(3.5e8), actionLevelsTotal: 350 };
+    expect(synthCreditsPerSecond(big, 1, numberFactory).toNumber()).toBeCloseTo(0.0583, 3);
+    expect(synthCreditsPerSecond(big, 175, numberFactory).toNumber() / 1.87e4).toBeCloseTo(1, 1);
+    expect(synthCreditsPerSecond(big, 350, numberFactory).toNumber()).toBe(3.5e8);
+  });
+
+  it('handles a record of 0 and a huge record', () => {
+    expect(synthCreditsPerSecond({ creditsPerSecond: num(0), actionLevelsTotal: 8 }, 4, numberFactory).toNumber()).toBe(0);
+    const huge = synthCreditsPerSecond({ creditsPerSecond: num('1e300'), actionLevelsTotal: 8 }, 4, numberFactory);
+    expect(huge.isFinite()).toBe(true);
+    expect(huge.floorLog10()).toBe(150);
+    expect(synthCreditsPerSecond({ creditsPerSecond: num('1e300'), actionLevelsTotal: 8 }, 8, numberFactory).floorLog10()).toBe(300);
   });
 
   it('never goes below 0 or above the recorded amount, whatever it is given', () => {

@@ -19,13 +19,13 @@ function setup(liveLevels: number, levelInput?: (synth: { runIndex: number }) =>
     { creditsPerSecond: num(20), actionLevelsTotal: 200 },
   ];
   state.wallet.synths = [{ runIndex: 0 }, { runIndex: 1 }];
-  const progression = { totalActionLevels: () => liveLevels } as unknown as Progression;
+  const progression = { totalActionLevelsWithProgress: () => liveLevels } as unknown as Progression;
   return new SynthSleeves(testConfig, state, progression, numberFactory, undefined, levelInput);
 }
 
 describe('SynthSleeves level input', () => {
   it('by default every sleeve is measured against the live sleeve', () => {
-    expect(setup(50).creditsPerSecond().toNumber()).toBeCloseTo(10 * 0.5 + 20 * 0.25);
+    expect(setup(50).creditsPerSecond().toNumber()).toBeCloseTo(11 ** 0.5 - 1 + (21 ** 0.25 - 1));
     expect(setup(1000).creditsPerSecond().toNumber()).toBe(30);
   });
 
@@ -35,7 +35,7 @@ describe('SynthSleeves level input', () => {
       asked.push(s.runIndex);
       return s.runIndex === 0 ? 100 : 50;
     });
-    expect(synths.creditsPerSecond().toNumber()).toBeCloseTo(10 + 20 * 0.25);
+    expect(synths.creditsPerSecond().toNumber()).toBeCloseTo(10 + (21 ** 0.25 - 1));
     expect(asked).toEqual([0, 1]);
   });
 

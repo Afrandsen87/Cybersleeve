@@ -21,23 +21,27 @@ export type SynthLevelInput = (synth: Readonly<{ runIndex: number }>) => number;
  * The credits per second one synthetic sleeve earns, given how far the current sleeve has come.
  *
  * @remarks
- * A synthetic sleeve earns the final credits per second of the run it copies, scaled by how far the current sleeve has come in
- * action levels: `creditsPerSecond x min(1, current levels total / recorded levels total)`. Once the current sleeve has caught up it
- * stays at the full recorded amount (more levels never raise it): the base behaviour is a speed-up, not a source of growth. A run
- * that had no action levels at all (a total of 0) has nothing to catch up to, so it pays in full at once.
+ * A synthetic sleeve earns the final credits per second of the run it copies, interpolated in orders of magnitude (so one level never
+ * jumps it from nothing to millions): `(1 + record)^p - 1`, where `p = min(1, current levels / recorded levels)`. The current levels
+ * include the fraction of each action's current level, so income rises continuously. Once the current sleeve has caught up (p = 1) it
+ * stays at the full recorded amount (more levels never raise it). A run that had no action levels (a total of 0) has nothing to catch
+ * up to, so it pays in full at once. Zero or NaN current levels pay nothing; the result is clamped to [0, record].
  *
  * Called by: {@link SynthSleeves.creditsPerSecond}.
  *
  * @param record the finished run the synthetic sleeve copies
- * @param currentLevels the total of all action levels of the current sleeve (>= 0)
+ * @param currentLevels the total of all action levels of the current sleeve, fractions included (>= 0)
  * @param factory number factory
- * @returns credits per second (>= 0)
+ * @returns credits per second (>= 0, <= the recorded amount)
  */
 export function synthCreditsPerSecond(record: SleeveRunRecord, currentLevels: number, factory: NumberFactory): BigNum {
   const recorded = record.actionLevelsTotal;
   if (!(recorded > 0) || currentLevels >= recorded) return record.creditsPerSecond;
-  if (!(currentLevels > 0)) return factory.fromNumber(0);
-  return record.creditsPerSecond.mul(factory.fromNumber(currentLevels / recorded));
+  if (!(currentLevels > 0) || !record.creditsPerSecond.gt(factory.fromNumber(0))) return factory.fromNumber(0);
+  const one = factory.fromNumber(1);
+  const interpolated = record.creditsPerSecond.add(one).pow(currentLevels / recorded).sub(one);
+  if (!interpolated.isFinite() || !interpolated.gt(factory.fromNumber(0))) return factory.fromNumber(0);
+  return interpolated.gt(record.creditsPerSecond) ? record.creditsPerSecond : interpolated;
 }
 
 /**
@@ -68,7 +72,7 @@ export function bestSynthActionLevel(state: StateSlice<'runs' | 'synths'>, actio
  * and Perfect Copies makes each earn at least what the sleeve's own network earns right now.
  *
  * Called by: `network.ts` (income), `resleever.ts`, `shop.ts` (purchase listener), `engine.ts` (queries).
- * Calls: {@link synthCreditsPerSecond}, {@link Progression.totalActionLevels}.
+ * Calls: {@link synthCreditsPerSecond}, {@link Progression.totalActionLevelsWithProgress}.
  */
 export class SynthSleeves implements SynthQueries {
   /**
@@ -90,7 +94,7 @@ export class SynthSleeves implements SynthQueries {
     private readonly networkIncome: () => BigNum = () => factory.fromNumber(0),
     levelInput?: SynthLevelInput,
   ) {
-    this.levelInput = levelInput ?? (() => this.progression.totalActionLevels(this.state));
+    this.levelInput = levelInput ?? (() => this.progression.totalActionLevelsWithProgress(this.state));
   }
 
   private readonly levelInput: SynthLevelInput;

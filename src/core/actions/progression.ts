@@ -151,6 +151,21 @@ export class Progression {
   }
 
   /**
+   * The total of the action levels with the fraction of each action's current level added (level + progress into it), so it rises
+   * continuously. Synthetic sleeves measure the live sleeve with it.
+   *
+   * Called by: `synth/synthSleeves.ts`. Calls: {@link Progression.actionLevel}, {@link Progression.actionLevelProgress}.
+   *
+   * @param state current state
+   * @returns a number >= 0
+   */
+  totalActionLevelsWithProgress(state: GameState): number {
+    let total = 0;
+    for (const id of this.actionRules.keys()) total += this.actionLevel(state, id) + this.actionLevelProgress(state, id);
+    return total;
+  }
+
+  /**
    * Total XP at which the action reaches its next level (all earlier levels included).
    * @throws Error if the action id is unknown
    */
