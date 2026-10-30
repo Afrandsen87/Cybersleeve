@@ -14,7 +14,7 @@ export { StartCosts } from './actions/startCosts';
 export { RewardPayer } from './actions/rewardPayer';
 export { EFFECT_TRAITS, traitsOf } from './effects/effectTraits';
 export { Economy } from './economy/economy';
-export { Inventory, itemCount } from './items/inventory';
+export { Inventory, hasSeenItem, itemCount } from './items/inventory';
 export { Augments, augmentXpFactor } from './items/augments';
 export { BackChannel } from './items/backChannel';
 export { BurnLeads } from './items/burnLeads';

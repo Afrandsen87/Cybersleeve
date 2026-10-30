@@ -41,6 +41,51 @@ export function readInventory(v: unknown, items: GameConfig['items']): Wallet['i
 }
 
 /**
+ * The seen items as saved: only entries flagged `true`.
+ *
+ * Called by: {@link seenItemsSavePart}. Calls: nothing.
+ */
+export function writeSeenItems(seen: Wallet['seenItems']): Wallet['seenItems'] {
+  const out: Wallet['seenItems'] = {};
+  for (const [item, rarities] of Object.entries(seen)) {
+    for (const [rarity, flag] of Object.entries(rarities)) if (flag === true) (out[item] ??= {})[rarity] = true;
+  }
+  return out;
+}
+
+/**
+ * Reads the seen items: only known items and rarities flagged `true` (a save without the field, or a malformed one, is empty).
+ *
+ * Called by: {@link seenItemsSavePart}. Calls: `isRecord`.
+ */
+export function readSeenItems(v: unknown, items: GameConfig['items']): Wallet['seenItems'] {
+  const out: Wallet['seenItems'] = {};
+  if (!isRecord(v)) return out;
+  for (const item of items.definitions) {
+    const saved = v[item.id];
+    if (!isRecord(saved)) continue;
+    for (const rarity of items.rarities) if (saved[rarity.id] === true) (out[item.id] ??= {})[rarity.id] = true;
+  }
+  return out;
+}
+
+/**
+ * The seen-items part (wallet `seenItems`). A save that has none loads as empty, so no save version change is needed; an empty set is left out of the saved text.
+ *
+ * Called by: `save/saveParts.ts`. Calls: {@link writeSeenItems}, {@link readSeenItems}.
+ */
+export const seenItemsSavePart: SavePart<Pick<GameConfig, 'items'>> = {
+  name: 'seenItems',
+  write: (state) => {
+    const seen = writeSeenItems(state.wallet.seenItems);
+    return Object.keys(seen).length > 0 ? { wallet: { seenItems: seen } } : {};
+  },
+  read: (state, raw, config) => {
+    state.wallet.seenItems = readSeenItems(raw.wallet['seenItems'], config.items);
+  },
+};
+
+/**
  * The inventory part. Must be read before the key toggles (a toggle stays on only while its key is held).
  *
  * Called by: `save/saveParts.ts`. Calls: {@link writeInventory}, {@link readInventory}.

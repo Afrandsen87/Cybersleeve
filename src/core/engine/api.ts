@@ -134,6 +134,8 @@ export interface ItemQueries {
   canToggleZeroDays(): boolean;
   /** True when pressing the Admin key toggle would do something (it is on, or an Admin key is held). */
   canToggleAdminKeys(): boolean;
+  /** True when this item in this rarity has ever entered the inventory (over all lives, kept by a re-sleeve). */
+  hasSeenItem(itemId: ItemId, rarityId: RarityId): boolean;
   /** True when using a Skill shard would do something (one is held and some action is unlocked). */
   canUseSkillShard(): boolean;
 }

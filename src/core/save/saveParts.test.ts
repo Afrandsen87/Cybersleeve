@@ -13,6 +13,12 @@ import { createInitialState } from './state';
 import { serializeState } from './serialization';
 
 const fresh = () => createInitialState(testConfig, numberFactory);
+/** A state that has seen an item: `seenItems` is the one key that is left out of the saved text while it is empty. */
+const withSeen = () => {
+  const state = fresh();
+  state.wallet.seenItems = { file: { common: true } };
+  return state;
+};
 const names = SAVE_PARTS.map((p) => p.name);
 
 describe('SAVE_PARTS', () => {
@@ -42,7 +48,7 @@ describe('SAVE_PARTS', () => {
   it('writes every listed key exactly once between the parts', () => {
     const seen: string[] = [];
     for (const part of SAVE_PARTS) {
-      const out = part.write(fresh());
+      const out = part.write(withSeen());
       seen.push(...Object.keys(out.wallet ?? {}).map((k) => `wallet.${k}`), ...Object.keys(out.sleeve ?? {}).map((k) => `sleeve.${k}`));
     }
     expect(new Set(seen).size).toBe(seen.length);
@@ -50,7 +56,7 @@ describe('SAVE_PARTS', () => {
   });
 
   it('writes the keys of the saved objects in the declared order, before the scalars', () => {
-    const data = JSON.parse(serializeState(fresh()));
+    const data = JSON.parse(serializeState(withSeen()));
     expect(Object.keys(data.wallet).slice(0, WALLET_KEY_ORDER.length)).toEqual([...WALLET_KEY_ORDER]);
     expect(Object.keys(data.sleeves.main).slice(0, SLEEVE_KEY_ORDER.length)).toEqual([...SLEEVE_KEY_ORDER]);
   });

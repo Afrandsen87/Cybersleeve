@@ -209,6 +209,7 @@ describe('selling items', () => {
   const stocked = () => {
     const g = createGame({ config: testConfig });
     (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { file: { common: 5, rare: 2 } };
+    (g.getState() as unknown as { wallet: { seenItems: unknown } }).wallet.seenItems = { file: { common: true, rare: true } };
     return g;
   };
 
@@ -263,6 +264,7 @@ describe('inventory in saves and resets', () => {
   const stocked = () => {
     const g = createGame({ config: testConfig });
     (g.getState() as unknown as { wallet: { inventory: unknown } }).wallet.inventory = { file: { common: 5, rare: 2 } };
+    (g.getState() as unknown as { wallet: { seenItems: unknown } }).wallet.seenItems = { file: { common: true, rare: true } };
     return g;
   };
 

@@ -27,7 +27,7 @@ import type { CritFeed, RecentCrits } from '../crits/critFeed';
 import type { SkillShards } from '../items/skillShards';
 import type { ZeroDays } from '../crits/zeroDays';
 import type { ItemDrops } from '../items/drops';
-import type { Inventory } from '../items/inventory';
+import { type Inventory, hasSeenItem } from '../items/inventory';
 import type { NetworkSystem } from '../economy/network';
 import type { OverflowPolicy } from '../kernel/overflow';
 import { notePeaks } from '../economy/reveal';
@@ -559,6 +559,11 @@ export class GameEngine implements GameQueries, GameCommands {
   /** True while heat cannot cool or be reduced at all (an action is running with an Overclock that stops heat cooling). */
   heatCoolingBlocked(): boolean {
     return this.stats.heatCoolingBlocked();
+  }
+
+  /** True when this item in this rarity has ever entered the inventory (over all lives). */
+  hasSeenItem(itemId: ItemId, rarityId: RarityId): boolean {
+    return hasSeenItem(this.state, itemId, rarityId);
   }
 
   /** The back channel unlocked by a skill (which item and rarity can be given up, and for how many Moles each), or `null`. */

@@ -39,6 +39,7 @@ export const CARRIED_OVER_WALLET_FIELDS = [
   'corporation',
   'allTimePeakCredits',
   'allTimePeakNetwork',
+  'seenItems',
 ] as const satisfies readonly (keyof Wallet)[];
 
 /** The carried-over part of one action's state. */
@@ -82,6 +83,7 @@ export function createInitialState(config: StateConfig, factory: NumberFactory):
       automation: createAutomationState(config),
       corporation: createCorporationState(config.corporation, factory),
       inventory: {},
+      seenItems: {},
     },
     sleeve: {
       ...(scalars.sleeve as Pick<

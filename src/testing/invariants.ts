@@ -44,6 +44,7 @@ const isWhole = (n: BigNum): boolean => {
  *   skill-tree parent it has;
  * - the run counter towards sleeve XP is whole and below `runsPerSleeveXp`;
  * - every inventory stack is a whole number >= 0;
+ * - every held item and rarity is in the seen set (and the seen set holds only `true` flags);
  * - Overclock and Focus are switched on only for actions whose unlock is owned (Overclock also needs an Overclock rule), and no
  *   more actions are focused than there are Focus slots (the base slots plus the bought ones); the toggles name known actions only;
  * - banked critical successes are whole counts of known actions;
@@ -174,6 +175,7 @@ export function findInvariantViolations(state: GameStateView, config: InvariantC
   }
   for (const [itemId, stacks] of Object.entries(state.wallet.inventory)) {
     for (const [rarityId, count] of Object.entries(stacks)) {
+      if (count > 0 && state.wallet.seenItems[itemId]?.[rarityId] !== true) problems.push(`inventory ${itemId}/${rarityId} is held but not seen`);
       if (!validCount(count) || count > Number.MAX_SAFE_INTEGER)
         problems.push(`inventory ${itemId}/${rarityId} count is invalid: ${count}`);
     }
