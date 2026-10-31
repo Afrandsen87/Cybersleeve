@@ -104,7 +104,7 @@ export const firmwareText: FirmwareText = {
       reserve: 'the Reserve field',
     },
     chip: (rarity, backchannel, root) =>
-      root ? `the AUTOSALE row with a ${rarity} chip` : `a ${rarity} chip in ${backchannel ? 'BACK CHANNEL' : 'AUTOSALE'}`,
+      root ? `the AUTOSALE row with its ${rarity} chip` : `the ${rarity} chip in ${backchannel ? 'BACK CHANNEL' : 'AUTOSALE'}`,
     dispersal: (rarity) => `the panel, ${rarity} permit and 1 target slot`,
     permit: (rarity) => `the ${rarity} permit`,
     slot: (count) => `target slot ${count}`,

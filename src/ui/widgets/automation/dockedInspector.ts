@@ -81,7 +81,7 @@ export function mountDockedInspector(
   /** Builds the shared reveal-safe presentation. Called by: paint, measure. Calls: buildInspectorView. */
   function presentation(id: string) {
     const feature = view.features.find((entry) => entry.id === laneOf(id));
-    return buildInspectorView({
+    const built = buildInspectorView({
       selectedId: id,
       lanes: view.features.flatMap((entry) => entry.lanes),
       sleeveLanes: [],
@@ -90,6 +90,8 @@ export function mountDockedInspector(
       text: ctx.text.firmware,
       adds: feature?.additions.get(id)?.text ?? null,
     });
+    // every lane's own title is the same "FIRMWARE" caption, so the pane names the daemon instead
+    return built && feature ? { ...built, branchTitle: feature.name } : built;
   }
 
   /** Updates selection and the shared inspector without rebuilding controls. Called by: events, render. Calls: presentation. */
