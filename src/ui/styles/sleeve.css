@@ -5,23 +5,152 @@
 .stat {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 13px;
 }
 .stat-label {
   color: var(--muted);
 }
 .stat-value {
-  font-weight: 700;
-  color: var(--cyan);
+  font: 700 13px var(--mono);
+  color: var(--info);
+  text-align: right;
 }
-@media (max-width: 900px) {
+/* The meaning of a value, set by the view (data-tone); the colours are the language in style.css. */
+.stat-value[data-tone="gain"] {
+  color: var(--gain);
+}
+.stat-value[data-tone="danger"] {
+  color: var(--danger);
+}
+.stat-value[data-tone="info"] {
+  color: var(--info);
+}
+/* The red note under the income row. */
+.tax-note {
+  margin: -1px 0 3px;
+  font: 11px var(--mono);
+  color: var(--danger);
+}
+.tax-note::before {
+  content: "▲ ";
+}
+.tax-note[hidden] {
+  display: none;
+}
+/* A group of stats: a header line with the title, then its rows. */
+.group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font: 700 10px var(--mono);
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+.group-title:first-child {
+  margin-top: 0;
+}
+.group-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.group-title.group-risk {
+  color: var(--danger);
+}
+.group-title.group-risk::after {
+  background: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+.group-title[hidden] {
+  display: none;
+}
+/* The heat gauge: a strip with the fill, the striped tax zone and the labels, then the legend. */
+.heat-gauge {
+  display: grid;
+  gap: 4px;
+}
+.heat-gauge[hidden] {
+  display: none;
+}
+.hg {
+  position: relative;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.hg-fill {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--render-ms, 100ms) linear;
+  background: linear-gradient(90deg, #ffb35c, var(--heat) 45%, var(--danger));
+  opacity: 0.85;
+}
+.hg-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: repeating-linear-gradient(135deg, rgba(255, 59, 92, 0.28) 0 5px, transparent 5px 10px);
+  border-left: 2px solid var(--danger);
+}
+.hg-zone[hidden] {
+  display: none;
+}
+.hg-labels {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  font: 700 10px var(--mono);
+  letter-spacing: 0.08em;
+  text-shadow:
+    0 0 3px #000,
+    0 0 3px #000;
+}
+.hg-labels [hidden] {
+  display: none;
+}
+.hg-legend {
+  display: flex;
+  justify-content: space-between;
+  font: 10px var(--mono);
+  color: var(--muted);
+}
+.hg-bad {
+  color: var(--danger);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hg-fill {
+    transition: none;
+  }
+}
 .stat[data-tip] {
   cursor: help;
 }
+/* The re-sleeve box: a dashed magenta box with its title, the button and the shortfall. */
 .resleeve-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+.resleeve-box {
+  padding: 10px;
+  border: 1px dashed color-mix(in srgb, var(--run) 50%, transparent);
+  border-radius: 4px;
+}
+.resleeve-title {
+  flex: 1 0 100%;
+  font: 700 11px var(--mono);
+  letter-spacing: 0.12em;
+  color: var(--run);
 }
 /* In the Sleeve widget the row sits at the bottom whatever the height of the widget: a column whose last child takes the free space above it. */
 .sleeve-widget {
@@ -30,21 +159,20 @@
 }
 .sleeve-widget > .resleeve-row {
   margin-top: auto; /* the free height goes above the row */
-  padding-top: 2px; /* with the 10px gap of the widget, a gap of at least 12px */
 }
 .resleeve-row[hidden] {
   display: none;
 }
 .resleeve {
   flex: 1;
-  border-color: var(--magenta);
+  border-color: var(--run);
   text-align: center;
 }
 .resleeve.buy {
-  border-color: var(--cyan, var(--magenta));
+  border-color: var(--info);
 }
 .resleeve.armed {
-  background: var(--magenta);
+  background: var(--run);
   color: var(--bg);
   font-weight: 700;
 }

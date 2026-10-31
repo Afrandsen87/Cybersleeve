@@ -24,6 +24,8 @@ export interface ResleeveButtonState {
   readonly buy: ResleeveBuyView | null;
   /** Sleeve levels held and needed while the next re-sleeve is short of them; `null` otherwise. Drives the button's tip. */
   readonly shortfall: readonly ResleeveRequirement[];
+  /** The title of the box around the button (`SleeveView.resleeveTitle`); absent leaves the title as it was. */
+  readonly title?: string;
 }
 
 /** The re-sleeve button with its cancel button. */
@@ -34,7 +36,7 @@ export interface ResleeveRow {
 }
 
 /**
- * Builds the re-sleeve row, which sits at the bottom of the Sleeve widget. Once Sleeve levels is owned the button shows; until Unlock resleeving is owned it IS that
+ * Builds the re-sleeve row (a titled box), which sits at the bottom of the Sleeve widget. Once Sleeve levels is owned the button shows; until Unlock resleeving is owned it IS that
  * purchase (one click buys it); then it turns into the Re-sleeve action. Re-sleeving wipes most progress, so it takes two clicks: the
  * first arms the gate, the second confirms.
  *
@@ -58,11 +60,13 @@ export function buildResleeveRow(ctx: UiContext): ResleeveRow {
     gate.cancel();
     ctx.refresh();
   });
-  const root = h('div', 'resleeve-row');
-  root.append(button, cancel);
+  const root = h('div', 'resleeve-row resleeve-box');
+  const title = h('div', 'resleeve-title');
+  root.append(title, button, cancel);
   return {
     root,
-    render({ canResleeve, shown, buy, shortfall }) {
+    render({ canResleeve, shown, buy, shortfall, title: boxTitle }) {
+      if (boxTitle !== undefined) setText(title, boxTitle);
       buyId = buy?.id ?? null;
       root.hidden = !shown;
       if (root.hidden || buy !== null) gate.cancel();

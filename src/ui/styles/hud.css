@@ -1,26 +1,133 @@
-header {
-  display: flex;
+/* The top bar: balance and income on the left, the small heat gauge, the tabs on the right. */
+header.hud {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 8px 22px;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px 16px;
+  padding: 8px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--run) 50%, transparent);
+  box-shadow:
+    0 1px 0 rgba(255, 43, 214, 0.15),
+    0 8px 24px -16px var(--run);
+}
+.hud-credits {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.credits-label {
+  font: 700 10px var(--mono);
+  letter-spacing: 0.14em;
+  color: var(--muted);
 }
 .credits {
-  font-size: 28px;
+  font: 700 30px var(--mono);
+  letter-spacing: 0.02em;
+  color: var(--info);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--info) 60%, transparent);
+}
+.rate {
+  font: 13px var(--mono);
+  color: var(--gain);
+}
+.rate[hidden] {
+  display: none;
+}
+.hud-heat {
+  display: grid;
+  gap: 3px;
+  min-width: 210px;
+  font: 11px var(--mono);
+}
+.hud-heat[hidden] {
+  display: none;
+}
+.hud-heat-row {
+  display: flex;
+  gap: 10px;
+}
+.hud-heat-value {
+  color: var(--heat);
   font-weight: 700;
-  color: var(--cyan);
 }
-.network {
+.hud-heat-tax {
+  color: var(--danger);
+  font-weight: 700;
+}
+.hud-heat-tax::before {
+  content: "· ";
   color: var(--muted);
-  font-size: 14px;
 }
-/* The tabs, on the credits line. */
+.mini {
+  height: 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.mini-fill {
+  display: block;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--render-ms, 100ms) linear;
+  background: linear-gradient(90deg, var(--heat), var(--danger));
+  box-shadow: 0 0 8px var(--danger);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-fill {
+    transition: none;
+  }
+}
+/* The tabs, on the credits line: terminal style, the active one underlined. */
 .tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  justify-self: end;
 }
 .tabs[hidden],
 .tab[hidden] {
+  display: none;
+}
+.tab {
+  position: relative;
+  padding: 7px 14px;
+  font: 700 12px var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border-radius: 3px;
+  text-align: center;
+}
+.tab.active {
+  color: var(--info);
+  border-color: var(--info);
+  box-shadow:
+    inset 0 -2px 0 var(--info),
+    0 0 10px -4px var(--info);
+}
+/* The count badge: gold for Skills, purple for Automation (chosen by the button's data-tab). */
+.tab-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  font: 700 10px var(--mono);
+  color: var(--bg);
+  background: var(--afford);
+  box-shadow: 0 0 8px var(--afford);
+}
+.tab[data-tab="automation"] .tab-badge {
+  background: var(--auto);
+  box-shadow: 0 0 8px var(--auto);
+}
+.tab-badge[hidden] {
   display: none;
 }
 /* A tab with something waiting in it blinks. */
@@ -29,28 +136,17 @@ header {
 }
 @keyframes tab-blink {
   50% {
-    border-color: var(--cyan);
-    color: var(--cyan);
-    box-shadow: 0 0 10px var(--cyan);
+    border-color: var(--info);
+    color: var(--info);
+    box-shadow: 0 0 10px var(--info);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .tab.attention {
     animation: none;
-    border-color: var(--cyan);
-    color: var(--cyan);
+    border-color: var(--info);
+    color: var(--info);
   }
-}
-.tab {
-  min-width: 120px;
-  text-align: center;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.tab.active {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
 }
 .tab-panel {
   display: grid;
@@ -58,4 +154,8 @@ header {
 }
 .tab-panel[hidden] {
   display: none;
+}
+.network {
+  color: var(--muted);
+  font-size: 14px;
 }

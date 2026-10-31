@@ -1,16 +1,69 @@
+/*
+ * Panel chrome: notched corners (clip-path), bracket accents in the top-left and bottom-right, and a `// TAG` header (.ph) with an
+ * optional status LED. The "// " and the upper case come from here, not from the text.
+ */
 .sleeve-widget,
 .corporation-widget,
 .network-widget,
 .upgrades-widget,
 .exploitation-widget,
 .inventory-widget {
+  --accent: var(--info);
+  position: relative;
   display: grid;
   align-content: start; /* extra height from stretching stays below the content */
   gap: 10px;
-  background: var(--panel);
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 4px;
+  padding: 10px 12px 12px;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+.upgrades-widget {
+  --accent: var(--afford);
+}
+.exploitation-widget {
+  --accent: var(--auto);
+}
+.sleeve-widget::before,
+.corporation-widget::before,
+.network-widget::before,
+.upgrades-widget::before,
+.exploitation-widget::before,
+.inventory-widget::before,
+.sleeve-widget::after,
+.corporation-widget::after,
+.network-widget::after,
+.upgrades-widget::after,
+.exploitation-widget::after,
+.inventory-widget::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 0 solid var(--accent);
+  opacity: 0.8;
+  pointer-events: none;
+}
+.sleeve-widget::before,
+.corporation-widget::before,
+.network-widget::before,
+.upgrades-widget::before,
+.exploitation-widget::before,
+.inventory-widget::before {
+  top: 0;
+  left: 0;
+  border-width: 2px 0 0 2px;
+}
+.sleeve-widget::after,
+.corporation-widget::after,
+.network-widget::after,
+.upgrades-widget::after,
+.exploitation-widget::after,
+.inventory-widget::after {
+  right: 0;
+  bottom: 0;
+  border-width: 0 2px 2px 0;
 }
 .corporation-empty[hidden] {
   display: none;
@@ -22,6 +75,27 @@
 .exploitation-widget h2,
 .inventory-widget h2 {
   margin: 0;
+}
+.ph {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ph h2 {
+  font: 700 11px var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent, var(--info));
+}
+.ph h2::before {
+  content: "// ";
+  color: var(--muted);
+}
+.ph .led {
+  margin-left: auto;
+}
+.ph .led[hidden] {
+  display: none;
 }
 .section-title {
   margin: 4px 0 0;

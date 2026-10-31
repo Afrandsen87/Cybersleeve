@@ -9,6 +9,7 @@
   background: transparent;
   opacity: 0.5;
 }
+@media (max-width: 900px) {
   .dashboard,
   .dashboard-right {
     grid-template-columns: 1fr;
