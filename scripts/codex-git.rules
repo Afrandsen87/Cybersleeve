@@ -1,0 +1,8 @@
+# Cybersleeve: let Codex run bounded, local-only git commands outside its sandbox (which keeps .git read-only).
+# Install by copying to ~/.codex/rules/cybersleeve-git.rules (UTF-8 WITHOUT a byte-order mark, or Codex rejects it).
+# Deliberately no push, fetch, pull, reset, checkout, rebase, clean or config.
+prefix_rule(pattern=["git", "add"], decision="allow", justification="stage files in a task worktree")
+prefix_rule(pattern=["git", "commit"], decision="allow", justification="commit in a task worktree")
+prefix_rule(pattern=["git", "status"], decision="allow", justification="read-only")
+prefix_rule(pattern=["git", "diff"], decision="allow", justification="read-only")
+prefix_rule(pattern=["git", "log"], decision="allow", justification="read-only")

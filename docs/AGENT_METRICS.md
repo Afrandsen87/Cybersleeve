@@ -11,7 +11,8 @@ Experiment: does running implementation subagents on a cheaper model (haiku) sav
 
 **Agent:** the `.claude/agents/` type (`scout`, `implementer`, `reviewer`), or `n/a` for rows before the agent types existed or orchestrator-only work.
 **Type:** `explore`, `content` (data/uiText/docs), `logic` (engine/save/economy), `tests`, `refactor`.
-**Phase:** `baseline` or `cheap`.
+**Phase:** `baseline`, `cheap` or `codex`.
+**Codex rows** (`codex-task` skill): Agent `codex`, Model `codex`. Tokens come from Codex's own usage output, so also note the Claude-side tokens for the session (spec, review, rework) in Notes; the saving is the Claude-side difference against baseline rows of the same Type.
 
 ## Conclusions
 
