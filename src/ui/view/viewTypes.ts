@@ -5,6 +5,7 @@ import type { InventoryView } from './inventoryViewTypes';
 import type { TabView, AutomationView, RunsView, SkillsView, ResleeveBuyView } from './panelViewTypes';
 import type { CorporationView } from './corporationViewTypes';
 import type { HudView } from './hudView';
+import type { ResleeveBoxView } from './resleeveBox';
 
 export type { HudView } from './hudView';
 export type { StatGroupView, HeatGaugeView } from './sleeveViewTypes';
@@ -68,6 +69,8 @@ export interface ViewModel {
    * otherwise `null`. Only set once the Sleeve levels unlock is owned (the button, and the idea of sleeve levels, are hidden before).
    */
   readonly resleeveShortfall: readonly ResleeveRequirement[];
+  /** What the re-sleeve box draws, built from the three fields above. */
+  readonly resleeveBox: ResleeveBoxView;
 }
 
 export type * from './autoBurnViewTypes';

@@ -37,6 +37,8 @@ function mount() {
   const game = createGame({ config });
   const render = mountTestUi(root, game);
   const button = () => root.querySelector<HTMLButtonElement>('.sleeve-widget .resleeve')!;
+  const confirm = () => root.querySelector<HTMLButtonElement>('.sleeve-widget .resleeve-confirm')!;
+  const cancel = () => root.querySelector<HTMLButtonElement>('.sleeve-widget .resleeve-cancel')!;
   const row = () => root.querySelector<HTMLElement>('.sleeve-widget .resleeve-row')!;
   /** Buys Sleeve levels (credits for it only), so the button shows. */
   const buyLevels = () => {
@@ -45,7 +47,7 @@ function mount() {
     setCredits(game, num(0));
     render();
   };
-  return { root, game, render, button, row, buyLevels };
+  return { root, game, render, button, confirm, cancel, row, buyLevels };
 }
 
 beforeEach(() => {
@@ -70,7 +72,7 @@ describe('the Re-sleeve button', () => {
     const { game, render, button, row, buyLevels } = mount();
     buyLevels();
     expect(row().hidden).toBe(false);
-    expect(button().textContent).toContain('Unlock resleeving');
+    expect(button().textContent).toContain('Unlock');
     expect(button().textContent).toContain('10');
     expect(button().disabled).toBe(true);
     setCredits(game, num(10));
@@ -96,7 +98,7 @@ describe('the Re-sleeve button', () => {
   });
 
   it('then re-sleeves with a confirming second click', () => {
-    const { game, render, button, buyLevels } = mount();
+    const { game, render, button, confirm, row, buyLevels } = mount();
     buyLevels();
     setCredits(game, num(10));
     render();
@@ -105,8 +107,41 @@ describe('the Re-sleeve button', () => {
     render();
     button().click();
     expect(game.getState().wallet.runs).toHaveLength(0);
-    expect(button().classList.contains('armed')).toBe(true);
-    button().click();
+    expect(row().classList.contains('armed')).toBe(true);
+    expect(confirm().closest<HTMLElement>('.resleeve-armed')?.hidden).toBe(false);
+    confirm().click();
     expect(game.getState().wallet.runs).toHaveLength(1);
+  });
+
+  it('shows the ledger when armed, and Cancel disarms without re-sleeving', () => {
+    const { game, render, button, cancel, row, buyLevels } = mount();
+    buyLevels();
+    setCredits(game, num(10));
+    render();
+    button().click();
+    game.tick(5_000);
+    render();
+    expect(row().textContent).toContain('on arrival: +1 sleeve firmware point'); // Ready: the same words as the ledger's GAINS
+    button().click();
+    const ledger = row().querySelector('.resleeve-ledger')?.textContent ?? '';
+    expect(ledger).toContain('RESETS');
+    expect(ledger).toContain('KEEPS');
+    expect(ledger).toContain('GAINS+1 sleeve firmware point');
+    cancel().click();
+    expect(row().classList.contains('armed')).toBe(false);
+    expect(game.getState().wallet.runs).toHaveLength(0);
+  });
+
+  it('locked: the price is on the button, with what is held and how much is left', () => {
+    const { game, render, button, row, buyLevels } = mount();
+    buyLevels();
+    setCredits(game, num(4));
+    render();
+    expect(row().textContent).toContain('LOCKED');
+    expect(button().textContent).toContain('10 credits');
+    expect(row().textContent).toContain('you have 4 credits · 6 credits to go');
+    setCredits(game, num(10));
+    render();
+    expect(row().textContent).not.toContain('to go');
   });
 });

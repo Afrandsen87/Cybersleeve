@@ -65,7 +65,13 @@ export function resleeveBuyView(
   const id = resleeveGateId(config.buyables);
   const view = id === null ? undefined : viewById.get(id);
   if (!id || !view || (state.sleeve.purchased[id] ?? 0) > 0 || !sleeveLevelsOpen(state, config)) return null;
-  return { id, text: `${view.name}: ${view.costText} ${view.costUnit}`, tip: view.tip, affordable: view.affordable };
+  return {
+    id,
+    text: `${view.name}: ${view.costText} ${view.costUnit}`,
+    priceText: `${view.costText} ${view.costUnit}`,
+    tip: view.tip,
+    affordable: view.affordable,
+  };
 }
 
 /**

@@ -120,6 +120,8 @@ export interface ResleeveBuyView {
   readonly id: string;
   /** Button text: name and price. */
   readonly text: string;
+  /** The price with its unit, for the box's button. */
+  readonly priceText: string;
   readonly tip: string;
   readonly affordable: boolean;
 }

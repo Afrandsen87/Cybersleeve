@@ -152,23 +152,190 @@
 .stat[data-tip] {
   cursor: help;
 }
-/* The re-sleeve box: a dashed magenta box with its title, the button and the shortfall. */
+/* The re-sleeve box: a dashed magenta box with its title and status light, the bar, the lines and one mono button (the main screen's chrome). */
 .resleeve-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  position: relative;
   margin-top: 12px;
 }
+.resleeve-row[hidden],
+.resleeve-armed[hidden],
+.resleeve-bar[hidden],
+.resleeve-line[hidden],
+.resleeve-price[hidden] {
+  display: none;
+}
 .resleeve-box {
-  padding: 10px;
-  border: 1px dashed color-mix(in srgb, var(--run) 50%, transparent);
+  --c: var(--run);
+  display: grid;
+  gap: 7px;
+  padding: 9px 10px 10px;
+  border: 1px dashed color-mix(in srgb, var(--c) 50%, transparent);
   border-radius: 4px;
+  background: color-mix(in srgb, var(--c) 4%, transparent);
 }
 .resleeve-title {
-  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font: 700 11px var(--mono);
   letter-spacing: 0.12em;
   color: var(--run);
+}
+.resleeve-status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.resleeve-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 5px currentColor;
+}
+.resleeve-box[data-kind="locked"] .resleeve-status {
+  color: #55617f;
+}
+.resleeve-box[data-kind="charging"] .resleeve-status {
+  color: var(--run);
+}
+.resleeve-box[data-kind="ready"] .resleeve-status {
+  color: var(--gain);
+}
+.resleeve-armed .resleeve-status {
+  color: var(--danger);
+}
+.resleeve-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  overflow: hidden;
+}
+.resleeve-bar-fill {
+  display: block;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--render-ms, 100ms) linear;
+  background: var(--run);
+  box-shadow: 0 0 6px var(--run);
+}
+.resleeve-lines {
+  display: grid;
+  gap: 2px;
+  font: 11px var(--mono);
+  line-height: 1.45;
+  color: var(--muted);
+}
+/* The action: mono and full width, the same shape as the Firmware INSTALL button. */
+.resleeve,
+.resleeve-confirm,
+.resleeve-cancel {
+  padding: 8px;
+  font: 700 12px var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+}
+.resleeve {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+}
+.resleeve-price {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.resleeve:disabled {
+  cursor: default;
+  color: #55617f;
+  border-color: var(--line);
+  background: #0d1222;
+}
+.resleeve.buy:not(:disabled) {
+  color: var(--bg);
+  background: var(--afford);
+  border-color: var(--afford);
+  box-shadow: 0 0 14px -2px var(--afford);
+}
+.resleeve:not(.buy):not(:disabled) {
+  color: var(--run);
+  border-color: var(--run);
+  background: color-mix(in srgb, var(--run) 10%, #0d1222);
+  box-shadow: 0 0 12px -3px var(--run);
+  animation: resleeve-breathe 2.4s ease-in-out infinite;
+}
+@keyframes resleeve-breathe {
+  50% {
+    box-shadow: 0 0 18px -2px var(--run);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .resleeve:not(.buy):not(:disabled) {
+    animation: none;
+  }
+}
+/*
+ * Armed: a solid box laid over the same place, bottom-anchored, so it grows upwards over the panel. Its padding matches the box beneath
+ * (which stays in the flow to hold the height), so CONFIRM sits exactly where RE-SLEEVE was. Opaque, so the panel content does not show through.
+ */
+.resleeve-armed {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  border-style: solid;
+  border-color: var(--run);
+  background: color-mix(in srgb, var(--run) 9%, var(--panel-2));
+  box-shadow: inset 0 0 14px -6px var(--run);
+}
+.resleeve-ledger {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  font: 11px var(--mono);
+}
+.resleeve-ledger-key {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.resleeve-ledger-key[data-tone="lose"] {
+  color: var(--danger);
+}
+.resleeve-ledger-key[data-tone="keep"] {
+  color: var(--gain);
+}
+.resleeve-ledger-key[data-tone="gain"] {
+  color: var(--run);
+}
+.resleeve-buttons {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+.resleeve-confirm {
+  color: var(--bg);
+  background: var(--run);
+  border-color: var(--run);
+  box-shadow: 0 0 16px -2px var(--run);
+}
+.resleeve-cancel {
+  padding: 8px 12px;
+  color: var(--muted);
 }
 /* In the Sleeve widget the row sits at the bottom whatever the height of the widget: a column whose last child takes the free space above it. */
 .sleeve-widget {
@@ -178,22 +345,6 @@
 .sleeve-widget > .resleeve-row {
   margin-top: auto; /* the free height goes above the row */
 }
-.resleeve-row[hidden] {
-  display: none;
-}
-.resleeve {
-  flex: 1;
-  border-color: var(--run);
-  text-align: center;
-}
-.resleeve.buy {
-  border-color: var(--info);
-}
-.resleeve.armed {
-  background: var(--run);
-  color: var(--bg);
-  font-weight: 700;
-}
-.resleeve-cancel[hidden] {
-  display: none;
+.resleeve-row.armed > .resleeve-box:not(.resleeve-armed) {
+  visibility: hidden; /* keeps its height while the armed box covers it */
 }
