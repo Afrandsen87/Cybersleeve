@@ -29,7 +29,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: CLOAKING_PROTOCOLS,
     name: 'Cloaking Protocols',
     symbol: 'CP',
-    description: 'Reduces the heat tax by 3% per distinct sleeve skill owned, compounded. Kept when you re-sleeve.',
+    description: 'Reduces the heat tax by 3% per distinct sleeve firmware installed, compounded. Kept when you re-sleeve.',
     cost: num(5e11),
     maxPurchases: 1,
     requiresSleeveSkills: 1,
@@ -170,7 +170,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: RESLEEVE_UNLOCK,
     name: 'Unlock resleeving',
     symbol: 'RU',
-    description: 'Allows you to re-sleeve, and with it the sleeve skills. Kept when you re-sleeve.',
+    description: 'Allows you to re-sleeve, and with it the sleeve firmware. Kept when you re-sleeve.',
     cost: num(100e9),
     requires: [SLEEVE_LEVELS], // reveal gate: the Re-sleeve button, where this is bought, shows once Sleeve levels is owned
     effect: { kind: 'unlockResleeve' },

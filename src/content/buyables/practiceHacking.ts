@@ -70,7 +70,7 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     id: NETWORKED_SLEEVE,
     name: 'Networked Sleeve',
     symbol: 'NW',
-    description: 'Adds one effective Practice Hacking level for each distinct sleeve skill owned.',
+    description: 'Adds one effective Practice Hacking level for each distinct sleeve firmware installed.',
     currency: 'networkNodes',
     cost: num(10_000),
     requiresSleeveSkills: 2,

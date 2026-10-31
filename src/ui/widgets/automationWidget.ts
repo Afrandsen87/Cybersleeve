@@ -124,7 +124,7 @@ export function buildAutomationWidget(
         body.append(button);
       }
     }
-    const tree = mountSkillTree(ctx, f.lanes);
+    const tree = mountSkillTree(ctx, f.lanes, { mode: 'lanes' });
     box.append(h('h3', 'section-title', f.name), h('p', 'automation-description', f.description), body, tree.element);
     features.set(f.id, { box, controls: body, tree });
     root.append(box);

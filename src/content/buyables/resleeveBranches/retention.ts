@@ -33,7 +33,7 @@ export const retentionSkills: BuyableDefinition[] = [
     id: SKILL_DAEMON_PERSISTENCE,
     name: 'Daemon Persistence',
     symbol: 'DM',
-    description: 'The Automation tab survives a re-sleeve: the automation core, its skills and their settings stay as they are.',
+    description: 'The Automation tab survives a re-sleeve: the automation core, its firmware and their settings stay as they are.',
     currency: 'resleevePoints',
     branch: BRANCH_RETENTION,
     cost: num(1),

@@ -12,7 +12,7 @@ export const sleeveUpSkills: BuyableDefinition[] = [
     id: SKILL_SLEEVE_UP,
     name: 'Sleeve Up!',
     symbol: 'SU',
-    description: 'The start of every path of sleeve skills. Buying sleeve skills opens new purchases in every sleeve.',
+    description: 'The start of every path of sleeve firmware. Installing sleeve firmware opens new purchases in every sleeve.',
     currency: 'resleevePoints',
     branch: BRANCH_SLEEVE_UP,
     cost: num(1),

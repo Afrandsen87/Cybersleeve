@@ -4,9 +4,8 @@ import { createGame } from '../app/createGame';
 import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
-import { HALF_TILE, STEP_PX, TILE_PX } from './widgets/skillTree';
 import { flat } from '../testing/flatState';
-import { mountTestUi } from '../testing/domMountKit';
+import { mountTestUi, openTab } from '../testing/domMountKit';
 
 const skill = (id: string, extra: Partial<BuyableDefinition> = {}): BuyableDefinition => ({
   id,
@@ -41,8 +40,10 @@ const mount = () => {
   document.body.append(root);
   const game = createGame({ config });
   const render = mountTestUi(root, game);
+  openTab(root, 'skills');
   const tree = () => root.querySelector<HTMLElement>('.skills-widget:not(.resleeve-skills)')!;
-  const node = (symbol: string) => [...tree().querySelectorAll<HTMLButtonElement>('.skill-node')].find((b) => b.textContent === symbol)!;
+  const node = (symbol: string) =>
+    [...tree().querySelectorAll<HTMLButtonElement>('.skill-node')].find((b) => b.querySelector('.node-symbol')?.textContent === symbol)!;
   return { root, game, render, tree, node };
 };
 
@@ -59,7 +60,7 @@ describe('the skill tree on the screen', () => {
   it('places every skill on the grid: depth to the right, siblings below one another', () => {
     const { tree } = mount();
     const places = [...tree().querySelectorAll<HTMLElement>('.skill-node')].map((b) => [
-      b.textContent,
+      b.querySelector('.node-symbol')?.textContent,
       b.style.getPropertyValue('--col'),
       b.style.getPropertyValue('--row'),
     ]);
@@ -67,8 +68,8 @@ describe('the skill tree on the screen', () => {
       ['G1', '0', '0.5'],
       ['G2', '1', '0'],
       ['G3', '1', '1'],
-      ['?', '0', '0'],
-      ['?', '1', '0'],
+      ['???', '0', '0'],
+      ['???', '1', '0'],
     ]);
   });
 
@@ -85,9 +86,9 @@ describe('the skill tree on the screen', () => {
     const { tree } = mount();
     const [green] = [...tree().querySelectorAll<HTMLElement>('.lane-grid')];
     const [toG2, toG3] = [...green!.querySelectorAll('.lane-edge')].map((e) => e.getAttribute('d'));
-    const out = 0.5 + HALF_TILE; // the right edge of the parent in column 0
-    const into = 1.5 - HALF_TILE; // the left edge of a child in column 1
-    expect(HALF_TILE).toBeCloseTo(TILE_PX / STEP_PX / 2, 10);
+    const out = 0.5 + 38 / 54 / 2; // the right edge of the parent in column 0
+    const into = 1.5 - 38 / 54 / 2; // the left edge of a child in column 1
+
     expect(toG2).toBe(`M ${out} 1 H 1 V 0.5 H ${into}`); // the parent is centred between its children, so the line steps up
     expect(toG3).toBe(`M ${out} 1 H 1 V 1.5 H ${into}`); // and down to the other child
   });
@@ -95,8 +96,9 @@ describe('the skill tree on the screen', () => {
   it('hands the size of a cell and of a button to the style sheet, so the lines and the buttons agree', () => {
     const { tree } = mount();
     const element = tree().querySelector<HTMLElement>('.skill-tree')!;
-    expect(element.style.getPropertyValue('--step')).toBe(`${STEP_PX}px`);
-    expect(element.style.getPropertyValue('--tile')).toBe(`${TILE_PX}px`);
+    expect(element.style.getPropertyValue('--step-x')).toBe('54px');
+    expect(element.style.getPropertyValue('--step-y')).toBe('50px');
+    expect(element.style.getPropertyValue('--tile')).toBe('38px');
   });
 
   it('masks a skill whose gate is not met: ? on the button, ??? in the label, and it cannot be bought', () => {
@@ -104,7 +106,7 @@ describe('the skill tree on the screen', () => {
     const masked = [...tree().querySelectorAll<HTMLButtonElement>('.skill-node.masked')];
     expect(masked).toHaveLength(2); // the gated root and its child, which inherits the masking
     expect(masked.map((b) => b.getAttribute('aria-label'))).toEqual(['???', '???']);
-    expect(masked.every((b) => b.disabled)).toBe(true);
+    expect(masked.every((b) => !b.disabled)).toBe(true);
     expect(node('G1').classList.contains('masked')).toBe(false);
   });
 
@@ -125,6 +127,8 @@ describe('the skill tree on the screen', () => {
     expect(node('G2').hidden).toBe(false);
     expect(tree().querySelectorAll('.lane-edge.lit')).toHaveLength(0);
     node('G1').click();
+    expect(game.ownedCount('g1')).toBe(0);
+    tree().closest('.skills-panel')!.querySelector<HTMLButtonElement>('.firmware-install')!.click();
     render();
     expect(game.ownedCount('g1')).toBe(1);
     expect(node('G2').classList.contains('locked')).toBe(false);
@@ -134,9 +138,9 @@ describe('the skill tree on the screen', () => {
 
   it('has a note at the top of the tab that ??? skills unlock as you play on, until no skill is masked any more', () => {
     const { root, render, game } = mount();
-    const note = root.querySelector<HTMLElement>('.skills-panel > .skills-note')!;
+    const note = root.querySelector<HTMLElement>('.skills-panel > .firmware-legend')!;
     expect(root.querySelector('.skills-panel')!.firstElementChild).toBe(note);
-    expect(note.textContent).toBe('Skills that read ??? will be unlocked as you play further.');
+    expect(note.textContent).toContain('??? encrypted firmware unlocks as you play further');
     expect(note.hidden).toBe(false);
     loose(game).purchased['dual'] = 1; // the gated branch reads now: nothing is masked
     render();

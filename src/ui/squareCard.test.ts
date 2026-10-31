@@ -50,7 +50,7 @@ describe('the square on an action card (view model)', () => {
     expect(squareOf(g).cells[1]).toMatchObject({ id: 'overclock', mode: 'buy', buyableId: 'oc-a', clickable: false });
     setCredits(g, num(100));
     expect(squareOf(g).cells[1]).toMatchObject({ mode: 'buy', clickable: true });
-    expect(squareOf(g).cells[1]!.tip).toContain('Cost = 1 credits');
+    expect(squareOf(g).cells[1]!.tip).toContain('Cost = 1 credit');
     g.buy('oc-a');
     expect(squareOf(g).cells[1]).toMatchObject({ mode: 'toggle', on: false, clickable: true, buyableId: 'oc-a' });
     g.toggleOverclock('a');
@@ -182,7 +182,7 @@ describe('the square on the screen', () => {
     expect(overclock.classList.contains('owned')).toBe(false);
     expect(overclock.classList.contains('purchasable')).toBe(true);
     expect(overclock.classList.contains('maxed')).toBe(false);
-    expect(hoverText(overclock)).toContain('Cost = 1 credits');
+    expect(hoverText(overclock)).toContain('Cost = 1 credit');
     overclock.click();
     expect(overclock.classList.contains('maxed')).toBe(true); // a bought toggle is gold, lit only while on
     expect(game.ownedCount('oc-a')).toBe(1);

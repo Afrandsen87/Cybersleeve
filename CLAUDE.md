@@ -58,6 +58,7 @@ Sessions read code into a limited context, so size is a design constraint.
 
 ## Game rules that apply to all work
 
+- Players see skills as **Firmware** and sleeve skills as **Sleeve Firmware**; code, saves and developer docs say skill.
 - **Every lever names what it scales** (`REWARDS`, `EFFECT_TRAITS`); there is no global reward or output multiplier. Code asks descriptors, never compares kind names.
 - **New buyable effect kind** = one union member + ONE entry in `core/effectRegistry.ts`; switches over kinds end in `assertNever`.
 - **Actions are gated only by access level;** there are no unlock rules.

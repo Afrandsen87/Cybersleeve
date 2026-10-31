@@ -1,6 +1,6 @@
 /**
  * What the screen hides until the two re-sleeve unlocks are bought: the sleeve XP bars and the Re-sleeve button wait for Sleeve levels, the
- * permission to re-sleeve waits for Unlock resleeving, and the sleeve skill trees wait for the first earned sleeve skill point; the skill
+ * permission to re-sleeve waits for Unlock resleeving, and the sleeve skill trees wait for the first earned sleeve firmware point; the skill
  * texts stay masked until the first re-sleeve.
  */
 import { describe, expect, it } from 'vitest';
@@ -87,7 +87,7 @@ describe('the screen after buying Unlock resleeving', () => {
 });
 
 describe('the sleeve skill trees', () => {
-  it('show once a sleeve skill point has been earned, not when an unlock is bought', () => {
+  it('show once a sleeve firmware point has been earned, not when an unlock is bought', () => {
     const g = game();
     open(g);
     expect(buildViewModel(g).skills.resleeve.visible).toBe(false);

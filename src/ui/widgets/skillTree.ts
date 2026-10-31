@@ -1,59 +1,65 @@
 /**
  * @module ui
- *
- * A skill tree drawn sideways: one lane per branch, the roots on the left, each skill to the right of the ones it needs, with a line
- * from every parent to its child.
- *
- * @remarks
- * Called by: `skillsPanel.ts` (the skills and the sleeve skills). Calls: `upgradeButtons.ts`, `domKit.ts`.
- *
- * The grid is fixed by the content, so everything is built once: nodes are placed with the CSS variables `--col` and `--row`, the lines
- * are SVG paths in grid units (no measuring of the page), and a refresh only toggles classes and text.
+ * Persistent sideways trees shared by Firmware and Automation; only events touch path highlights.
+ * Called by: skillsPanel, automationWidget. Calls: skillTreeEdges, joinSkillLanes, branchSummary, DOM helpers.
  */
-import type { SkillLaneView, SkillNodeView } from '../viewModel';
+import type { SkillLaneView } from '../viewModel';
 import { joinSkillLanes } from '../view/skillTreeJoin';
-import { type UiContext, h, setText } from './domKit';
-import { renderUpgrades } from './upgradeButtons';
+import { branchSummary } from '../view/firmwareBranches';
+import { type UiContext, h, setText, setClass, setHidden } from './domKit';
+import { type TreeEdge, SVG_NS, STEP_PX, TILE_PX, edgePath, highlightPath } from './skillTreeEdges';
+export { STEP_PX, TILE_PX, HALF_TILE, edgePath } from './skillTreeEdges';
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-/** The size of one grid cell in pixels. Handed to the style sheet as `--step`, and used to place the ends of the lines. */
-export const STEP_PX = 76;
-/** The size of a skill button in pixels (handed to the style sheet as `--tile`). Lines start and end at its edge. */
-export const TILE_PX = 44;
-/** Half the width of a skill button, in grid units: how far a line starts from the centre of its parent and stops short of its child's. */
-export const HALF_TILE = TILE_PX / STEP_PX / 2;
-
-/** A drawn skill tree. */
+/** Tree interaction and geometry choices. Called by: panel widgets. Calls: nothing. */
+export interface SkillTreeOptions {
+  readonly mode?: 'lanes' | 'joined';
+  readonly cards?: boolean;
+  readonly onSelect?: (id: string) => void;
+  readonly onHover?: (id: string | null) => void;
+}
+/** Persistent tree handles. Called by: panel widgets. Calls: nothing. */
 export interface SkillTreeWidget {
-  /** The tree's element, to place in a box. */
   readonly element: HTMLElement;
-  /** Writes the lanes into the tree: text, masking, locked and owned looks, and which lines are lit. */
-  render(lanes: readonly SkillLaneView[]): void;
+  /** Writes the lanes; returns true when a node's state or owned count changed since the last call (always true on the first). */
+  render(lanes: readonly SkillLaneView[]): boolean;
+  select(id: string | null): void;
+  /** Drops the hover path highlight without telling `onHover` (the tab was left mid-hover). */
+  clearHover(): void;
+}
+/** Branch header handles. Called by: tree mounting/rendering. Calls: nothing. */
+interface Header {
+  readonly purpose: HTMLElement;
+  readonly count: HTMLElement;
+  readonly segments: readonly HTMLElement[];
 }
 
-/** One parent-to-child line, lit once the parent is owned. */
-interface Edge {
-  readonly path: SVGPathElement;
-  readonly parentId: string;
-}
-
-/**
- * Builds a skill tree once, with a button for every node of every lane.
- *
- * Called by: `mountSkillsPanel`. Calls: {@link edgePath}.
- *
- * @param ctx what the tree needs from the screen (icons, tips, the buy command)
- * @param initial the lanes as the first refresh sees them (decides which nodes exist; the tree's shape does not change afterwards)
- * @param mode Joined mode shares one grid and SVG when a cross-branch trunk exists.
+/** Mounts fixed tree geometry and event handlers; rendering only updates existing nodes.
+ * Called by: skillsPanel, automationWidget. Calls: joinSkillLanes, edgePath, highlightPath, branchSummary.
+ * @param ctx UI commands, icons, text and tooltip registry
+ * @param initial initial fixed lane structure
+ * @param options optional selection callbacks and Firmware card geometry
+ * @returns persistent tree widget
  */
-export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[], mode: 'lanes' | 'joined' = 'lanes'): SkillTreeWidget {
+export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[], options: SkillTreeOptions = {}): SkillTreeWidget {
   const element = h('div', 'skill-tree');
-  element.style.setProperty('--step', `${STEP_PX}px`);
-  element.style.setProperty('--tile', `${TILE_PX}px`);
+  const stepX = options.cards ? 54 : STEP_PX;
+  const stepY = options.cards ? 50 : STEP_PX;
+  const tile = options.cards ? 38 : TILE_PX;
+  element.style.setProperty('--step-x', `${stepX}px`);
+  element.style.setProperty('--step-y', `${stepY}px`);
+  element.style.setProperty('--tile', `${tile}px`);
+  if (options.cards) element.classList.add('firmware-cards');
   const buttons = new Map<string, HTMLButtonElement>();
-  const edges: Edge[] = [];
-  const joined = mode === 'joined' ? joinSkillLanes(initial) : null;
+  const symbols = new Map<string, HTMLElement>();
+  const costs = new Map<string, HTMLElement>();
+  const labels = new Map<string, HTMLElement>();
+  const headers = new Map<string, Header>();
+  const previousOwned = new Map<string, number>();
+  const previousState = new Map<string, string>();
+  const edges: TreeEdge[] = [];
+  let nodes = initial.flatMap((lane) => lane.nodes);
+  let maskedIds = new Set(nodes.filter((node) => node.masked).map((node) => node.view.id));
+  const joined = options.mode === 'joined' ? joinSkillLanes(initial) : null;
   let sharedSvg: SVGSVGElement | undefined;
   if (joined) {
     element.classList.add('skill-tree-joined');
@@ -62,6 +68,7 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
     sharedSvg = document.createElementNS(SVG_NS, 'svg');
     sharedSvg.setAttribute('class', 'lane-edges');
     sharedSvg.setAttribute('viewBox', `0 0 ${joined.cols} ${joined.rows}`);
+    sharedSvg.setAttribute('preserveAspectRatio', 'none');
     sharedSvg.setAttribute('aria-hidden', 'true');
     element.append(sharedSvg);
   }
@@ -69,17 +76,29 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
     ? [...joined.bands, { id: joined.trunkBranch, title: '', cols: joined.cols, rows: joined.rows, nodes: [joined.trunk], firstRow: 0 }]
     : initial;
   const globalNodes = new Map(drawingLanes.flatMap((lane) => lane.nodes.map((node) => [node.view.id, node] as const)));
-
   for (const lane of drawingLanes) {
     const laneEl = h('section', 'skill-lane');
     laneEl.dataset['branch'] = lane.id;
     if (joined) {
-      const firstRow = 'firstRow' in lane ? Number(lane.firstRow) : 0;
-      laneEl.style.setProperty('--first-row', String(firstRow));
+      laneEl.style.setProperty('--first-row', String('firstRow' in lane ? lane.firstRow : 0));
       laneEl.style.setProperty('--band-rows', String(lane.rows));
       if (lane.id === joined.trunkBranch) laneEl.classList.add('trunk-lane');
     }
-    if (lane.title) laneEl.append(h('h3', 'lane-title', lane.title));
+    if (lane.title) {
+      const header = h('div', 'lane-header');
+      header.append(h('h3', 'lane-title', lane.title));
+      if (options.onSelect) {
+        const purpose = h('span', 'lane-purpose');
+        const count = h('span', 'lane-count');
+        const bar = h('span', 'lane-segments');
+        const segments = lane.nodes.map(() => h('span'));
+        bar.append(...segments);
+        bar.setAttribute('aria-hidden', 'true');
+        header.append(purpose, count, bar);
+        headers.set(lane.id, { purpose, count, segments });
+      }
+      laneEl.append(header);
+    }
     const grid = h('div', 'lane-grid');
     grid.style.setProperty('--cols', String(lane.cols));
     grid.style.setProperty('--rows', String(lane.rows));
@@ -87,77 +106,134 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
     if (!sharedSvg) {
       svg.setAttribute('class', 'lane-edges');
       svg.setAttribute('viewBox', `0 0 ${lane.cols} ${lane.rows}`);
+      svg.setAttribute('preserveAspectRatio', 'none');
       svg.setAttribute('aria-hidden', 'true');
       grid.append(svg);
     }
-
     const byId = joined ? globalNodes : new Map(lane.nodes.map((n) => [n.view.id, n]));
     for (const node of lane.nodes) {
+      const id = node.view.id;
       const button = h('button', 'upgrade skill-node') as HTMLButtonElement;
+      button.dataset['id'] = id;
       button.style.setProperty('--col', String(node.col));
       button.style.setProperty('--row', String(node.row));
-      const icon = ctx.icons.urlFor(node.view.id);
-      if (icon !== null) {
-        button.classList.add('has-icon');
-        button.style.setProperty('--icon', icon);
-      }
-      button.addEventListener('click', () => ctx.activate(node.view.id));
+      const symbol = h('span', 'node-symbol');
+      const cost = h('span', 'node-cost');
+      button.append(symbol, cost);
+      button.addEventListener('click', () => (options.onSelect ? options.onSelect(id) : ctx.activate(id)));
+      button.addEventListener('mouseenter', () => {
+        highlightPath(nodes, id, buttons, edges);
+        options.onHover?.(id);
+      });
+      button.addEventListener('focus', () => {
+        highlightPath(nodes, id, buttons, edges);
+        options.onHover?.(id);
+      });
+      button.addEventListener('animationend', (event) => {
+        if (event.target === button) button.classList.remove('install');
+      });
       grid.append(button);
-      buttons.set(node.view.id, button);
+      buttons.set(id, button);
+      symbols.set(id, symbol);
+      costs.set(id, cost);
+      if (joined && lane.id === joined.trunkBranch) {
+        const label = h('span', 'trunk-label', ctx.text.firmware.sleeveUp);
+        label.style.setProperty('--col', String(node.col));
+        label.style.setProperty('--row', String(node.row));
+        grid.append(label);
+        labels.set(id, label);
+      }
       for (const parentId of node.parents) {
         const parent = byId.get(parentId);
         if (!parent) continue;
         const path = document.createElementNS(SVG_NS, 'path');
-        path.setAttribute('d', edgePath(parent, node));
+        path.setAttribute('d', edgePath(parent, node, tile / stepX / 2));
         path.setAttribute('class', 'lane-edge');
         if (joined) path.style.setProperty('--lane', `var(--branch-${lane.id})`);
+        path.addEventListener('animationend', () => path.classList.remove('flow'));
         svg.append(path);
-        edges.push({ path, parentId });
+        edges.push({ path, parentId, childId: id });
       }
     }
-    laneEl.append(grid);
+    if (options.cards && !joined) {
+      const scroll = h('div', 'lane-scroll');
+      scroll.append(grid);
+      laneEl.append(scroll);
+    } else laneEl.append(grid);
     element.append(laneEl);
   }
-
+  element.addEventListener('mouseleave', () => {
+    highlightPath(nodes, null, buttons, edges);
+    options.onHover?.(null);
+  });
+  element.addEventListener('focusout', (event) => {
+    if (event.relatedTarget instanceof Node && element.contains(event.relatedTarget)) return;
+    highlightPath(nodes, null, buttons, edges);
+    options.onHover?.(null);
+  });
   return {
     element,
+    select(id) {
+      for (const [key, button] of buttons) setClass(button, 'sel', key === id && !maskedIds.has(key));
+    },
+    clearHover() {
+      highlightPath(nodes, null, buttons, edges);
+    },
     render(lanes) {
-      const nodes = lanes.flatMap((lane) => lane.nodes);
-      const owned = new Map(nodes.map((n) => [n.view.id, n.view.owned > 0]));
-      // every node is always shown: only its text and looks change
-      renderUpgrades(
-        buttons,
-        nodes.map((n) => ({ ...n.view, available: true })),
-        ctx.tips,
-      );
-      for (const n of nodes) {
-        const button = buttons.get(n.view.id);
-        if (!button) continue;
-        setText(button, n.view.symbol);
-        button.setAttribute('aria-label', n.view.name);
-        button.classList.toggle('masked', n.masked);
-        button.classList.toggle('locked', n.locked);
+      nodes = lanes.flatMap((lane) => lane.nodes);
+      maskedIds = new Set(nodes.filter((node) => node.masked).map((node) => node.view.id));
+      const installedNow = new Set<string>();
+      let changed = false;
+      for (const lane of lanes) {
+        const header = headers.get(lane.id);
+        if (!header) continue;
+        const summary = branchSummary(lane, ctx.text.firmware);
+        setText(header.purpose, summary.purpose ?? '');
+        setHidden(header.purpose, !summary.purpose);
+        setText(header.count, `${summary.installed}/${summary.total}`);
+        header.segments.forEach((segment, i) => {
+          setClass(segment, 'filled', i < summary.installed);
+        });
       }
-      for (const edge of edges) edge.path.classList.toggle('lit', owned.get(edge.parentId) === true);
+      for (const node of nodes) {
+        const id = node.view.id;
+        const button = buttons.get(id);
+        if (!button) continue;
+        const before = previousOwned.get(id);
+        if (before !== undefined && node.view.owned > before) {
+          button.classList.add('install');
+          installedNow.add(id);
+        }
+        if (before !== node.view.owned || previousState.get(id) !== node.state) changed = true;
+        previousOwned.set(id, node.view.owned);
+        previousState.set(id, node.state);
+        for (const state of ['installed', 'encrypted', 'locked', 'affordable', 'available']) setClass(button, state, node.state === state);
+        setClass(button, 'masked', node.state === 'encrypted');
+        setClass(button, 'owned', node.state === 'installed');
+        button.disabled = options.onSelect ? false : !node.view.clickable;
+        if (button.getAttribute('aria-label') !== node.view.name) button.setAttribute('aria-label', node.view.name);
+        const icon = node.masked ? null : ctx.icons.urlFor(id);
+        setClass(button, 'has-icon', icon !== null);
+        if (icon && button.style.getPropertyValue('--icon') !== icon) button.style.setProperty('--icon', icon);
+        else if (!icon && button.style.getPropertyValue('--icon')) button.style.removeProperty('--icon');
+        const label = labels.get(id);
+        if (label) {
+          setHidden(label, node.masked);
+          setText(label, node.masked ? '' : ctx.text.firmware.sleeveUp);
+        }
+        setText(symbols.get(id)!, node.masked ? '???' : node.view.symbol);
+        const cost = costs.get(id)!;
+        const showCost = node.state === 'affordable' || node.state === 'available';
+        setText(cost, showCost ? node.view.costText : '');
+        setHidden(cost, !showCost);
+        ctx.tips.set(button, () => node.view.tip);
+      }
+      const owned = new Set(nodes.filter((n) => n.view.owned > 0).map((n) => n.view.id));
+      for (const edge of edges) {
+        setClass(edge.path, 'lit', owned.has(edge.parentId));
+        if (installedNow.has(edge.parentId)) edge.path.classList.add('flow');
+      }
+      return changed;
     },
   };
-}
-
-/**
- * The line from a parent to a child in grid units: out of the parent's right edge, across to the middle of the gap, up or down to the
- * child's row, and into the child's left edge. Each node is centred in its cell and {@link HALF_TILE} wide on either side of the
- * centre, so the line touches the icons without running under them.
- *
- * Called by: {@link mountSkillTree}.
- *
- * @param parent the parent node
- * @param child the child node (further right than the parent)
- */
-export function edgePath(parent: SkillNodeView, child: SkillNodeView): string {
-  const y1 = parent.row + 0.5;
-  const y2 = child.row + 0.5;
-  const x1 = parent.col + 0.5 + HALF_TILE;
-  const x2 = child.col + 0.5 - HALF_TILE;
-  const mid = (x1 + x2) / 2;
-  return `M ${x1} ${y1} H ${mid} V ${y2} H ${x2}`;
 }

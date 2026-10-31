@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
-import { mountTestUi } from '../testing/domMountKit';
+import { mountTestUi, openTab } from '../testing/domMountKit';
 import { joinedTreeConfig } from '../testing/joinedSkillTreeKit';
 import { joinSkillLanes } from './view/skillTreeJoin';
 import { buildViewModel } from './viewModel';
@@ -40,6 +40,7 @@ describe('joined sleeve tree', () => {
     game.resleeve();
     const root = document.createElement('div');
     const render = mountTestUi(root, game);
+    openTab(root, 'skills');
     const tree = root.querySelector('.resleeve-skills .skill-tree')!;
     const svg = tree.querySelector('svg')!;
     expect(tree.querySelectorAll('svg')).toHaveLength(1);

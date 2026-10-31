@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
-import { mountTestUi } from '../testing/domMountKit';
+import { mountTestUi, openTab } from '../testing/domMountKit';
 import { config, loose, pointGame } from '../testing/skillsTabKit';
 import { skillViews } from '../testing/skillViews';
 import { buildViewModel } from './viewModel';
@@ -14,23 +14,23 @@ beforeEach(() => {
 describe('skills in the view model', () => {
   it('a new game has no skill point, and the first one comes with the first action level', () => {
     const g = createGame({ config });
-    expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
+    expect(buildViewModel(g).tabs[1]!.label).toBe('Firmware');
     expect(buildViewModel(g).skills.points).toBe(0);
     loose(g).actions['z']!.xp = num(10);
-    expect([buildViewModel(g).tabs[1]!.label, buildViewModel(g).tabs[1]!.count]).toEqual(['Skills', 1]);
+    expect([buildViewModel(g).tabs[1]!.label, buildViewModel(g).tabs[1]!.count]).toEqual(['Firmware', 1]);
   });
 
   it('has the two tabs, Character and Skills, and shows the points next to Skills unless there are none', () => {
     const g = pointGame();
     expect(buildViewModel(g).tabs).toEqual([
       { id: 'character', label: 'Character', count: null, visible: true, attention: false },
-      { id: 'skills', label: 'Skills', count: 1, visible: true, attention: true },
+      { id: 'skills', label: 'Firmware', count: 1, visible: true, attention: true },
       { id: 'automation', label: 'Automation', count: null, visible: false, attention: false },
       { id: 'stats', label: 'Stats', count: null, visible: false, attention: false },
       { id: 'corporation', label: 'Corporation', count: null, visible: false, attention: false },
     ]);
     g.buy('s1');
-    expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
+    expect(buildViewModel(g).tabs[1]!.label).toBe('Firmware');
   });
 
   it('no tab shows until the first skill point is earned, and the Skills tab blinks only while a point is waiting', () => {
@@ -58,14 +58,14 @@ describe('skills in the view model', () => {
     const vm = buildViewModel(pointGame());
     expect(skillViews(vm.skills.lanes).map((b) => b.id)).toEqual(['s1', 's2', 'bc']);
     expect(vm.skills.points).toBe(1);
-    expect(vm.skills.pointsText).toBe('Skill points: 1');
+    expect(vm.skills.pointsText).toBe('Firmware points: 1');
     expect(vm.sleeve.buyables.map((b) => b.id)).not.toContain('s1');
     expect(vm.sleeve.sections.flatMap((s) => s.buyables.map((b) => b.id))).not.toContain('s1');
   });
 
   it('a skill tip names the skill, what it does and the cost in skill points', () => {
     const tip = skillViews(buildViewModel(createGame({ config })).skills.lanes)[0]!.tip;
-    expect(tip).toBe('Skill s1\nDoes something.\n\nCost = 1 skill points');
+    expect(tip).toBe('Skill s1\nDoes something.\n\nCost = 1 firmware point');
   });
 
   it('a skill that cannot be paid is not clickable', () => {
@@ -92,7 +92,7 @@ describe('the screen', () => {
     const tabs = root.querySelector<HTMLElement>('.tabs')!;
     expect([...tabs.querySelectorAll('.tab')].map((t) => t.querySelector('.tab-label')!.textContent)).toEqual([
       'Character',
-      'Skills',
+      'Firmware',
       'Automation',
       'Stats',
       'Corporation',
@@ -101,7 +101,7 @@ describe('the screen', () => {
     expect(tabs.parentElement).toBe(root.querySelector('header')); // the same line as the credits
     expect(root.querySelector('header .credits')).not.toBeNull(); // the balance is in the same bar
     expect(tabs.hidden).toBe(false);
-    expect(root.querySelector('.tab.attention .tab-label')!.textContent).toBe('Skills');
+    expect(root.querySelector('.tab.attention .tab-label')!.textContent).toBe('Firmware');
   });
 
   it('hides the tab bar until the first skill point is earned, then shows it', () => {
@@ -145,15 +145,18 @@ describe('the screen', () => {
 
   it('shows a button for every skill with the points, and buying one updates the tab and the points', () => {
     const { root, game, render } = mount();
+    openTab(root, 'skills');
     const buttons = [...root.querySelectorAll<HTMLButtonElement>('.skills-widget .upgrade')];
-    expect(buttons.map((b) => b.textContent)).toEqual(['S1', 'S2', 'BC']);
-    expect(root.querySelector('.skills-points')!.textContent).toBe('Skill points: 1');
+    expect(buttons.map((b) => b.querySelector('.node-symbol')?.textContent)).toEqual(['S1', 'S2', 'BC']);
+    expect(root.querySelector('.firmware-points .n')!.textContent).toBe('1');
     buttons[0]!.click();
+    expect(game.ownedCount('s1')).toBe(0);
+    root.querySelector<HTMLButtonElement>('.firmware-install')!.click();
     expect(game.ownedCount('s1')).toBe(1);
     render(); // the game loop redraws the screen a moment after a click
-    expect(root.querySelector('.skills-points')!.textContent).toBe('Skill points: 0');
-    expect([...root.querySelectorAll('.tab-label')][1]!.textContent).toBe('Skills');
-    expect(buttons[1]!.disabled).toBe(true);
+    expect(root.querySelector('.firmware-points .n')!.textContent).toBe('0');
+    expect([...root.querySelectorAll('.tab-label')][1]!.textContent).toBe('Firmware');
+    expect(buttons[1]!.disabled).toBe(false);
     expect(buttons[0]!.classList.contains('owned')).toBe(true);
   });
 

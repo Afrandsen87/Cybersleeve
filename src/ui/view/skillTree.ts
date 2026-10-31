@@ -14,6 +14,7 @@
  * The tree itself (every node and its place, the branch titles) is always shown. A branch with a reveal stat (`branchMask.ts`) is masked as a whole until that stat is revealed.
  */
 import type { BuyableDefinition } from '../../core';
+import { nodeState } from './firmwareNodeState';
 import type { RevealTracker } from './revealTracker';
 import type { SkillLaneView, SkillNodeView } from './skillTreeTypes';
 import type { BuyableView } from './viewTypes';
@@ -92,14 +93,16 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
       const place = places.get(b.id);
       if (!view || !place) continue;
       const masked = !readable(b.id);
+      const locked = !masked && ((b.parents ?? []).some((p) => owned(p) <= 0) || naturalMemo.get(b.id) === false);
       nodes.push({
+        state: nodeState({ view, masked, locked }),
         view: masked ? maskedView(view, input.hiddenText) : view,
         col: place.col,
         row: place.row,
         parents: (b.parents ?? []).filter((id) => byId.has(id) && id !== b.id),
         masked,
         // readable only through the ledger (its gates are unmet again) also counts as locked
-        locked: !masked && ((b.parents ?? []).some((p) => owned(p) <= 0) || naturalMemo.get(b.id) === false),
+        locked,
       });
     }
     return {

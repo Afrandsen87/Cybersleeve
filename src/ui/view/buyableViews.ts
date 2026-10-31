@@ -164,8 +164,9 @@ export function buildBuyableViews(
     const enabled = toggleable && engine.isAutoRunEnabled(b.id);
     const maxed = engine.isBuyableMaxed(b.id);
     const affordable = engine.canBuy(b.id);
-    const costText = formatBigNum(engine.costOf(b.id));
-    const costUnit = text.costUnits[engine.currencyOf(b.id)];
+    const cost = engine.costOf(b.id);
+    const costText = formatBigNum(cost);
+    const costUnit = (cost.eq(num(1)) ? text.costUnitsOne : text.costUnits)[engine.currencyOf(b.id)];
     const repeatable = (b.maxPurchases ?? 1) > 1;
     const requirementsMet = engine.isBuyableAvailable(b.id);
     const natural = requirementsMet && (SQUARE_EFFECTS.includes(b.effect.kind) || engine.isBuyableRevealed(b.id));

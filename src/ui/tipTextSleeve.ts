@@ -43,7 +43,7 @@ export const sleeveTips: Pick<TipTexts, 'access' | 'interfaceSpeed' | 'hackingPr
     ].join('\n'),
   interfaceSpeed: ({ base, boosts, networkFactor, nodes, hackingMultiplier, curve, skillFactor, total }) =>
     [
-      `Interface Speed = (base + boost) x ${networkFactor === null ? '' : 'Node Bonus x '}Hacking Multiplier${skillFactor === null ? '' : ' x Skills'}`,
+      `Interface Speed = (base + boost) x ${networkFactor === null ? '' : 'Node Bonus x '}Hacking Multiplier${skillFactor === null ? '' : ' x Firmware'}`,
       `Hacking Multiplier = ${hackingMultiplierFormula(curve)}`,
       ...hackingCurveBeyondLines(curve),
       '',
@@ -51,7 +51,7 @@ export const sleeveTips: Pick<TipTexts, 'access' | 'interfaceSpeed' | 'hackingPr
       `Boosts = ${boosts}`,
       ...(networkFactor === null ? [] : [`Node Bonus = ${networkFactor} (1 + ln(nodes) / 100, with ${nodes} nodes)`]),
       `Hacking Multiplier = ${hackingMultiplier}`,
-      ...(skillFactor === null ? [] : [`Skills = ${skillFactor}`]),
+      ...(skillFactor === null ? [] : [`Firmware = ${skillFactor}`]),
       '',
       `Interface Speed = ${total}`,
     ].join('\n'),
