@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @module ui
  * Firmware naming invariants for real player text and content; no tuning assertions.
  * Called by: Vitest. Calls: uiText functions and real content definitions.

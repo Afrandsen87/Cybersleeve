@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @module ui
  * Persistent DOM for the reveal-safe Firmware inspector and its single install command.
  * Called by: skillsPanel. Calls: DOM helpers, ctx.activate, ctx.refresh.

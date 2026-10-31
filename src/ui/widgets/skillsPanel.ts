@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @module ui
  * Firmware tab cards, joined persistent tree and pinned/hover inspector.
  * Called by: ui/dom. Calls: mountSkillTree, mountFirmwareInspector, buildInspectorView.

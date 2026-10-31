@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @module ui
  * Persistent sideways trees shared by Firmware and Automation; only events touch path highlights.
  * Called by: skillsPanel, automationWidget. Calls: skillTreeEdges, joinSkillLanes, branchSummary, DOM helpers.
