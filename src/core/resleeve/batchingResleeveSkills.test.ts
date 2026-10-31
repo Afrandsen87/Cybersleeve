@@ -1,5 +1,5 @@
 /**
- * The closed-form run loop must give the same outcome whether time passes in one tick or many, also with the newer re-sleeve skills that
+ * The closed-form run loop must give the same outcome whether time passes in one tick or many, also with the newer sleeve skills that
  * change the speed or the XP of a run (Neural Mirror, focus stacking). The twin games get the same time, once in a single tick and once in
  * many ticks that are each shorter than a run.
  */
@@ -38,7 +38,7 @@ function ready(): ReturnType<typeof createGame> {
   return g;
 }
 
-describe('the newer re-sleeve skills give the same result in one long tick and in many short ones', () => {
+describe('the newer sleeve skills give the same result in one long tick and in many short ones', () => {
   it('Neural Mirror (XP bonus until the level of the synthetic sleeve) and three stacked Focus slots', () => {
     const once = ready();
     const stepped = ready();

@@ -37,7 +37,7 @@ describe('currency descriptors', () => {
     }
   });
 
-  it('only re-sleeve points are carried over a re-sleeve', () => {
+  it('only sleeve skill points are carried over a re-sleeve', () => {
     expect(CARRIED_OVER_CURRENCIES).toEqual(['resleevePoints']);
   });
 });

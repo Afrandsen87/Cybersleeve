@@ -1,5 +1,5 @@
 /**
- * Saving and loading re-sleeve state, and validation of the re-sleeve skills.
+ * Saving and loading re-sleeve state, and validation of the sleeve skills.
  */
 import { describe, expect, it } from 'vitest';
 import type { createGame } from '../../app/createGame';
@@ -14,7 +14,7 @@ describe('saving', () => {
   const roundTrip = (g: ReturnType<typeof createGame>, c: GameConfig = config) =>
     deserializeState(serializeState(g.getState()), c, numberFactory);
 
-  it('keeps the runs, the synthetic sleeves and the re-sleeve skills', () => {
+  it('keeps the runs, the synthetic sleeves and the sleeve skills', () => {
     const g = newGame();
     withNodes(g, 1000);
     atLevel(g, 3);

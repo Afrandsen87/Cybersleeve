@@ -142,7 +142,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it('a new game has no re-sleeve point; each re-sleeve gives one, and every lane is bought from its root', () => {
+  it('a new game has no sleeve skill point; each re-sleeve gives one, and every lane is bought from its root', () => {
     const g = createGame();
     expect(g.resleevePoints()).toBe(0);
     expect(g.canBuy(SKILL_SLEEVE_EUPHORIA)).toBe(false);

@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * The display data of a skill tree: lanes of nodes placed on a grid. Shared by the skills and the re-sleeve skills.
+ * The display data of a skill tree: lanes of nodes placed on a grid. Shared by the skills and the sleeve skills.
  *
  * @remarks
  * Called by: `skillTree.ts` (builds them), `viewTypes.ts` (re-exports them), `ui/widgets/skillTree.ts` (draws them).

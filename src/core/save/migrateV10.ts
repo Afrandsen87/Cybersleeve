@@ -10,7 +10,7 @@ import { isRecord } from '../kernel/readValues';
  * Copies a parsed v9 save to v10, removing sleeve-skill purchases and their reveal keys without mutation.
  * Called by: migrateSave. Calls: revealKey, isRecord.
  * @param save parsed save
- * @param sleeveSkillIds config ids paid in re-sleeve points
+ * @param sleeveSkillIds config ids paid in sleeve skill points
  * @returns new v10 object preserving all unrelated data
  */
 export function migrateV9(save: Record<string, unknown>, sleeveSkillIds: readonly string[]): Record<string, unknown> {

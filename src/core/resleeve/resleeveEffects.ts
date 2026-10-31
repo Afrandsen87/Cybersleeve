@@ -1,7 +1,7 @@
 /**
  * @module core
  *
- * The registry entries of the newer re-sleeve skill effects (see `resleeveEffectTypes.ts`).
+ * The registry entries of the newer sleeve skill effects (see `resleeveEffectTypes.ts`).
  *
  * @remarks
  * These belong in {@link EFFECTS} like every other kind; they live in their own file only to keep `effectRegistry.ts` small. The

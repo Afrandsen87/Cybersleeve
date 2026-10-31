@@ -1,5 +1,5 @@
 /**
- * The retention lane of the re-sleeve skills that carry things over a re-sleeve: Daemon Persistence, Residual Proficiency and Residual
+ * The retention lane of the sleeve skills that carry things over a re-sleeve: Daemon Persistence, Residual Proficiency and Residual
  * Firewall, tested on a small configuration. (Reflex Archive has its own file.)
  */
 import { describe, expect, it } from 'vitest';

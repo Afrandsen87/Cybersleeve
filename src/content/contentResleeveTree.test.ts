@@ -1,5 +1,5 @@
 /**
- * Guards for the shape of the REAL re-sleeve skill tree: four lanes, each with its own root, prices that never fall down a lane. They
+ * Guards for the shape of the REAL sleeve skill tree: four lanes, each with its own root, prices that never fall down a lane. They
  * check the structure the design asks for, not any effect tuning.
  */
 
@@ -25,7 +25,7 @@ import {
 const skills = gameConfig.buyables.filter((b) => b.currency === 'resleevePoints');
 const byId = new Map(skills.map((b) => [b.id, b]));
 
-describe('the real re-sleeve skill tree', () => {
+describe('the real sleeve skill tree', () => {
   it('has the listed skills in the listed order, none belonging to an action', () => {
     expect(skills.map((b) => b.id)).toEqual([...RESLEEVE_SKILLS]);
     expect(skills).toHaveLength(RESLEEVE_SKILLS.length);
@@ -47,7 +47,7 @@ describe('the real re-sleeve skill tree', () => {
     for (const b of skills) for (const p of b.parents ?? []) if (p !== SKILL_SLEEVE_UP) expect(byId.get(p)?.branch).toBe(b.branch);
   });
 
-  it('costs one re-sleeve point for every skill, so depth in the tree is the only price', () => {
+  it('costs one sleeve skill point for every skill, so depth in the tree is the only price', () => {
     for (const b of skills) {
       expect(b.cost.eq(num(1)), b.id).toBe(true);
       expect(b.costGrowth, b.id).toBeUndefined();

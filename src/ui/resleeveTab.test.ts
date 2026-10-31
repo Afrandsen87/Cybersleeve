@@ -29,7 +29,7 @@ const config = createConfig(testConfig, { actions: [testConfig.actions[0]!, netw
 type Loose = { network: unknown; actions: Record<string, { xp: unknown }> };
 const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
-/** A game that has re-sleeved `times` times (each gives a re-sleeve point). */
+/** A game that has re-sleeved `times` times (each gives a sleeve skill point). */
 const resleeved = (times: number, c = config): ReturnType<typeof createGame> => {
   const g = createGame({ config: c });
   for (let i = 0; i < times; i++) g.resleeve();

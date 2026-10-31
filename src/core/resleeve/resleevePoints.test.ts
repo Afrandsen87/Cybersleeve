@@ -1,12 +1,12 @@
 /**
- * Re-sleeve points and what a re-sleeve keeps.
+ * Sleeve skill points and what a re-sleeve keeps.
  */
 import { describe, expect, it } from 'vitest';
 import { num } from '../../numbers';
 import { createConfig } from '..';
 import { atLevel, config, mutable, newGame } from '../../testing/resleeveTreeKit';
 
-describe('re-sleeve points', () => {
+describe('sleeve skill points', () => {
   it('a new game has none, and every re-sleeve gives `pointsPerResleeve`', () => {
     const g = newGame();
     expect(g.resleevePoints()).toBe(0);
@@ -41,7 +41,7 @@ describe('re-sleeve points', () => {
     expect(g.isBuyableAvailable('inc')).toBe(true);
   });
 
-  it('skill points and re-sleeve points are separate: each pays only its own skills', () => {
+  it('skill points and sleeve skill points are separate: each pays only its own skills', () => {
     const g = newGame();
     g.resleeve();
     expect(g.skillPoints()).toBe(0);
@@ -53,7 +53,7 @@ describe('re-sleeve points', () => {
 });
 
 describe('what a re-sleeve keeps', () => {
-  it('keeps the re-sleeve skills; the rest of what was bought is gone', () => {
+  it('keeps the sleeve skills; the rest of what was bought is gone', () => {
     const g = newGame();
     g.resleeve();
     g.buy('eu');

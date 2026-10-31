@@ -1,8 +1,8 @@
 /**
  * @module core
  *
- * Shared setup of the tests of the newer re-sleeve skills: a small configuration with the skills under test, and helpers to earn
- * re-sleeve points and to read or write the loosely typed state. Not part of the game; imported only by `*.test.ts` files.
+ * Shared setup of the tests of the newer sleeve skills: a small configuration with the skills under test, and helpers to earn
+ * sleeve skill points and to read or write the loosely typed state. Not part of the game; imported only by `*.test.ts` files.
  */
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
@@ -10,7 +10,7 @@ import { setCredits, testConfig } from './testConfig';
 import { type BuyableDefinition, type GameConfig, createConfig } from '../core';
 import { flat } from './flatState';
 
-/** A re-sleeve skill that costs `cost` points (default 1), belongs to no action and has the given tree parents. */
+/** A sleeve skill that costs `cost` points (default 1), belongs to no action and has the given tree parents. */
 export const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], cost = 1, parents?: string[]): BuyableDefinition => ({
   id,
   name: id,
@@ -61,7 +61,7 @@ export const tryBuy = (g: ReturnType<typeof createGame>, id: string): string => 
   return g.buy(id);
 };
 
-/** Re-sleeves `times` times in a row (the unit-test configuration has no re-sleeve gate), so each gives one re-sleeve point. */
+/** Re-sleeves `times` times in a row (the unit-test configuration has no re-sleeve gate), so each gives one sleeve skill point. */
 export const resleeveTimes = (g: ReturnType<typeof createGame>, times: number): void => {
   for (let i = 0; i < times; i++) g.resleeve();
 };

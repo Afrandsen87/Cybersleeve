@@ -118,9 +118,9 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
  * Called by: {@link buildSkillLanes}.
  *
  * @param defs the skills of one lane, in configuration order
- * @returns each skill's column, row (may be a half row) and the parents that are in the same lane
+ * @returns each skill's column and row (may be a half row)
  */
-function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: number; row: number; parents: string[] }> {
+function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: number; row: number }> {
   const byId = new Map(defs.map((b) => [b.id, b]));
   const parentsIn = (b: BuyableDefinition): string[] => (b.parents ?? []).filter((p) => byId.has(p) && p !== b.id);
   const depths = new Map<string, number>();
@@ -165,8 +165,8 @@ function placeNodes(defs: readonly BuyableDefinition[]): Map<string, { col: numb
   const roots = defs.filter((b) => parentsIn(b).length === 0);
   for (const b of [...roots, ...defs]) rowOf(b); // `defs` again only reaches skills in a parent loop
 
-  const placed = new Map<string, { col: number; row: number; parents: string[] }>();
-  for (const b of defs) placed.set(b.id, { col: depthOf(b.id), row: rows.get(b.id) ?? 0, parents: parentsIn(b) });
+  const placed = new Map<string, { col: number; row: number }>();
+  for (const b of defs) placed.set(b.id, { col: depthOf(b.id), row: rows.get(b.id) ?? 0 });
   return placed;
 }
 

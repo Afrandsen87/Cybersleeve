@@ -5,7 +5,7 @@
  * from every parent to its child.
  *
  * @remarks
- * Called by: `skillsPanel.ts` (the skills and the re-sleeve skills). Calls: `upgradeButtons.ts`, `domKit.ts`.
+ * Called by: `skillsPanel.ts` (the skills and the sleeve skills). Calls: `upgradeButtons.ts`, `domKit.ts`.
  *
  * The grid is fixed by the content, so everything is built once: nodes are placed with the CSS variables `--col` and `--row`, the lines
  * are SVG paths in grid units (no measuring of the page), and a refresh only toggles classes and text.

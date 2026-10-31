@@ -61,7 +61,7 @@ export function tabsView(
   const automation = engine.automation();
   const statsShown = state.wallet.runs.length > 0; // the first re-sleeve writes the first run down
   const shown = (id: (typeof TAB_IDS)[number], natural: boolean): boolean => (tracker ? tracker.reveals('tab', id, natural) : natural);
-  const skillsNatural = engine.skillPointsEarned() > 0 || statsShown; // a finished sleeve-run has earned a re-sleeve point
+  const skillsNatural = engine.skillPointsEarned() > 0 || statsShown; // a finished sleeve-run has earned a sleeve skill point
   const automationNatural = automation.pointsEarned() > 0;
   const corporationNatural = engine.isCorporationUnlocked();
   const skillsShown = shown('skills', skillsNatural);

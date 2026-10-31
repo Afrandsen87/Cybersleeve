@@ -58,7 +58,7 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
     }),
     buyable({ id: 'synth', currency: 'resleevePoints', cost: num(1), parents: ['euphoria'], effect: { kind: 'synthSleeves' } }),
     buyable({ id: 'incorp', currency: 'resleevePoints', cost: num(1), parents: ['euphoria'], effect: { kind: 'placeholder' } }),
-    // the newer re-sleeve skills, so random play reaches their code (each costs one re-sleeve point)
+    // the newer sleeve skills, so random play reaches their code (each costs one sleeve skill point)
     ...(
       [
         { id: 'r-caps', effect: { kind: 'buyableCapBonus', targetId: 'slots', extra: 2 } },
@@ -163,7 +163,7 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
     g.toggleFocus(pick(random, config.actions).id);
   } else if (roll < 0.57) g.useBurnLead('common');
   else if (roll < 0.6) {
-    // spend the re-sleeve point the last re-sleeve gave on the tree, then re-sleeve again
+    // spend the sleeve skill point the last re-sleeve gave on the tree, then re-sleeve again
     maybeBuy(g, config, random, 'actionXpReductionFromSleeveLevel');
     maybeBuy(g, config, random, 'synthSleeves');
     g.resleeve();

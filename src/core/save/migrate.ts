@@ -164,7 +164,7 @@ export function needsProgressionBackfill(json: string): boolean {
  * Called by: `app/persistence.ts` (before every read of a stored or pasted save).
  * Calls: {@link migrateV6}, {@link migrateV7}, {@link migrateV8}, {@link migrateV9}.
  *
- * @param sleeveSkillIds config ids of buyables paid in re-sleeve points
+ * @param sleeveSkillIds config ids of buyables paid in sleeve skill points
  * @param json saved text, of any version
  * @returns the text unchanged when it is already the current version or not a save this code understands (the reader then rejects it as it always did),
  *   otherwise the migrated text

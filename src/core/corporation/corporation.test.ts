@@ -30,7 +30,7 @@ const contentWith = (actions: readonly CorporationActionDefinition[], extra: Par
   createConfig(testConfig, {
     buyables: [
       ...testConfig.buyables,
-      // a re-sleeve skill: paid in re-sleeve points, so it survives re-sleeving like the real Incorporation
+      // a sleeve skill: paid in sleeve skill points, so it survives re-sleeving like the real Incorporation
       { id: 'inc', name: 'Inc', description: '', currency: 'resleevePoints', cost: num(1), effect: { kind: 'unlocksCorporation' } },
     ],
     items: {
@@ -244,12 +244,12 @@ describe('the corporation in saves and re-sleeves', () => {
 
   it('re-sleeving keeps the corporation (it is not the character): its run goes on, and a new game wipes it', () => {
     const g = createGame({ config, random: seededRandom(1) });
-    g.resleeve(); // the first re-sleeve gives the re-sleeve point
+    g.resleeve(); // the first re-sleeve gives the sleeve skill point
     expect(g.buy('inc')).toBe('purchased');
     g.startCorporationAction('c1');
     g.tick(12_000);
     expect(g.resleeve()).toBe(true);
-    expect(g.isCorporationUnlocked()).toBe(true); // a re-sleeve skill is kept too
+    expect(g.isCorporationUnlocked()).toBe(true); // a sleeve skill is kept too
     expect(run(g).running).toBe(true);
     expect(run(g).progress).toBeCloseTo(0.4, 12);
     g.newGame();

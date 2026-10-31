@@ -183,15 +183,15 @@ export interface ShopQueries {
   isAutoRunEnabled(id: BuyableId): boolean;
 }
 
-/** Read-only questions about points: skill points, re-sleeve points and the automation features. */
+/** Read-only questions about points: skill points, sleeve skill points and the automation features. */
 export interface SkillQueries {
   /** Skill points the player can still spend. */
   skillPoints(): number;
-  /** Re-sleeve points the player can still spend. */
+  /** Sleeve skill points the player can still spend. */
   resleevePoints(): number;
   /** Skill points earned in total, spent or not: 0 until an action first reaches level 1. */
   skillPointsEarned(): number;
-  /** Re-sleeve points earned in total, spent or not. */
+  /** Sleeve skill points earned in total, spent or not. */
   resleevePointsEarned(): number;
   /** The automation features: points, what is unlocked and the settings (the commands are on the same object). */
   automation(): AutomationControls;

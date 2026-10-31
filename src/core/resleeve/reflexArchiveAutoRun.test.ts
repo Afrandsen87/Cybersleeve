@@ -1,7 +1,7 @@
 ﻿/**
  * Reflex Archive and Auto-run: a bought-back Auto-run is on when it was on as the last life ended, otherwise off (no flipping).
  *
- * Called by: vitest. Calls: the re-sleeve skills kit, `deserializeState`, `serializeState`.
+ * Called by: vitest. Calls: the sleeve skills kit, `deserializeState`, `serializeState`.
  */
 import { describe, expect, it } from 'vitest';
 import { num, numberFactory } from '../../numbers';

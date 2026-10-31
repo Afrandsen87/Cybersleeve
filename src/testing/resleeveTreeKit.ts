@@ -13,7 +13,7 @@ import { num } from '../numbers';
 import { flat } from './flatState';
 import { testConfig } from './testConfig';
 
-/** A re-sleeve skill: one point, no action. */
+/** A sleeve skill: one point, no action. */
 export const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], requires?: string[]): BuyableDefinition => ({
   id,
   name: id,

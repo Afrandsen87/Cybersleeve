@@ -1,5 +1,5 @@
 /**
- * The corporation lane of the re-sleeve skills (Synthetic Workers, Synthetic Procurement), tested on a small configuration.
+ * The corporation lane of the sleeve skills (Synthetic Workers, Synthetic Procurement), tested on a small configuration.
  */
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../../app/createGame';
@@ -70,7 +70,7 @@ describe('Synthetic Procurement', () => {
     expect(g.synthCount()).toBe(0);
   });
 
-  it('is kept through re-sleeving like every re-sleeve skill', () => {
+  it('is kept through re-sleeving like every sleeve skill', () => {
     const g = gameWith(['inc', 'workers', 'procure']);
     resleeveTimes(g, 1);
     expect(g.synthPurchaseUnlocked()).toBe(true);

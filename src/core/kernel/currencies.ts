@@ -40,7 +40,7 @@ export type PointCurrency = 'skillPoints' | 'resleevePoints' | 'automationPoints
 
 /**
  * The descriptor of every currency. A new currency is one `Currency` member and one entry here; the compiler demands it.
- * Skill points come from action levels; re-sleeve points from re-sleeving; automation points from the `automationPoints` buyables.
+ * Skill points come from action levels; sleeve skill points from re-sleeving; automation points from the `automationPoints` buyables.
  */
 export const CURRENCIES: Readonly<Record<Currency, CurrencyDescriptor>> = {
   credits: { held: 'credits', peak: 'peakCredits', archivedByReflex: true },
