@@ -33,7 +33,7 @@ export const retentionSkills: BuyableDefinition[] = [
     description: 'The Automation tab survives a re-sleeve: the automation core, its skills and their settings stay as they are.',
     currency: 'resleevePoints',
     branch: BRANCH_RETENTION,
-    cost: num(2),
+    cost: num(1),
     parents: [SKILL_REFLEX_ARCHIVE],
     effect: { kind: 'keepsAutomation' },
   },
@@ -44,7 +44,7 @@ export const retentionSkills: BuyableDefinition[] = [
     description: 'A new life starts with some of the Hacking Proficiency of the last one.',
     currency: 'resleevePoints',
     branch: BRANCH_RETENTION,
-    cost: num(3),
+    cost: num(1),
     parents: [SKILL_DAEMON_PERSISTENCE],
     // a first try, to be tuned by playing: a life ending at proficiency 1,000 starts the next at 3
     effect: { kind: 'carriesProficiency', scale: 1 },
@@ -56,7 +56,7 @@ export const retentionSkills: BuyableDefinition[] = [
     description: 'A new life starts with some of the ICE Rating of the last one.',
     currency: 'resleevePoints',
     branch: BRANCH_RETENTION,
-    cost: num(4),
+    cost: num(1),
     parents: [SKILL_RESIDUAL_PROFICIENCY],
     // a first try, to be tuned by playing: half of the orders of magnitude (ICE Rating 1e100 becomes 1e50)
     effect: { kind: 'carriesIceRating', share: 0.5 },

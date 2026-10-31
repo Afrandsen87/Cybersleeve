@@ -66,6 +66,7 @@ export class ProgressGate implements ResleevePolicy {
   requirements(state: GameState): readonly ResleeveRequirement[] {
     const last = state.wallet.runs[state.wallet.runs.length - 1];
     const step = this.config.resleeve.progressNeeded;
+    if (step === undefined) return [];
     return [
       { kind: 'actionLevels', held: this.progression.totalActionLevels(state), needed: (last?.actionLevelsTotal ?? 0) + step.actionLevels },
       { kind: 'sleeveLevels', held: this.progression.totalSleeveLevels(state), needed: (last?.sleeveLevelsTotal ?? 0) + step.sleeveLevels },

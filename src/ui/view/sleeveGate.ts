@@ -6,7 +6,14 @@
  * @remarks
  * Called by: `viewModel.ts`, `actionView.ts`, `panelViews.ts`. Pure; reads the same rules as the game (`sleeveLevelsGateId`, `resleeveGateId`).
  */
-import { type GameConfig, type GameQueries, type ResleeveRequirement, resleeveGateId, sleeveLevelsGateId, type StateSliceView } from '../../core';
+import {
+  type GameConfig,
+  type GameQueries,
+  type ResleeveRequirement,
+  resleeveGateId,
+  sleeveLevelsGateId,
+  type StateSliceView,
+} from '../../core';
 import type { BuyableView, ResleeveBuyView } from './viewTypes';
 
 /**

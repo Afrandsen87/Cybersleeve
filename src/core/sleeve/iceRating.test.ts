@@ -119,6 +119,34 @@ describe('ICE Rating stat', () => {
   });
 });
 
+describe('ICE Rating reduction curve (square root, full at 100 orders)', () => {
+  const curved = () =>
+    game([testConfig.actions[0]!], [], {
+      sleeve: { ...testConfig.sleeve, iceRatingOrdersForFullReduction: 100, iceRatingReductionExponent: 0.5 },
+    });
+  const reductionAt = (rating: ReturnType<typeof num>): number => {
+    const g = curved();
+    mutable(g).iceRating = rating;
+    return g.sleeveStats().heatReduction;
+  };
+
+  it('is 0 at rating 1, 20% at 1e4 and 100% at 1e100 and beyond', () => {
+    expect(reductionAt(num(1))).toBe(0);
+    expect(reductionAt(num('1e4'))).toBeCloseTo(0.2, 10);
+    expect(reductionAt(num('1e100'))).toBeCloseTo(1, 10);
+    expect(reductionAt(num('1e300'))).toBe(1);
+  });
+
+  it('counts the first orders the most: 1e4 gives more than 4% of the way', () => {
+    expect(reductionAt(num('1e4'))).toBeGreaterThan(4 / 100);
+  });
+
+  it('stays in [0, 1] for NaN and for ratings below 1', () => {
+    expect(reductionAt(num(Number.NaN))).toBe(0);
+    expect(reductionAt(num(0.5))).toBe(0);
+  });
+});
+
 describe('action with a start cost (Kill servers)', () => {
   const kill = (buyables: BuyableDefinition[] = []) => game([testConfig.actions[0]!, killAction], buyables);
 
@@ -442,10 +470,17 @@ describe('validation of the newer settings', () => {
       baseIceRating: 0,
       legendHeatSpeedup: -1,
       legendDecayPeriodMs: 0,
-      iceRatingReductionPerOrder: -1,
+      iceRatingOrdersForFullReduction: 0,
+      iceRatingReductionExponent: -1,
     };
     const text = invalid({ sleeve });
-    for (const part of ['baseIceRating', 'legendHeatSpeedup', 'legendDecayPeriodMs', 'iceRatingReductionPerOrder']) {
+    for (const part of [
+      'baseIceRating',
+      'legendHeatSpeedup',
+      'legendDecayPeriodMs',
+      'iceRatingOrdersForFullReduction',
+      'iceRatingReductionExponent',
+    ]) {
       expect(text).toContain(part);
     }
   });

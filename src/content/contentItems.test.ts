@@ -67,7 +67,8 @@ describe('Rarity refinement (real content)', () => {
 
   it('the tooltip states the rule from the buyable description, without live numbers', () => {
     const g = createGame();
-    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown; purchased: Record<string, number> } }).sleeve.hackingProficiency = num(250);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown; purchased: Record<string, number> } }).sleeve.hackingProficiency =
+      num(250);
     flat<{ purchased: Record<string, number> }>(g).purchased[KOMPROMAT_HARVEST] = 1; // opens the reveal gate
     const tip = buildViewModel(g)
       .skills.lanes.flatMap((l) => l.nodes)

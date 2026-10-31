@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
-import { markResleeved, openResleeving } from '../testing/sleeveLevelsKit';
+import { markResleeved, openResleeving, resleeveWithProgress } from '../testing/sleeveLevelsKit';
 import { setCredits } from '../testing/testConfig';
 import {
   ACCESS_UPGRADE,
@@ -19,7 +19,7 @@ import {
 function gameWith(skills: string[], points: number): ReturnType<typeof createGame> {
   const g = createGame();
   openResleeving(g);
-  for (let i = 0; i < points; i++) g.resleeve();
+  for (let i = 0; i < points; i++) resleeveWithProgress(g);
   for (const id of skills) expect(g.buy(id), id).toBe('purchased');
   markResleeved(g); // Faster conditioning waits for the second sleeve run
   setCredits(g, num('1e300'));
@@ -33,7 +33,7 @@ describe('Clearance Escalation', () => {
     expect(without.sleeveStats().accessLevel).toBe(5);
     expect(without.buy(ACCESS_UPGRADE)).toBe('max-reached');
 
-    const withSkill = gameWith([SKILL_SLEEVE_EUPHORIA, SKILL_DEEP_CONDITIONING, SKILL_CLEARANCE_ESCALATION], 6);
+    const withSkill = gameWith([SKILL_SLEEVE_EUPHORIA, SKILL_DEEP_CONDITIONING, SKILL_CLEARANCE_ESCALATION], 3);
     for (let i = 0; i < 5; i++) expect(withSkill.buy(ACCESS_UPGRADE)).toBe('purchased');
     expect(withSkill.sleeveStats().accessLevel).toBe(6);
     expect(withSkill.buy(ACCESS_UPGRADE)).toBe('max-reached');

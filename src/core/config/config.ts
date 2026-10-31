@@ -375,7 +375,7 @@ export function validateConfig(config: GameConfig): string[] {
   }
   if (!positiveInt(sk.every)) errors.push('skills.every must be an integer >= 1');
   const need = config.resleeve.progressNeeded;
-  if (!(positiveInt(need.actionLevels) && positiveInt(need.sleeveLevels))) {
+  if (need !== undefined && !(positiveInt(need.actionLevels) && positiveInt(need.sleeveLevels))) {
     errors.push('resleeve.progressNeeded actionLevels and sleeveLevels must be integers >= 1');
   }
   const lockout = config.resleeve.lockoutMs;

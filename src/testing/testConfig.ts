@@ -36,7 +36,7 @@ export const testConfig: GameConfig = {
   },
   criticalSuccess: { xpMultiplier: 2, rewardMultiplier: 3 },
   focus: { speedBonus: 0.25, baseSlots: 1 },
-  resleeve: { pointsPerResleeve: 1, runsShown: 10, progressNeeded: { actionLevels: 1, sleeveLevels: 1 } },
+  resleeve: { pointsPerResleeve: 1, runsShown: 10 }, // no progress gate: tests re-sleeve freely; the gate has its own tests
   skills: { earlyThresholds: [1, 5], every: 10 },
   progression: {
     runsPerSleeveXp: 100,

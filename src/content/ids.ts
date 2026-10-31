@@ -113,6 +113,8 @@ export const SKILL_BLACKOUT = 'skill-blackout';
 /** Id of the corporation action that may upgrade a random Kompromat file. */
 export const INSIDER_BACKSTABBING = 'insider-backstabbing';
 export * from './resleeveSkillIds';
+/** Id of the Leverage skill that lets Hacking Proficiency shift the drop ratios towards the rarer rarities. */
+export const RARITY_REFINEMENT = 'rarity-refinement';
 /** Every skill id, branch by branch (cybernetics, anonymity, leverage), each root first. */
 export const SKILLS = [
   SKILL_OVERCLOCK,
@@ -139,6 +141,7 @@ export const SKILLS = [
   SKILL_DEEP_FILES,
   SKILL_SEALED_ARCHIVES,
   SKILL_BLACK_LEDGER,
+  RARITY_REFINEMENT,
   SKILL_DOSSIER,
   SKILL_TIERED_INFORMANTS,
   SKILL_DOUBLE_AGENT,
@@ -176,8 +179,6 @@ export const KOMPROMAT = 'kompromat';
 export const AUGMENT_SCHEMATIC = 'augment-schematic';
 /** Id of the Grow network buyable that lets its runs drop Augment schematics. */
 export const INDUSTRIAL_ESPIONAGE = 'industrial-espionage';
-/** Id of the Practice Hacking buyable that lets Hacking Proficiency shift the drop ratios towards the rarer rarities. */
-export const RARITY_REFINEMENT = 'rarity-refinement';
 /** Id of the sleeve upgrade that makes every Overclock stronger. */
 export const OVERCLOCK_UPGRADE = 'overclock-upgrade';
 /** Id of the sleeve upgrade that gives more Focus slots. */

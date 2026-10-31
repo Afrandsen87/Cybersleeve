@@ -39,3 +39,21 @@ export function openResleeving(g: GameEngine, lockoutMs = 5_000): void {
 export function markResleeved(g: GameEngine): void {
   (g.getState().wallet.runs as SleeveRunRecord[]).push({ creditsPerSecond: num(0), actionLevelsTotal: 0, sleeveLevelsTotal: 0 });
 }
+
+/**
+ * Re-sleeves the REAL game through the progress gate: before the re-sleeve it raises the first action's XP and sleeve XP above anything
+ * an earlier run had, so both level totals beat the last run's by at least one.
+ *
+ * @param g an engine built on the real content with re-sleeving open (see {@link openResleeving})
+ * @returns what `resleeve()` returned
+ */
+export function resleeveWithProgress(g: GameEngine): boolean {
+  const state = g.getState();
+  const firstId = Object.keys(state.sleeve.actions)[0];
+  if (firstId !== undefined) {
+    const power = `1e${20 * (state.wallet.runs.length + 2)}`;
+    (state.sleeve.actions[firstId] as { xp: unknown }).xp = num(power);
+    setSleeveXp(g, num(power), firstId);
+  }
+  return g.resleeve();
+}

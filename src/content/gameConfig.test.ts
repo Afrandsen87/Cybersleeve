@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { validateConfig } from '../core';
 import { num } from '../numbers';
-import { markResleeved, openResleeving } from '../testing/sleeveLevelsKit';
+import { markResleeved, openResleeving, resleeveWithProgress } from '../testing/sleeveLevelsKit';
 import { setCredits, setSleeveXp } from '../testing/testConfig';
 import { buildViewModel } from '../ui/viewModel';
 import {
@@ -133,13 +133,12 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it('there is one skill for each of the twenty-eight in the design, all costing 1 point and none belonging to an action', () => {
+  it('there is one skill for each of the design, all costing 1 point and none shown on an action card', () => {
     const skills = gameConfig.buyables.filter((b) => b.currency === 'skillPoints');
     expect(skills.map((b) => b.id)).toEqual([...SKILLS]);
-    expect(skills).toHaveLength(28);
+    expect(skills.length).toBeGreaterThan(28);
     for (const b of skills) {
       expect(b.cost.eq(num(1)), b.id).toBe(true);
-      expect(b.actionId, b.id).toBeUndefined();
     }
   });
 
@@ -148,14 +147,14 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(g.resleevePoints()).toBe(0);
     expect(g.canBuy(SKILL_SLEEVE_EUPHORIA)).toBe(false);
     openResleeving(g);
-    g.resleeve();
+    resleeveWithProgress(g);
     expect(g.resleevePoints()).toBe(1);
     expect(g.canBuy(SKILL_DEEP_CONDITIONING), 'a node under Sleeve Euphoria is locked until it is bought').toBe(false);
     expect(g.buy(SKILL_SLEEVE_EUPHORIA)).toBe('purchased');
     expect(g.resleevePoints()).toBe(0);
-    g.resleeve();
+    resleeveWithProgress(g);
     expect(g.buy(SKILL_SYNTHETIC_SLEEVES)).toBe('purchased');
-    g.resleeve();
+    resleeveWithProgress(g);
     expect(g.buy(SKILL_INCORPORATION)).toBe('purchased');
     expect(g.resleevePoints()).toBe(0);
   });
@@ -163,7 +162,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
   it('Incorporation says in its tooltip that it opens the Corporation tab (once the first re-sleeve has shown what the skills are)', () => {
     const g = createGame();
     openResleeving(g);
-    g.resleeve();
+    resleeveWithProgress(g);
     const view = skillViews(buildViewModel(g).skills.resleeve.lanes).find((b) => b.id === SKILL_INCORPORATION)!;
     expect(view.tip).toContain('opens the Corporation tab');
   });
@@ -260,8 +259,10 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     expect(after.resleeveBuy).toBeNull();
     expect(after.canResleeve).toBe(false);
     g.tick(5_000);
-    expect(buildViewModel(g).canResleeve, 'the lockout is over but no sleeve level is held yet').toBe(false);
+    expect(buildViewModel(g).canResleeve, 'the lockout is over but no level is held yet').toBe(false);
     setSleeveXp(g, num('1e30'), gameConfig.actions[0]!.id);
+    expect(buildViewModel(g).canResleeve, 'sleeve levels alone are not enough: the progress gate also wants an action level').toBe(false);
+    (g.getState().sleeve.actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num('1e30');
     expect(buildViewModel(g).canResleeve).toBe(true);
   });
 

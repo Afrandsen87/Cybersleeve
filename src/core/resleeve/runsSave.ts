@@ -53,7 +53,7 @@ export const runsSavePart: SavePart<unknown> = {
       runs: state.wallet.runs.map((r) => ({
         creditsPerSecond: r.creditsPerSecond.toString(),
         actionLevelsTotal: r.actionLevelsTotal,
-        sleeveLevelsTotal: r.sleeveLevelsTotal,
+        ...(r.sleeveLevelsTotal > 0 ? { sleeveLevelsTotal: r.sleeveLevelsTotal } : {}), // absent reads as 0
         ...(r.actionLevels ? { actionLevels: { ...r.actionLevels } } : {}),
       })),
     },

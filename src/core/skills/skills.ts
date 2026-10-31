@@ -3,7 +3,7 @@
  *
  * Skill points: how many the player has earned from the action levels.
  */
-import type { SkillsConfig } from '../config/configTypes';
+import type { GameConfig } from '../types';
 
 /**
  * Skill points earned in total from the total of all action levels.
@@ -19,7 +19,7 @@ import type { SkillsConfig } from '../config/configTypes';
  * @param rule the content rule (`GameConfig.skills`)
  * @returns a whole number >= 0
  */
-export function earnedSkillPoints(actionLevels: readonly number[], rule: SkillsConfig): number {
+export function earnedSkillPoints(actionLevels: readonly number[], rule: GameConfig['skills']): number {
   const total = actionLevels.reduce((sum, level) => sum + (Number.isFinite(level) && level > 0 ? level : 0), 0);
   if (!(total >= 1)) return 0;
   const early = rule.earlyThresholds.filter((t) => t <= total).length;

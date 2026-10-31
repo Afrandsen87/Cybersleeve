@@ -121,11 +121,7 @@ export function resolveSleeveStats(
   const heatCooldownSpeed = acc.heatCooldownSpeed;
   const heatCooldownBoost = acc.heatCooldownBoost;
   const interfaceBase = sleeve.baseInterfaceSpeed + interfaceBoosts;
-  const heatReduction = concaveShare(
-    bigOrders(iceRating),
-    sleeve.iceRatingOrdersForFullReduction,
-    sleeve.iceRatingReductionExponent,
-  );
+  const heatReduction = concaveShare(bigOrders(iceRating), sleeve.iceRatingOrdersForFullReduction, sleeve.iceRatingReductionExponent);
   const hackingMultiplier = saturate(
     1 +
       concaveBonus(
