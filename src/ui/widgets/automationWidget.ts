@@ -9,6 +9,7 @@
 import type { AutoBurnSwitch, AutomationControls, AutomationFeature } from '../../core';
 import type { AutomationView } from '../viewModel';
 import { type UiContext, h, setText } from './domKit';
+import { type ResumeChecklistWidget, mountResumeChecklist } from './resumeChecklist';
 import { type SkillTreeWidget, mountSkillTree } from './skillTree';
 
 /** One feature's box in the Automation tab. */
@@ -32,6 +33,9 @@ export interface AutomationWidget {
   readonly autoBurnLower: { readonly row: HTMLElement; readonly input: HTMLInputElement };
   readonly autoBurnUpper: { readonly row: HTMLElement; readonly input: HTMLInputElement };
   readonly autoBurnReserve: { readonly row: HTMLElement; readonly input: HTMLInputElement };
+  /** The checklists under the two resume switches. */
+  readonly resumeOverclocks: ResumeChecklistWidget;
+  readonly resumeAutoRuns: ResumeChecklistWidget;
   readonly rarities: ReadonlyMap<string, HTMLButtonElement>;
   readonly shares: ReadonlyMap<string, HTMLInputElement>;
 }
@@ -87,6 +91,18 @@ export function buildAutomationWidget(
     });
     autoBurnSwitches.set(s.name, b);
   }
+  const resumeOverclocks = mountResumeChecklist((id, ticked) => {
+    burn.setResumeOverclock(id, ticked);
+    refresh();
+  });
+  const resumeAutoRuns = mountResumeChecklist((id, ticked) => {
+    burn.setResumeAutoRun(id, ticked);
+    refresh();
+  });
+  /** Each switch's button, with the checklist of a resume switch right under it. */
+  const switchRows = [...autoBurnSwitches].flatMap(([name, button]) =>
+    name === 'onActions' ? [button, resumeAutoRuns.element] : name === 'onOverclocks' ? [button, resumeOverclocks.element] : [button],
+  );
   // both thresholds are set together (the pair must stay 0 <= lower < upper), so each field sends the other's current value with its own
   const lower = numberField(view.autoBurn.thresholds.lowerLabel, 0, null, (v) => {
     burn.setThresholds(v, burn.rules().upperAt);
@@ -106,7 +122,7 @@ export function buildAutomationWidget(
     const box = h('section', `automation-feature automation-${f.id}`);
     const body = h('div', 'automation-controls');
     if (f.id === 'autoBurn')
-      body.append(h('p', 'automation-hint', view.autoBurn.hint), ...autoBurnSwitches.values(), lower.row, upper.row, reserve.row);
+      body.append(h('p', 'automation-hint', view.autoBurn.hint), ...switchRows, lower.row, upper.row, reserve.row);
     else if (f.id === 'autosale') {
       for (const r of view.rarities) {
         const b = h('button', 'automation-switch', r.name) as HTMLButtonElement;
@@ -140,6 +156,8 @@ export function buildAutomationWidget(
     autoBurnLower: lower,
     autoBurnUpper: upper,
     autoBurnReserve: reserve,
+    resumeOverclocks,
+    resumeAutoRuns,
     rarities,
     shares,
   };
@@ -166,6 +184,8 @@ export function renderAutomation(widget: AutomationWidget, view: AutomationView)
     b.hidden = !s.visible; // nothing is shown before its skill is owned
     b.classList.toggle('on', s.on);
   }
+  widget.resumeOverclocks.render(view.autoBurn.resumeOverclocks);
+  widget.resumeAutoRuns.render(view.autoBurn.resumeAutoRuns);
   const { thresholds, reserve } = view.autoBurn;
   widget.autoBurnLower.row.hidden = !thresholds.visible;
   widget.autoBurnUpper.row.hidden = !thresholds.visible;

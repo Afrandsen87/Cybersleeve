@@ -9,6 +9,7 @@
 import {
   AUTOMATION_FEATURES,
   AUTO_BURN_SWITCHES,
+  type ActionQueries,
   type CorporationQueries,
   type GameConfig,
   type SkillQueries,
@@ -17,6 +18,7 @@ import {
 } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
+import { resumeChecklists } from './autoBurnChecklist';
 import { branchMaskedFn } from './branchMask';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
@@ -154,7 +156,7 @@ export function skillsView(
  * @param revealAll test aid: no skill is masked (none is anyway)
  */
 export function automationView(
-  engine: SkillQueries,
+  engine: SkillQueries & Pick<ActionQueries, 'overclockStatus'>,
   config: GameConfig,
   viewById: ReadonlyMap<string, BuyableView>,
   text: UiText,
@@ -200,6 +202,7 @@ export function automationView(
         upperLabel: text.automation.autoBurn.upper,
       },
       reserve: { visible: burn.stepOwned('reserve'), value: burn.rules().reserve, label: text.automation.autoBurn.reserve },
+      ...resumeChecklists(burn, engine, config, viewById),
     },
     rarities: config.items.rarities.map((r) => ({ id: r.id, name: r.name, on: automation.isAutosaleOn(r.id) })),
     actions: config.actions.map((a) => ({ id: a.id, name: a.name, percent: automation.dispersal(a.id) })),

@@ -77,8 +77,8 @@ describe('the Auto Burn box in the Automation tab', () => {
     expect(shown('.automation-switch')[0]!.classList.contains('on')).toBe(true);
   });
 
-  it('shows the thresholds and the reserve with skills 9 and 10, and they change the settings', () => {
-    const { game, render, shown } = mount(10);
+  it('shows the thresholds and the reserve with skills 8 and 9, and they change the settings', () => {
+    const { game, render, shown } = mount(9);
     render();
     const inputs = shown('.automation-field input') as HTMLInputElement[];
     expect(inputs.map((i) => i.value)).toEqual(['10', '50', '0']);

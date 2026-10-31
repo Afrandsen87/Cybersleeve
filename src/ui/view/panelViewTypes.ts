@@ -29,6 +29,12 @@ export interface AutomationFeatureView {
   readonly lanes: readonly SkillLaneView[];
 }
 
+/** A checklist of the things a resume switch turns on: shown once the switch's skill is owned. */
+export interface ResumeChecklistView {
+  readonly visible: boolean;
+  readonly items: readonly { readonly id: string; readonly name: string; readonly ticked: boolean }[];
+}
+
 /** Display data of the Automation tab. */
 export interface AutomationView {
   readonly title: string;
@@ -56,6 +62,9 @@ export interface AutomationView {
       readonly upperLabel: string;
     };
     readonly reserve: { readonly visible: boolean; readonly value: number; readonly label: string };
+    /** The resume checklists under the two resume switches: the owned heat-making Overclocks and Auto-runs (shown with their switch). */
+    readonly resumeOverclocks: ResumeChecklistView;
+    readonly resumeAutoRuns: ResumeChecklistView;
   };
   /** Autosale: every rarity with its switch. */
   readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean }[];

@@ -79,9 +79,9 @@ export class AutoBurnSwitcher {
     let changed = false;
     if (rules.onOverclocks) {
       for (const id of this.switches.overclockActions) {
-        if (resumeOverclocks[id] !== true || this.state.sleeve.overclocked[id] === true) continue;
+        if (resumeOverclocks[id] !== true || this.overclockIsOn(id)) continue;
         this.switches.setOverclock(id, true);
-        if (this.state.sleeve.overclocked[id] === true) {
+        if (this.overclockIsOn(id)) {
           delete life.overclocksOff[id];
           changed = true;
         }
@@ -108,6 +108,11 @@ export class AutoBurnSwitcher {
   /** The player switched an Auto-run by hand: forget that the automation had switched it off. Called by: `AutoBurn.playerSwitchedAutoRun`. */
   forgetAutoRun(id: BuyableId): void {
     delete this.state.sleeve.autoBurn.autoRunsOff[id];
+  }
+
+  /** True when the action's Overclock is on. */
+  private overclockIsOn(id: ActionId): boolean {
+    return this.state.sleeve.overclocked[id] === true;
   }
 
   /** True when the Auto-run is owned and not switched off. */

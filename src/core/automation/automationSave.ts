@@ -19,8 +19,8 @@ import { AUTO_BURN_SWITCHES } from './autoBurnTypes';
  *
  * A save written before the Auto Burn lane had real skills (`autoBurnOn: true`, `autoBurnCeiling`) loads with the Burn lead toggle on, the
  * Hold switch on when its skill is owned (the old meaning was "hold heat at the ceiling") and the old ceiling as the lower threshold.
- * The records of what Auto Burn switched off keep only heat-making Overclocks and Auto-runs of heat-making actions. `upperArmed` is saved
- * only when false (missing loads true: a life starts below the upper threshold).
+ * The records of what Auto Burn switched off, and the resume checklists (`resumeOverclocks`, `resumeAutoRuns`), keep only heat-making Overclocks and Auto-runs of heat-making actions. The resume lists and `upperArmed` are saved
+ * only when not empty / false (missing loads true: a life starts below the upper threshold).
  *
  * Called by: `save/saveParts.ts`. Calls: `isFeatureUnlocked`, `overclockMakesHeat`, `heatMakingAutoRuns`.
  */
@@ -32,7 +32,14 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
     return {
       wallet: {
         automation: {
-          autoBurn: { ...automation.autoBurn, switches: { ...automation.autoBurn.switches } },
+          autoBurn: {
+            ...automation.autoBurn,
+            switches: { ...automation.autoBurn.switches },
+            ...(Object.keys(automation.autoBurn.resumeOverclocks).length > 0
+              ? { resumeOverclocks: { ...automation.autoBurn.resumeOverclocks } }
+              : {}),
+            ...(Object.keys(automation.autoBurn.resumeAutoRuns).length > 0 ? { resumeAutoRuns: { ...automation.autoBurn.resumeAutoRuns } } : {}),
+          },
           autosale: { ...automation.autosale },
           dispersal: { ...automation.dispersal },
         },
@@ -79,9 +86,12 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
     const keep = (from: unknown, into: Record<string, true>, known: (id: string) => boolean): void => {
       if (isRecord(from)) for (const id of Object.keys(from)) if (from[id] === true && known(id)) into[id] = true;
     };
-    keep(savedLife['overclocksOff'], life.overclocksOff, (id) => config.actions.some((a) => a.id === id && overclockMakesHeat(a)));
+    const heatOverclock = (id: string): boolean => config.actions.some((a) => a.id === id && overclockMakesHeat(a));
     const heatAutoRuns = new Set(heatMakingAutoRuns(config.buyables, config.actions));
+    keep(savedLife['overclocksOff'], life.overclocksOff, heatOverclock);
     keep(savedLife['autoRunsOff'], life.autoRunsOff, (id) => heatAutoRuns.has(id));
+    keep(savedBurn['resumeOverclocks'], auto.autoBurn.resumeOverclocks, heatOverclock);
+    keep(savedBurn['resumeAutoRuns'], auto.autoBurn.resumeAutoRuns, (id) => heatAutoRuns.has(id));
     const savedSale = isRecord(raw['autosale']) ? raw['autosale'] : {};
     const savedShares = isRecord(raw['dispersal']) ? raw['dispersal'] : {};
     if (unlocked('autosale')) for (const r of config.items.rarities) if (savedSale[r.id] === true) auto.autosale[r.id] = true;

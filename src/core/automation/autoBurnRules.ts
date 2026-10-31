@@ -4,7 +4,7 @@
  * Auto Burn: which of its skills are owned and, from that and the player's settings, the rules that apply now. The one owner of "is step X owned"
  * and of "what threshold / reserve / switch counts now".
  */
-import type { BuyableDefinition, BuyableId, GameConfig } from '../types';
+import type { ActionId, BuyableDefinition, BuyableId, GameConfig } from '../types';
 import type { AutoBurnSettings, AutoBurnStep, AutoBurnSwitch } from './autoBurnTypes';
 
 /**
@@ -40,6 +40,10 @@ export interface AutoBurnRules {
   readonly onActions: boolean;
   /** Below `lower` with leads: switch the Overclocks this automation switched off back on (and the toggle on). */
   readonly onOverclocks: boolean;
+  /** The Overclocks ticked for the resume switch (the setting; it only acts while `onOverclocks` is on). */
+  readonly resumeOverclocks: Readonly<Record<ActionId, true>>;
+  /** The Auto-runs ticked for the resume switch (the setting; it only acts while `onActions` is on). */
+  readonly resumeAutoRuns: Readonly<Record<BuyableId, true>>;
   /** The lower threshold in force: the setting once `thresholds` is owned, else the configured start. */
   readonly lower: number;
   /** The upper threshold in force. */
@@ -75,6 +79,8 @@ export function autoBurnRules(
     offActions: on('offActions'),
     onActions: on('onActions'),
     onOverclocks: on('onOverclocks'),
+    resumeOverclocks: settings.resumeOverclocks,
+    resumeAutoRuns: settings.resumeAutoRuns,
     lower: editable ? settings.lower : (config.automation?.autoBurnCeiling ?? 0),
     upperAt: editable ? settings.upper : (config.automation?.autoBurnUpper ?? 0),
     reserve: owns('reserve') ? settings.reserve : 0,

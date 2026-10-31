@@ -1168,6 +1168,22 @@ button:not(:disabled):hover {
 .automation-switch[hidden] {
   display: none;
 }
+.automation-checklist {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 4px 12px;
+  font-size: 13px;
+}
+.automation-checklist[hidden] {
+  display: none;
+}
+.automation-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .automation-hint {
   flex-basis: 100%;
   margin: 0;
