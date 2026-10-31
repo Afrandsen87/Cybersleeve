@@ -130,7 +130,6 @@ export function mountActionCards(ctx: UiContext, initial: readonly ActionView[])
         const card = cards.get(a.id);
         if (!card) continue;
         renderTitleBar(card.titleBar, a, text);
-        card.root.classList.toggle('crit-hit', a.critText !== null);
         renderStatGrid(card.stats, a, text, tips);
         setXpBar(card.levelXp, a.levelBarText, a.levelProgressPercent);
         tips.set(card.levelXp.root, () => a.levelXpTip);

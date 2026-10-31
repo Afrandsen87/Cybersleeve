@@ -37,10 +37,6 @@
   border-color: var(--proc);
   box-shadow: 0 0 14px -4px var(--proc);
 }
-.process.running.crit-hit {
-  border-color: var(--run);
-  box-shadow: 0 0 12px var(--run);
-}
 
 /* Title bar. */
 .proc-bar {

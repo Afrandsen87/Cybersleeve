@@ -29,10 +29,6 @@
   border-radius: 10px;
   padding: 12px;
 }
-.action.crit-hit {
-  border-color: var(--magenta, #ff2bd6);
-  box-shadow: 0 0 12px var(--magenta, #ff2bd6);
-}
 /* The mark beside the start button while an action has hit a critical success in the last second. */
 .crit-badge {
   position: absolute;
