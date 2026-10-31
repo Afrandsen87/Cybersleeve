@@ -14,3 +14,4 @@ export * from './parts/xpTipParts';
 export * from './parts/itemTipParts';
 export * from './parts/buyableTipParts';
 export * from './parts/hudText';
+export * from './parts/upgradeText';

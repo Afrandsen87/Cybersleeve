@@ -1,5 +1,5 @@
 /** Identifier of a titled group of Sleeve purchases. */
-export type SleeveSectionId = 'rebuyable' | 'oneTime' | 'nodes';
+export type SleeveSectionId = 'sleeve' | 'network';
 
 /** Identifier of a cell in the square of an action card. */
 export type SquareCellId = 'autoRun' | 'overclock' | 'focus' | 'augment';

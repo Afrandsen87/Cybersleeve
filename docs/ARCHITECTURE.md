@@ -82,3 +82,10 @@ See `docs/contexts/_limitations.md`.
 
 
 
+
+## Upgrade row presentation
+
+- `src/ui/view/upgradeRows.ts`: pure stable bought-one-time-first ordering over cached currency layouts.
+- `src/ui/parts/upgradeText.ts`: `UpgradeTileText` contract, exported through `uiTextParts.ts`.
+- `src/ui/upgradeText.ts`: default MAX and owned-count wording, wired as `uiText.upgradeTiles`.
+- `src/ui/widgets/sleeveWidgets.ts`: one Upgrades panel; persistent tile rows reorder only when IDs differ.

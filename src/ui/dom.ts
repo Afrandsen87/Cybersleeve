@@ -105,9 +105,9 @@ export function mountUi(
   const saveRow = buildSaveRow(ctx, options.saveTransfer, options.changelog ?? []);
   root.append(saveRow.modal);
 
-  // Top band: Sleeve on the left; to its right Network beside the sleeve-wide purchases, with Inventory under both. A line splits it from the actions.
+  // Top band: Sleeve on the left; to its right Network beside Upgrades, with Inventory under both. A line splits it from the actions.
   const right = h('div', 'dashboard-right');
-  right.append(networkWidget.root, sleeve.upgrades, sleeve.exploitation, inventoryWidget.root);
+  right.append(networkWidget.root, sleeve.upgrades, inventoryWidget.root);
   const dashboard = h('div', 'dashboard');
   dashboard.append(sleeve.stats.root, right);
   const layout = h('div', 'layout');

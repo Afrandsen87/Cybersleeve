@@ -156,20 +156,20 @@ describe('sleeve purchases', () => {
     expect(root.querySelector('.sleeve-widget .section-title')).toBeNull();
     const right = [...root.querySelector('.dashboard-right')!.children];
     expect(right[1]).toBe(root.querySelector('.upgrades-widget'));
-    expect(right[2]).toBe(root.querySelector('.exploitation-widget'));
+    expect(right[2]).toBe(root.querySelector('.inventory-widget'));
   });
 
-  it('the ones paid in credits go to Sleeve Improvements, the ones paid in nodes to Network Exploitation', () => {
+  it('credit and node purchases share Upgrades in separate rows', () => {
     const root = mount();
-    expect(root.querySelector('.upgrades-widget h2')!.textContent).toBe('Sleeve Improvements');
-    expect(root.querySelector('.exploitation-widget h2')!.textContent).toBe('Network Exploitation');
+    expect(root.querySelector('.upgrades-widget h2')!.textContent).toBe('Upgrades');
+    expect([...root.querySelectorAll('.upgrades-widget .row-label')].map((e) => e.textContent)).toEqual(['SLEEVE', 'NETWORK']);
     expect(root.querySelectorAll('.upgrades-widget .upgrade').length).toBeGreaterThan(0);
-    const exploitation = [...root.querySelectorAll('.exploitation-widget .upgrade')];
+    const exploitation = [...root.querySelectorAll('.upgrades-widget .shop-row:last-child .upgrade')];
     expect(exploitation.map((b) => b.getAttribute('aria-label'))).toEqual(['Uplink']);
     expect(root.querySelector('.exploitation-widget .section-title')).toBeNull();
   });
 
-  it('Sleeve Improvements has no "Rebuyable" heading, but its buttons are there', () => {
+  it('Upgrades has no "Rebuyable" heading, but its buttons are there', () => {
     const root = mount();
     const titles = [...root.querySelectorAll('.upgrades-widget .section-title')].map((e) => e.textContent);
     expect(titles).not.toContain('Rebuyable');

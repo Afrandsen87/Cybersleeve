@@ -30,18 +30,21 @@ const SQUARE_EFFECTS: readonly BuyableDefinition['effect']['kind'][] = ['autoRun
 /** Which Sleeve purchases go in which section, and in which order: derived from the content only, so computed once per config. */
 const layoutCache = new WeakMap<GameConfig, readonly { id: SleeveSectionId; ids: readonly string[] }[]>();
 
-/** Groups the Sleeve purchases into sections and sorts each by base price (ties keep the configuration order). */
+/** Groups UI purchases by currency and caches each row's base-price order (ties keep configuration order).
+ * Called by: sleeveView. Calls: sortByBasePrice, resleeveGateId, isPointCurrency, traitsOf.
+ * @param config immutable content configuration
+ * @returns cached nonempty currency rows, sleeve then network
+ */
 export function sectionLayout(config: GameConfig): readonly { id: SleeveSectionId; ids: readonly string[] }[] {
   const cached = layoutCache.get(config);
   if (cached) return cached;
-  const sectionOf = (b: BuyableDefinition): SleeveSectionId =>
-    b.currency === 'networkNodes' ? 'nodes' : (b.maxPurchases ?? 1) > 1 ? 'rebuyable' : 'oneTime';
+  const sectionOf = (b: BuyableDefinition): SleeveSectionId => (b.currency === 'networkNodes' ? 'network' : 'sleeve');
   // Unlock resleeving is not listed: it is the Re-sleeve button until bought
   const gateId = resleeveGateId(config.buyables);
   const defs = config.buyables.filter(
     (b) => b.actionId === undefined && !isPointCurrency(b.currency) && !traitsOf(b).corporate && b.id !== gateId,
   );
-  const layout = (['rebuyable', 'oneTime', 'nodes'] as const)
+  const layout = (['sleeve', 'network'] as const)
     .map((id) => ({
       id,
       ids: sortByBasePrice(defs.filter((b) => sectionOf(b) === id)).map((b) => b.id),

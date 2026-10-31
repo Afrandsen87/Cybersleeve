@@ -104,15 +104,10 @@ describe('inventory widget', () => {
     return { root, game, render, widget, tiles, button };
   };
 
-  it('starts hidden and comes after the Network, Sleeve Improvements and Network Exploitation widgets, in the right-hand part of the top band', () => {
+  it('starts hidden and comes after the Network and Upgrades widgets, in the right-hand part of the top band', () => {
     const { root, widget } = mount();
     const right = [...root.querySelector('.dashboard-right')!.children];
-    expect(right.map((e) => e.className.split(' ')[0])).toEqual([
-      'network-widget',
-      'upgrades-widget',
-      'exploitation-widget',
-      'inventory-widget',
-    ]);
+    expect(right.map((e) => e.className.split(' ')[0])).toEqual(['network-widget', 'upgrades-widget', 'inventory-widget']);
     expect(widget.hidden).toBe(true);
   });
 
