@@ -35,7 +35,7 @@ export const gameConfig: GameConfig = {
   /** A focused action runs 25% faster; one action can be focused at the start, Focus upgrades add slots. */
   focus: { speedBonus: 0.25, baseSlots: 1 },
 
-  /** Each re-sleeve gives one re-sleeve point; the Stats tab lists the last 10 sleeve-runs. */
+  /** Each re-sleeve gives one sleeve skill point; the Stats tab lists the last 10 sleeve-runs. */
   // Progress gate: a re-sleeve needs this run's totals to beat the last run's by at least these amounts (action levels and sleeve levels).
   resleeve: { pointsPerResleeve: 1, runsShown: 10, lockoutMs: 5_000, progressNeeded: { actionLevels: 1, sleeveLevels: 1 } },
 

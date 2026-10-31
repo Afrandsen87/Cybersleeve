@@ -1,6 +1,6 @@
 /**
  * What the screen hides until the two re-sleeve unlocks are bought: the sleeve XP bars and the Re-sleeve button wait for Sleeve levels, the
- * permission to re-sleeve waits for Unlock resleeving, and the re-sleeve skill trees wait for the first earned re-sleeve point; the skill
+ * permission to re-sleeve waits for Unlock resleeving, and the sleeve skill trees wait for the first earned sleeve skill point; the skill
  * texts stay masked until the first re-sleeve.
  */
 import { describe, expect, it } from 'vitest';
@@ -46,7 +46,7 @@ const open = (g: ReturnType<typeof game>): void => {
 };
 
 describe('the screen before either unlock', () => {
-  it('hides the sleeve XP bars, the Re-sleeve button and the re-sleeve skill trees', () => {
+  it('hides the sleeve XP bars, the Re-sleeve button and the sleeve skill trees', () => {
     const vm = buildViewModel(game());
     expect(vm.actions.every((a) => !a.sleeveShown)).toBe(true);
     expect(vm.resleeveShown).toBe(false);
@@ -86,8 +86,8 @@ describe('the screen after buying Unlock resleeving', () => {
   });
 });
 
-describe('the re-sleeve skill trees', () => {
-  it('show once a re-sleeve point has been earned, not when an unlock is bought', () => {
+describe('the sleeve skill trees', () => {
+  it('show once a sleeve skill point has been earned, not when an unlock is bought', () => {
     const g = game();
     open(g);
     expect(buildViewModel(g).skills.resleeve.visible).toBe(false);

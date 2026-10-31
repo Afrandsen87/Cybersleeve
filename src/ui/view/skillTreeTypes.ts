@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * The display data of a skill tree: lanes of nodes placed on a grid. Shared by the skills and the re-sleeve skills.
+ * The display data of a skill tree: lanes of nodes placed on a grid. Shared by the skills and the sleeve skills.
  *
  * @remarks
  * Called by: `skillTree.ts` (builds them), `viewTypes.ts` (re-exports them), `ui/widgets/skillTree.ts` (draws them).
@@ -16,7 +16,7 @@ export interface SkillNodeView {
   readonly col: number;
   /** Row within the lane (a child starts on its parent's row when it is free). Top to bottom on screen. */
   readonly row: number;
-  /** Ids of the parents (always in the same lane, so every one has a line drawn to this node). */
+  /** Ids of all parents, including cross-branch trunk edges in a joined tree. */
   readonly parents: readonly string[];
   /** True while the skill's text is hidden: its gate is not met, or a parent is itself masked. */
   readonly masked: boolean;

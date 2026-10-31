@@ -139,7 +139,7 @@ export interface FocusConfig {
 
 /** Tuning of re-sleeving and of the record kept of finished sleeve-runs. */
 export interface ResleeveConfig {
-  /** Re-sleeve points the player earns for each re-sleeve (a whole number >= 1). */
+  /** Sleeve skill points the player earns for each re-sleeve (a whole number >= 1). */
   readonly pointsPerResleeve: number;
   /** How many of the latest sleeve-runs the Stats tab lists (a whole number >= 1). */
   readonly runsShown: number;
@@ -183,7 +183,7 @@ export interface RevealConfig {
 
 /** Everything the game needs that is not state: content plus every tuning constant. */
 export interface GameConfig {
-  /** Re-sleeve points and the history of finished runs. */
+  /** Sleeve skill points and the history of finished runs. */
   readonly resleeve: ResleeveConfig;
   /** How skill points are earned from action levels. */
   readonly skills: SkillsConfig;

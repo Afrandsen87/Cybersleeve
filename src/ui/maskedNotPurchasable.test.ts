@@ -11,7 +11,7 @@ import { testConfig } from '../testing/testConfig';
 import { buildViewModel } from './viewModel';
 import { mountTestUi } from '../testing/domMountKit';
 
-/** A free re-sleeve skill: affordable from the start, but masked because no sleeve-run has finished. */
+/** A free sleeve skill: affordable from the start, but masked because no sleeve-run has finished. */
 const free: BuyableDefinition = {
   id: 'free',
   name: 'Free',

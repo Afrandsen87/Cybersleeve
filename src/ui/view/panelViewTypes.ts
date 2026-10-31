@@ -74,12 +74,12 @@ export interface AutomationView {
   readonly shareLabel: string;
 }
 
-/** The re-sleeve skills: a tree whose nodes need other nodes bought first. */
+/** The sleeve skills: a tree whose nodes need other nodes bought first. */
 export interface ResleeveSkillsView {
   readonly title: string;
   /** Shown once the first sleeve-run has finished (before that there is nothing to spend). */
   readonly visible: boolean;
-  /** Re-sleeve points that can still be spent. */
+  /** Sleeve skill points that can still be spent. */
   readonly points: number;
   readonly pointsText: string;
   /** The tree: one lane, grown sideways from the skills that need nothing. */
@@ -117,7 +117,7 @@ export interface SkillsView {
   readonly noteVisible: boolean;
   /** The skill tree: one lane per branch, in configuration order. */
   readonly lanes: readonly SkillLaneView[];
-  /** The group of skills bought with re-sleeve points. */
+  /** The group of skills bought with sleeve skill points. */
   readonly resleeve: ResleeveSkillsView;
 }
 

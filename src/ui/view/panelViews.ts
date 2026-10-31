@@ -7,10 +7,7 @@
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the text table.
  */
 import {
-  AUTOMATION_FEATURES,
-  AUTO_BURN_SWITCHES,
-  type AutoBurnSwitch,
-  type ActionQueries,
+  isSleeveSkill,
   type TAB_IDS,
   type CorporationQueries,
   type GameConfig,
@@ -20,13 +17,12 @@ import {
 } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
-import { resumeChecklists } from './autoBurnChecklist';
 import { branchMaskedFn } from './branchMask';
 import type { RevealTracker } from './revealTracker';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
 import { TabAttention } from './tabAttention';
-import type { AutomationView, BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
+import type { BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
 
 /** The latest finished sleeve-runs, newest first. */
 export function runsView(runs: GameStateView['wallet']['runs'], config: GameConfig, text: UiText): RunsView {
@@ -73,7 +69,7 @@ export function tabsView(
   const automation = engine.automation();
   const statsShown = state.wallet.runs.length > 0; // the first re-sleeve writes the first run down
   const shown = (id: (typeof TAB_IDS)[number], natural: boolean): boolean => (tracker ? tracker.reveals('tab', id, natural) : natural);
-  const skillsNatural = engine.skillPointsEarned() > 0 || statsShown; // a finished sleeve-run has earned a re-sleeve point
+  const skillsNatural = engine.skillPointsEarned() > 0 || statsShown; // a finished sleeve-run has earned a sleeve skill point
   const automationNatural = automation.pointsEarned() > 0;
   const corporationNatural = engine.isCorporationUnlocked();
   const skillsShown = shown('skills', skillsNatural);
@@ -104,10 +100,10 @@ export function tabsView(
 }
 
 /**
- * The Skills tab, with the group of re-sleeve skills.
+ * The Skills tab, with the group of sleeve skills.
  *
  * Both trees show every node and every branch title from the start; what a skill says stays hidden until it is readable (see
- * `skillTree.ts`). The re-sleeve skills are all hidden until the first re-sleeve.
+ * `skillTree.ts`). The sleeve skills are all hidden until the first re-sleeve.
  *
  * Called by: {@link buildViewModel}. Calls: {@link buildSkillLanes}.
  *
@@ -143,7 +139,8 @@ export function skillsView(
   // until the first re-sleeve the player has not seen what the skills do: only their places in the tree show
   const resleeveLanes = buildSkillLanes({
     ...common,
-    skills: config.buyables.filter((b) => b.currency === 'resleevePoints'),
+    skills: config.buyables.filter(isSleeveSkill),
+    parentsMustBeOwned: true,
     laneTitle: branchTitle,
     open: state.wallet.runs.length > 0,
   });

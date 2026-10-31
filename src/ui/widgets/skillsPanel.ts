@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * The Skills tab: the skill tree bought with skill points, and the tree of re-sleeve skills.
+ * The Skills tab: the skill tree bought with skill points, and the tree of sleeve skills.
  *
  * @remarks
  * Called by: `ui/dom.ts`. Calls: `skillTree.ts`.
@@ -33,10 +33,10 @@ export function mountSkillsPanel(ctx: UiContext, initial: SkillsView): SkillsPan
   const skillsTree = mountSkillTree(ctx, initial.lanes);
   skillsWidget.append(h('h2', undefined, initial.title), skillsPoints, skillsTree.element);
 
-  // The re-sleeve skills: the same kind of tree, in one lane.
+  // The sleeve skills share a trunk and one global grid.
   const resleeveWidget = h('aside', 'skills-widget resleeve-skills');
   const resleevePoints = h('div', 'skills-points');
-  const resleeveTree = mountSkillTree(ctx, initial.resleeve.lanes);
+  const resleeveTree = mountSkillTree(ctx, initial.resleeve.lanes, 'joined');
   resleeveWidget.append(h('h2', undefined, initial.resleeve.title), resleevePoints, resleeveTree.element);
 
   const note = h('p', 'skills-note', initial.note);

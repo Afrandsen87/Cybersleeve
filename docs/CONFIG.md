@@ -45,7 +45,7 @@ Unit tests use their own fixed `src/testing/testConfig.ts`, so retuning the game
 
 *Moved to [contexts/crits.md](contexts/crits.md).*
 
-## Newer re-sleeve skill effects
+## Newer sleeve skill effects
 
 *Moved to [contexts/resleeve.md](contexts/resleeve.md).*
 

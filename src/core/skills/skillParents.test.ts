@@ -6,7 +6,7 @@ import { testConfig } from '../../testing/testConfig';
 import { type BuyableDefinition, createConfig, deserializeState, serializeState, validateConfig } from '..';
 import { asSave, flatSave } from '../../testing/saveKit';
 
-/** A skill paid in re-sleeve points (a re-sleeve gives one), so a test can have as many points as it needs without playing. */
+/** A skill paid in sleeve skill points (a re-sleeve gives one), so a test can have as many points as it needs without playing. */
 const skill = (id: string, extra: Partial<BuyableDefinition> = {}): BuyableDefinition => ({
   id,
   name: id,
@@ -27,7 +27,7 @@ const config = createConfig(testConfig, {
   ],
 });
 
-/** A game with `points` re-sleeve points to spend. */
+/** A game with `points` sleeve skill points to spend. */
 const gameWithPoints = (points: number): ReturnType<typeof createGame> => {
   const g = createGame({ config });
   for (let i = 0; i < points; i++) g.resleeve();
@@ -107,10 +107,15 @@ describe('skill parents: saves and configuration', () => {
     expect(problems(skill('x', { parents: ['y'] }), skill('y', { requires: ['x'] }))).toContain('form a cycle');
   });
 
-  it('a parent must be in the same branch as its child', () => {
+  it('a cross-branch parent must belong to a trunk', () => {
     expect(problems(skill('r', { branch: 'red' }), skill('c', { branch: 'red', parents: ['r'] }))).toBe('');
-    expect(problems(skill('r', { branch: 'red' }), skill('c', { branch: 'blue', parents: ['r'] }))).toContain('is in another branch');
-    expect(problems(skill('r', { branch: 'red' }), skill('c', { parents: ['r'] }))).toContain('is in another branch');
+    expect(problems(skill('r', { branch: 'red' }), skill('c', { branch: 'blue', parents: ['r'] }))).toBe('');
+    expect(
+      problems(skill('r', { branch: 'red' }), skill('other', { branch: 'red' }), skill('c', { branch: 'blue', parents: ['r'] })),
+    ).toContain('is in another branch');
+    expect(
+      problems(skill('r', { branch: 'red', parents: ['up'] }), skill('up', { branch: 'red' }), skill('c', { parents: ['r'] })),
+    ).toContain('is in another branch');
   });
 
   it('only skills (paid in points) can have parents', () => {

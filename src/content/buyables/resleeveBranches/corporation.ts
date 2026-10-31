@@ -1,8 +1,10 @@
 /**
  * @module content
  *
- * The corporation lane of the re-sleeve skills: where prestige moves once re-sleeving stops paying. Incorporation is the root.
+ * The corporation lane of the sleeve skills: where prestige moves once re-sleeving stops paying. Incorporation is the root.
  */
+import { SKILL_SLEEVE_UP } from '../../ids';
+
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import { BRANCH_CORPORATION, SKILL_INCORPORATION, SKILL_SYNTHETIC_PROCUREMENT, SKILL_SYNTHETIC_WORKERS } from '../../ids';
@@ -15,6 +17,7 @@ export const corporationSkills: BuyableDefinition[] = [
     symbol: 'IN',
     description: 'Founds a corporation: opens the Corporation tab.',
     currency: 'resleevePoints',
+    parents: [SKILL_SLEEVE_UP],
     branch: BRANCH_CORPORATION,
     cost: num(1),
     effect: { kind: 'unlocksCorporation' },

@@ -6,7 +6,7 @@
 import type { BigNum, NumberFactory } from '../../numbers';
 import { BuyableCaps } from '../effects/buyableCaps';
 import { traitsOf } from '../effects/effectTraits';
-import { currencyInfo, heldBalance, isPointCurrency, spendHeld } from '../kernel/currencies';
+import { currencyInfo, heldBalance, isPointCurrency, sleeveSkillIds, spendHeld } from '../kernel/currencies';
 import { Snapshot } from '../kernel/snapshot';
 import type { BuyableDefinition, BuyableId, Currency, GameState, PointCurrency } from '../types';
 
@@ -23,6 +23,7 @@ export type PurchaseResult = 'purchased' | 'max-reached' | 'locked' | 'cannot-af
  */
 export class Shop {
   private readonly byId = new Map<BuyableId, BuyableDefinition>();
+  private readonly sleeveSkillIds: readonly BuyableId[];
   private readonly caps: BuyableCaps;
 
   /**
@@ -46,6 +47,7 @@ export class Shop {
     private readonly onPurchased: PurchaseListener = () => {},
   ) {
     for (const b of buyables) this.byId.set(b.id, b);
+    this.sleeveSkillIds = sleeveSkillIds(buyables);
     this.caps = new BuyableCaps(buyables);
   }
 
@@ -108,13 +110,18 @@ export class Shop {
   }
 
   /**
-   * True when every buyable listed in `requires` and in `parents` is owned and `revealAfterResleeves` re-sleeves have happened
+   * True when every buyable listed in `requires` and in `parents` is owned and enough distinct sleeve skills are owned.
+   * Economy context. Called by: purchase and reveal queries. Calls: Shop.owned
    * (always true without either).
    */
   isAvailable(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
     if (!b) return false;
-    if (state.wallet.runs.length < (b.revealAfterResleeves ?? 0)) return false;
+    if (
+      b.requiresSleeveSkills !== undefined &&
+      this.sleeveSkillIds.filter((skillId) => this.owned(state, skillId) > 0).length < b.requiresSleeveSkills
+    )
+      return false;
     return [...(b.requires ?? []), ...(b.parents ?? [])].every((r) => this.owned(state, r) > 0);
   }
 
@@ -165,7 +172,7 @@ export class Shop {
     return this.snapshot.memo(currency, () => this.computePoints(state, currency));
   }
 
-  /** Re-sleeve points earned in total, spent or not (what the Skills tab counts to know a point is new). Called by: `engine.ts`. */
+  /** Sleeve skill points earned in total, spent or not (what the Skills tab counts to know a point is new). Called by: `engine.ts`. */
   resleevePointsEarned(state: GameState): number {
     return this.pointsEarned('resleevePoints', state);
   }

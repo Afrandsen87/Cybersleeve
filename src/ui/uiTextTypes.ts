@@ -95,7 +95,7 @@ export interface UiText {
     /** The label of the share an action gets from Augment dispersal, in percent. */
     readonly dispersalShare: string;
   };
-  /** The Skills box and the re-sleeve skills group. */
+  /** The Skills box and the sleeve skills group. */
   readonly skills: {
     points(points: string): string;
     resleevePoints(points: string): string;

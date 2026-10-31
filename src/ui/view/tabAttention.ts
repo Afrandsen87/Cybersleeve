@@ -22,7 +22,7 @@ export class TabAttention {
    * Called by: `tabsView`. Calls: nothing.
    *
    * @param id the tab
-   * @param earned points earned in total that count for this tab (Skills: skill plus re-sleeve points; Automation: automation points)
+   * @param earned points earned in total that count for this tab (Skills: skill plus sleeve skill points; Automation: automation points)
    * @param unspent points still to spend (decides the starting point after a reload)
    * @param open whether the player is looking at this tab now
    * @returns `true` while earned is above what was seen

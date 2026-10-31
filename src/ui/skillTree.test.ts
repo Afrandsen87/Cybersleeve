@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { BuyableDefinition } from '../core';
 import { num } from '../numbers';
+import { RevealTracker } from './view/revealTracker';
 import { GENERAL_LANE, type SkillTreeInput, buildSkillLanes } from './view/skillTree';
 import type { BuyableView } from './view/viewTypes';
+import { joinSkillLanes } from './view/skillTreeJoin';
 
 const def = (id: string, extra: Partial<BuyableDefinition> = {}): BuyableDefinition => ({
   id,
@@ -115,6 +117,20 @@ describe('skill tree layout: where a skill sits', () => {
 });
 
 describe('skill tree lanes', () => {
+  it('retains cross-lane parents for joined drawing without changing local placement', () => {
+    const result = lanes([def('trunk', { branch: 'trunk' }), def('root', { branch: 'path', parents: ['trunk'] })]);
+    expect(result[1]!.nodes[0]!.parents).toEqual(['trunk']);
+    expect(result[1]!.nodes[0]!.col).toBe(0);
+    expect(joinSkillLanes(result)?.bands[0]?.nodes[0]?.col).toBe(1);
+  });
+
+  it('leaves ordinary lanes unchanged when no cross-branch trunk exists', () => {
+    const result = lanes([def('a', { branch: 'red' }), def('b', { branch: 'blue' })]);
+    const before = result.map((lane) => ({ ...lane, nodes: [...lane.nodes] }));
+    expect(joinSkillLanes(result)).toBeNull();
+    expect(result).toEqual(before);
+    expect(result.map((lane) => lane.nodes.map((node) => [node.col, node.row]))).toEqual([[[0, 0]], [[0, 0]]]);
+  });
   it('one lane per branch in order of first appearance, with the skills without a branch in the general lane', () => {
     const result = lanes([def('a', { branch: 'red' }), def('b', { branch: 'blue' }), def('c', { branch: 'red' }), def('d')]);
     expect(result.map((l) => l.id)).toEqual(['red', 'blue', GENERAL_LANE]);
@@ -189,7 +205,7 @@ describe('skill tree masking: the text of a skill is hidden until it is readable
     expect(node([def('g', { requires: ['gate'] })], 'g').locked).toBe(false);
   });
 
-  it('a tree that is not open (the re-sleeve skills before the first re-sleeve) is masked as a whole, gates or not', () => {
+  it('a tree that is not open (the sleeve skills before the first re-sleeve) is masked as a whole, gates or not', () => {
     const skills = [def('a'), def('b', { parents: ['a'] })];
     expect(lanes(skills, [], { open: false }).flatMap((l) => l.nodes.map((n) => n.masked))).toEqual([true, true]);
   });
@@ -204,5 +220,30 @@ describe('skill tree masking: the text of a skill is hidden until it is readable
     tipReads.count = 0;
     lanes([def('a'), def('g', { requires: ['gate'] }), def('b', { parents: ['a'] })]);
     expect(tipReads.count).toBe(0);
+  });
+});
+
+describe('sleeve skill parent ownership readability', () => {
+  it('masks all child text until its parent is owned, preserving the ordinary rule', () => {
+    const skills = [def('sleeve-up'), def('child', { parents: ['sleeve-up'] })];
+    const hidden = lanes(skills, [], { parentsMustBeOwned: true })[0]!.nodes;
+    expect(hidden[0]!.masked).toBe(false);
+    expect(hidden[1]!.masked).toBe(true);
+    expect([hidden[1]!.view.name, hidden[1]!.view.description, hidden[1]!.view.costText, hidden[1]!.view.tip]).toEqual([
+      '???',
+      '???',
+      '???',
+      '???',
+    ]);
+    expect(hidden[1]!.view.clickable).toBe(false);
+    expect(lanes(skills, ['sleeve-up'], { parentsMustBeOwned: true })[0]!.nodes[1]!.masked).toBe(false);
+    expect(lanes(skills)[0]!.nodes[1]!.masked).toBe(false);
+  });
+  it('keeps ledger-revealed children readable but locked', () => {
+    const nodes = lanes([def('root'), def('child', { parents: ['root'] })], [], {
+      parentsMustBeOwned: true,
+      tracker: new RevealTracker(['skill:child']),
+    })[0]!.nodes;
+    expect([nodes[1]!.masked, nodes[1]!.locked]).toEqual([false, true]);
   });
 });

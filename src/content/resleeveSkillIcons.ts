@@ -1,7 +1,7 @@
 /**
  * @module content
  *
- * Icons of the newer re-sleeve skills: each id is given the name of an icon grid that already exists in `icons.ts`, as a placeholder
+ * Icons of the newer sleeve skills: each id is given the name of an icon grid that already exists in `icons.ts`, as a placeholder
  * until a skill gets a picture of its own. Spread into `ENTITY_ICONS`.
  */
 import {
@@ -20,7 +20,7 @@ import {
   SKILL_SYNTHETIC_WORKERS,
 } from './resleeveSkillIds';
 
-/** The icon grid (a key of `ICON_GRIDS`) each newer re-sleeve skill borrows. */
+/** The icon grid (a key of `ICON_GRIDS`) each newer sleeve skill borrows. */
 export const RESLEEVE_SKILL_ICONS: Readonly<Record<string, string>> = {
   [SKILL_REFLEX_ARCHIVE]: 'auto-run',
   [SKILL_DAEMON_PERSISTENCE]: 'automation-core',

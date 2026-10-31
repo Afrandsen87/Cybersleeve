@@ -1,13 +1,13 @@
 /**
  * @module core
  *
- * The effect kinds of the newer re-sleeve skills (retention, reach, synthetics, corporation lanes). They are part of
+ * The effect kinds of the newer sleeve skills (retention, reach, synthetics, corporation lanes). They are part of
  * {@link BuyableEffect}; they live in their own file only to keep `effects/kinds/` small. Their registry entries are in
  * `resleeveEffects.ts`.
  */
 import type { BuyableId } from '../effects/buyableTypes';
 
-/** The effect kinds of the newer re-sleeve skills. */
+/** The effect kinds of the newer sleeve skills. */
 export type ResleeveEffect =
   /**
    * Lets the buyable `targetId` be bought `extra` more times than its own `maxPurchases` (a whole number >= 1), while this one is owned.
@@ -32,6 +32,8 @@ export type ResleeveEffect =
   | { readonly kind: 'perfectCopies' }
   /** Corporation actions run faster by `1 + perLn x ln(1 + number of synthetic sleeves)`, per copy, on top of their action level. Read by `Corporation.durationMs`. */
   | { readonly kind: 'corporationSpeedPerLnSynths'; readonly perLn: number }
+  /** Resleeve context: sleeve-wide marker for the trunk skill; no effect hook. Called by: registry. Calls: nothing. */
+  | { readonly kind: 'sleeveUp' }
   /** Opens the option to buy synthetic sleeves on the Corporation tab (what it does is not designed yet; this is only the unlock). Read by `Corporation`. */
   | { readonly kind: 'unlocksSynthPurchase' }
   /**

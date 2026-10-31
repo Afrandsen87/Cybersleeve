@@ -1,5 +1,5 @@
 /**
- * The synthetics lane of the re-sleeve skills (Cloning Vats, Hive Interface, Neural Mirror, Perfect Copies), tested on a small
+ * The synthetics lane of the sleeve skills (Cloning Vats, Hive Interface, Neural Mirror, Perfect Copies), tested on a small
  * configuration: every skill costs 1 point and the chain is bought in order.
  */
 import { describe, expect, it } from 'vitest';

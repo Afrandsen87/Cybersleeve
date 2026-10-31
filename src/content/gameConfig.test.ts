@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
-import { validateConfig } from '../core';
+import { isSleeveSkill, validateConfig } from '../core';
 import { num } from '../numbers';
 import { markResleeved, openResleeving, resleeveWithProgress } from '../testing/sleeveLevelsKit';
 import { setCredits, setSleeveXp } from '../testing/testConfig';
@@ -107,9 +107,9 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     setCredits(g, num('1e100'));
     (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num('1e100'); // some buyables are paid in network nodes
     // Buy in config order, repeating until nothing more can be bought once (a gate may be listed after what it unlocks).
-    // Skills are paid in skill points or re-sleeve points, not credits: they have their own tests below.
+    // Skills are paid in skill points or sleeve skill points, not credits: they have their own tests below.
     markResleeved(g); // Skill transfer and Faster conditioning wait for the second sleeve run
-    const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints' && b.currency !== 'resleevePoints');
+    const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints' && !isSleeveSkill(b));
     for (let pass = 0; pass < bought.length; pass++) {
       for (const b of bought) if (g.canBuy(b.id)) expect(g.buy(b.id)).toBe('purchased');
     }
@@ -142,7 +142,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     }
   });
 
-  it('a new game has no re-sleeve point; each re-sleeve gives one, and every lane is bought from its root', () => {
+  it('a new game has no sleeve skill point; each re-sleeve gives one, and every lane is bought from its root', () => {
     const g = createGame();
     expect(g.resleevePoints()).toBe(0);
     expect(g.canBuy(SKILL_SLEEVE_EUPHORIA)).toBe(false);
@@ -150,6 +150,8 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     resleeveWithProgress(g);
     expect(g.resleevePoints()).toBe(1);
     expect(g.canBuy(SKILL_DEEP_CONDITIONING), 'a node under Sleeve Euphoria is locked until it is bought').toBe(false);
+    expect(g.buy('skill-sleeve-up')).toBe('purchased');
+    resleeveWithProgress(g);
     expect(g.buy(SKILL_SLEEVE_EUPHORIA)).toBe('purchased');
     expect(g.resleevePoints()).toBe(0);
     resleeveWithProgress(g);
@@ -163,6 +165,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     const g = createGame();
     openResleeving(g);
     resleeveWithProgress(g);
+    expect(g.buy('skill-sleeve-up')).toBe('purchased');
     const view = skillViews(buildViewModel(g).skills.resleeve.lanes).find((b) => b.id === SKILL_INCORPORATION)!;
     expect(view.tip).toContain('opens the Corporation tab');
   });
@@ -222,7 +225,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       const owner =
         b.currency === 'skillPoints'
           ? skillViews(vm.skills.lanes)
-          : b.currency === 'resleevePoints'
+          : isSleeveSkill(b)
             ? skillViews(vm.skills.resleeve.lanes)
             : b.currency === 'automationPoints'
               ? skillViews(vm.automation.features.flatMap((f) => f.lanes))

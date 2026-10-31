@@ -29,7 +29,7 @@ const config = createConfig(testConfig, { actions: [testConfig.actions[0]!, netw
 type Loose = { network: unknown; actions: Record<string, { xp: unknown }> };
 const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 
-/** A game that has re-sleeved `times` times (each gives a re-sleeve point). */
+/** A game that has re-sleeved `times` times (each gives a sleeve skill point). */
 const resleeved = (times: number, c = config): ReturnType<typeof createGame> => {
   const g = createGame({ config: c });
   for (let i = 0; i < times; i++) g.resleeve();
@@ -78,7 +78,7 @@ describe('the Network entry for synthetic sleeves', () => {
   });
 });
 
-describe('the re-sleeve skills in the view model', () => {
+describe('the sleeve skills in the view model', () => {
   it('are hidden until the first re-sleeve, and then listed in rows by depth: the root first, then what needs it', () => {
     expect(buildViewModel(createGame({ config })).skills.resleeve.visible).toBe(false);
     const vm = buildViewModel(resleeved(1)).skills.resleeve;
@@ -91,11 +91,11 @@ describe('the re-sleeve skills in the view model', () => {
     ]);
   });
 
-  it('show the re-sleeve points, keep the skills out of the Sleeve purchases, and add the points to the Skills tab label', () => {
+  it('show the sleeve skill points, keep the skills out of the Sleeve purchases, and add the points to the Skills tab label', () => {
     const g = resleeved(2);
     const vm = buildViewModel(g);
     expect(vm.skills.resleeve.points).toBe(2);
-    expect(vm.skills.resleeve.pointsText).toBe('Re-sleeve points: 2');
+    expect(vm.skills.resleeve.pointsText).toBe('Sleeve skill points: 2');
     expect(vm.sleeve.buyables.map((b) => b.id)).not.toContain('eu');
     expect(skillViews(vm.skills.lanes).map((b) => b.id)).not.toContain('eu');
     expect(vm.tabs[1]!.label).toBe('Skills (2)');
@@ -111,10 +111,10 @@ describe('the re-sleeve skills in the view model', () => {
     expect(find('syn').available).toBe(true);
   });
 
-  it('costs are in re-sleeve points', () => {
+  it('costs are in sleeve skill points', () => {
     const view = skillViews(buildViewModel(resleeved(1)).skills.resleeve.lanes).find((b) => b.id === 'eu')!;
-    expect(view.costUnit).toBe('re-sleeve points');
-    expect(view.tip).toContain('Cost = 1 re-sleeve points');
+    expect(view.costUnit).toBe('sleeve skill points');
+    expect(view.tip).toContain('Cost = 1 sleeve skill points');
   });
 });
 
@@ -171,12 +171,12 @@ describe('the screen', () => {
     ]);
   });
 
-  it('shows the re-sleeve skills as a tree grown sideways, a locked skill dimmed, and lets the player buy from the top', () => {
+  it('shows the sleeve skills as a tree grown sideways, a locked skill dimmed, and lets the player buy from the top', () => {
     const { root, game, render } = mount();
     click(root, 'Skills');
     const widget = root.querySelector<HTMLElement>('.resleeve-skills')!;
     expect(widget.hidden).toBe(false);
-    expect(widget.querySelector('.skills-points')!.textContent).toBe('Re-sleeve points: 1');
+    expect(widget.querySelector('.skills-points')!.textContent).toBe('Sleeve skill points: 1');
     const places = [...widget.querySelectorAll<HTMLElement>('.skill-node')].map((b) => [
       b.textContent,
       b.style.getPropertyValue('--col'),
@@ -184,17 +184,18 @@ describe('the screen', () => {
     ]);
     expect(places).toEqual([
       ['EU', '0', '0.5'],
-      ['SYN', '1', '0'],
-      ['INC', '1', '1'],
+      ['?', '1', '0'],
+      ['?', '1', '1'],
     ]);
     const button = (symbol: string) => [...widget.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === symbol)!;
-    expect(button('SYN').classList.contains('locked')).toBe(true);
-    expect(button('SYN').hidden).toBe(false);
+    const masked = [...widget.querySelectorAll<HTMLButtonElement>('button')].filter((b) => b.textContent === '?');
+    expect(masked).toHaveLength(2);
+    expect(masked.every((b) => b.disabled)).toBe(true);
     button('EU').click();
     render();
     expect(game.ownedCount('eu')).toBe(1);
     expect(button('SYN').classList.contains('locked')).toBe(false);
-    expect(widget.querySelector('.skills-points')!.textContent).toBe('Re-sleeve points: 0');
+    expect(widget.querySelector('.skills-points')!.textContent).toBe('Sleeve skill points: 0');
   });
 
   it('hides the re-sleeve group before the first re-sleeve', () => {

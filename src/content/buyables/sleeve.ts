@@ -87,7 +87,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     description: 'Raises Access Level by 1, which unlocks the next action. Each copy costs 1000x more. Up to 4 copies.',
     cost: num(5),
     costGrowth: 1_000, // every 3rd order of magnitude
-    // 4 copies reach access level 5, which opens the five actions there are; the Clearance Escalation re-sleeve skill allows one more
+    // 4 copies reach access level 5, which opens the five actions there are; the Clearance Escalation sleeve skill allows one more
     maxPurchases: 4,
     effect: { kind: 'accessLevel', amount: 1 },
   },
@@ -122,7 +122,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     symbol: 'FC',
     description: 'Every action needs 1 run fewer for each batch of sleeve XP, down to 10 runs. Each copy costs 10x more.',
     cost: num(1_000),
-    revealAfterResleeves: 1, // from the second sleeve run on
+    requiresSleeveSkills: 1, // opens after buying the first sleeve skill
     costGrowth: 10, // every order of magnitude
     // 90 copies take the 100 runs per batch down to the floor of 10 (the content test checks the cap matches)
     maxPurchases: 90,
@@ -155,7 +155,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: RESLEEVE_UNLOCK,
     name: 'Unlock resleeving',
     symbol: 'RU',
-    description: 'Allows you to re-sleeve, and with it the re-sleeve skills. Kept when you re-sleeve.',
+    description: 'Allows you to re-sleeve, and with it the sleeve skills. Kept when you re-sleeve.',
     cost: num(100e9),
     requires: [SLEEVE_LEVELS], // reveal gate: the Re-sleeve button, where this is bought, shows once Sleeve levels is owned
     effect: { kind: 'unlockResleeve' },

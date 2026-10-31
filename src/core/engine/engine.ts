@@ -643,7 +643,7 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.shop.skillPointsEarned(this.state);
   }
 
-  /** Re-sleeve points earned in total, spent or not. */
+  /** Sleeve skill points earned in total, spent or not. */
   resleevePointsEarned(): number {
     return this.shop.resleevePointsEarned(this.state);
   }
@@ -653,7 +653,7 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.shop.pointsAvailable(this.state, 'skillPoints');
   }
 
-  /** Re-sleeve points the player can still spend (earned by re-sleeving, minus what the owned re-sleeve skills cost). */
+  /** Sleeve skill points the player can still spend (earned by re-sleeving, minus what the owned sleeve skills cost). */
   resleevePoints(): number {
     return this.shop.pointsAvailable(this.state, 'resleevePoints');
   }

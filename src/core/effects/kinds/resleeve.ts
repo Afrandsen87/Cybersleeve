@@ -1,13 +1,13 @@
 /**
  * @module core
  *
- * Effects of re-sleeving: synthetic sleeves, the sleeve-level gate and the newer re-sleeve skills.
+ * Effects of re-sleeving: synthetic sleeves, the sleeve-level gate and the newer sleeve skills.
  *
  * Called by: `effects/kinds/index.ts` (the {@link BuyableEffect} union). Calls: nothing.
  */
 import type { ResleeveEffect } from '../../resleeve/resleeveEffectTypes';
 
-/** Effects of re-sleeving: synthetic sleeves, the sleeve-level gate and the newer re-sleeve skills. */
+/** Effects of re-sleeving: synthetic sleeves, the sleeve-level gate and the newer sleeve skills. */
 export type ResleeveKindEffect =
   /**
    * Synthetic sleeves: buying it gives one synthetic sleeve (copied from the last finished sleeve-run), and every re-sleeve after that
@@ -25,5 +25,5 @@ export type ResleeveKindEffect =
    * lockout (`resleeve.lockoutMs`) and it survives re-sleeving. At most one buyable may have this effect. See `resleeveGate.ts`.
    */
   | { readonly kind: 'unlockResleeve' }
-  /** The effects of the newer re-sleeve skills (see `resleeveEffectTypes.ts`). */
+  /** The effects of the newer sleeve skills (see `resleeveEffectTypes.ts`). */
   | ResleeveEffect;

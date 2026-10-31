@@ -32,11 +32,11 @@ export function sleeveLevelsOpen(state: StateSliceView<'purchased'>, config: Pic
 }
 
 /**
- * Whether the re-sleeve skill trees show: the player has ever earned a re-sleeve point.
+ * Whether the sleeve skill trees show: the player has ever earned a sleeve skill point.
  *
  * @remarks
- * Re-sleeve points are `runs.length x resleeve.pointsPerResleeve` (`pointsPerResleeve` >= 1), so a finished sleeve-run is exactly
- * "a point was earned" (the same fact that shows the Stats tab and opens the re-sleeve skill text).
+ * Sleeve skill points are `runs.length x resleeve.pointsPerResleeve` (`pointsPerResleeve` >= 1), so a finished sleeve-run is exactly
+ * "a point was earned" (the same fact that shows the Stats tab and opens the sleeve skill text).
  *
  * Called by: `panelViews.ts`.
  *

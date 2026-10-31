@@ -12,6 +12,8 @@ import {
   currencyInfo,
   heldBalance,
   isPointCurrency,
+  isSleeveSkill,
+  sleeveSkillIds,
   spendHeld,
 } from './currencies';
 
@@ -37,7 +39,7 @@ describe('currency descriptors', () => {
     }
   });
 
-  it('only re-sleeve points are carried over a re-sleeve', () => {
+  it('only sleeve skill points are carried over a re-sleeve', () => {
     expect(CARRIED_OVER_CURRENCIES).toEqual(['resleevePoints']);
   });
 });
@@ -68,5 +70,29 @@ describe('held balances', () => {
     }
     expect(s.wallet.credits.toNumber()).toBe(10);
     expect(s.sleeve.network.toNumber()).toBe(7);
+  });
+});
+
+describe('the sleeve skills', () => {
+  it('are exactly the buyables paid in the one currency that is flagged for them', () => {
+    expect(CURRENCY_IDS.filter((c) => CURRENCIES[c].sleeveSkills === true)).toEqual(['resleevePoints']);
+    expect(isSleeveSkill({ currency: 'resleevePoints' })).toBe(true);
+    for (const currency of CURRENCY_IDS.filter((c) => c !== 'resleevePoints')) expect(isSleeveSkill({ currency })).toBe(false);
+    expect(isSleeveSkill({})).toBe(false); // no currency means credits
+  });
+
+  it('treat an unknown currency as no sleeve skill, so config validation can report it instead of throwing', () => {
+    expect(isSleeveSkill({ currency: 'doubloons' as unknown as Currency })).toBe(false);
+  });
+
+  it('are listed by id in the order given, and none for an empty list', () => {
+    const buyables = [
+      { id: 'a' },
+      { id: 'b', currency: 'resleevePoints' as const },
+      { id: 'c', currency: 'skillPoints' as const },
+      { id: 'd', currency: 'resleevePoints' as const },
+    ];
+    expect(sleeveSkillIds(buyables)).toEqual(['b', 'd']);
+    expect(sleeveSkillIds([])).toEqual([]);
   });
 });

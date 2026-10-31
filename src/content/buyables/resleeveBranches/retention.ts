@@ -1,8 +1,10 @@
 /**
  * @module content
  *
- * The retention lane of the re-sleeve skills: what a re-sleeve no longer wipes. Reflex Archive is the root; each skill needs the one before.
+ * The retention lane of the sleeve skills: what a re-sleeve no longer wipes. Reflex Archive is the root; each skill needs the one before.
  */
+import { SKILL_SLEEVE_UP } from '../../ids';
+
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import {
@@ -22,6 +24,7 @@ export const retentionSkills: BuyableDefinition[] = [
     description:
       "Buys back what you owned on your actions' cards last life (Auto-run, Overclock, Focus and the rest, as many copies as you had) as soon as you can afford it, cheapest first.",
     currency: 'resleevePoints',
+    parents: [SKILL_SLEEVE_UP],
     branch: BRANCH_RETENTION,
     cost: num(1),
     effect: { kind: 'autoRepurchase' },

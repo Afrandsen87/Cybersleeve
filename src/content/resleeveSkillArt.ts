@@ -1,7 +1,7 @@
 /**
  * @module content/resleeveSkillArt
  *
- * Own 16x16 pixel art for the re-sleeve skills that used to borrow another picture (see `resleeveSkillIcons.ts` for the old
+ * Own 16x16 pixel art for the sleeve skills that used to borrow another picture (see `resleeveSkillIcons.ts` for the old
  * stand-ins, which this module overrides). Same grid format as `icons.ts`. Pure display data.
  *
  * @remarks
@@ -9,6 +9,7 @@
  * `ENTITY_ICONS` after `RESLEEVE_SKILL_ICONS`, so these names win. Calls: nothing but the id constants.
  */
 import {
+  SKILL_SLEEVE_UP,
   SKILL_CLEARANCE_ESCALATION,
   SKILL_CLONING_VATS,
   SKILL_DAEMON_PERSISTENCE,
@@ -26,6 +27,25 @@ import {
 
 /** The icon grids drawn for these skills, by name (see `ICON_GRIDS` in `icons.ts` for the format). */
 export const RESLEEVE_ART_GRIDS: Readonly<Record<string, readonly string[]>> = {
+  // An upward arrow inside a sleeve capsule.
+  'skill-sleeve-up': [
+    '................',
+    '..ssssssssssss..',
+    '.ss..........ss.',
+    '.s.....cc.....s.',
+    '.s....cccc....s.',
+    '.s...cccccc...s.',
+    '.s..cccccccc..s.',
+    '.s.....cc.....s.',
+    '.s.....cc.....s.',
+    '.s.....cc.....s.',
+    '.s.....cc.....s.',
+    '.s.....cc.....s.',
+    '.ss..........ss.',
+    '..ssssssssssss..',
+    '................',
+    '................',
+  ],
   // A lightning bolt leaping out of an archive box.
   'skill-reflex-archive': [
     '................',
@@ -277,6 +297,7 @@ export const RESLEEVE_ART_GRIDS: Readonly<Record<string, readonly string[]>> = {
 
 /** Which grid of {@link RESLEEVE_ART_GRIDS} each of these skills shows. */
 export const RESLEEVE_ART_ICONS: Readonly<Record<string, string>> = {
+  [SKILL_SLEEVE_UP]: 'skill-sleeve-up',
   [SKILL_REFLEX_ARCHIVE]: 'skill-reflex-archive',
   [SKILL_OVERDRIVE_CAP]: 'skill-overdrive-cap',
   [SKILL_HIVE_INTERFACE]: 'skill-hive-interface',

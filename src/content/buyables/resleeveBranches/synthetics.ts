@@ -1,8 +1,10 @@
 /**
  * @module content
  *
- * The synthetics lane of the re-sleeve skills: synthetic sleeves growing into copies of you. Synthetic Sleeves is the root.
+ * The synthetics lane of the sleeve skills: synthetic sleeves growing into copies of you. Synthetic Sleeves is the root.
  */
+import { SKILL_SLEEVE_UP } from '../../ids';
+
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import {
@@ -23,6 +25,7 @@ export const syntheticsSkills: BuyableDefinition[] = [
     description:
       'Run extra sleeves beside this one. You get one now, copied from your last sleeve-run, and one more with every re-sleeve. Each earns the credits per second its run ended with, scaled by how many action levels you have compared to then, until you catch up.',
     currency: 'resleevePoints',
+    parents: [SKILL_SLEEVE_UP],
     branch: BRANCH_SYNTHETICS,
     cost: num(1),
     effect: { kind: 'synthSleeves' },

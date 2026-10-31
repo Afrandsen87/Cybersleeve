@@ -1,5 +1,5 @@
 /**
- * Saving and loading re-sleeve state, and validation of the re-sleeve skills.
+ * Saving and loading re-sleeve state, and validation of the sleeve skills.
  */
 import { describe, expect, it } from 'vitest';
 import type { createGame } from '../../app/createGame';
@@ -14,7 +14,7 @@ describe('saving', () => {
   const roundTrip = (g: ReturnType<typeof createGame>, c: GameConfig = config) =>
     deserializeState(serializeState(g.getState()), c, numberFactory);
 
-  it('keeps the runs, the synthetic sleeves and the re-sleeve skills', () => {
+  it('keeps the runs, the synthetic sleeves and the sleeve skills', () => {
     const g = newGame();
     withNodes(g, 1000);
     atLevel(g, 3);
@@ -63,12 +63,12 @@ describe('saving', () => {
     expect(loaded.wallet.synths).toEqual([{ runIndex: 1 }, { runIndex: 2 }]);
   });
 
-  it('hands out no synthetic sleeves to a save that does not own the skill', () => {
+  it('keeps dormant synthetic sleeves without owning the skill', () => {
     const g = newGame();
     g.resleeve();
     const data = flatSave(serializeState(g.getState())) as Record<string, unknown>;
     data['synths'] = [{ runIndex: 0 }];
-    expect(deserializeState(asSave(data), config, numberFactory)!.wallet.synths).toEqual([]);
+    expect(deserializeState(asSave(data), config, numberFactory)!.wallet.synths).toEqual([{ runIndex: 0 }]);
   });
 
   it('the state of a played game passes every invariant', () => {

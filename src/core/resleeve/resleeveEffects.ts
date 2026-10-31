@@ -1,7 +1,7 @@
 /**
  * @module core
  *
- * The registry entries of the newer re-sleeve skill effects (see `resleeveEffectTypes.ts`).
+ * The registry entries of the newer sleeve skill effects (see `resleeveEffectTypes.ts`).
  *
  * @remarks
  * These belong in {@link EFFECTS} like every other kind; they live in their own file only to keep `effectRegistry.ts` small. The
@@ -15,7 +15,7 @@ type Kind = ResleeveEffect['kind'];
 
 const sleeveWide = { needsAction: false, toggleable: false } as const;
 
-/** The entries for the newer re-sleeve skills, keyed by kind. Called by: `effectRegistry.ts` (spread into `EFFECTS`). */
+/** The entries for the newer sleeve skills, keyed by kind. Called by: `effectRegistry.ts` (spread into `EFFECTS`). */
 export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<ResleeveEffect, { kind: K }>> } = {
   // read only by BuyableCaps, which looks at the content directly
   buyableCapBonus: {
@@ -66,6 +66,7 @@ export const RESLEEVE_EFFECTS: { readonly [K in Kind]: EffectDefinition<Extract<
       if (!(Number.isFinite(e.perLn) && e.perLn > 0)) errors.push(`${where}: corporationSpeedPerLnSynths perLn must be > 0`);
     },
   },
+  sleeveUp: { traits: sleeveWide, validate: () => {} },
   unlocksSynthPurchase: { traits: sleeveWide, validate: () => {} },
   // read only by ReflexArchive and resleeveCarry.ts
   autoRepurchase: { traits: sleeveWide, validate: () => {} },

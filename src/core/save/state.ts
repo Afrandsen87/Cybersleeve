@@ -17,7 +17,7 @@ import type { ActionState, Currency, GameConfig, GameState, SleeveState, Wallet 
 type StateConfig = Pick<GameConfig, 'actions' | 'automation' | 'corporation' | 'progression' | 'sleeve'>;
 
 /**
- * The currencies whose buyables survive a re-sleeve: re-sleeve skills are permanent. Skills paid in skill points (and everything else
+ * The currencies whose buyables survive a re-sleeve: sleeve skills are permanent. Skills paid in skill points (and everything else
  * bought) reset with the sleeve.
  */
 export const CARRIED_OVER_BUYABLE_CURRENCIES: readonly Currency[] = CARRIED_OVER_CURRENCIES;
@@ -143,7 +143,7 @@ export function resetForNewGame(state: GameState, config: StateConfig, factory: 
  * @remarks
  * Starts from a fresh game state and carries over only what is named on the positive lists: {@link CARRIED_OVER_ACTION_FIELDS} (every
  * action's sleeve XP and its run counter towards the next sleeve-XP batch), {@link CARRIED_OVER_WALLET_FIELDS} (the record of finished runs, the
- * synthetic sleeves, the corporation, the all-time peaks), and the owned buyables paid in a currency of {@link CARRIED_OVER_BUYABLE_CURRENCIES} (the re-sleeve skills) or
+ * synthetic sleeves, the corporation, the all-time peaks), and the owned buyables paid in a currency of {@link CARRIED_OVER_BUYABLE_CURRENCIES} (the sleeve skills) or
  * with an effect of a `carriedOverResleeve` effect trait (the sleeve-levels unlock, the corporate rank).
  * The retention skills add to that (see `resleeveCarry.ts`): a record of last life's action-card purchases, the Automation tab, and shares of
  * Hacking Proficiency and ICE Rating. Everything else resets, including fields added in the future (nothing has to be listed to be reset; to carry something over, add it

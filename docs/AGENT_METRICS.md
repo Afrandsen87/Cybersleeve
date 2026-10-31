@@ -42,3 +42,6 @@ Experiment: does running implementation subagents on a cheaper model (haiku) sav
 | 2026-10-30 | baseline | CR2 C retry: Auto Burn lane (10 skills) | logic | implementer | sonnet | 289285 | 1 (format) + ~25 test fixes | yes (merge: dup setOn/setEnabled writer) | Largest package |
 | 2026-10-30 | baseline | CR2 review | explore | reviewer | opus | 160021 | n/a | no | 6 real Auto Burn bugs |
 | 2026-10-30 | baseline | CR2 review fixes | logic | implementer | sonnet | 192925 | ~5 test rounds + 1 format | no | Added automation->heat boundary edge |
+| 2026-10-31 | codex | Sleeve skills C: save v10 refund + synth safety | logic | codex | codex | 91401 | 1 pass after ~4 test/typecheck rounds | no | Committed itself via the git rules; found no extra audit fixes |
+| 2026-10-31 | codex | Sleeve skills A: Sleeve Up!, requiresSleeveSkills, ??? rule, rename | logic | codex | codex | 98461 | ~3 test rounds + format | no (orchestrator committed) | Commit blocked: index.lock Permission denied despite the rules; spec was cold-start complete |
+| 2026-10-31 | codex | Sleeve skills B: joined tree layout | logic | codex | codex | 48753 | 1 format round | no | Committed itself; screenshots looked right first time. Claude-side cost: 3 specs + reading reports |

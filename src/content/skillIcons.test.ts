@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { gameConfig } from './gameConfig';
 import { ENTITY_ICONS } from './icons';
 
-/** Currencies that skills are bought with (skills, automation skills, re-sleeve skills). */
+/** Currencies that skills are bought with (skills, automation skills, sleeve skills). */
 const SKILL_CURRENCIES = new Set<string>(['skillPoints', 'automationPoints', 'resleevePoints']);
 
 const skills = gameConfig.buyables.filter((b) => SKILL_CURRENCIES.has(b.currency ?? ''));
