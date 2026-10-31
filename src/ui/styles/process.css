@@ -1,0 +1,342 @@
+/*
+ * Action cards as process windows (`.action.process`): a title bar with a state LED, a run bar in the action's colour, a tag and
+ * value stat grid, the square of labelled LED toggles and the MODS row. The corporation cards share `.action` but not `.process`.
+ * Colour meaning follows the language at the top of style.css; the per-action colour below is identity only (it never means
+ * gain, heat or danger) and falls back to --info for an action without an entry.
+ */
+.process {
+  --proc: var(--info);
+  align-content: start;
+  transition:
+    filter 0.2s,
+    box-shadow 0.2s;
+}
+.process[data-action="practice-hacking"] {
+  --proc: #4dd2ff;
+}
+.process[data-action="grow-network"] {
+  --proc: #5ee6c8;
+}
+.process[data-action="push-malware"] {
+  --proc: #d98a3d;
+}
+.process[data-action="kill-servers"] {
+  --proc: #ff6fb5;
+}
+.process[data-action="legend"] {
+  --proc: #ffe14d;
+}
+.process[data-action="interface-boost"] {
+  --proc: #7a8cff;
+}
+/* Idle cards are desaturated; a running card lights up in its colour. */
+.process:not(.running):not(.locked) {
+  filter: saturate(0.55);
+}
+.process.running {
+  border-color: var(--proc);
+  box-shadow: 0 0 14px -4px var(--proc);
+}
+.process.running.crit-hit {
+  border-color: var(--run);
+  box-shadow: 0 0 12px var(--run);
+}
+
+/* Title bar. */
+.proc-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-right: 34px; /* clears the start button in the corner */
+}
+.proc-bar .action-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding-right: 0;
+}
+.proc-id {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 10px var(--mono);
+  color: var(--muted);
+  opacity: 0.7;
+}
+.proc-bar .crit-badge {
+  position: static;
+  flex: none;
+  font: 700 11px var(--mono);
+  letter-spacing: 0.06em;
+  color: var(--run);
+}
+.proc-led {
+  flex: none;
+  --c: var(--muted);
+}
+.proc-led[data-state="auto"] {
+  --c: var(--auto);
+  color: var(--c);
+}
+.proc-led[data-state="running"] {
+  --c: var(--run);
+  color: var(--c);
+}
+.proc-led[data-state="auto"]::before,
+.proc-led[data-state="running"]::before {
+  background: var(--c);
+  box-shadow: 0 0 6px var(--c);
+}
+.proc-led[data-state="auto"]::before {
+  animation: led-pulse 1.4s ease-in-out infinite;
+}
+
+/* Run bar in the action's colour; once it is full and the runs are fast, it streams. */
+.process .bar-fill {
+  background: var(--proc);
+}
+.process .bar-fill.streaming {
+  background: repeating-linear-gradient(110deg, var(--proc) 0 10px, color-mix(in srgb, var(--proc) 55%, #000) 10px 20px);
+  background-size: 28px 100%;
+  animation: bar-stream 0.6s linear infinite;
+}
+@keyframes bar-stream {
+  to {
+    background-position: 28px 0;
+  }
+}
+
+/* Stat grid: tag and value rows. A row with nothing to say is hidden. */
+.proc-stats {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+.stat-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 6px;
+  align-items: baseline;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.stat-row[hidden] {
+  display: none;
+}
+.stat-tag {
+  font: 700 9px var(--mono);
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.stat-row .stat-val {
+  min-height: 0;
+  font-family: var(--mono);
+  color: var(--ink);
+}
+.stat-row .stat-val {
+  overflow: hidden;
+  text-overflow: clip;
+}
+.stat-text {
+  display: inline-block;
+  white-space: nowrap;
+}
+/* A value too long for its box scrolls slowly to its end and back (distance and time are set from the measured overflow). */
+.stat-val.scrolling .stat-text {
+  animation: stat-scroll var(--dur, 6s) ease-in-out infinite alternate;
+}
+@keyframes stat-scroll {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  85%,
+  100% {
+    transform: translateX(calc(-1 * var(--shift, 0px)));
+  }
+}
+.stat-row.yield .stat-val {
+  color: var(--gain);
+}
+.stat-row.risk .stat-tag,
+.stat-row.risk .stat-val {
+  color: var(--heat);
+}
+.stat-row.cost .stat-tag,
+.stat-row.cost .stat-val {
+  color: var(--danger);
+}
+
+/* The square: two cells by two, each a labelled LED toggle. */
+.process .square {
+  --cell-w: 50px;
+  --cell-h: 42px;
+  --square-gap: 5px;
+  --square-w: calc(var(--cell-w) * 2 + var(--square-gap));
+  --square-h: calc(var(--cell-h) * 2 + var(--square-gap));
+  position: relative;
+  width: var(--square-w);
+  height: var(--square-h);
+  align-self: center;
+}
+.process .square-grid {
+  display: grid;
+  grid-template-columns: repeat(2, var(--cell-w));
+  grid-template-rows: repeat(2, var(--cell-h));
+  gap: var(--square-gap);
+}
+.process .square-grid[hidden],
+.process .square-unlock[hidden] {
+  display: none;
+}
+.process .square-grid .cell {
+  width: var(--cell-w);
+  height: var(--cell-h);
+  padding: 0;
+  overflow: hidden;
+  font-size: 0;
+  line-height: 1;
+  border-radius: 5px;
+  border-color: var(--line);
+  background: var(--panel-2);
+  box-shadow: none;
+  text-decoration: none;
+}
+.process .square-grid .cell.has-icon::before {
+  inset: 4px 14px 14px;
+}
+.cell-symbol {
+  position: absolute;
+  inset: 0 0 12px;
+  display: grid;
+  place-items: center;
+  font: 700 13px var(--mono);
+}
+.cell.has-icon .cell-symbol {
+  display: none;
+}
+.cell-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  text-align: center;
+  font: 700 8px var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.cell-led {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+}
+.cell-autoRun .cell-led {
+  --c: var(--auto);
+}
+.cell-price {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 2px 0;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font: 700 9px var(--mono);
+  color: var(--muted);
+  background: var(--bg);
+}
+.cell-price[hidden] {
+  display: none;
+}
+.process .square-grid .cell.purchasable:not(:disabled) {
+  border-color: var(--afford);
+  box-shadow: 0 0 10px -3px var(--afford);
+}
+.process .square-grid .cell.purchasable .cell-price {
+  color: var(--afford);
+}
+.process .square-grid .cell.on {
+  border-color: var(--info);
+  background: color-mix(in srgb, var(--info) 12%, var(--panel-2));
+}
+.process .square-grid .cell.on .cell-label {
+  color: var(--ink);
+}
+.process .square-grid .cell.applied:not(:disabled) {
+  border-color: var(--teal);
+}
+/* A feature this action does not have: invisible, but it keeps its space so the others stay where they are. */
+.process .square-grid .cell.empty {
+  visibility: hidden;
+}
+/* Before Auto-run is bought the whole square is the button that buys it. */
+.process .square-unlock {
+  width: var(--square-w);
+  height: var(--square-h);
+  font-size: 32px;
+  line-height: calc(var(--square-h) - 2px);
+}
+.process .square-unlock.has-icon::before {
+  inset: 18px;
+}
+/* Focus with several slots per action: an add and a remove half lie over the Focus cell (bottom left of the square). */
+.process .square > .cell-half {
+  position: absolute;
+  top: calc(var(--cell-h) + var(--square-gap));
+  width: calc(var(--cell-w) / 2);
+  height: var(--cell-h);
+  padding: 0;
+  font-size: 16px;
+  line-height: calc(var(--cell-h) - 2px);
+  z-index: 1;
+}
+.process .square > .cell-half-add {
+  left: 0;
+  border-radius: 5px 0 0 5px;
+}
+.process .square > .cell-half-remove {
+  left: calc(var(--cell-w) / 2);
+  border-radius: 0 5px 5px 0;
+}
+.process .square > .cell-half[hidden] {
+  display: none;
+}
+.process .square > .cell-half.on {
+  border-color: var(--info);
+  color: var(--info);
+}
+.cell-focus.split {
+  pointer-events: none;
+}
+
+/* MODS: the action's purchases under a vertical label. */
+.process > .mods {
+  grid-column: 1 / -1;
+  grid-row: 5;
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.mods[hidden] {
+  display: none;
+}
+.mods-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font: 700 9px var(--mono);
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+.mods .upgrades {
+  margin-top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proc-led[data-state="auto"]::before,
+  .process .bar-fill.streaming,
+  .stat-val.scrolling .stat-text {
+    animation: none;
+  }
+}

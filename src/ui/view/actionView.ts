@@ -24,6 +24,7 @@ import { fastBarView } from './fastBar';
 import { augmentView, focusView, overclockView } from './modeViews';
 import { squareView } from './squareView';
 import { actionCostItems } from './actionCosts';
+import { processId, processState } from './processId';
 import { levelXpTipParts, sleeveXpTipParts } from './xpTipView';
 import type { ActionView, BuyableView, ViewSelection } from './viewTypes';
 
@@ -148,6 +149,8 @@ export function buildActionViews(
       id: def.id,
       critText: crits.count > 0 ? text.action.critFlash(crits.count, formatBigNum(factory.fromNumber(crits.perSecond))) : null,
       name: def.name,
+      processId: processId(def.id),
+      state: processState(s.running, auto),
       level,
       xpText,
       nextLevelXpText,
@@ -188,7 +191,7 @@ export function buildActionViews(
           ? speedTip(engine, config, def, durationText, formatPlain(engine.currentSpeed(def.id), SPEED_DECIMALS), sleeveShown, text)
           : '';
       },
-      infoText: reason ? text.action.locked(reason) : text.action.info({ speed: speedText, duration: durationText, auto }),
+      speedLine: text.action.speedLine(speedText, durationText),
       levelBarText: text.action.levelBar(level, xpText, nextLevelXpText),
       sleeveBarText: text.action.sleeveBar(sleeveLevel, sleeveXpText, sleeveNextText, runsToNextXp),
       rewardLine: text.action.reward({
@@ -197,7 +200,6 @@ export function buildActionViews(
         multiplier: rewardMultiplierText === '1' ? null : rewardMultiplierText,
       }),
       costItems,
-      costLine: text.action.costs(costItems),
       buyables: buyableViews.filter((b) => b.actionId === def.id),
       square: squareView(config, def.id, viewById, overclock, focus, augment, (id) => ownsAutoRun(config.buyables, state, id), text),
       augment,

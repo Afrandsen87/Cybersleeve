@@ -120,17 +120,7 @@ describe('the square on the screen', () => {
     const { card } = mount();
     const children = [...card(0).children].map((c) => c.className.split(' ')[0]);
     // The start-run button floats in the corner (absolutely positioned), so it is last and takes no grid cell.
-    expect(children).toEqual([
-      'action-main',
-      'action-reward',
-      'xp',
-      'xp',
-      'square',
-      'upgrades',
-      'start-run',
-      'action-poster',
-      'crit-badge',
-    ]);
+    expect(children).toEqual(['action-main', 'action-reward', 'xp', 'xp', 'square', 'mods', 'start-run', 'action-poster']);
   });
 
   it('shows a poster naming the access level instead of a locked card, and the poster is empty of the lock once revealed', () => {
@@ -266,6 +256,6 @@ describe('the square on the screen', () => {
     expect(cell('overclock').style.getPropertyValue('--icon')).toBe('url("icon-overclock")');
     expect(cell('focus').style.getPropertyValue('--icon')).toBe('url("icon-focus")');
     expect(cell('augment').classList.contains('has-icon')).toBe(false);
-    expect(cell('augment').textContent).toBe('AU');
+    expect(cell('augment').querySelector('.cell-symbol')!.textContent).toBe('AU');
   });
 });
