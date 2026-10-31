@@ -47,7 +47,7 @@ describe('SynthSleeves level input', () => {
 
   it('the income ceiling keeps the Perfect Copies floor and is 0 with no sleeves', () => {
     const state = createInitialState(testConfig, numberFactory);
-    state.wallet.runs = [{ creditsPerSecond: num(10), actionLevelsTotal: 100 }];
+    state.wallet.runs = [{ creditsPerSecond: num(10), actionLevelsTotal: 100, sleeveLevelsTotal: 0 }];
     const perfect = { id: 'pc', name: 'pc', description: '', cost: num(1), effect: { kind: 'perfectCopies' } } as const;
     state.sleeve.purchased = { pc: 1 };
     const progression = { totalActionLevelsWithProgress: () => 0 } as unknown as Progression;

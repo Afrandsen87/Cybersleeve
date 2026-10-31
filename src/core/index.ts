@@ -94,4 +94,4 @@ export { NetworkSystem } from './economy/network';
 export { createActionLookup } from './actions/actionLookup';
 export { GameEngine } from './engine/engine';
 export { SAVE_VERSION, serializeState, deserializeState } from './save/serialization';
-export { migrateSave } from './save/migrate';
+export { migrateSave, needsProgressionBackfill } from './save/migrate';
