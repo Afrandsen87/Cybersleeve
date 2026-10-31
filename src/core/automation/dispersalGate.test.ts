@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../../app/createGame';
 import { num } from '../../numbers';
 import { flat } from '../../testing/flatState';
-import { automationLaneBuyables } from '../../testing/automationKit';
+import { automationLaneBuyables, laneSkillId } from '../../testing/automationKit';
 import { setCredits, testConfig } from '../../testing/testConfig';
 import { createConfig, type GameConfig } from '..';
 
@@ -39,16 +39,18 @@ const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
 const applied = (g: ReturnType<typeof createGame>, id: string): number =>
   Object.values(loose(g).actions[id]!.augments).reduce((n, c) => n + c, 0);
 
-/** A game with dispersal unlocked, 50/50 shares and `held` common schematics; only the Auto-runs in `owned` are bought. */
+/** A game with dispersal unlocked, two selected actions and `held` common schematics; only the Auto-runs in `owned` are bought. */
 function dispersalGame(held: number, owned: string[]) {
   const g = createGame({ config });
   setCredits(g, num(1_000));
   g.buy('core');
+  g.buy('core');
   g.automation().unlock('dispersal');
+  g.buy(laneSkillId('dispersal', 2)); // the second selection slot
   loose(g).inventory['schem'] = { common: held };
   for (const id of owned) (g.getState().sleeve.purchased as Record<string, number>)[id] = 1;
-  g.automation().setDispersal('a', 50);
-  g.automation().setDispersal('b', 50);
+  g.automation().setDispersalTarget('a', true);
+  g.automation().setDispersalTarget('b', true);
   return g;
 }
 

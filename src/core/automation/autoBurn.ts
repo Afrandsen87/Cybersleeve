@@ -9,6 +9,14 @@ import type { BurnLeads } from '../items/burnLeads';
 import type { ActionId, BuyableId, GameConfig, GameState } from '../types';
 import { isFeatureUnlocked } from './automation';
 import { type AutoBurnRules, autoBurnRules, ownsAutoBurnStep } from './autoBurnRules';
+import {
+  type AutoBurnSnapshot,
+  type AutoBurnStatus,
+  autoBurnStatus,
+  availableLeads,
+  shouldSwitchOff,
+  shouldSwitchOn,
+} from './autoBurnStatus';
 import { AutoBurnSwitcher, type AutoBurnSwitches } from './autoBurnSwitcher';
 import type { AutoBurnStep, AutoBurnSwitch } from './autoBurnTypes';
 
@@ -36,6 +44,8 @@ export interface AutoBurnControls {
   setThresholds(lower: number, upper: number): boolean;
   /** Sets the number of leads always kept (a whole number >= 0, fractions are cut off); only works once `reserve` is owned. @returns true when it was set */
   setReserve(count: number): boolean;
+  /** What Auto Burn is doing now and which rules fire (the one owner of those conditions, see `autoBurnStatus`). */
+  status(): AutoBurnStatus;
 }
 
 /** Floating-point slack when counting whole seconds out of many slices. */
@@ -60,7 +70,7 @@ const SECOND_EPSILON = 1e-9;
  * Switching goes through {@link AutoBurnSwitcher} and the toggle owners (`AutoBurnSwitches`); a player's own press on an item forgets its record (`playerSwitched*`).
  *
  * Called by: `Automation.step`, `engine.ts` (the screen uses {@link AutoBurnControls}).
- * Calls: {@link BurnLeads}, {@link Inventory}, {@link AutoBurnSwitches}, {@link autoBurnRules}.
+ * Calls: {@link BurnLeads}, {@link Inventory}, {@link AutoBurnSwitches}, {@link autoBurnRules}, `autoBurnStatus.ts` (the off and on conditions).
  */
 export class AutoBurn implements AutoBurnControls {
   /** Switches the heat-making Overclocks and Auto-runs off and on. */
@@ -156,6 +166,16 @@ export class AutoBurn implements AutoBurnControls {
     return true;
   }
 
+  /** See {@link AutoBurnControls.status}. */
+  status(): AutoBurnStatus {
+    return autoBurnStatus(this.rules(), this.snapshot());
+  }
+
+  /** The live heat, toggle and leads the conditions look at. */
+  private snapshot(): AutoBurnSnapshot {
+    return { heat: this.state.sleeve.heat, toggleOn: this.state.sleeve.autoBurn.on, held: this.held(), usable: this.burnLeads.usable() };
+  }
+
   /**
    * The player switched an action's Overclock by hand: the automation forgets that it had switched it off.
    *
@@ -197,8 +217,7 @@ export class AutoBurn implements AutoBurnControls {
 
   /** Leads that may be used: the leads held minus the reserve, none while leads cannot be used (heat cooling is held in place). */
   private available(rules: AutoBurnRules): number {
-    if (!this.burnLeads.usable()) return 0;
-    return Math.max(0, this.held() - rules.reserve);
+    return availableLeads(rules, { held: this.held(), usable: this.burnLeads.usable() });
   }
 
   /** Uses the leads of this slice: one a second, or with "hold" just enough to reach the lower threshold. */
@@ -224,12 +243,11 @@ export class AutoBurn implements AutoBurnControls {
 
   /** The off rules (only while the Burn lead toggle is on): out of leads while heat is above the lower threshold, see {@link AutoBurnSwitcher.switchOff}. */
   private switchOff(rules: AutoBurnRules): void {
-    if (this.state.sleeve.autoBurn.on && this.available(rules) <= 0 && this.state.sleeve.heat > rules.lower) this.switcher.switchOff(rules);
+    if (shouldSwitchOff(rules, this.snapshot())) this.switcher.switchOff(rules);
   }
 
   /** The on rules: heat below the lower threshold with leads available, see {@link AutoBurnSwitcher.switchOn}; a change also switches the toggle on. */
   private switchOn(rules: AutoBurnRules): void {
-    if (this.available(rules) > 0 && this.state.sleeve.heat < rules.lower && this.switcher.switchOn(rules))
-      this.state.sleeve.autoBurn.on = true;
+    if (shouldSwitchOn(rules, this.snapshot()) && this.switcher.switchOn(rules)) this.state.sleeve.autoBurn.on = true;
   }
 }

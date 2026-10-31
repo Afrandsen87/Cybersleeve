@@ -66,3 +66,5 @@ export interface ViewModel {
    */
   readonly resleeveShortfall: readonly ResleeveRequirement[];
 }
+
+export type * from './autoBurnViewTypes';

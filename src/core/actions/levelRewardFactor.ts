@@ -9,7 +9,7 @@ import type { ActionId, BuyableDefinition, StateSlice } from '../types';
  * The factor that `rewardMultiplierFromActionLevel` buyables multiply an action's reward by.
  *
  * @remarks
- * Each owned buyable that targets the action gives `1 + coefficient * ln(1 + level / scale)`, where `level` is the plain action level of
+ * Each owned buyable that targets the action gives `1 + coefficient * ln(1 + level / scale)`, where `level` is the effective action level of
  * its source action. The curve is concave: it starts at 1 for level 0, rises quickly, then ever more slowly, and never stops or falls.
  * The factors of several buyables multiply.
  * Called by: `stats.ts` (`DerivedStats.rewardMultiplier`).
@@ -17,7 +17,7 @@ import type { ActionId, BuyableDefinition, StateSlice } from '../types';
  * @param buyables all buyable definitions
  * @param state current state (reads `purchased`)
  * @param targetActionId the action whose reward is multiplied
- * @param actionLevelOf plain action level of an action
+ * @param actionLevelOf effective action level of an action
  * @returns a factor >= 1 (exactly 1 when no such buyable is owned)
  */
 export function levelRewardFactor(

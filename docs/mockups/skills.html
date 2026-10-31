@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Firmware page – mockup</title>
+<style>
+  /* same language as mainscreen.html */
+  :root {
+    --bg: #0b0f1a; --panel: #121829; --panel-2: #0e1324; --ink: #e6f1ff; --muted: #7f93b3; --line: #26304d; --line-2: #1b2340;
+    --info: #19e3ff; --run: #ff2bd6; --heat: #ff7a1a; --danger: #ff3b5c; --gain: #39ff88; --auto: #b266ff; --afford: #ffd23f;
+    --persist: #c4d8ed;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --b-cybernetics: #39ff88; --b-anonymity: #ff3b5c; --b-leverage: #d98a3d;
+    --b-sleeveUp: #c4d8ed; --b-retention: #5ee6c8; --b-reach: #ffa64d; --b-synthetics: #7a8cff; --b-corporation: #ff6fb5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); font: 14px/1.4 system-ui, sans-serif;
+    background: radial-gradient(1200px 500px at 50% -200px, #16204a 0%, transparent 70%), linear-gradient(var(--line-2) 1px, transparent 1px) 0 0 / 100% 24px, var(--bg); background-color: var(--bg); }
+  body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px); }
+  main { max-width: 1260px; margin: 0 auto; padding: 12px 16px 24px; display: grid; gap: 12px; }
+  button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .demo { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border: 1px dashed #3a4466; border-radius: 8px; font-size: 13px; color: var(--muted); }
+  .demo b { color: var(--ink); } .demo label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+  /* HUD (from the main-screen plan) */
+  .hud { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; padding: 8px 14px; border-bottom: 1px solid color-mix(in srgb, var(--run) 50%, transparent); box-shadow: 0 8px 24px -16px var(--run); }
+  .credits { display: flex; align-items: baseline; gap: 10px; }
+  .coin { width: 26px; height: 26px; align-self: center; border-radius: 5px; background: var(--afford); color: #1a1300; font: 900 16px var(--mono); display: grid; place-items: center; box-shadow: 0 0 10px var(--afford); }
+  .big { font: 700 30px var(--mono); color: var(--info); text-shadow: 0 0 12px color-mix(in srgb, var(--info) 60%, transparent); }
+  .rate { font: 13px var(--mono); color: var(--gain); }
+  .tabs { display: flex; gap: 6px; }
+  .tab { position: relative; padding: 7px 14px; font: 700 12px var(--mono); letter-spacing: .1em; color: var(--muted); border-radius: 3px; background: transparent; }
+  .tab.active { color: var(--info); border-color: var(--info); box-shadow: inset 0 -2px 0 var(--info), 0 0 10px -4px var(--info); }
+  .badge { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; font-size: 10px; display: grid; place-items: center; color: #0b0f1a; background: var(--afford); box-shadow: 0 0 8px var(--afford); }
+  .tab.auto .badge { background: var(--auto); box-shadow: 0 0 8px var(--auto); }
+
+  /* idea 5: legend strip */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; padding: 6px 12px; font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; background: var(--panel-2); }
+  .legend .lg { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 16px; height: 16px; border-radius: 4px; display: inline-block; position: relative; }
+  .legend .hint { margin-left: auto; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; align-items: start; }
+  .col { display: grid; gap: 12px; min-width: 0; }
+
+  /* panel chrome */
+  .panel { position: relative; background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px 12px;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .panel::before, .panel::after { content: ""; position: absolute; width: 10px; height: 10px; border-color: var(--accent, var(--info)); border-style: solid; opacity: .8; }
+  .panel::before { top: 0; left: 0; border-width: 2px 0 0 2px; } .panel::after { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
+  .ph { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font: 700 11px var(--mono); letter-spacing: .14em; color: var(--accent, var(--info)); }
+  .ph::before { content: "//"; color: var(--muted); }
+  .ph .sub { color: var(--muted); font-weight: 400; letter-spacing: .04em; }
+
+  /* idea 1: points readout */
+  .points { margin-left: auto; display: inline-flex; align-items: baseline; gap: 8px; padding: 2px 10px; border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); border-radius: 4px; background: color-mix(in srgb, var(--pc) 8%, transparent); }
+  .points .n { font: 700 22px var(--mono); color: var(--pc); text-shadow: 0 0 10px var(--pc); line-height: 1.1; }
+  .points .l { font: 700 10px var(--mono); letter-spacing: .12em; color: var(--muted); }
+  .points.zero .n { color: var(--muted); text-shadow: none; }
+
+  /* branches */
+  .trees { display: grid; gap: 10px; }
+  .trees.cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .branch { --lane: var(--info); position: relative; padding: 8px 10px 10px 12px; border-left: 3px solid var(--lane); border-radius: 4px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--lane) 16%, transparent), color-mix(in srgb, var(--lane) 4%, transparent));
+    box-shadow: inset 3px 0 10px -6px var(--lane); display: grid; gap: 6px; }
+  .trees:not(.cards) .branch { width: fit-content; min-width: 420px; }
+  .bh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font: 11px var(--mono); }
+  .bh .bn { font-weight: 700; letter-spacing: .14em; color: var(--lane); text-shadow: 0 0 8px color-mix(in srgb, var(--lane) 60%, transparent); }
+  .bh .bp { color: var(--muted); }
+  .bh .bc { margin-left: auto; color: var(--ink); }
+  /* idea 4: segmented progress */
+  .seg { display: flex; gap: 2px; }
+  .seg i { width: 9px; height: 5px; border-radius: 1px; background: color-mix(in srgb, var(--lane) 18%, #0b0f1a); }
+  .seg i.on { background: var(--lane); box-shadow: 0 0 4px var(--lane); }
+  .cards .branch .bh .bp { flex-basis: 100%; order: 3; }
+
+  /* tree canvas */
+  .tree { position: relative; }
+  .tree svg.edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+  .edge { fill: none; stroke: var(--lane); stroke-width: 2; opacity: .22; transition: opacity .2s, stroke-width .2s; }
+  .edge.lit { opacity: .9; filter: drop-shadow(0 0 3px var(--lane)); }
+  .edge.path { opacity: 1; stroke-width: 3; filter: drop-shadow(0 0 5px var(--lane)); }
+  .edge.flow { stroke-dasharray: 6 6; animation: flow .5s linear 3; opacity: 1; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+
+  /* idea 3: node states */
+  .node { position: absolute; width: var(--ns); height: var(--ns); padding: 0; border-radius: 8px; display: grid; place-items: center; font-size: calc(var(--ns) * .45);
+    background: #0d1222; transition: transform .1s, box-shadow .2s; }
+  .node:hover { transform: scale(1.08); z-index: 2; }
+  .node .g { line-height: 1; }
+  .node.owned { background: color-mix(in srgb, var(--lane) 30%, #0d1222); border-color: var(--lane); box-shadow: 0 0 10px -1px var(--lane), inset 0 0 10px -4px var(--lane); }
+  .node.afford { border: 2px solid var(--afford); animation: afford 1.8s ease-in-out infinite; }
+  .node.afford .g { opacity: .85; }
+  @keyframes afford { 50% { box-shadow: 0 0 14px -2px var(--afford); } }
+  .node.avail { border: 1px solid var(--lane); }
+  .node.avail .g { opacity: .55; }
+  .node.locked { background: #090c16; border-color: #1c2440; } .node.locked .g { opacity: .18; filter: grayscale(1); }
+  .node.locked::after { content: "🔒"; position: absolute; right: -4px; bottom: -4px; font-size: 10px; filter: grayscale(1) brightness(.8); }
+  .node.enc { border: 1px dashed #3a4466; background: repeating-linear-gradient(0deg, #0b0f1a 0 2px, #141b30 2px 3px); background-size: 100% 6px; animation: static 0.6s steps(3) infinite; }
+  .node.enc .g { font: 700 calc(var(--ns) * .32) var(--mono); color: #4a5578; }
+  @keyframes static { to { background-position: 0 6px; } }
+  .cost { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); padding: 0 5px; border-radius: 6px; font: 700 9px var(--mono); background: #0b0f1a; border: 1px solid currentColor; }
+  .node.afford .cost { color: var(--afford); } .node.avail .cost { color: var(--muted); }
+  .node.sel { outline: 2px solid #fff; outline-offset: 3px; }
+  .node.next { outline: 1px dashed var(--lane); outline-offset: 4px; }
+  .node.onpath { box-shadow: 0 0 14px var(--lane); }
+  /* idea 9: install animation */
+  .node.install { animation: install .9s ease-out; }
+  .node.install::before { content: ""; position: absolute; inset: 0; border-radius: 7px; background: linear-gradient(0deg, var(--lane), transparent); animation: sweep .9s ease-out forwards; pointer-events: none; }
+  @keyframes install { 0% { transform: scale(.85); } 40% { transform: scale(1.18); box-shadow: 0 0 24px var(--lane); } 100% { transform: scale(1); } }
+  @keyframes sweep { from { clip-path: inset(100% 0 0 0); opacity: .9; } 70% { clip-path: inset(0 0 0 0); opacity: .7; } to { clip-path: inset(0 0 0 0); opacity: 0; } }
+  .tlabel { position: absolute; font: 700 9px var(--mono); letter-spacing: .12em; color: var(--lane); white-space: nowrap; transform: translateX(-50%); }
+
+  /* idea 7: sleeve skills, persistent frame */
+  .persist { --accent: var(--persist); border-color: color-mix(in srgb, var(--persist) 40%, var(--line));
+    background: linear-gradient(180deg, color-mix(in srgb, var(--run) 5%, var(--panel)), var(--panel-2)), var(--panel); }
+  .persist .tag { font: 700 10px var(--mono); letter-spacing: .1em; color: var(--run); border: 1px solid color-mix(in srgb, var(--run) 60%, transparent); padding: 1px 6px; border-radius: 3px; text-shadow: 0 0 6px var(--run); }
+  .bands { position: absolute; inset: 0; pointer-events: none; }
+  .band { position: absolute; left: 0; right: 0; border-left: 3px solid var(--lane); background: linear-gradient(90deg, color-mix(in srgb, var(--lane) 16%, transparent), transparent 85%); border-radius: 3px; }
+  .band .bl { position: absolute; top: 3px; left: 8px; font: 700 10px var(--mono); letter-spacing: .14em; color: var(--lane); display: flex; gap: 10px; align-items: center; }
+  .band .bl .bp { color: var(--muted); font-weight: 400; letter-spacing: .02em; }
+  .band .bl .seg i { width: 7px; height: 4px; }
+
+  /* idea 2: inspector */
+  .inspector { --accent: var(--lane, var(--info)); position: sticky; top: 12px; display: grid; gap: 10px; }
+  .ins-top { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+  .ins-ico { width: 64px; height: 64px; border-radius: 10px; display: grid; place-items: center; font-size: 30px; border: 1px solid var(--lane); background: color-mix(in srgb, var(--lane) 20%, #0d1222); box-shadow: 0 0 14px -4px var(--lane); }
+  .ins-name { font-size: 17px; font-weight: 700; }
+  .ins-branch { font: 700 10px var(--mono); letter-spacing: .14em; color: var(--lane); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 700 10px var(--mono); letter-spacing: .1em; border: 1px solid currentColor; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 5px currentColor; }
+  .s-owned { color: var(--gain); } .s-afford { color: var(--afford); } .s-avail { color: var(--muted); } .s-locked { color: #55617f; } .s-enc { color: #55617f; }
+  .ins-effect { font-size: 13px; line-height: 1.5; padding: 8px 10px; border-left: 2px solid var(--lane); background: #0d1222; border-radius: 0 4px 4px 0; }
+  .ins-k { font: 700 10px var(--mono); letter-spacing: .14em; color: var(--muted); margin-bottom: 3px; }
+  .ins-list { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ins-list span { font: 11px var(--mono); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--line); }
+  .ins-list span.ok { border-color: color-mix(in srgb, var(--gain) 60%, transparent); color: var(--gain); }
+  .ins-list span.enc { color: #55617f; }
+  .ins-cost { display: flex; justify-content: space-between; align-items: center; font: 12px var(--mono); }
+  .ins-cost b { font-size: 16px; color: var(--afford); }
+  .buy { width: 100%; padding: 10px; font: 700 13px var(--mono); letter-spacing: .14em; border-radius: 4px; }
+  .buy.ready { color: #1a1300; background: var(--afford); border-color: var(--afford); box-shadow: 0 0 14px -2px var(--afford); }
+  .buy:disabled { opacity: .5; cursor: default; }
+  .ins-why { font: 11px var(--mono); color: var(--muted); text-align: center; }
+
+  .notes { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+  .notes li { margin: 3px 0; } .notes b { color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <div class="demo">
+    <b>Mockup controls</b>
+    <label><input id="opt-cards" type="checkbox"> Idea 8: main branches as side-by-side cards (off = stacked lanes trimmed to their tree)</label>
+    <span>Click a node to inspect it, hover to see its path, BUY to watch it install.</span>
+  </div>
+
+  <header class="hud">
+    <div class="credits"><span class="coin">₵</span><span class="big">21.26No</span><span class="rate">+34.73T/s</span></div>
+    <span></span>
+    <nav class="tabs">
+      <button class="tab">CHARACTER</button>
+      <button class="tab active">FIRMWARE<span class="badge" id="tab-badge">3</span></button>
+      <button class="tab auto">AUTOMATION<span class="badge">3</span></button>
+      <button class="tab">STATS</button>
+    </nav>
+  </header>
+
+  <div class="legend">
+    <span class="lg"><span class="sw" style="background:color-mix(in srgb,#39ff88 30%,#0d1222);border:1px solid #39ff88;box-shadow:0 0 6px #39ff88"></span>installed</span>
+    <span class="lg"><span class="sw" style="border:2px solid var(--afford);box-shadow:0 0 6px var(--afford)"></span>affordable now</span>
+    <span class="lg"><span class="sw" style="border:1px solid #39ff88"></span>available, need more points</span>
+    <span class="lg"><span class="sw" style="background:#090c16;border:1px solid #1c2440"></span>locked: install the firmware before it</span>
+    <span class="lg"><span class="sw" style="border:1px dashed #3a4466;background:repeating-linear-gradient(0deg,#0b0f1a 0 2px,#141b30 2px 3px)"></span>encrypted</span>
+    <span class="hint">??? encrypted firmware unlocks as you play further</span>
+  </div>
+
+  <div class="layout">
+    <div class="col">
+      <section class="panel" style="--accent: var(--info)">
+        <h3 class="ph">FIRMWARE <span class="sub">this life</span>
+          <span class="points" id="pts-main" style="--pc: var(--afford)"><span class="n">3</span><span class="l">FIRMWARE POINTS</span></span></h3>
+        <div class="trees" id="trees"></div>
+      </section>
+
+      <section class="panel persist">
+        <h3 class="ph">SLEEVE FIRMWARE <span class="tag">PERSISTENT</span><span class="sub">kept across re-sleeves</span>
+          <span class="points" id="pts-sleeve" style="--pc: var(--run)"><span class="n">0</span><span class="l">SLEEVE FIRMWARE POINTS</span></span></h3>
+        <div id="sleeve-tree"></div>
+      </section>
+    </div>
+
+    <aside class="panel inspector" id="inspector"></aside>
+  </div>
+
+  <div class="notes"><ul>
+    <li><b>Rename:</b> Skills are now <b>Firmware</b> and Sleeve skills <b>Sleeve Firmware</b>; owning one is "installed".</li>
+    <li><b>1 points:</b> large readouts in each panel header (gold for skill points, magenta for sleeve skill points); the tab badge matches.</li>
+    <li><b>2 inspector:</b> a sticky pane with the full effect text, cost, status, what the skill requires and what it unlocks next, and BUY. Hovering previews a node; clicking pins it.</li>
+    <li><b>3 states:</b> owned (filled), affordable now (gold ring, slow pulse, cost badge), available but too expensive (outline, muted cost), locked (dark with a padlock), encrypted (static).</li>
+    <li><b>4 branch headers:</b> name, purpose line, owned/total with segments. <i>Purpose lines are placeholders for you to write.</i></li>
+    <li><b>5 legend</b> replaces the floating "???" hint. <b>6 path:</b> hover lights the path from the root and outlines what it unlocks next.</li>
+    <li><b>7 sleeve skills:</b> the same lane and node style as the main tree, a labelled SLEEVE UP! trunk, and a PERSISTENT frame.</li>
+    <li><b>8</b> is the layout switch above. <b>9 install:</b> BUY sweeps a fill through the node and runs a pulse down the edges to its children.</li>
+    <li>Names and effect texts are the real content; owned/encrypted states are made up from the screenshot. Glyphs stand in for the pixel icons.</li>
+  </ul></div>
+</main>
+
+<script>
+// ---------- data (real names and descriptions; states invented) ----------
+const D = {
+  'Overclocked Cortex': 'Raises interface speed by 25%.', 'Bandwidth Leech': 'Raises node payout by 50%.', 'Muscle Memory': 'Raises Hacking Proficiency by 25%.',
+  'Quick Study': 'Every action level needs 1% less XP.', 'Parallel Threads': 'Multiplies the base interface speed by 1 + ln(nodes) / 500.',
+  'Neural Accelerant': 'Raises interface speed by 5% for each distinct rarity of augment applied on any action.',
+  'Signal Amplifier': 'Every critical success has a 5% chance to bring one extra critical success.', 'Overdrive Spike': 'Doubles the reward of every critical success.',
+  'Fiber Tap': 'Each completed Push malware run has a 25% chance to also pay one full Grow network reward. It cannot be critical.',
+  'Backbone Parasite': 'Multiplies the nodes each Grow network run pays, by a rising but ever flatter amount of its action level.',
+  'Cold Trail': 'Heat cools down 25% faster.', 'Obfuscation': 'Halves the heat chance Overclock raises on Push malware.',
+  'Purge Protocol': 'Each heat cooldown cycle removes 1 more heat for every sleeve level of Build Legend.', 'Scorched Earth': 'Each Burn lead takes 1 more point of heat away, after its percentage.',
+  'Silver Tongue': 'Burn leads drop 50% more often.', 'Quiet Hours': 'While nothing is running, heat cools 5 times as fast.',
+  'Undercover': 'Quiet Hours also counts while Grow network runs without Overclock.', 'Blackout': 'The heat tax takes at most half of your node income, however hot you are.',
+  'Nose for Secrets': 'Doubles the chance that a run drops a Kompromat file.', 'Exploit Kompromat': 'Each rare Kompromat file you hold raises node payout by 1%.',
+  'Back Channel Deals': 'Give up common Kompromat files for Moles. Each Mole is one point of heat that cools down 200% faster.',
+  'Deep Files': 'Adds 0.1% to the drop chance of rare Kompromat files, which cannot drop without it.', 'Sealed Archives': 'Adds 0.1% to the drop chance of legendary Kompromat files.',
+  'Black Ledger': 'Adds 0.1% to the drop chance of crisis Kompromat files.', 'Rarity refinement': 'Increases the rarity of Kompromat drops based on Hacking Proficiency.',
+  'Dossier': 'Each legendary Kompromat file you hold raises node payout by 5%.', 'Tiered Informants': 'Back channel takes files of every rarity; rarer files pay more Moles.',
+  'Double Agent': 'Back channel pays twice the Moles for every rarity.', 'Deep Cover': 'Moles stay with you instead of being spent.',
+  'Sleeve Up!': 'The start of every path of sleeve skills. Buying sleeve skills opens new purchases in every sleeve.',
+  'Reflex Archive': 'The Automation tab survives a re-sleeve: the automation core, its skills and their settings stay as they are.',
+  'Daemon Persistence': '(effect text from content)', 'Residual Proficiency': 'A new life starts with some of the Hacking Proficiency of the last one.',
+  'Residual Firewall': 'A new life starts with some of the ICE Rating of the last one.',
+  'Sleeve Euphoria': 'Faster conditioning can be bought 5 more times, taking sleeve XP down to a batch of only 5 runs.', 'Deep Conditioning': '(effect text from content)',
+  'Clearance Escalation': 'Allows one more Access upgrade, so a sixth access level can be reached.', 'Overdrive Cap': 'Several Focus slots can sit on the same action.',
+  'Synthetic Sleeves': 'Run extra sleeves beside this one, copied from your last sleeve-run.', 'Cloning Vats': 'Every re-sleeve gives two synthetic sleeves instead of one.',
+  'Hive Interface': 'The more synthetic sleeves you have, the faster every action runs.', 'Neural Mirror': 'An action below your best synthetic sleeve\'s level earns 25% more action XP.',
+  'Perfect Copies': 'Every synthetic sleeve earns at least what your own network earns right now.',
+  'Incorporation': 'Founds a corporation: opens the Corporation tab.', 'Synthetic Workers': 'The more synthetic sleeves you have, the faster corporation actions run.',
+  'Synthetic Procurement': 'Unlocks buying new synthetic sleeves on the Corporation tab.',
+};
+// [name, parent, glyph]
+const MAIN = [
+  { id: 'cybernetics', name: 'CYBERNETICS', purpose: 'speed, payout and crits', skills: [
+    ['Overclocked Cortex', null, '◉'], ['Bandwidth Leech', 'Overclocked Cortex', '≋'], ['Signal Amplifier', 'Bandwidth Leech', '⌁'], ['Overdrive Spike', 'Signal Amplifier', 'ϟ'],
+    ['Fiber Tap', 'Bandwidth Leech', '⊤'], ['Backbone Parasite', 'Fiber Tap', '§'], ['Muscle Memory', 'Overclocked Cortex', '⊶'], ['Quick Study', 'Muscle Memory', '✺'],
+    ['Parallel Threads', 'Overclocked Cortex', '☰'], ['Neural Accelerant', 'Parallel Threads', '»'] ] },
+  { id: 'anonymity', name: 'ANONYMITY', purpose: 'cool heat and stay hidden', skills: [
+    ['Cold Trail', null, '❄'], ['Obfuscation', 'Cold Trail', '▦'], ['Purge Protocol', 'Obfuscation', '♨'], ['Blackout', 'Purge Protocol', '◐'],
+    ['Scorched Earth', 'Cold Trail', '♆'], ['Silver Tongue', 'Scorched Earth', '☊'], ['Quiet Hours', 'Cold Trail', '☾'], ['Undercover', 'Quiet Hours', '◭'] ] },
+  { id: 'leverage', name: 'LEVERAGE', purpose: 'kompromat, moles and drops', skills: [
+    ['Nose for Secrets', null, '⌕'], ['Exploit Kompromat', 'Nose for Secrets', '⚿'], ['Dossier', 'Exploit Kompromat', '▤'],
+    ['Back Channel Deals', 'Nose for Secrets', '☏'], ['Tiered Informants', 'Back Channel Deals', '⩚'], ['Double Agent', 'Tiered Informants', '☯'], ['Deep Cover', 'Double Agent', '☠'],
+    ['Deep Files', 'Nose for Secrets', '▥'], ['Sealed Archives', 'Deep Files', '⊡'], ['Black Ledger', 'Sealed Archives', '▣'], ['Rarity refinement', 'Black Ledger', '◆'] ] },
+];
+const SLEEVE = { trunk: ['Sleeve Up!', '⇪'], lanes: [
+  { id: 'retention', name: 'RETENTION', purpose: 'carry progress into the next life', skills: [['Reflex Archive', '⚡'], ['Daemon Persistence', '♜'], ['Residual Proficiency', '⁂'], ['Residual Firewall', '▩']] },
+  { id: 'reach', name: 'REACH', purpose: 'raise caps and access', skills: [['Sleeve Euphoria', '☀'], ['Deep Conditioning', '⧗'], ['Clearance Escalation', '⎘'], ['Overdrive Cap', '▟']] },
+  { id: 'synthetics', name: 'SYNTHETICS', purpose: 'synthetic sleeves', skills: [['Synthetic Sleeves', '⚇'], ['Cloning Vats', '⛫'], ['Hive Interface', '✷'], ['Neural Mirror', '◑'], ['Perfect Copies', '⚉']] },
+  { id: 'corporation', name: 'CORPORATION', purpose: 'found and grow a corporation', skills: [['Incorporation', '▦'], ['Synthetic Workers', '⛟'], ['Synthetic Procurement', '⛍']] },
+] };
+
+const S = {
+  pts: { main: 3, sleeve: 0 },
+  owned: new Set(['Overclocked Cortex', 'Bandwidth Leech', 'Muscle Memory', 'Quick Study', 'Parallel Threads', 'Cold Trail', 'Nose for Secrets',
+    'Sleeve Up!', 'Reflex Archive', 'Sleeve Euphoria', 'Deep Conditioning', 'Synthetic Sleeves', 'Cloning Vats', 'Hive Interface', 'Neural Mirror', 'Perfect Copies', 'Incorporation']),
+  enc: new Set(['Overdrive Spike', 'Backbone Parasite', 'Blackout', 'Undercover', 'Rarity refinement', 'Deep Cover', 'Residual Firewall', 'Synthetic Procurement']),
+  sel: 'Signal Amplifier', hover: null, cards: false, installing: null,
+};
+
+// ---------- graph ----------
+const NODES = {}; // name -> {name, parent, glyph, branch, pool, children}
+for (const b of MAIN) for (const [n, p, g] of b.skills) NODES[n] = { name: n, parent: p, glyph: g, branch: b, pool: 'main', children: [] };
+NODES['Sleeve Up!'] = { name: 'Sleeve Up!', parent: null, glyph: SLEEVE.trunk[1], branch: { id: 'sleeveUp', name: 'SLEEVE UP!' }, pool: 'sleeve', children: [] };
+for (const l of SLEEVE.lanes) l.skills.forEach(([n, g], i) => { NODES[n] = { name: n, parent: i ? l.skills[i - 1][0] : 'Sleeve Up!', glyph: g, branch: l, pool: 'sleeve', children: [] }; });
+for (const n of Object.values(NODES)) if (n.parent) NODES[n.parent].children.push(n.name);
+
+const COST = 1;
+function state(name) {
+  if (S.owned.has(name)) return 'owned';
+  if (S.enc.has(name)) return 'enc';
+  const n = NODES[name];
+  if (n.parent && !S.owned.has(n.parent)) return 'locked';
+  return S.pts[n.pool] >= COST ? 'afford' : 'avail';
+}
+const pathOf = (name) => { const p = []; for (let n = NODES[name]; n; n = n.parent ? NODES[n.parent] : null) p.push(n.name); return p; };
+
+// ---------- layout: depth = column, leaves get consecutive rows, a parent sits between its first and last child ----------
+function layout(rootName) {
+  const pos = {}; let row = 0;
+  (function walk(name, depth) {
+    const kids = NODES[name].children;
+    if (!kids.length) pos[name] = { c: depth, r: row++ };
+    else { kids.forEach((k) => walk(k, depth + 1)); pos[name] = { c: depth, r: (pos[kids[0]].r + pos[kids[kids.length - 1]].r) / 2 }; }
+  })(rootName, 0);
+  return { pos, rows: row, cols: Math.max(...Object.values(pos).map((p) => p.c)) + 1 };
+}
+
+function treeHtml(names, pos, geo, laneOf) {
+  const X = (p) => p.c * geo.cx + geo.pad, Y = (p) => p.r * geo.cy + geo.top;
+  const path = new Set(pathOf(S.hover || S.sel));
+  const focus = S.hover || S.sel;
+  let edges = '', nodes = '';
+  for (const name of names) {
+    const n = NODES[name], p = pos[name];
+    if (n.parent && pos[n.parent]) {
+      const a = pos[n.parent], x1 = X(a) + geo.ns, y1 = Y(a) + geo.ns / 2, x2 = X(p), y2 = Y(p) + geo.ns / 2, mx = x1 + (x2 - x1) / 2;
+      const cls = path.has(name) && path.has(n.parent) ? 'path' : S.owned.has(n.parent) ? 'lit' : '';
+      const flow = S.installing === n.parent ? ' flow' : '';
+      edges += `<path class="edge ${cls}${flow}" style="--lane:${laneOf(n)}" d="M${x1} ${y1} H${mx} V${y2} H${x2}"/>`;
+    }
+    const st = state(name);
+    const cls = [st, name === S.sel ? 'sel' : '', path.has(name) && name !== focus ? 'onpath' : '', NODES[focus]?.children.includes(name) ? 'next' : '', S.installing === name ? 'install' : ''].join(' ');
+    nodes += `<button class="node ${cls}" data-n="${name}" style="--lane:${laneOf(n)};left:${X(p)}px;top:${Y(p)}px" title="${st === 'enc' ? '???' : name}">
+      <span class="g">${st === 'enc' ? '???' : n.glyph}</span>${st === 'afford' || st === 'avail' ? `<span class="cost">${COST}</span>` : ''}</button>`;
+  }
+  return { edges, nodes };
+}
+
+// ---------- render ----------
+const $ = (id) => document.getElementById(id);
+function seg(names) { const k = names.filter((n) => S.owned.has(n)).length; return `<span class="seg">${names.map((_, i) => `<i class="${i < k ? 'on' : ''}"></i>`).join('')}</span>`; }
+const laneVar = (n) => `var(--b-${n.branch.id})`;
+
+function renderMain() {
+  const geo = S.cards ? { ns: 38, cx: 54, cy: 50, pad: 4, top: 6 } : { ns: 42, cx: 66, cy: 56, pad: 6, top: 6 };
+  $('trees').className = `trees ${S.cards ? 'cards' : ''}`;
+  $('trees').innerHTML = MAIN.map((b) => {
+    const names = b.skills.map((s) => s[0]);
+    const L = layout(b.skills[0][0]);
+    const t = treeHtml(names, L.pos, geo, laneVar);
+    const w = (L.cols - 1) * geo.cx + geo.ns + geo.pad * 2 + 6, h = (L.rows - 1) * geo.cy + geo.ns + geo.top + 10;
+    const owned = names.filter((n) => S.owned.has(n)).length;
+    return `<div class="branch" style="--lane:var(--b-${b.id})">
+      <div class="bh"><span class="bn">${b.name}</span><span class="bp">${b.purpose}</span><span class="bc">${owned}/${names.length}</span>${seg(names)}</div>
+      <div class="tree" style="width:${w}px;height:${h}px;--ns:${geo.ns}px"><svg class="edges" width="${w}" height="${h}">${t.edges}</svg>${t.nodes}</div></div>`;
+  }).join('');
+}
+
+function renderSleeve() {
+  const geo = { ns: 40, cx: 76, cy: 62, pad: 14, top: 20 };
+  const L = layout('Sleeve Up!');
+  const names = Object.keys(L.pos);
+  const t = treeHtml(names, L.pos, geo, laneVar);
+  const w = (L.cols - 1) * geo.cx + geo.ns + geo.pad * 2 + 40, h = (L.rows - 1) * geo.cy + geo.ns + geo.top + 10;
+  const bands = SLEEVE.lanes.map((l) => {
+    const r = L.pos[l.skills[0][0]].r, top = r * geo.cy + 2;
+    const ln = l.skills.map((s) => s[0]);
+    return `<div class="band" style="--lane:var(--b-${l.id});top:${top}px;height:${geo.cy - 4}px;left:${geo.cx - 6}px">
+      <span class="bl">${l.name}<span class="bp">${l.purpose}</span><span class="bp">${ln.filter((n) => S.owned.has(n)).length}/${ln.length}</span>${seg(ln)}</span></div>`;
+  }).join('');
+  const tp = L.pos['Sleeve Up!'];
+  $('sleeve-tree').innerHTML = `<div class="tree" style="width:100%;min-width:${w}px;height:${h + 14}px;--ns:${geo.ns}px">
+    <div class="bands">${bands}</div><svg class="edges" width="${w}" height="${h}">${t.edges}</svg>${t.nodes}
+    <span class="tlabel" style="--lane:var(--b-sleeveUp);left:${tp.c * geo.cx + geo.pad + geo.ns / 2}px;top:${tp.r * geo.cy + geo.top + geo.ns + 8}px">SLEEVE UP!</span></div>`;
+}
+
+function renderInspector() {
+  const name = S.hover || S.sel, n = NODES[name], st = state(name);
+  const enc = st === 'enc';
+  const label = { owned: 'INSTALLED', afford: 'AFFORDABLE NOW', avail: 'NEED MORE POINTS', locked: 'LOCKED', enc: 'ENCRYPTED' }[st];
+  const pool = n.pool === 'main' ? 'FIRMWARE POINT' : 'SLEEVE FIRMWARE POINT';
+  const nm = (x) => (S.enc.has(x) && !S.owned.has(x) ? '???' : x);
+  const el = $('inspector');
+  el.style.setProperty('--lane', laneVar(n));
+  el.innerHTML = `
+    <h3 class="ph">INSPECTOR <span class="sub">${S.hover ? 'preview' : 'pinned'}</span></h3>
+    <div class="ins-top"><div class="ins-ico">${enc ? '?' : n.glyph}</div>
+      <div><div class="ins-branch">${n.branch.name}${n.pool === 'sleeve' ? ' · PERSISTENT' : ''}</div><div class="ins-name">${enc ? '???' : name}</div>
+      <span class="pill s-${st}">${label}</span></div></div>
+    <div class="ins-effect">${enc ? 'Encrypted. This firmware unlocks as you play further.' : D[name]}</div>
+    ${n.parent ? `<div><div class="ins-k">REQUIRES</div><div class="ins-list"><span class="${S.owned.has(n.parent) ? 'ok' : ''}">${S.owned.has(n.parent) ? '✓ ' : ''}${nm(n.parent)}</span></div></div>` : ''}
+    ${n.children.length ? `<div><div class="ins-k">UNLOCKS NEXT</div><div class="ins-list">${n.children.map((c) => `<span class="${S.enc.has(c) && !S.owned.has(c) ? 'enc' : ''}">${nm(c)}</span>`).join('')}</div></div>` : ''}
+    ${st === 'owned' || enc ? '' : `<div class="ins-cost"><span>COST</span><span><b>${COST}</b> ${pool}</span></div>
+      <button class="buy ${st === 'afford' ? 'ready' : ''}" data-buy="${name}" ${st === 'afford' ? '' : 'disabled'}>INSTALL</button>
+      <div class="ins-why">${st === 'afford' ? `you have ${S.pts[n.pool]}` : st === 'avail' ? `you have ${S.pts[n.pool]}: earn more ${pool.toLowerCase()}s` : `install ${nm(n.parent)} first`}</div>`}`;
+}
+
+function renderPoints() {
+  for (const [id, k] of [['pts-main', 'main'], ['pts-sleeve', 'sleeve']]) {
+    $(id).querySelector('.n').textContent = S.pts[k];
+    $(id).classList.toggle('zero', S.pts[k] === 0);
+  }
+  $('tab-badge').textContent = S.pts.main; $('tab-badge').hidden = S.pts.main === 0;
+}
+function render() { renderMain(); renderSleeve(); renderInspector(); renderPoints(); }
+
+// ---------- events ----------
+document.addEventListener('click', (e) => {
+  const buy = e.target.closest('[data-buy]');
+  if (buy) {
+    const name = buy.dataset.buy, n = NODES[name];
+    if (state(name) !== 'afford') return;
+    S.pts[n.pool] -= COST; S.owned.add(name); S.installing = name; S.sel = name; S.hover = null;
+    render();
+    setTimeout(() => { if (S.installing === name) { S.installing = null; render(); } }, 1600);
+    return;
+  }
+  const node = e.target.closest('.node');
+  if (node) { S.sel = node.dataset.n; S.hover = null; render(); }
+});
+document.addEventListener('mouseover', (e) => {
+  const node = e.target.closest('.node');
+  const h = node ? node.dataset.n : null;
+  if (h !== S.hover && !(h === null && e.target.closest('.inspector'))) { S.hover = h; renderMain(); renderSleeve(); renderInspector(); }
+});
+$('opt-cards').addEventListener('change', (e) => { S.cards = e.target.checked; render(); });
+if (location.hash === '#cards') { S.cards = true; $('opt-cards').checked = true; }
+render();
+</script>
+</body>
+</html>

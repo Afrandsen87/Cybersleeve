@@ -78,9 +78,12 @@ function sleeveRows(
       heat: formatPlain(stats.heat),
       perPointPercent: formatPlain(sleeve.heatTaxPerPoint * 100),
       reductionPercent: formatPlain(stats.heatReduction * 100),
-      taxPercent: formatPlain(heatTaxShare(stats.heat, stats.heatReduction, sleeve.heatTaxPerPoint, stats.heatTaxCap) * 100),
+      taxPercent: formatPlain(
+        heatTaxShare(stats.heat, stats.heatReduction, sleeve.heatTaxPerPoint, stats.heatTaxCap, stats.heatTaxScale) * 100,
+      ),
       stopsAt,
       taxCapPercent: capped ? formatPlain(stats.heatTaxCap * 100) : null,
+      taxScale: stats.heatTaxScale === 1 ? null : formatPlain(stats.heatTaxScale, 4),
       amount: formatPlain(stats.heatCooldownAmount),
       cycleSeconds: formatPlain(cycleSeconds),
       moles:
@@ -216,7 +219,7 @@ export function sleeveView(
   text: UiText,
   tracker?: RevealTracker,
 ): SleeveView {
-  const stopPoint = heatStopPoint(stats.heatReduction, config.sleeve.heatTaxPerPoint, stats.heatTaxCap);
+  const stopPoint = heatStopPoint(stats.heatReduction, config.sleeve.heatTaxPerPoint, stats.heatTaxCap, stats.heatTaxScale);
   const { groups, stats: rows } = sleeveGroups(sleeveRows(stats, state, config, text, stopPoint, tracker), text);
   const heatHidden = rows.find((r) => r.id === 'heat')?.hidden ?? true;
   return {

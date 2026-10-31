@@ -43,6 +43,8 @@ export interface SkillTreeInput {
   readonly tracker?: RevealTracker;
   /** Require owned parents for natural readability (sleeve skills only). */
   readonly parentsMustBeOwned?: boolean;
+  /** Automation context: reveal-only concept gate; never a purchase requirement or saved-skill dependency. */
+  readonly conceptKnown?: (skill: BuyableDefinition) => boolean;
 }
 
 /**
@@ -69,6 +71,7 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
     const natural =
       input.open &&
       b !== undefined &&
+      (input.conceptKnown?.(b) ?? true) &&
       !input.branchMasked?.(laneOf(b)) &&
       (b.requires ?? []).every((r) => owned(r) > 0) &&
       (b.parents ?? []).every((p) => (input.parentsMustBeOwned ? owned(p) > 0 : readable(p)));

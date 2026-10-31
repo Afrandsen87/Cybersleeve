@@ -21,10 +21,10 @@
   line-height: 42px;
 }
 .upgrade.owned {
-  border-color: var(--teal);
+  border-color: var(--bright-blue);
   color: var(--teal);
 }
-/* A purchase with no more copies to buy (a one-off that was bought, or a repeatable at its cap): golden border instead of the repeatable teal. */
+/* A purchase with no more copies to buy (a one-off that was bought, or a repeatable at its cap): golden border instead of the repeatable blue. */
 .upgrade.maxed {
   border-color: var(--gold);
   color: var(--gold);

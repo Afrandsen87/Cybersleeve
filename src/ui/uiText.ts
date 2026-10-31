@@ -1,3 +1,4 @@
+import { autoBurnText } from './autoBurnText';
 import { formatPlain } from '../numbers';
 
 import { hudText } from './hudText';
@@ -58,8 +59,7 @@ export const uiText: UiText = {
     features: {
       autoBurn: {
         name: 'Auto Burn',
-        description:
-          'Burns leads for you from the Inventory and cools or restarts your heat-making Overclocks and actions, as its skills allow.',
+        description: 'A daemon that burns leads to keep your heat in check, and stops or restarts heat-making work.',
       },
       autosale: {
         name: 'Kompromat autosale',
@@ -67,24 +67,13 @@ export const uiText: UiText = {
       },
       dispersal: {
         name: 'Augment dispersal',
-        description: 'Applies the Augment schematics you hold to the actions by the shares you set.',
+        description: 'Applies permitted Augment schematics evenly to the actions you select.',
       },
     },
-    autoBurn: {
-      hint: 'The Burn lead toggle is in the Inventory.',
-      switches: {
-        offOverclocks: 'Toggle on, out of leads: switch off Overclocks that make heat',
-        offActions: 'Toggle on, out of leads: switch off Auto-run of actions that make heat',
-        onActions: 'Heat low, leads available: switch on the ticked Auto-runs',
-        onOverclocks: 'Heat low, leads available: switch on the ticked Overclocks',
-      },
-      holdAt: (heat) => `Hold at lower threshold (${heat} heat)`,
-      upperAt: (heat) => `Switch on at upper threshold (${heat} heat)`,
-      lower: 'Lower threshold (heat)',
-      upper: 'Upper threshold (heat)',
-      reserve: 'Burn leads to always keep',
-    },
-    dispersalShare: 'Share (%)',
+    autoBurn: autoBurnText,
+    dispersalCount: (selected, slots) => `Actions selected: ${selected} / ${slots}`,
+    dispersalRarities: (rarities) => `Disperses: ${rarities.join(', ')}`,
+    autoBackchannel: (rarity) => `Auto Back Channel: ${rarity}`,
   },
   skills: {
     points: (points) => `Skill points: ${points}`,
@@ -196,8 +185,7 @@ export const uiText: UiText = {
     idle: 'Re-sleeve',
     armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a sleeve skill point.',
     cancel: 'Cancel',
-    needLevels: (kind, held, needed) =>
-      `Needs ${needed} ${kind === 'actionLevels' ? 'action' : 'sleeve'} levels in total across all actions to re-sleeve. You have ${held}.`,
+    needLevels: (_kind, held, needed) => `Needs ${needed} sleeve levels in total across all actions to re-sleeve. You have ${held}.`,
   },
   notices: {
     otherTab: 'This game was opened in another tab, which now owns the save. Reload this page to play here instead.',

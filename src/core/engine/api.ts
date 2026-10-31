@@ -84,6 +84,8 @@ export interface ActionQueries {
 export interface LevelQueries {
   /** Level of an action. */
   actionLevel(id: ActionId): number;
+  /** Calculation level including bonuses. Called by: effect tips. Calls: engine stats. */
+  effectiveActionLevel(id: ActionId): number;
   /** XP gathered inside the action's current level (the running total resets, as far as the player sees, at each level-up). */
   actionXpIntoLevel(id: ActionId): BigNum;
   /** XP that leaving the action's current level costs on its own. */

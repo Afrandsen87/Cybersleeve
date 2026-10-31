@@ -6,7 +6,9 @@
  * @remarks
  * Part of the view types; `viewTypes.ts` re-exports them, so import from there.
  */
-import type { AutoBurnSwitch, AutomationFeature, TAB_IDS } from '../../core';
+import type { AutoBurnView } from './autoBurnViewTypes';
+
+import type { AutomationFeature, TAB_IDS } from '../../core';
 import type { SkillLaneView } from './skillTreeTypes';
 
 /** One tab at the top. */
@@ -34,7 +36,8 @@ export interface AutomationFeatureView {
 /** A checklist of the things a resume switch turns on: shown once the switch's skill is owned. */
 export interface ResumeChecklistView {
   readonly visible: boolean;
-  readonly items: readonly { readonly id: string; readonly name: string; readonly ticked: boolean }[];
+  /** One per reachable heat-making item; `locked` while the player does not own it (shown, not tickable). */
+  readonly items: readonly { readonly id: string; readonly name: string; readonly ticked: boolean; readonly locked: boolean }[];
 }
 
 /** Display data of the Automation tab. */
@@ -44,36 +47,23 @@ export interface AutomationView {
   readonly points: number;
   readonly pointsText: string;
   readonly features: readonly AutomationFeatureView[];
-  /**
-   * Auto Burn: only what the owned skills of its lane add is shown (`visible`): the switches, the two thresholds and the reserve. The Burn
-   * lead toggle itself is in the Inventory; `hint` says so.
-   */
-  readonly autoBurn: {
-    readonly hint: string;
-    readonly switches: readonly {
-      readonly name: AutoBurnSwitch;
-      readonly label: string;
-      readonly on: boolean;
-      readonly visible: boolean;
-    }[];
-    readonly thresholds: {
-      readonly visible: boolean;
-      readonly lower: number;
-      readonly upper: number;
-      readonly lowerLabel: string;
-      readonly upperLabel: string;
-    };
-    readonly reserve: { readonly visible: boolean; readonly value: number; readonly label: string };
-    /** The resume checklists under the two resume switches: the owned heat-making Overclocks and Auto-runs (shown with their switch). */
-    readonly resumeOverclocks: ResumeChecklistView;
-    readonly resumeAutoRuns: ResumeChecklistView;
-  };
+  readonly autoBurn: AutoBurnView;
   /** Autosale: every rarity with its switch. */
-  readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean }[];
-  /** Augment dispersal: every action with its share in percent. */
-  readonly actions: readonly { readonly id: string; readonly name: string; readonly percent: number }[];
-  /** The label of the share inputs. */
-  readonly shareLabel: string;
+  readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean; readonly visible: boolean }[];
+  /** Automation context: Back Channel controls hidden until their rarity skill is owned. */
+  readonly backchannelRarities: readonly { readonly id: string; readonly name: string; readonly on: boolean; readonly visible: boolean }[];
+  /** Automation context: only unlocked actions appear, and only selected actions remain enabled at capacity. */
+  readonly actions: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly selected: boolean;
+    readonly visible: boolean;
+    readonly disabled: boolean;
+  }[];
+  /** Automation context: selection count, shown only after dispersal unlocks. */
+  readonly dispersalCount: string;
+  /** Automation context: permitted schematic rarities already known from inventory; empty before any is known. */
+  readonly dispersalRarities: string;
 }
 
 /** The sleeve skills: a tree whose nodes need other nodes bought first. */

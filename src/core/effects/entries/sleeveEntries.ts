@@ -28,6 +28,8 @@ type Kind =
   | 'iceRatingFromActionLevel'
   | 'hardenedPayloadFromCrits'
   | 'interfaceSpeedPerLnNodes'
+  | 'runIceChance'
+  | 'levelBonusFromSleeveSkills'
   | 'levelBonusFromSleeveLevel'
   | 'sleeveXpReduction';
 
@@ -129,6 +131,20 @@ export const SLEEVE_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<Bu
     },
     sleeve: (acc, e, { owned, state }) => {
       acc.interfaceNetworkFactor *= (1 + e.perLn * naturalLog(state.sleeve.network)) ** owned;
+    },
+  },
+  runIceChance: {
+    traits: sleeveWide,
+    validate: (e, { where, actionIds, errors }) => {
+      if (!actionIds.has(e.targetActionId)) errors.push(where + ': unknown run ICE target');
+      if (!(Number.isFinite(e.chance) && e.chance >= 0 && e.chance <= 1)) errors.push(where + ': run ICE chance must be in [0, 1]');
+      if (!(Number.isFinite(e.perCopy) && e.perCopy >= 0)) errors.push(where + ': run ICE perCopy must be >= 0');
+    },
+  },
+  levelBonusFromSleeveSkills: {
+    traits: sleeveWide,
+    validate: (e, { where, actionIds, errors }) => {
+      if (!actionIds.has(e.targetActionId)) errors.push(where + ': unknown level bonus target');
     },
   },
   levelBonusFromSleeveLevel: {

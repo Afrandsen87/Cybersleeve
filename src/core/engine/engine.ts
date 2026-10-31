@@ -516,7 +516,12 @@ export class GameEngine implements GameQueries, GameCommands {
 
   // ---- queries about levels -------------------------------------------------------------------------------------
 
-  /** Level of an action. @throws Error if unknown */
+  /** Actions/effects: calculation level. Called by: UI effect tips. Calls: DerivedStats. */
+  effectiveActionLevel(id: ActionId): number {
+    return this.stats.effectiveActionLevel(id);
+  }
+
+  /** Real progression level of an action. Called by: UI level labels. Calls: Progression. @throws Error if unknown */
   actionLevel(id: ActionId): number {
     return this.progression.actionLevel(this.state, id);
   }

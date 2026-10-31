@@ -19,8 +19,7 @@
           "onOverclocks": false
         }
       },
-      "autosale": {},
-      "dispersal": {}
+      "autosale": {}
     },
     "inventory": {
       "kompromat": { "common": 818, "uncommon": 124, "rare": 1 },

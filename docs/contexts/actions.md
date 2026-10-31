@@ -14,6 +14,12 @@ Code: `src/core/actions/` (see `docs/contexts/_folders.md`). Text below is moved
 - **`progression.ts` split:** it stays the facade (`Progression`, the level queries). `xpReductions.ts` (`XpReductions`) owns the four reduction buyable kinds and `runsPerSleeveXp`; level lookups it needs are passed in. `sleeveXp.ts` owns `countRunsTowardSleeveXp` and `wholeCount`. `sleeveLevels.ts` (`SleeveLevels`) owns the sleeve-level reads (the Sleeve levels gate `sleeveXpOpen`, level, progress, curve); `Progression` keeps one-line delegates with the same names.
 - Tests: `batchingPay.test.ts` (one long tick equals many short ones through the direct, `paysActionReward` and Overclock `alsoPays` paths, with a whole-unit reward that floors per run).
 
+Actions/effects/economy: actions/effectiveLevel.ts owns Progression.actionLevel + resolveLevelBonus. RunStats uses it for speed and level reward factors; ToggleStats for start-cost reduction; DerivedStats injects it into sleeve effects (ICE and critical hardening) and network growth. UI growth tips query effectiveActionLevel. XP/progression, Neural Mirror's XP catch-up comparison, skill-point totals, re-sleeve gates/history and real Lv labels retain real levels.
+
+Networked Sleeve appears in Network Exploitation, costs 10,000 nodes once and needs two distinct sleeve skills. It adds that shared count to Practice Hacking's effective level. Network Safety Protocols is on Grow network: 3,500 nodes initially, price x50, unlimited; needs one sleeve skill and Grow network's heat-making Overclock unlock before naming ICE. Each run earns 1 base ICE with chance min(1, 0.05 + 0.01 x (copies - 1)). runIce.ts reads owned effects and calls perRunEvents once per owned effect per batch; no copies means no draw. ICE multipliers apply later to the shared base.
+
+Fixed runBatch draw order: critical successes/covers, linked payouts during pay, run ICE, run heat, item drops; then chain, completion effects and XP. No per-run loop was added. Seeded partition equality is tested with one stochastic effect within exact sampling range; the existing binomial approximation guarantees distributional rather than pathwise equality for huge batches or interleaved random effects.
+
 ## Stats services (S6)
 
 `DerivedStats` (`engine/stats.ts`) is a facade; the actions-context questions are answered by `ToggleStats` (`toggleStats.ts`: auto-run, linked payouts, chain, start cost scale, siphon, level bonus, Overclock and Focus status) and `RunStats` (`runStats.ts`: speed, duration, reward multiplier, payout, XP). The other contexts own their own: `crits/critStats.ts`, `items/itemStats.ts`, `economy/incomeStats.ts`, `heat/heatStats.ts`. `engine/statsFacade.test.ts` checks the facade equals each service built on the same state.
@@ -54,14 +60,14 @@ Every completed run gives 1 action XP. Several runs in one batch apply every eff
 
 ### 4. Levels, XP and speed
 
-**Level rule.** Levels start at **0** with 0 XP. Every level costs its own full amount, and the XP counted inside a level starts again at 0 at each level-up. Leaving level 0 costs **10 XP**; each further level costs **2 times** the one before, for action levels (`progression.actionLevels`) and sleeve levels (`progression.sleeveLevels`) alike.
+**Level rule.** Levels start at **0** with 0 XP. Every level costs its own full amount, and the XP counted inside a level starts again at 0 at each level-up. Leaving level 0 costs **10 XP**; each further action level costs **1.2 times** the one before (`progression.actionLevels`); sleeve levels still cost **2 times** the one before (`progression.sleeveLevels`).
 
-| Level reached | Costs on its own | Total XP |
+| Action level reached | Costs on its own | Total XP |
 |---|---|---|
 | 1 | 10 | 10 |
-| 2 | 100 | 110 |
-| 3 | 1 000 | 1 110 |
-| L | 10^L | 10 (10^L − 1) / 9 |
+| 2 | 12 | 22 |
+| 3 | 14.4 | 36.4 |
+| L | 10 * 1.2^(L - 1) | 10 (1.2^L - 1) / 0.2 |
 
 The stored XP is the running total; the screen shows the part inside the current level against the full cost of that level. Formula: a track with `xp` has gained `floor(log_g(xp (g − 1) / first + 1))` levels.
 
@@ -70,7 +76,8 @@ The stored XP is the running total; the screen shows the part inside the current
 **Speed.**
 ```
 speed        = actionLevelFactor × sleeveLevelFactor (that action's) × interfaceSpeed × global.speedMultiplier
-levelFactor  = 1 + level × 0.05            (+5% of the base speed per level)
+actionLevelFactor = 1 + level * 0.01       (+1% of base speed per action level)
+sleeveLevelFactor = 1 + level * 0.05       (+5% of base speed per sleeve level)
 duration     = baseDuration / speed        (never below engine.minRunDurationMs)
 interfaceSpeed = (base + boosts) × networkFactor × hackingMultiplier × skill factor
 hackingMultiplier = 1 + scale × ((1 + proficiency)^exponent − 1) / exponent      (concave, no ceiling), up to proficiency = knee
@@ -98,7 +105,7 @@ The prices are the same for every action for now. The sleeve-wide **Overclock up
 | Auto-run | 100 credits | Restarts the action itself. |
 | Kompromat harvest | 500 credits | 5% of completed runs drop a Kompromat file, rarity 90 / 10 / 0 / 0 / 0 over common, uncommon, rare, legendary, crisis (see 10). |
 | Rarity refinement | A Leverage skill (1 skill point) after Black Ledger; needs the harvest. Not on the card. | Increases the rarity of Kompromat drops based on Hacking Proficiency (see 10 for how). Its tooltip states the rule: 5% of each rarity moves up per doubling of (1 + proficiency). |
-| Skill transfer | 1,000,000 credits | Adds Practice Hacking's **sleeve level** to Grow network's level, for speed only (not its XP). |
+| Skill transfer | 1,000,000 credits | Adds Practice Hacking's **sleeve level** to Grow network's level, for every derived level-based calculation (not its XP). |
 | Study methods | 1e15 credits | The XP every sleeve level of the **other** actions needs is divided by 1 + the sleeve level of Practice Hacking (level 1 halves it, level 3 quarters it); there is no ceiling. Practice Hacking itself is not affected. Not available (so not visible) before the first re-sleeve (`revealAfterResleeves: 1`; decided 2026-10-30 by the user). |
 
 ### Grow network
@@ -108,7 +115,7 @@ The prices are the same for every action for now. The sleeve-wide **Overclock up
 | Parallel nodes | 75 credits, ×100 per copy, unlimited | Doubles the nodes each run pays (a reward multiplier). |
 | Burn leads | 1,000 credits (placeholder); hidden until Push malware Overclock is owned (heat is not known before) | Each completed run has a 0.75% chance to drop a **Burn lead** (it has **no rarity**: one stack, named just "Burn lead"). Using a lead from the Inventory takes 5% of the current heat away (see 10). |
 | Industrial Espionage | 10,000 credits | Each completed run has a 0.5% chance to drop an Augment schematic (see 10). |
-| Self-replication | 1e10 credits | Nodes grow every second by (Grow network's plain action level / 1000)% of themselves, compounding, in closed form; the rate is read at the start of each slice. The tip shows the formula and the live numbers. |
+| Self-replication | 1e10 credits | Nodes grow every second by (Grow network's effective action level / 1000)% of themselves, compounding, in closed form; the rate is read at the start of each slice. The tip shows the formula and the live numbers. |
 | Network synergy | 1e35 credits | Multiplies the base interface speed by `1 + ln(nodes) / 100` (ASSUMPTION: the "+1" keeps it a bonus). |
 
 ### Push malware, Kill servers, Build Legend
@@ -121,7 +128,7 @@ The prices are the same for every action for now. The sleeve-wide **Overclock up
 | Ransomware (Push malware) | 5,000,000,000 credits | Every **critical success** of Push malware banks **+100% critical chance for Grow network's next run**; Grow network's next completed runs use the bank, one banked +100% per run (see 10). |
 | Hardened payload (Push malware) | 100,000 credits | Adds 10 to the base ICE Rating for every action level of Push malware. The ICE Rating boost multiplies the sum, so the order of buying does not matter. |
 | Auto-run (Kill servers) | 1e9 credits | Restarts the action itself. |
-| Decommission protocol (Kill servers) | 1e14 credits (placeholder) | Every **plain action level** of Kill servers lowers the share of the nodes a run takes by **1% of its current value**: the share is multiplied by `0.99 ^ level`. The first level is worth the most (1% of the start value), every further one 1% of the new, smaller value, so it works at any level and never reaches zero. While owned, a node cost that rounds down to 0 is raised to **1 node**, so the action stays startable with fewer than 100 nodes (with 0 nodes there is still nothing to give up). One time. |
+| Decommission protocol (Kill servers) | 1e14 credits (placeholder) | Every **effective action level** of Kill servers lowers the share of the nodes a run takes by **1% of its current value**: the share is multiplied by `0.99 ^ level`. The first level is worth the most (1% of the start value), every further one 1% of the new, smaller value, so it works at any level and never reaches zero. While owned, a node cost that rounds down to 0 is raised to **1 node**, so the action stays startable with fewer than 100 nodes (with 0 nodes there is still nothing to give up). One time. |
 | Forensic hardening (Kill servers) | 1e11 credits (placeholder); needs Critical success and Hardened payload | While owned, every critical success of Kill servers (several per run each count) adds **1** to the ICE Rating each Push malware level gives through Hardened payload: base ICE bonus = (10 + crits counted) x Push malware level, before the ICE Rating boost. Only critical successes after buying it count (per life). Its tooltip shows the count and the extra ICE Rating per level. |
 | Credit Siphon (Kill servers) | 1e12 credits (placeholder) | When a run starts, you are paid **10 seconds of what one node produces** for **every node the start cost destroys**: `nodes destroyed x credits per node per second now x 10`. The rate is the live per-node income, after the node payout multiplier and the heat tax (what one node delivers once the tax has taken its share). Paid at every start, also for each auto-run restart. One time. |
 | Cascade failure (Kill servers) | 1e10 credits (placeholder), ×100 per copy, unlimited | The standard reward multiplier: **doubles the ICE Rating each run pays** (it scales that reward only, like Parallel nodes and Malware payload). |
@@ -169,11 +176,11 @@ The prices are the same for every action for now. The sleeve-wide **Overclock up
 | `startingCredits` | Credits at the start and after re-sleeve |
 | `maxSleeveXpReduction` | The most that all sleeve-XP reduction buyables together can cut a sleeve level's XP requirement (fraction in [0, 1), default 0.99) |
 
-**Level rule** (`LevelRuleConfig`): every level costs its own full amount of XP, and the XP inside a level starts again at each level-up. Levels start at 0. Going from level 0 to 1 costs `firstLevelXp`; each further level costs `growthFactor` times the one before: leaving level n costs `firstLevelXp * growthFactor^n`. Defaults 10 and 10: 10, then 100, then 1000 more, ... so level 1 is reached at 10 XP in total, level 2 at 110, level 3 at 1110.
+**Level rule** (`LevelRuleConfig`): every level costs its own full amount of XP, and the XP inside a level starts again at each level-up. Levels start at 0. Going from level 0 to 1 costs `firstLevelXp`; each further level costs `growthFactor` times the one before: leaving level n costs `firstLevelXp * growthFactor^n`. Current content starts both tracks at 10 XP; action XP costs grow by 1.2 and sleeve XP costs by 2.
 
 ### `speed`
 `actionLevel` and `sleeveLevel` are `LevelScaling`:
-- `{ kind: 'linear', perLevel }` -> `1 + level * perLevel` (levels start at 0, so level 0 is worth exactly 1; the current game uses 0.05, i.e. +5% per level)
+- `{ kind: 'linear', perLevel }` -> `1 + level * perLevel` (levels start at 0, so level 0 is worth exactly 1; the current game uses 0.01 for action levels (+1%) and 0.05 for sleeve levels (+5%))
 - `{ kind: 'exponential', base }` -> `base ^ level`
 
 Speed = actionLevel factor x the action's own sleeveLevel factor x interface speed (`sleeve`) x `global.speedMultiplier`; run time = `baseDurationMs / speed`.
@@ -197,7 +204,7 @@ Speed = actionLevel factor x the action's own sleeveLevel factor x interface spe
 - **Focus** (changed 2026-10-26): an action unlocks its own Focus toggle for 1,000 credits (every action can). A focused action runs 25% faster (`GameConfig.focus.speedBonus`). Focus slots limit how many actions are focused at once: 1 is free (`focus.baseSlots`), and the sleeve **Focus upgrade** (1,000,000 credits, x100,000 per copy, at most 4, so every action can get a slot) adds one per copy. The upgrades cost 1000x what the old sleeve buyables did.
 
 *Group: Decided 2026-10-26 (by the user, Kill servers buyables): Kill servers gets five buyables and an Overclock. Prices (placeholders) climb in this order, each a few orders of magnitude above the one before: Cascade failure 1e10, Credit Siphon 1e12, Decommission protocol 1e14, Kill chain 1e17, Black box recorder 1e20. The Credit Siphon icon is the stylised credits chip with speed stripes behind it.*
-- **Decommission protocol** (effect `startCostReduction`): the share of the nodes a run takes is multiplied by `0.99 ^ plain action level` (the first level is the biggest step, it never reaches zero). While owned, a node cost that rounds down to 0 is raised to 1 node (my reading of "the cost never reaches 0"; the plain rule still needs 100 nodes without it).
+- **Decommission protocol** (effect `startCostReduction`): the share of the nodes a run takes is multiplied by `0.99 ^ effective action level` (the first level is the biggest step, it never reaches zero). While owned, a node cost that rounds down to 0 is raised to 1 node (my reading of "the cost never reaches 0"; the plain rule still needs 100 nodes without it).
 
 *Group: Decided 2026-10-26 (by the user, Kill servers buyables): Kill servers gets five buyables and an Overclock. Prices (placeholders) climb in this order, each a few orders of magnitude above the one before: Cascade failure 1e10, Credit Siphon 1e12, Decommission protocol 1e14, Kill chain 1e17, Black box recorder 1e20. The Credit Siphon icon is the stylised credits chip with speed stripes behind it.*
 - **Credit Siphon** (effect `creditSiphon`): when a run starts, 10 seconds of the live per-node income (after the payout multiplier and the heat tax) are paid for each node destroyed.
@@ -221,3 +228,4 @@ Speed = actionLevel factor x the action's own sleeveLevel factor x interface spe
 - **Overclock on Push malware only raises the heat chance (x4, 40% of runs); Obfuscation halves that chance (20%):** the 3x heat per run is gone. Obfuscation (effect `overclockHeatChanceFactor`, factor 0.5) halves the raised chance, never below the action's own. *Decided 2026-10-30 (by the user):* the factor went from 2 to 4 (so Obfuscation now leaves 20%, not the normal 10%). It replaced `overclockHeatFactor`.
 - **XP tooltips read narrow queries, they do not recompute:** `ActionQueries.xpPerRunBreakdown(id)` (`RunStats.xpBreakdown`: base, XP lever, Augment factor, Neural Mirror factor, critical XP multiplier, and the total that equals `xpPerRun`, which now uses the same factors), `LevelQueries.actionXpCurve(id)` / `sleeveXpCurve(id)` (`Progression`: first level cost, growth, Skill-shard delay, reduction; type `XpCurve` in `actions/xpCurve.ts`) and `sleeveXpGrant()`.
 - **`StartCosts.shareOf(id)`** is the one owner of the live share of the balance a start cost takes (`min(1, fractionOfBalance x startCostScale)`); `costOf` uses it and `ActionQueries.startShareOf` exposes it for the card text.
+

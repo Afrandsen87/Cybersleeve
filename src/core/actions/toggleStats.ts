@@ -4,6 +4,8 @@
  * What the per-action switches and run modifiers of an action are now: auto-run, Overclock (and its chain), Focus, start cost scale,
  * Credit Siphon, linked payouts and the level bonus. Read only.
  */
+import { effectiveActionLevel } from './effectiveLevel';
+import { sleeveSkillsOwned } from '../economy/sleeveSkills';
 import type { NumberFactory } from '../../numbers';
 import { resolveEffects, resolveLevelBonus, type SleeveStats } from '../effects/effects';
 import type { ActionId, GameConfig, GameState, PaysActionRule } from '../types';
@@ -67,7 +69,7 @@ export class ToggleStats implements ModeStatuses {
    */
   startCostScale(id: ActionId): { readonly factor: number; readonly atLeastOne: boolean } {
     const { startCostReductions } = resolveEffects(this.config.buyables, this.state, id, this.factory);
-    const level = this.progression.actionLevel(this.state, id);
+    const level = this.effectiveActionLevel(id);
     let factor = 1;
     for (const perLevel of startCostReductions) factor *= (1 - perLevel) ** level;
     const chain = this.activeOverclock(id)?.chain;
@@ -80,9 +82,20 @@ export class ToggleStats implements ModeStatuses {
     return resolveEffects(this.config.buyables, this.state, id, this.factory).siphonSeconds;
   }
 
-  /** Levels added to an action's level for speed by buyables; its XP progress is not affected. */
+  /** Actions/effects/economy: calculation level. Called by: RunStats, DerivedStats. Calls: effectiveActionLevel; no mutation. */
+  effectiveActionLevel(id: ActionId): number {
+    return effectiveActionLevel(this.progression.actionLevel(this.state, id), this.levelBonus(id));
+  }
+
+  /** Levels added to an action's level for calculations by buyables; its XP progress is not affected. */
   levelBonus(id: ActionId): number {
-    return resolveLevelBonus(this.config.buyables, this.state, id, (source) => this.progression.sleeveLevel(this.state, source));
+    return resolveLevelBonus(
+      this.config.buyables,
+      this.state,
+      id,
+      (source) => this.progression.sleeveLevel(this.state, source),
+      sleeveSkillsOwned(this.config.buyables, this.state),
+    );
   }
 
   /**

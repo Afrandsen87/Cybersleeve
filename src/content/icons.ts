@@ -8,6 +8,7 @@
  * @remarks
  * Names are placeholders like the rest of the content. The icons are display only: nothing in `core` knows about them.
  */
+import { PROTOCOL_GRIDS, PROTOCOL_ICONS } from './protocolIcons';
 import { AUTOMATION_ART_GRIDS, AUTOMATION_ART_ICONS } from './automationSkillIcons';
 import { RESLEEVE_ART_GRIDS, RESLEEVE_ART_ICONS } from './resleeveSkillArt';
 import { RESLEEVE_SKILL_ICONS } from './resleeveSkillIcons';
@@ -1104,6 +1105,7 @@ export const ICON_GRIDS: Readonly<Record<string, readonly string[]>> = {
     '................',
   ],
   // Skill art kept in its own files to keep this one small.
+  ...PROTOCOL_GRIDS,
   ...SKILL_ART_GRIDS,
   ...RESLEEVE_ART_GRIDS,
   ...AUTOMATION_ART_GRIDS,
@@ -1114,6 +1116,7 @@ export const ICON_GRIDS: Readonly<Record<string, readonly string[]>> = {
  * no icon; every name here must exist in {@link ICON_GRIDS} (checked by the content tests).
  */
 export const ENTITY_ICONS: Readonly<Record<string, string>> = {
+  ...PROTOCOL_ICONS,
   [GROW_NETWORK]: 'network',
   [PRACTICE_HACKING]: 'terminal',
   [PUSH_MALWARE]: 'bug',

@@ -39,6 +39,7 @@ export {
 } from './automation/automation';
 export { AutoBurn, type AutoBurnControls, type AutoBurnSwitches } from './automation/autoBurn';
 export { type AutoBurnRules, ownsAutoBurnStep } from './automation/autoBurnRules';
+export type { AutoBurnActivity, AutoBurnFiring, AutoBurnStatus } from './automation/autoBurnStatus';
 export {
   AUTO_BURN_STEPS,
   AUTO_BURN_SWITCHES,
@@ -95,3 +96,7 @@ export { createActionLookup } from './actions/actionLookup';
 export { GameEngine } from './engine/engine';
 export { SAVE_VERSION, serializeState, deserializeState } from './save/serialization';
 export { migrateSave, needsProgressionBackfill } from './save/migrate';
+
+export { actionIsUnlocked } from './kernel/actionAccess';
+export { dispersalSlots } from './automation/dispersalSlots';
+export { allowedRarities } from './automation/rarityPermissions';

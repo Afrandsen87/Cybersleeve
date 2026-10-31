@@ -1,0 +1,405 @@
+/* Auto Burn protocol panel; mockup art mapped to the game tokens. */
+.ab {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+/* status line */
+.ab .status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  font:
+    13px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  padding: 8px 12px;
+  background: #0d1222;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.ab .status .state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.ab .status .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+.ab .status .k {
+  color: var(--muted);
+}
+.ab .status .sep {
+  color: #3a4466;
+}
+.ab .status input {
+  width: 4.5em;
+}
+.ab .s-burn {
+  color: var(--orange);
+}
+.ab .s-idle {
+  color: var(--cyan);
+}
+.ab .s-off {
+  color: var(--muted);
+}
+.ab .s-cool {
+  color: var(--red);
+}
+.ab .s-resume {
+  color: #39ff88;
+}
+
+.ab input[type="number"] {
+  font:
+    13px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.ab input[type="number"]:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+}
+
+/* heat strip */
+.ab .strip-wrap {
+  padding: 30px 6px 18px;
+}
+.ab .strip {
+  position: relative;
+  height: 26px;
+  border-radius: 4px;
+  background: #0d1222;
+  border: 1px solid var(--line);
+}
+.ab .zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font:
+    700 10px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  letter-spacing: 0.14em;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ab .z-cold {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--cyan) 22%, transparent), color-mix(in srgb, var(--cyan) 8%, transparent));
+  color: var(--cyan);
+}
+.ab .z-band {
+  background: color-mix(in srgb, var(--branch-autoBurn) 14%, transparent);
+  color: var(--branch-autoBurn);
+}
+.ab .z-red {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--red) 10%, transparent), color-mix(in srgb, var(--red) 30%, transparent));
+  color: var(--red);
+}
+.ab .zone.live {
+  text-shadow: 0 0 6px currentColor;
+}
+.ab .zone:not(.live) {
+  color: color-mix(in srgb, currentColor 55%, transparent);
+}
+.ab .notch {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 2px;
+  transform: translateX(-1px);
+}
+.ab .notch.floor {
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+.ab .notch.redline {
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+}
+.ab .notch-label {
+  position: absolute;
+  top: -30px;
+  transform: translateX(-50%);
+  font:
+    11px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  white-space: nowrap;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+.ab .notch-label.floor {
+  color: var(--cyan);
+}
+.ab .notch-label.redline {
+  color: var(--red);
+}
+.ab .notch-label input {
+  width: 3.6em;
+  padding: 0 3px;
+}
+.ab .heat-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  transform: translateX(-1.5px);
+  background: #fff;
+  box-shadow: 0 0 8px #fff;
+  border-radius: 2px;
+  transition: left 0.15s;
+}
+.ab .heat-label {
+  position: absolute;
+  bottom: -19px;
+  transform: translateX(-50%);
+  font:
+    11px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  color: #fff;
+  white-space: nowrap;
+  transition: left 0.15s;
+}
+
+/* protocol listing */
+.ab .proto {
+  display: grid;
+  gap: 6px;
+  font:
+    13px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+}
+.ab .rule {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--tag);
+  border-radius: 6px;
+  background: #10162a;
+  transition:
+    box-shadow 0.15s,
+    background 0.15s;
+}
+.ab .rule.firing {
+  background: color-mix(in srgb, var(--tag) 10%, #10162a);
+  box-shadow:
+    inset 3px 0 12px -4px var(--tag),
+    0 0 10px -4px var(--tag);
+}
+.ab .rule.off .body {
+  opacity: 0.5;
+}
+.ab .tag {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--tag);
+  font-size: 12px;
+}
+.ab .rule.firing .tag {
+  text-shadow: 0 0 8px var(--tag);
+}
+.ab .body {
+  display: grid;
+  gap: 6px;
+}
+.ab .line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.ab .cond {
+  color: var(--muted);
+}
+.ab .arrow {
+  color: var(--tag);
+}
+.ab .act {
+  color: var(--ink);
+  font-weight: 600;
+}
+.ab .num {
+  color: var(--tag);
+  font-weight: 700;
+}
+.ab .t-trigger {
+  --tag: var(--red);
+}
+.ab .t-throttle {
+  --tag: var(--branch-autoBurn);
+}
+.ab .t-failsafe {
+  --tag: var(--orange);
+}
+.ab .t-restart {
+  --tag: var(--cyan);
+}
+.ab .sub {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+}
+
+/* LED switch */
+.ab .led {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font:
+    700 11px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  background: #0b0f1a;
+  min-width: 64px;
+  justify-content: center;
+}
+.ab .led::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3a4466;
+}
+.ab .led.on {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 8px -2px var(--cyan);
+}
+.ab .led.on::before {
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+}
+.ab .led:hover {
+  border-color: var(--cyan);
+}
+
+/* chips */
+.ab .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 6px;
+  border-radius: 6px;
+  font:
+    12px ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+  color: var(--muted);
+  border: 1px dashed #3a4466;
+  background: transparent;
+}
+.ab .chip .ico {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+  opacity: 0.5;
+}
+.ab .chip.on {
+  color: var(--ink);
+  border: 1px solid var(--tag);
+  background: color-mix(in srgb, var(--tag) 12%, transparent);
+  box-shadow: 0 0 8px -3px var(--tag);
+}
+.ab .chip.on .ico {
+  opacity: 1;
+}
+.ab .chip:hover {
+  border-color: var(--tag);
+}
+/* An Auto-run or Overclock the sleeve has not unlocked yet: shown, not tickable. */
+.ab .chip.locked,
+.ab .chip.locked:hover {
+  border: 1px solid var(--red);
+  background: transparent;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.ab .chip .kind {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.ab .s-burning {
+  color: var(--orange);
+}
+.ab .s-idle,
+.ab .s-holding {
+  color: var(--cyan);
+}
+.ab .s-standby {
+  color: var(--muted);
+}
+.ab .s-dry,
+.ab .s-blocked {
+  color: var(--red);
+}
+.ab .status label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ab .chip .ico::before {
+  width: 16px;
+  height: 16px;
+}
+.ab .sub.off .line {
+  opacity: 0.5;
+}
+.ab .heat-marker.overflow {
+  box-shadow: 0 0 10px var(--red);
+}
+@media (max-width: 700px) {
+  .ab .rule {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+  .ab .rule > .led {
+    grid-column: 2;
+    justify-self: end;
+  }
+}
+
+/* Last on purpose: hidden parts stay hidden even where a rule above sets display (nothing is shown before its skill is owned). */
+.ab [hidden],
+.ab .status label[hidden] {
+  display: none;
+}

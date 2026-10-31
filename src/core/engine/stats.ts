@@ -14,6 +14,7 @@ import { ToggleStats } from '../actions/toggleStats';
 import { CritStats } from '../crits/critStats';
 import { resolveSleeveStats, type SleeveStats } from '../effects/effects';
 import type { Economy } from '../economy/economy';
+import { sleeveSkillsOwned } from '../economy/sleeveSkills';
 import { IncomeStats } from '../economy/incomeStats';
 import { HeatStats } from '../heat/heatStats';
 import { distinctAugmentRarities } from '../items/augments';
@@ -80,8 +81,13 @@ export class DerivedStats implements ModeStatuses {
       (id) => bestSynthActionLevel(state, id),
     );
     this.items = new ItemStats(config, state, factory, sleeve);
-    this.income = new IncomeStats(config, state, economy, sleeve, (id) => progression.actionLevel(state, id));
+    this.income = new IncomeStats(config, state, economy, sleeve, (id) => this.effectiveActionLevel(id));
     this.heat = new HeatStats(config, state, this.toggles, () => sleeve().idleHeatCooldownActions);
+  }
+
+  /** Actions/effects: calculation level. Called by: engine and derived consumers. Calls: ToggleStats. */
+  effectiveActionLevel(id: ActionId): number {
+    return this.toggles.effectiveActionLevel(id);
   }
 
   /** The global sleeve stats (access level, interface speed, heat, ...) after sleeve-wide purchases. */
@@ -92,9 +98,10 @@ export class DerivedStats implements ModeStatuses {
         this.state,
         this.config.sleeve,
         this.factory,
-        (id) => this.progression.actionLevel(this.state, id),
+        (id) => this.effectiveActionLevel(id),
         (id) => this.progression.sleeveLevel(this.state, id),
         () => distinctAugmentRarities(this.state.sleeve.actions),
+        () => sleeveSkillsOwned(this.config.buyables, this.state),
       ),
     );
   }

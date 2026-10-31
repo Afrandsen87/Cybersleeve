@@ -5,6 +5,8 @@
  */
 import {
   type AUTOMATION_FEATURES,
+  allowedRarities,
+  dispersalSlots,
   AUTO_BURN_SWITCHES,
   automationPointsEarned,
   heatMakingAutoRuns,
@@ -22,6 +24,11 @@ import type { InvariantCheck } from './shared';
  */
 export const checkAutomation: InvariantCheck = (state, config, problems) => {
   const auto = state.wallet.automation;
+  for (const feature of ['autosale', 'autoBackchannel'] as const) {
+    const allowed = allowedRarities(config, state.sleeve.purchased, feature);
+    for (const [id, on] of Object.entries(auto[feature]))
+      if (on && !allowed.includes(id)) problems.push(`${feature} has locked rarity ${id} on`);
+  }
   const earned = automationPointsEarned(config.buyables, state.sleeve.purchased);
   const spent = config.buyables.reduce(
     (n, b) => (b.currency === 'automationPoints' ? n + b.cost.toNumber() * (state.sleeve.purchased[b.id] ?? 0) : n),
@@ -52,12 +59,13 @@ export const checkAutomation: InvariantCheck = (state, config, problems) => {
       problems.push(`Auto Burn recorded an Auto-run of an action that makes no heat: ${id}`);
   }
   if (Object.keys(auto.autosale).length > 0 && !featureUnlocked('autosale')) problems.push('autosale is set but not unlocked');
-  if (Object.keys(auto.dispersal).length > 0 && !featureUnlocked('dispersal')) problems.push('augment dispersal is set but not unlocked');
-  const shareTotal = Object.values(auto.dispersal).reduce((n, s) => n + s, 0);
-  if (shareTotal > 100 + 1e-9) problems.push(`dispersal shares add up to more than 100: ${shareTotal}`);
-  for (const [id, share] of Object.entries(auto.dispersal)) {
-    if (!(Number.isFinite(share) && share > 0 && share <= 100)) problems.push(`dispersal of ${id} is not a share in (0, 100]: ${share}`);
-    if (!config.actions.some((a) => a.id === id)) problems.push(`dispersal names unknown action ${id}`);
+  if (auto.dispersalTargets.length > 0 && !featureUnlocked('dispersal')) problems.push('augment dispersal is set but not unlocked');
+  const slots = dispersalSlots(config.buyables, state.sleeve.purchased);
+  if (auto.dispersalTargets.length > slots) problems.push('dispersal targets exceed selection slots');
+  if (new Set(auto.dispersalTargets).size !== auto.dispersalTargets.length) problems.push('dispersal targets contain duplicates');
+  // A kept target may be locked live (Daemon Persistence carries it past a re-sleeve that resets access); the UI lists it so it can be unticked.
+  for (const id of auto.dispersalTargets) {
+    if (!config.actions.some((a) => a.id === id)) problems.push('dispersal names an unknown action ' + id);
   }
   for (const id of Object.keys(auto.autosale)) {
     if (!config.items.rarities.some((r) => r.id === id)) problems.push(`autosale names unknown rarity ${id}`);

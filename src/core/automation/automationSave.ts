@@ -3,6 +3,10 @@
  *
  * The automation settings' part of a save (wallet `automation`, and Auto Burn's per-life part, sleeve `autoBurn`).
  */
+import { actionIsUnlocked } from '../kernel/actionAccess';
+import { resolveSleeveStats } from '../effects/effects';
+import { dispersalSlots } from './dispersalSlots';
+import { allowedRarities } from './rarityPermissions';
 import { heatMakingAutoRuns, overclockMakesHeat } from '../heat/heatMakers';
 import { isRecord, readCount } from '../kernel/readValues';
 import type { SavePart } from '../kernel/savePart';
@@ -14,17 +18,18 @@ import { AUTO_BURN_SWITCHES } from './autoBurnTypes';
 /**
  * Reads the automation settings (a feature is unlocked when its skill is owned, so this part runs after the purchases are read): the Burn lead
  * toggle is on only when Auto Burn is unlocked, the thresholds must be finite with 0 <= lower < upper, the reserve a whole number >= 0, switches
- * are kept only for skills that are owned, and autosale and dispersal keep only known rarities and actions (shares
- * clamped to 1..100). Anything missing loads fresh.
+ * are kept only for skills that are owned. Automation context: autosale and auto backchannel keep only known, skill-allowed rarities; dispersalTargets keeps known available actions in configuration order, capped by owned slots.
+ * The old dispersal percentage map is ignored; the new field is omitted while empty. Anything missing loads fresh. The new Back Channel map defaults off; no saved field changes meaning.
+ * Purchases have already discarded unknown ids (including removed slots 9/10); derived points refund those costs.
  *
  * A save written before the Auto Burn lane had real skills (`autoBurnOn: true`, `autoBurnCeiling`) loads with the Burn lead toggle on, the
  * Hold switch on when its skill is owned (the old meaning was "hold heat at the ceiling") and the old ceiling as the lower threshold.
  * The records of what Auto Burn switched off, and the resume checklists (`resumeOverclocks`, `resumeAutoRuns`), keep only heat-making Overclocks and Auto-runs of heat-making actions. The resume lists and `upperArmed` are saved
  * only when not empty / false (missing loads true: a life starts below the upper threshold).
  *
- * Called by: `save/saveParts.ts`. Calls: `isFeatureUnlocked`, `overclockMakesHeat`, `heatMakingAutoRuns`.
+ * Called by: `save/saveParts.ts`. Calls: `allowedRarities`, `isFeatureUnlocked`, `overclockMakesHeat`, `heatMakingAutoRuns`.
  */
-export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>> = {
+export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions' | 'sleeve'>> = {
   name: 'automation',
   write: (state) => {
     const { automation } = state.wallet;
@@ -45,7 +50,8 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
               : {}),
           },
           autosale: { ...automation.autosale },
-          dispersal: { ...automation.dispersal },
+          ...(Object.keys(automation.autoBackchannel).length ? { autoBackchannel: { ...automation.autoBackchannel } } : {}),
+          ...(automation.dispersalTargets.length ? { dispersalTargets: [...automation.dispersalTargets] } : {}),
         },
       },
       sleeve: {
@@ -59,7 +65,7 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
       },
     };
   },
-  read: (state, saved, config) => {
+  read: (state, saved, config, factory) => {
     const raw = saved.wallet['automation'];
     if (config.automation === undefined || !isRecord(raw)) return;
     const unlocked = (feature: (typeof AUTOMATION_FEATURES)[number]): boolean =>
@@ -97,16 +103,18 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
     keep(savedBurn['resumeOverclocks'], auto.autoBurn.resumeOverclocks, heatOverclock);
     keep(savedBurn['resumeAutoRuns'], auto.autoBurn.resumeAutoRuns, (id) => heatAutoRuns.has(id));
     const savedSale = isRecord(raw['autosale']) ? raw['autosale'] : {};
-    const savedShares = isRecord(raw['dispersal']) ? raw['dispersal'] : {};
-    if (unlocked('autosale')) for (const r of config.items.rarities) if (savedSale[r.id] === true) auto.autosale[r.id] = true;
+    const savedTargets = Array.isArray(raw['dispersalTargets']) ? raw['dispersalTargets'] : [];
+    for (const id of allowedRarities(config, state.sleeve.purchased, 'autosale')) if (savedSale[id] === true) auto.autosale[id] = true;
+    const savedChannel = isRecord(raw['autoBackchannel']) ? raw['autoBackchannel'] : {};
+    for (const id of allowedRarities(config, state.sleeve.purchased, 'autoBackchannel'))
+      if (savedChannel[id] === true) auto.autoBackchannel[id] = true;
     if (unlocked('dispersal')) {
-      let room = 100;
-      for (const a of config.actions) {
-        const share = savedShares[a.id];
-        if (typeof share !== 'number' || !Number.isFinite(share) || share <= 0 || room <= 0) continue;
-        auto.dispersal[a.id] = Math.min(room, share);
-        room -= auto.dispersal[a.id] ?? 0;
-      }
+      const slots = dispersalSlots(config.buyables, state.sleeve.purchased);
+      const accessLevel = resolveSleeveStats(config.buyables, state, config.sleeve, factory).accessLevel;
+      auto.dispersalTargets = config.actions
+        .filter((a) => savedTargets.includes(a.id) && actionIsUnlocked(a, accessLevel))
+        .slice(0, slots)
+        .map((a) => a.id);
     }
   },
 };

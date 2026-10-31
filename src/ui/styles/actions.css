@@ -307,12 +307,12 @@
   pointer-events: none;
 }
 /*
- * Action-card toggle cells (Auto-run, Overclock, Focus and its two halves), once bought: golden border and a full-colour icon, unlit
- * while off and lit in gold while on (the glow always matches the border).
+ * Action-card toggle cells (Auto-run, Overclock, Focus and its two halves), once bought: a full-colour icon, unlit
+ * without a visible border while off; lit with a gold border and glow while on.
  */
 .square-grid > .upgrade.maxed,
 .square > .cell-half:not(.on) {
-  border-color: var(--gold);
+  border-color: transparent;
   color: var(--gold);
   text-decoration: none;
 }

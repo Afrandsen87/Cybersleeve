@@ -108,8 +108,15 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     (g.getState() as unknown as { sleeve: { network: unknown } }).sleeve.network = num('1e100'); // some buyables are paid in network nodes
     // Buy in config order, repeating until nothing more can be bought once (a gate may be listed after what it unlocks).
     // Skills are paid in skill points or sleeve skill points, not credits: they have their own tests below.
-    markResleeved(g); // Skill transfer and Faster conditioning wait for the second sleeve run
-    const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints' && !isSleeveSkill(b));
+    markResleeved(g);
+    // Networked Sleeve needs two distinct sleeve skills, so earn another point and buy an available child.
+    (g.getState().wallet.runs as unknown[]).push({ creditsPerSecond: num(0), actionLevelsTotal: 0, sleeveLevelsTotal: 0 });
+    const second = gameConfig.buyables.find((b) => isSleeveSkill(b) && g.canBuy(b.id));
+    expect(second).toBeDefined();
+    expect(g.buy(second!.id)).toBe('purchased'); // Skill transfer and Faster conditioning wait for the second sleeve run
+    const bought = gameConfig.buyables.filter(
+      (b) => b.currency !== 'skillPoints' && b.currency !== 'automationPoints' && !isSleeveSkill(b),
+    );
     for (let pass = 0; pass < bought.length; pass++) {
       for (const b of bought) if (g.canBuy(b.id)) expect(g.buy(b.id)).toBe('purchased');
     }
@@ -264,8 +271,6 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     g.tick(5_000);
     expect(buildViewModel(g).canResleeve, 'the lockout is over but no level is held yet').toBe(false);
     setSleeveXp(g, num('1e30'), gameConfig.actions[0]!.id);
-    expect(buildViewModel(g).canResleeve, 'sleeve levels alone are not enough: the progress gate also wants an action level').toBe(false);
-    (g.getState().sleeve.actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num('1e30');
     expect(buildViewModel(g).canResleeve).toBe(true);
   });
 

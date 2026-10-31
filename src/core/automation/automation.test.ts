@@ -126,8 +126,12 @@ describe('Kompromat autosale', () => {
     expect(g.getState().wallet.credits.eq(num(3 * 10))).toBe(true);
   });
 
-  it('one unlock covers every rarity, and a switched-off rarity is kept', () => {
-    const g = saleGame();
+  it('rare needs its own skill, and a switched-off rarity is kept', () => {
+    const g = game(2);
+    g.automation().unlock('autosale');
+    g.buy(laneSkillId('autosale', 2));
+    loose(g).inventory['file'] = { common: 3, rare: 2 };
+    setCredits(g, num(0));
     g.automation().setAutosale('common', true);
     g.automation().setAutosale('rare', true);
     g.automation().setAutosale('common', false);
@@ -154,98 +158,18 @@ describe('Kompromat autosale', () => {
   });
 });
 
-describe('Augment dispersal', () => {
-  const dispersalGame = (held: Record<string, number>) => {
-    const g = game(1);
-    g.automation().unlock('dispersal');
-    loose(g).inventory['schem'] = { ...held };
-    for (const id of ['auto', 'auto-b']) (g.getState().sleeve.purchased as Record<string, number>)[id] = 1; // dispersal needs the Auto-runs
-    return g;
-  };
-  const applied = (g: ReturnType<typeof game>, id: string): number =>
-    Object.values(loose(g).actions[id]!.augments).reduce((n, c) => n + c, 0);
-
-  it('splits the schematics held by the shares: 75/25 of 8 is 6 and 2', () => {
-    const g = dispersalGame({ common: 8 });
-    g.automation().setDispersal('a', 75);
-    g.automation().setDispersal('b', 25);
-    g.tick(1);
-    expect(applied(g, 'a')).toBe(6);
-    expect(applied(g, 'b')).toBe(2);
-    expect(loose(g).inventory['schem']!['common'] ?? 0).toBe(0);
-  });
-
-  it('shares are relative: 1 and 1 is the same as 50 and 50, and none is lost to rounding', () => {
-    const g = dispersalGame({ common: 5 });
-    g.automation().setDispersal('a', 1);
-    g.automation().setDispersal('b', 1);
-    g.tick(1);
-    expect(applied(g, 'a') + applied(g, 'b')).toBe(5);
-    expect(Math.abs(applied(g, 'a') - applied(g, 'b'))).toBe(1);
-  });
-
-  it('the shares of all actions together never pass 100', () => {
-    const g = dispersalGame({});
-    g.automation().setDispersal('a', 70);
-    g.automation().setDispersal('b', 60);
-    expect(g.automation().dispersal('a')).toBe(70);
-    expect(g.automation().dispersal('b')).toBe(30);
-    g.automation().setDispersal('a', 90);
-    expect(g.automation().dispersal('a')).toBe(70);
-  });
-
-  it('one schematic at a time still reaches every action with a share, in proportion', () => {
-    const g = dispersalGame({});
-    g.automation().setDispersal('a', 50);
-    g.automation().setDispersal('b', 50);
-    for (let i = 0; i < 10; i++) {
-      loose(g).inventory['schem'] = { common: 1 };
-      g.tick(1);
-    }
-    expect(applied(g, 'a')).toBe(5);
-    expect(applied(g, 'b')).toBe(5);
-  });
-
-  it('uses the most common rarity first and keeps rarities apart on the action', () => {
-    const g = dispersalGame({ common: 2, rare: 1 });
-    g.automation().setDispersal('a', 100);
-    g.tick(1);
-    expect(loose(g).actions['a']!.augments).toEqual({ common: 2, rare: 1 });
-  });
-
-  it('an action with 0% gets nothing, and with every share at 0 the schematics are kept for the Augment button', () => {
-    const g = dispersalGame({ common: 4 });
-    g.tick(1);
-    expect(loose(g).inventory['schem']!['common']).toBe(4);
-    g.automation().setDispersal('a', 100);
-    g.automation().setDispersal('a', 0);
-    g.tick(1);
-    expect(loose(g).inventory['schem']!['common']).toBe(4);
-    expect(g.automation().dispersal('a')).toBe(0);
-  });
-
-  it('clamps a share to 0..100 and needs the unlock', () => {
-    const g = game(1);
-    expect(g.automation().setDispersal('a', 50)).toBe(false);
-    g.automation().unlock('dispersal');
-    g.automation().setDispersal('a', 500);
-    expect(g.automation().dispersal('a')).toBe(100);
-    expect(g.automation().setDispersal('nope', 10)).toBe(false);
-    expect(g.automation().setDispersal('a', Number.NaN)).toBe(false);
-  });
-});
-
 describe('automation is saved and keeps every invariant', () => {
   const setup = () => {
-    const g = game(4);
+    const g = game(5);
     g.automation().unlock('autoBurn');
     g.buy(laneSkillId('autoBurn', 2));
     g.automation().unlock('autosale');
+    g.buy(laneSkillId('autosale', 2));
     g.automation().unlock('dispersal');
     g.automation().autoBurn().setSwitch('hold', true);
     g.toggleBurnLead();
     g.automation().setAutosale('rare', true);
-    g.automation().setDispersal('b', 30);
+    g.automation().setDispersalTarget('b', true);
     return g;
   };
 
@@ -255,7 +179,7 @@ describe('automation is saved and keeps every invariant', () => {
     expect(restored.sleeve.autoBurn.on).toBe(true);
     expect(restored.wallet.automation.autoBurn.switches.hold).toBe(true);
     expect(restored.wallet.automation.autosale).toEqual({ rare: true });
-    expect(restored.wallet.automation.dispersal).toEqual({ b: 30 });
+    expect(restored.wallet.automation.dispersalTargets).toEqual(['b']);
     expect(findInvariantViolations(restored, config)).toEqual([]);
   });
 
@@ -268,12 +192,12 @@ describe('automation is saved and keeps every invariant', () => {
     const data = flatSave(serializeState(setup().getState()));
     data.purchased = { core: 1, [laneSkillId('autoBurn', 1)]: 1 }; // only Auto Burn is unlocked
     data.automation.autoBurn = { lower: -5, switches: { hold: true } };
-    data.automation.dispersal = { b: 30, nope: 10 };
+    data.automation.dispersalTargets = ['b', 'nope'];
     const restored = deserializeState(asSave(data), config, numberFactory)!;
     expect(AUTOMATION_FEATURES.filter((f) => isFeatureUnlocked(config.buyables, restored.sleeve.purchased, f))).toEqual(['autoBurn']);
     expect(restored.wallet.automation.autoBurn.lower).toBe(10); // the bad value is ignored: the default stays
     expect(restored.wallet.automation.autosale).toEqual({});
-    expect(restored.wallet.automation.dispersal).toEqual({});
+    expect(restored.wallet.automation.dispersalTargets).toEqual([]);
     expect(findInvariantViolations(restored, config)).toEqual([]);
   });
 

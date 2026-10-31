@@ -13,6 +13,9 @@ import {
   NODE_UPLINK,
   NODE_PAYOUT,
   ICE_RATING_BOOST,
+  CLOAKING_PROTOCOLS,
+  GROW_NETWORK,
+  overclockUnlockId,
   AUTOMATION_CORE,
   OVERCLOCK_UPGRADE,
   FOCUS_UPGRADE,
@@ -22,6 +25,18 @@ import {
 
 /** The buyables of the sleeve as a whole (not tied to an action). */
 export const sleeveBuyables: BuyableDefinition[] = [
+  {
+    id: CLOAKING_PROTOCOLS,
+    name: 'Cloaking Protocols',
+    symbol: 'CP',
+    description: 'Reduces the heat tax by 3% per distinct sleeve skill owned, compounded. Kept when you re-sleeve.',
+    cost: num(5e11),
+    maxPurchases: 1,
+    requiresSleeveSkills: 1,
+    // Heat is known once Grow network's heat-making Overclock unlock is owned.
+    requires: [overclockUnlockId(GROW_NETWORK)],
+    effect: { kind: 'heatReductionPerSleeveSkill', perSkill: 0.03 },
+  },
   // Global (sleeve) buyables: no actionId; they change the sleeve's stats. Prices are placeholders.
   {
     id: AUTOMATION_CORE,
