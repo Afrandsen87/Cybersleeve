@@ -1,7 +1,7 @@
 /**
  * @module content/automationSkillIcons
  *
- * Unique 16x16 art for every automation skill. Each lane has its own emblem in the top rows (a flame for Auto Burn, a coin for
+ * Unique 16x16 art for every automation skill. Auto Burn uses distinct protocol icons. The placeholder lanes have an emblem (a coin for
  * Autosale, a burst for Dispersal) and a ten-cell progress bar underneath that is filled up to the skill's step, so no two
  * skills look the same. Grids are built once at load from the lane emblems; pure display data.
  *
@@ -9,25 +9,12 @@
  * Called by: `icons.ts`, which spreads {@link AUTOMATION_ART_GRIDS} into `ICON_GRIDS` and {@link AUTOMATION_ART_ICONS} into
  * `ENTITY_ICONS`. Calls: `automationSkillId` and the lane ids from `ids.ts`.
  */
-import { AUTOMATION_LINE_LENGTH, automationSkillId, BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL } from './ids';
+import { AUTO_BURN_ART_GRIDS, AUTO_BURN_ART_ICONS } from './autoBurnSkillIcons';
+
+import { AUTOMATION_LINE_LENGTH, automationSkillId, BRANCH_AUTOSALE, BRANCH_DISPERSAL } from './ids';
 
 /** The emblem rows (rows 1 to 10 of the icon) of each lane, and the colour of its filled progress cells. */
 const EMBLEMS: Readonly<Record<string, { readonly rows: readonly string[]; readonly fill: string }>> = {
-  [BRANCH_AUTO_BURN]: {
-    fill: 'o',
-    rows: [
-      '.......o........',
-      '......oo...o....',
-      '.....ooyo.ooo...',
-      '....ooyyoooyo...',
-      '...ooyyyyoyyyo..',
-      '...oyyywyyyyyo..',
-      '...oyywwwyyyyo..',
-      '....oyywwyyyo...',
-      '.....ooyyyoo....',
-      '.......oo.......',
-    ],
-  },
   [BRANCH_AUTOSALE]: {
     fill: 'y',
     rows: [
@@ -80,15 +67,21 @@ function buildGrid(branch: string, step: number): readonly string[] {
 const gridName = (branch: string, step: number): string => `auto-${branch}-${step}`;
 
 /** One grid per automation skill, by name. */
-export const AUTOMATION_ART_GRIDS: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  Object.keys(EMBLEMS).flatMap((branch) =>
-    Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => [gridName(branch, i + 1), buildGrid(branch, i + 1)] as const),
+export const AUTOMATION_ART_GRIDS: Readonly<Record<string, readonly string[]>> = {
+  ...AUTO_BURN_ART_GRIDS,
+  ...Object.fromEntries(
+    Object.keys(EMBLEMS).flatMap((branch) =>
+      Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => [gridName(branch, i + 1), buildGrid(branch, i + 1)] as const),
+    ),
   ),
-);
+};
 
 /** Which grid of {@link AUTOMATION_ART_GRIDS} each automation skill shows, by skill id. */
-export const AUTOMATION_ART_ICONS: Readonly<Record<string, string>> = Object.fromEntries(
-  Object.keys(EMBLEMS).flatMap((branch) =>
-    Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => [automationSkillId(branch, i + 1), gridName(branch, i + 1)] as const),
+export const AUTOMATION_ART_ICONS: Readonly<Record<string, string>> = {
+  ...AUTO_BURN_ART_ICONS,
+  ...Object.fromEntries(
+    Object.keys(EMBLEMS).flatMap((branch) =>
+      Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => [automationSkillId(branch, i + 1), gridName(branch, i + 1)] as const),
+    ),
   ),
-);
+};
