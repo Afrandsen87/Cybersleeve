@@ -50,5 +50,11 @@ if ($Model) { $codexArgs += @('--model', $Model) }
 
 # The trailing `-` makes codex read the prompt from stdin.
 Get-Content -Raw $Spec | & (Find-Codex) @codexArgs -
-if ($LASTEXITCODE -ne 0) { throw "codex exec exited with $LASTEXITCODE" }
+$codexExit = $LASTEXITCODE
+# The elevated sandbox creates files owned by its own account; grant the current user control now so later
+# edits, `npm run check` and worktree removal do not hit permission errors. The node_modules junction is skipped.
+Get-ChildItem $Worktree -Force | Where-Object { $_.Name -ne 'node_modules' } | ForEach-Object {
+  icacls $_.FullName /grant "${env:USERNAME}:(OI)(CI)F" /t /c /q 2>&1 | Out-Null
+}
+if ($codexExit -ne 0) { throw "codex exec exited with $codexExit" }
 Write-Host "Codex finished. Report: $Report"

@@ -76,7 +76,7 @@ Only after approval and a passing `npm run check`:
 1. In the primary checkout (`C:\Code\CyberSleeve`), confirm `main` is checked out and has no uncommitted changes to tracked files (`git status`). If it is dirty, or `main` moved so the merge is not clean, first merge `main` into the task branch, re-run `npm run check`, then retry. If that still cannot be done cleanly, stop and report; never stash, reset or discard the user's changes.
 2. Merge with `git merge --no-ff <task-branch>` from the primary checkout. (Merge commits are skipped by the changelog, so the real commit subjects carry through.)
 3. **Never push.** Pushing to `main` triggers the deploy; only the user does that.
-4. Clean up what you created: remove the subagent worktrees and the task worktree (`git worktree remove`), and delete their merged branches (`git branch -d`). Never delete a branch you did not create or that is not fully merged.
+4. Clean up what you created: for the task worktree and each subagent worktree run `pwsh -NoProfile -File scripts/remove-worktree.ps1 -Worktree <dir> -Branch <branch>`. It stops leftover vite previews (TaskStop kills only the npm parent), drops the `node_modules` junction, takes ownership of files the Codex sandbox account created, unlocks and removes the worktree, then runs `git branch -d` (merged branches only). If it prints `STILL EXISTS`, report that instead of retrying. Never delete a branch you did not create or that is not fully merged.
 
 ## 7. Report
 
