@@ -68,3 +68,7 @@ One folder per bounded context under `src/core/` (layers and allowed exceptions:
 ## Known limitations / next steps
 See `docs/contexts/_limitations.md`.
 
+
+## P2 ownership additions
+
+Actions: core/actions/effectiveLevel.ts owns effective levels; runIce.ts batches base ICE awards after pay. Economy: core/economy/sleeveSkills.ts owns distinct skill counting for Shop and injected effects. Effects: entries/heatSkillEntries.ts registers carried compounded heat scaling; resolveSleeveStats receives the count callback. Content: protocolIcons.ts holds purchase grids composed by the icons facade. No saved state or boundary exceptions were added.

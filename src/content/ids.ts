@@ -46,6 +46,8 @@ export const NODE_UPLINK = 'node-uplink';
 export const NODE_PAYOUT = 'node-payout';
 /** Id of the sleeve buyable that multiplies ICE Rating. */
 export const ICE_RATING_BOOST = 'ice-rating-boost';
+/** Id of the carried sleeve-skill heat-tax improvement. */
+export const CLOAKING_PROTOCOLS = 'cloaking-protocols';
 /** Id of the one-time sleeve buyable that unlocks sleeve levels (sleeve XP starts accruing) and shows the Re-sleeve button. */
 export const SLEEVE_LEVELS = 'sleeve-levels';
 /** Id of the one-time sleeve buyable ('Unlock resleeving') that allows re-sleeving; needs Sleeve levels first. */
@@ -219,3 +221,8 @@ export const ZERO_DAY_EXPLOITS = 'zero-day-exploits';
 export const PERSISTENCE = 'persistence';
 /** Id of the Push malware buyable whose critical runs bank guaranteed critical successes for Grow network. */
 export const RANSOMWARE = 'ransomware';
+
+/** Network exploitation effective-level purchase. */
+export const NETWORKED_SLEEVE = 'networked-sleeve';
+/** Grow network base ICE purchase. */
+export const NETWORK_SAFETY_PROTOCOLS = 'network-safety-protocols';

@@ -76,7 +76,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
   // heat and ICE Rating appear together, so either having moved keeps both on show
   const heatOrIceShown = heatOrIceMoved(stats, config);
   const capped = stats.heatTaxCap < 1; // Blackout: the tax stops short of taking everything, so node credits never stop
-  const stopPoint = heatStopPoint(stats.heatReduction, sleeve.heatTaxPerPoint, stats.heatTaxCap);
+  const stopPoint = heatStopPoint(stats.heatReduction, sleeve.heatTaxPerPoint, stats.heatTaxCap, stats.heatTaxScale);
   const stopsAt = stopPoint === null ? null : text.format.heatPoints(formatPlain(stopPoint));
   const cycleMs = heatCycleMs(sleeve, stats.legend);
   const orders = Math.max(0, stats.iceRating.log10());
@@ -95,9 +95,12 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
       heat: formatPlain(stats.heat),
       perPointPercent: formatPlain(sleeve.heatTaxPerPoint * 100),
       reductionPercent: formatPlain(stats.heatReduction * 100),
-      taxPercent: formatPlain(heatTaxShare(stats.heat, stats.heatReduction, sleeve.heatTaxPerPoint, stats.heatTaxCap) * 100),
+      taxPercent: formatPlain(
+        heatTaxShare(stats.heat, stats.heatReduction, sleeve.heatTaxPerPoint, stats.heatTaxCap, stats.heatTaxScale) * 100,
+      ),
       stopsAt,
       taxCapPercent: capped ? formatPlain(stats.heatTaxCap * 100) : null,
+      taxScale: stats.heatTaxScale === 1 ? null : formatPlain(stats.heatTaxScale, 4),
       amount: formatPlain(stats.heatCooldownAmount),
       cycleSeconds: formatPlain(cycleMs / cooldownSpeed / 1000),
       moles:

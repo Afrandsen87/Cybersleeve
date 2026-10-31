@@ -111,3 +111,7 @@ The Access upgrade is capped at 4 copies in the real content (`maxPurchases: 4`,
 
 *Group: Decided 2026-10-31 (by the user, sleeve skill tree restructure)*
 - **Renamed and restructured:** the "re-sleeve skills" are the **sleeve skills** and their points **sleeve skill points** (identifiers such as `resleevePoints` are unchanged). New root **Sleeve Up!** (no gate, 1 point) is the parent of all four lane roots and unlocks the later-sleeve purchases through the NUMBER of sleeve skills owned (`requiresSleeveSkills`, replacing `revealAfterResleeves`). A sleeve skill reads ??? until the skill before it is owned (`parentsMustBeOwned` on the sleeve tree only). The sleeve tree is drawn as one joined tree (lanes directly against each other, Sleeve Up! centred in the first column). Save v10 refunds every sleeve skill (see `save.md`); the synthetic sleeves stay saved and dormant until Synthetic Sleeves is bought again.
+
+## Cloaking ownership exception (P2)
+
+Cloaking Protocols is a credit-paid Sleeve Improvement with the existing `sleeveWideCarried` trait. Its ownership survives re-sleeving and still scales heat tax from the carried sleeve skills. Ordinary credit-paid sleeve purchases, including ICE Rating boost, continue to reset. The currency registry and `CARRIED_OVER_BUYABLE_CURRENCIES` are unchanged. `heat/cloakingProtocols.test.ts` verifies this exception through `resetForResleeve`.

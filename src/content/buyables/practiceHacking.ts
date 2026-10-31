@@ -10,6 +10,7 @@ import {
   GROW_NETWORK,
   AUTO_RUN,
   SKILL_TRANSFER,
+  NETWORKED_SLEEVE,
   STUDY_METHODS,
   KOMPROMAT_HARVEST,
   KOMPROMAT,
@@ -49,10 +50,22 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
   },
 
   {
+    id: NETWORKED_SLEEVE,
+    name: 'Networked Sleeve',
+    symbol: 'NW',
+    description: 'Adds one effective Practice Hacking level for each distinct sleeve skill owned.',
+    currency: 'networkNodes',
+    cost: num(10_000),
+    requiresSleeveSkills: 2,
+    maxPurchases: 1,
+    effect: { kind: 'levelBonusFromSleeveSkills', targetActionId: PRACTICE_HACKING },
+  },
+
+  {
     id: SKILL_TRANSFER,
     name: 'Skill transfer',
     symbol: 'ST',
-    description: "Adds Practice Hacking's sleeve level to Grow network's level, which raises its speed.",
+    description: "Adds Practice Hacking's sleeve level to Grow network's effective level for all level-based calculations.",
     actionId: PRACTICE_HACKING,
     cost: num(1_000_000),
     requiresSleeveSkills: 1, // opens after buying the first sleeve skill

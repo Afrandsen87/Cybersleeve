@@ -60,6 +60,8 @@ export interface HeatTipParts {
   readonly stopsAt: string | null;
   /** With Blackout: the most the tax can take, in percent; `null` without a cap. */
   readonly taxCapPercent: string | null;
+  /** Already-resolved sleeve-skill tax multiplier, absent while unchanged. */
+  readonly taxScale?: string | null;
   /** Heat removed per cooldown cycle. */
   readonly amount: string;
   /** Length of one cooldown cycle in seconds (Legend and skills included). */

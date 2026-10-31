@@ -9,10 +9,14 @@ import { createGame } from '../app/createGame';
 import type { BuyableDefinition } from '../core';
 import { markResleeved } from '../testing/sleeveLevelsKit';
 import { skillViews } from '../testing/skillViews';
+import { NETWORKED_SLEEVE, NETWORK_SAFETY_PROTOCOLS } from './ids';
 import { BRANCH_REVEAL_STAT } from '../ui/view/branchMask';
 import { buildViewModel } from '../ui/viewModel';
 import {
   CRITICAL_SUCCESS,
+  CLOAKING_PROTOCOLS,
+  GROW_NETWORK,
+  overclockUnlockId,
   FASTER_CONDITIONING,
   SKILL_BACK_CHANNEL,
   SKILL_SIGNAL_AMPLIFIER,
@@ -39,6 +43,7 @@ function chain(b: BuyableDefinition, seen = new Set<string>()): BuyableDefinitio
 const CRIT_KINDS = ['criticalExtraChance', 'criticalRewardMultiplier', 'criticalBoost', 'criticalLink'];
 const HEAT_KINDS = [
   'heatCooldownSpeed',
+  'heatReductionPerSleeveSkill',
   'overclockHeatChanceFactor',
   'burnLeadFlatHeat',
   'idleHeatCooldown',
@@ -77,7 +82,38 @@ describe('critical successes', () => {
   });
 });
 
+describe('new protocol reveals', () => {
+  it('Networked Sleeve stays unavailable until two distinct sleeve skills are owned', () => {
+    const g = createGame();
+    const def = byId.get(NETWORKED_SLEEVE)!;
+    expect(def.actionId).toBeUndefined();
+    expect(g.isBuyableAvailable(def.id)).toBe(false);
+    markResleeved(g);
+    expect(g.isBuyableAvailable(def.id)).toBe(false);
+    const second = gameConfig.buyables.find((b) => isSleeveSkill(b) && g.ownedCount(b.id) === 0)!;
+    (g.getState().sleeve.purchased as Record<string, number>)[second.id] = 1;
+    expect(g.isBuyableAvailable(def.id)).toBe(true);
+  });
+  it('Network Safety waits for sleeve skills and a heat-making Overclock before naming ICE', () => {
+    const g = createGame();
+    expect(g.isBuyableAvailable(NETWORK_SAFETY_PROTOCOLS)).toBe(false);
+    markResleeved(g);
+    expect(g.isBuyableAvailable(NETWORK_SAFETY_PROTOCOLS)).toBe(false);
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(GROW_NETWORK)] = 1;
+    expect(g.isBuyableAvailable(NETWORK_SAFETY_PROTOCOLS)).toBe(true);
+  });
+});
+
 describe('heat', () => {
+  it('Cloaking text waits for an owned sleeve skill and a heat-making Overclock unlock', () => {
+    const g = createGame();
+    expect(g.isBuyableAvailable(CLOAKING_PROTOCOLS)).toBe(false);
+    markResleeved(g);
+    expect(g.isBuyableAvailable(CLOAKING_PROTOCOLS)).toBe(false);
+    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(GROW_NETWORK)] = 1;
+    expect(g.isBuyableAvailable(CLOAKING_PROTOCOLS)).toBe(true);
+    expect(byId.get(CLOAKING_PROTOCOLS)!.requiresSleeveSkills).toBeGreaterThanOrEqual(1);
+  });
   it('every heat skill is in a branch whose text waits for heat to be revealed, or behind an Overclock unlock (the thing that makes heat)', () => {
     for (const b of everyday.filter((x) => HEAT_KINDS.includes(x.effect.kind))) {
       const inHeatBranch = b.branch !== undefined && BRANCH_REVEAL_STAT[b.branch] === 'heat';
