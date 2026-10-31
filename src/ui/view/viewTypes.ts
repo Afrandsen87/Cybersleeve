@@ -20,7 +20,7 @@ export type {
   ActionView,
 } from './actionViewTypes';
 export type { BuyableView } from './buyableViewTypes';
-export type { SleeveSection, StatBarView, StatRowView, SleeveView, NetworkView } from './sleeveViewTypes';
+export type { StatTone, SleeveSection, StatBarView, StatRowView, SleeveView, NetworkView } from './sleeveViewTypes';
 export type { InventoryRowView, ViewSelection, InventoryView } from './inventoryViewTypes';
 export type {
   TabView,

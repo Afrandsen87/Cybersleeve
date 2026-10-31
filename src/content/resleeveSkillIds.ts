@@ -4,7 +4,7 @@
  * Ids of the sleeve skills and of the four branches (lanes) they are drawn in. Re-exported by `ids.ts`, so callers keep importing from there.
  */
 
-/** Branch id of the re-sleeve lane about what a re-sleeve no longer wipes (its title is in `ui/uiText.ts`, its colour in `ui/style.css`). */
+/** Branch id of the re-sleeve lane about what a re-sleeve no longer wipes (its title is in `ui/uiText.ts`, its colour in `ui/styles/skills.css`). */
 export const BRANCH_RETENTION = 'retention';
 /** Branch id of the re-sleeve lane about reach: XP, access and focus. */
 export const BRANCH_REACH = 'reach';

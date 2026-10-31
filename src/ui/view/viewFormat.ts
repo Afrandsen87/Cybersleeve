@@ -9,7 +9,7 @@
  */
 import type { FactorTerm, GameConfig } from '../../core';
 import { type StatId, type TipTerm, type UiText, uiText as defaultText } from '../uiText';
-import type { StatBarView, StatRowView } from './viewTypes';
+import type { StatBarView, StatRowView, StatTone } from './viewTypes';
 
 /** Finds a stat row by id. @throws Error if the widget has no such row */
 export function statRow(rows: readonly StatRowView[], id: StatId): StatRowView {
@@ -29,6 +29,7 @@ export function statRow(rows: readonly StatRowView[], id: StatId): StatRowView {
  * @param tip builds the hover text; `null` when the stat has none
  * @param bar the cycle bar under the row, if any
  * @param hidden the row is not shown yet
+ * @param tone what the value's colour means, if it has one
  */
 export const buildStatRow = (
   id: StatId,
@@ -37,6 +38,7 @@ export const buildStatRow = (
   tip: (() => string) | null = null,
   bar: StatBarView | null = null,
   hidden = false,
+  tone?: StatTone,
 ): StatRowView => ({
   id,
   label: text.statLabels[id],
@@ -47,6 +49,7 @@ export const buildStatRow = (
   },
   bar,
   hidden,
+  ...(tone ? { tone } : {}),
 });
 
 /**

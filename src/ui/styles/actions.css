@@ -1,0 +1,336 @@
+.actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr; /* every card gets the same size */
+  align-items: stretch;
+}
+.action.empty {
+  min-height: 120px;
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.5;
+}
+@media (max-width: 900px) {
+  .dashboard,
+  .dashboard-right {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.action {
+  position: relative;
+  display: grid;
+  /* The bars fill the left column; the square (see .square) sits beside them in the right one. */
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.action.crit-hit {
+  border-color: var(--magenta, #ff2bd6);
+  box-shadow: 0 0 12px var(--magenta, #ff2bd6);
+}
+/* The mark beside the start button while an action has hit a critical success in the last second. */
+.crit-badge {
+  position: absolute;
+  top: 10px;
+  right: 40px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--magenta, #ff2bd6);
+}
+.crit-badge[hidden] {
+  display: none;
+}
+.action-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+.action-main:not(:disabled):hover {
+  border-color: transparent;
+}
+.action-title {
+  font-weight: 700;
+  /* Keeps the title clear of the start button in the corner. */
+  padding-right: 28px;
+}
+/* The start button floats over the top right corner of the card: out of the grid flow, so it never changes the card's size. */
+.action > .start-run {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 0;
+  line-height: 0;
+}
+.action > .start-run:not(.has-icon) {
+  font-size: 12px;
+}
+.action > .start-run.has-icon::before {
+  position: absolute;
+  inset: 3px;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+.action > .start-run:disabled.has-icon::before {
+  filter: grayscale(0.8) brightness(0.55);
+}
+.action-info,
+.action-gains {
+  color: var(--muted);
+  font-size: 12px;
+}
+/* One line per text, never wrapped: long text is cut with an ellipsis so all cards stay the same size. */
+.action-title,
+.action-info,
+.action-gains,
+.action-costs,
+.xp-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar {
+  position: relative;
+  height: 12px;
+  background: #0a0e18;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+/*
+ * Bar fills are always full width and scaled from the left by dom.ts (transform, not width: no re-layout per refresh). The transition
+ * lasts one refresh interval (--render-ms, set from runtime.renderMs) so a bar glides between refreshes instead of stepping.
+ */
+.bar-fill,
+.xp-fill {
+  width: 100%;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--render-ms, 100ms) linear;
+  will-change: transform;
+}
+.bar-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 3px #000;
+  pointer-events: none;
+}
+.bar-label:empty {
+  display: none;
+}
+.bar-fill {
+  background: linear-gradient(90deg, var(--cyan), var(--magenta));
+}
+.xp {
+  display: grid;
+  gap: 2px;
+}
+.xp-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.xp-bar {
+  height: 6px;
+  background: #1b2030;
+  border: 1px solid #2c3345;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.xp-fill {
+  background: var(--teal);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill,
+  .xp-fill {
+    transition: none;
+  }
+}
+.action.running {
+  border-color: var(--magenta);
+}
+.action.locked {
+  border-style: dashed;
+}
+/* A locked action shows only a poster naming the access level that reveals it; the card keeps its size. */
+.action-poster {
+  display: none;
+}
+.action.locked > * {
+  visibility: hidden;
+}
+/* Debug: show locked cards in full. */
+.reveal-locked .action.locked > * {
+  visibility: visible;
+}
+.reveal-locked .action.locked > .action-poster {
+  display: none;
+}
+.action.locked > .action-poster {
+  display: flex;
+  visibility: visible;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+/*
+ * The square beside the lower part of an action card. The run bar spans the full width of the card; below it the reward line and the
+ * two level bars (action level, sleeve level) take the left column, and the square the right one over those same three rows. The
+ * card's row of purchases runs underneath across both.
+ */
+.action > .action-main {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+.action > .action-reward {
+  grid-column: 1;
+  grid-row: 2;
+}
+/* The costs line: same size as the gains line above it, in a muted magenta. It keeps its height when empty so every card lines up. */
+.action-costs {
+  color: color-mix(in srgb, var(--magenta) 65%, var(--muted));
+  font-size: 12px;
+  min-height: 1.3em;
+  line-height: 1.3;
+}
+.action-gains {
+  min-height: 1.3em;
+  line-height: 1.3;
+}
+.action > .xp-level {
+  grid-column: 1;
+  grid-row: 3;
+}
+.action > .xp-sleeve {
+  grid-column: 1;
+  grid-row: 4;
+}
+.action > .square {
+  grid-column: 2;
+  grid-row: 2 / 5;
+  align-self: stretch;
+}
+.action > .upgrades {
+  grid-column: 1 / -1;
+  grid-row: 5;
+}
+/* The square is two cells by two with a gap; its size follows the cell size so that it can match the three rows beside it. */
+.square {
+  --cell: 36px;
+  --square-gap: 6px;
+  --square-size: calc(var(--cell) * 2 + var(--square-gap));
+  width: var(--square-size);
+  height: var(--square-size);
+  align-self: center;
+}
+.square-grid {
+  display: grid;
+  grid-template-columns: repeat(2, var(--cell));
+  grid-template-rows: repeat(2, var(--cell));
+  gap: var(--square-gap);
+}
+.square-grid .upgrade {
+  width: var(--cell);
+  height: var(--cell);
+  line-height: calc(var(--cell) - 2px);
+  font-size: 12px;
+}
+.square-grid .upgrade.has-icon {
+  font-size: 0;
+}
+.square-grid .upgrade.has-icon::before {
+  inset: 4px;
+}
+.square-grid[hidden],
+.square-unlock[hidden] {
+  display: none;
+}
+/* Before Auto-run is bought the whole square is the button that buys it. */
+.square-unlock {
+  width: var(--square-size);
+  height: var(--square-size);
+  font-size: 32px;
+  line-height: calc(var(--square-size) - 2px);
+}
+.square-unlock.has-icon::before {
+  inset: 14px;
+}
+/* Focus with several slots per action: an add and a remove half lie over the Focus cell (bottom left of the square) and the cell itself only shows. */
+.square {
+  position: relative;
+}
+.square > .cell-half {
+  position: absolute;
+  top: calc(var(--cell) + var(--square-gap));
+  width: calc(var(--cell) / 2);
+  height: var(--cell);
+  padding: 0;
+  font-size: 16px;
+  line-height: calc(var(--cell) - 2px);
+  z-index: 1;
+}
+.square > .cell-half-add {
+  left: 0;
+  border-radius: 4px 0 0 4px;
+}
+.square > .cell-half-remove {
+  left: calc(var(--cell) / 2);
+  border-radius: 0 4px 4px 0;
+}
+.square > .cell-half[hidden] {
+  display: none;
+}
+.cell-focus.split {
+  pointer-events: none;
+}
+/*
+ * Action-card toggle cells (Auto-run, Overclock, Focus and its two halves), once bought: golden border and a full-colour icon, unlit
+ * while off and lit in gold while on (the glow always matches the border).
+ */
+.square-grid > .upgrade.maxed,
+.square > .cell-half:not(.on) {
+  border-color: var(--gold);
+  color: var(--gold);
+  text-decoration: none;
+}
+.square-grid > .upgrade.maxed.has-icon::before {
+  filter: none;
+}
+.square-grid > .upgrade.maxed.on,
+.square > .cell-half.on {
+  background: #2a2208;
+  border-color: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+}
+/* A feature this action does not have yet: an empty placeholder. */
+.cell.empty {
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.4;
+}
+.cell.applied:not(:disabled) {
+  border-color: var(--teal);
+}

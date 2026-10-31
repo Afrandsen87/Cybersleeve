@@ -33,20 +33,22 @@ export function networkView(
 ): NetworkView {
   const keep = engine.creditKeepFactor();
   const taxShare = 1 - keep;
+  const income = engine.passiveCreditsPerSecond();
   const stop = heatStopPoint(stats.heatReduction, config.sleeve.heatTaxPerPoint, stats.heatTaxCap);
+  const taxNote =
+    taxShare > 0
+      ? text.mainScreen.taxNote(
+          formatSignificant(taxShare * 100, PANEL_DIGITS),
+          formatSignificant(stats.heat, PANEL_DIGITS),
+          stop === null ? null : formatSignificant(stop, PANEL_DIGITS),
+        )
+      : null;
   return {
     title: text.titles.network,
     status: !state.sleeve.network.isZero() ? text.mainScreen.linked : null,
-    taxNote:
-      taxShare > 0
-        ? text.mainScreen.taxNote(
-            formatSignificant(taxShare * 100, PANEL_DIGITS),
-            formatSignificant(stats.heat, PANEL_DIGITS),
-            stop === null ? null : formatSignificant(stop, PANEL_DIGITS),
-          )
-        : null,
+    taxNote,
     stats: [
-      row('nodes', text, formatBigNum(state.sleeve.network)),
+      row('nodes', text, formatBigNum(state.sleeve.network), null, null, false, 'info'),
       row('payout', text, text.perSecond(formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS)), () =>
         text.tips.payout({
           base: formatPlain(config.network.creditsPerNodePerSecond),
@@ -61,14 +63,21 @@ export function networkView(
           perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
         }),
       ),
-      row('income', text, text.format.income(formatBigNum(engine.passiveCreditsPerSecond())), () =>
-        text.tips.income({
-          nodes: formatBigNum(state.sleeve.network),
-          perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
-          keepPercent: keep >= 1 ? null : formatPlain(keep * 100),
-          gross: formatBigNum(engine.passiveCreditsPerNode().mul(state.sleeve.network)),
-          total: formatBigNum(engine.passiveCreditsPerSecond()),
-        }),
+      row(
+        'income',
+        text,
+        text.format.income(formatBigNum(income)),
+        () =>
+          text.tips.income({
+            nodes: formatBigNum(state.sleeve.network),
+            perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
+            keepPercent: keep >= 1 ? null : formatPlain(keep * 100),
+            gross: formatBigNum(engine.passiveCreditsPerNode().mul(state.sleeve.network)),
+            total: formatBigNum(income),
+          }),
+        null,
+        false,
+        taxNote !== null && income.isZero() ? 'danger' : 'gain', // a taxed +0 reads as a loss
       ),
       row(
         'synths',

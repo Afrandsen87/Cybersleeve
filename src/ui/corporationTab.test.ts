@@ -136,7 +136,7 @@ describe('the Corporation tab on the screen', () => {
     own(game);
     const render = mountTestUi(root, game);
     const tabButton = (): HTMLButtonElement =>
-      [...root.querySelectorAll<HTMLButtonElement>('.tab')].find((t) => t.textContent === 'Corporation')!;
+      [...root.querySelectorAll<HTMLButtonElement>('.tab')].find((t) => t.querySelector('.tab-label')!.textContent === 'Corporation')!;
     const panel = (): HTMLElement => root.querySelector<HTMLElement>('.corporation-panel')!;
     return { root, game, render, tabButton, panel };
   };

@@ -41,4 +41,14 @@ describe('network tax note', () => {
     expect(note).toBe('heat tax takes 80% (heat 150)');
     expect(note).not.toContain('≥');
   });
+
+  it('tones the income green, and red when the tax leaves a +0, and the node count cyan', () => {
+    const g = game();
+    flat<{ network: unknown }>(g).network = num(1);
+    const tone = (id: string) => buildViewModel(g).network.stats.find((r) => r.id === id)?.tone;
+    expect(tone('income')).toBe('gain');
+    expect(tone('nodes')).toBe('info');
+    flat<{ heat: number }>(g).heat = 150;
+    expect(tone('income')).toBe('danger');
+  });
 });

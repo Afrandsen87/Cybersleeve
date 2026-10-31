@@ -12,6 +12,7 @@ import type { TipRegistry } from '../tooltip';
 import type { UiText } from '../uiText';
 import type { InventoryRowView, InventoryView } from '../viewModel';
 import { applyIcon, h, setText, type UiSelection } from './domKit';
+import { buildPanelHeader } from './panelHeader';
 
 /** Handles to update the Inventory widget. */
 interface InventoryWidget {
@@ -135,7 +136,7 @@ export function buildInventoryWidget(
   widget.sellSection.append(h('h3', 'section-title', text.inventory.sections.sellable), sellBody);
   const body = h('div', 'inventory-body');
   body.append(widget.keptSection, widget.sellSection);
-  root.append(h('h2', undefined, view.title), body);
+  root.append(buildPanelHeader(view.title).root, body);
   root.hidden = !view.visible;
   return widget;
 }

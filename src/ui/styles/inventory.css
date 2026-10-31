@@ -1,0 +1,155 @@
+.inventory-widget[hidden],
+.inventory-section[hidden],
+.item-group[hidden],
+.item-tile[hidden] {
+  display: none;
+}
+/*
+ * The Inventory is two inset panels side by side: items that are kept or used on the left, items that can be sold on the right. Each
+ * panel has a header bar with an accent mark, a well of tiles with room between them, and (for sale) a divider before the buttons.
+ */
+.inventory-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: stretch;
+  padding-left: 6px; /* the panels sit slightly in from the widget's heading */
+}
+.inventory-section {
+  display: grid;
+  grid-template-rows: auto 1fr; /* the header bar, then the body, which centres its content in the height that is left */
+  gap: 10px;
+  padding: 0 14px 14px;
+  background: #0d1220;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.35);
+}
+.inventory-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -14px;
+  padding: 7px 14px;
+  background: #121a2e;
+  border-bottom: 1px solid var(--line);
+  border-radius: 9px 9px 0 0;
+}
+.inventory-section .section-title::before {
+  content: "";
+  width: 3px;
+  height: 12px;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+  border-radius: 2px;
+}
+.inventory-for-sale .section-title::before {
+  background: var(--magenta);
+  box-shadow: 0 0 6px var(--magenta);
+}
+.inventory-sell-body {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  align-self: center;
+}
+/* The tiles of each item in a row of their own, the items side by side with a divider between them, centred in the panel. */
+.item-grid {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 12px;
+  padding: 2px;
+}
+.item-group {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 8px;
+}
+.item-group + .item-group {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+/* A tile: the icon with the count underneath. The border colour tells the rarities apart. */
+.item-tile {
+  --rarity: var(--line);
+  display: grid;
+  justify-items: center;
+  width: 38px;
+  gap: 1px;
+  padding: 3px 1px 2px;
+  background: #0a0e18;
+  border-color: var(--rarity);
+  border-radius: 6px;
+}
+.item-tile.rarity-1 {
+  --rarity: #3dff7a;
+}
+.item-tile.rarity-2 {
+  --rarity: #4d8bff;
+}
+.item-tile.rarity-3 {
+  --rarity: #ff2bd6;
+}
+.item-tile.rarity-4 {
+  --rarity: #ff8a1f;
+}
+.item-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  line-height: 20px;
+  text-align: center;
+}
+.item-icon.has-icon {
+  font-size: 0;
+}
+.item-icon.has-icon::before {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  vertical-align: top;
+}
+.item-count {
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--cyan);
+}
+/* A stack that is not held is dimmed (by colour, so its tooltip stays readable). */
+.item-tile.empty .item-icon::before,
+.item-tile.empty .item-icon {
+  opacity: 0.35;
+}
+.item-tile.empty .item-count {
+  color: #5b6b86;
+}
+.item-tile:disabled {
+  opacity: 1;
+}
+.item-tile.selected {
+  background: #14304a;
+  box-shadow: 0 0 8px var(--cyan);
+}
+/* A switched-on item (the Zero-day toggle) is lit like a selected tile, in magenta. */
+.item-tile.on {
+  background: #3a1440;
+  border-color: var(--magenta, #ff2bd6);
+  box-shadow: 0 0 8px var(--magenta, #ff2bd6);
+}
+.inventory-actions {
+  display: grid;
+  gap: 6px;
+  align-content: center;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+.inventory-action {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.inventory-action[hidden] {
+  display: none;
+}

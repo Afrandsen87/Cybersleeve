@@ -162,7 +162,7 @@ describe('the screen', () => {
 
   it('has five tabs: Character, Skills, Automation, Stats and Corporation', () => {
     const { root } = mount();
-    expect([...root.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual([
+    expect([...root.querySelectorAll('.tab')].map((t) => t.querySelector('.tab-label')!.textContent)).toEqual([
       'Character',
       'Skills',
       'Automation',

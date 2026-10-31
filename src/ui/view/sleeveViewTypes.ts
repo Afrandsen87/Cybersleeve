@@ -22,6 +22,9 @@ export interface StatBarView {
   readonly hidden: boolean;
 }
 
+/** The colour meaning of a stat value, drawn by the widget through a data attribute (see the colour rules in `style.css`). */
+export type StatTone = 'gain' | 'danger' | 'info';
+
 /** One labelled value in a stat widget, optionally with a hover explanation and a cycle bar. */
 export interface StatRowView {
   readonly id: StatId;
@@ -35,6 +38,8 @@ export interface StatRowView {
   readonly bar: StatBarView | null;
   /** The row is not shown (a stat that exists only once something unlocks it). */
   readonly hidden: boolean;
+  /** What the value's colour means; absent for the default colour. */
+  readonly tone?: StatTone;
 }
 
 /** A titled group of Sleeve stat rows (ACCESS, SKILL, DEFENSE, RISK), drawn with a header line before its first row. */
