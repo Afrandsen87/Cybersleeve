@@ -147,6 +147,13 @@ export const uiText: UiText = {
     resleevePoints: 'sleeve firmware points',
     automationPoints: 'automation points',
   },
+  costUnitsOne: {
+    credits: 'credit',
+    networkNodes: 'node',
+    skillPoints: 'firmware point',
+    resleevePoints: 'sleeve firmware point',
+    automationPoints: 'automation point',
+  },
   lock: {
     access: (level) => `Requires Access Level ${level}`,
     poster: (level) => `Requires Access Level ${level}`,

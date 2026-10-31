@@ -138,6 +138,8 @@ export interface UiText {
   readonly rewardUnits: Readonly<Record<RewardKind, string>>;
   /** Display unit of each currency a buyable can be paid in. */
   readonly costUnits: Readonly<Record<Currency, string>>;
+  /** The same units for a price of exactly one ("1 firmware point"). */
+  readonly costUnitsOne: Readonly<Record<Currency, string>>;
   /** Why an action is locked, in a few words. */
   readonly lock: { access(level: number): string; poster(level: number): string };
   /** What starting an action costs. */
