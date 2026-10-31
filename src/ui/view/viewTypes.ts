@@ -21,6 +21,7 @@ export type {
   TabView,
   AutomationFeatureView,
   AutomationView,
+  ResumeChecklistView,
   ResleeveSkillsView,
   RunRowView,
   RunsView,

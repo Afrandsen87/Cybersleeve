@@ -9,7 +9,7 @@ type Game = ReturnType<typeof burnGame>;
 const burn = (g: Game) => g.automation().autoBurn();
 const leads = (g: Game): number => burnState(g).inventory['lead']?.['common'] ?? 0;
 /** Skill count that owns every step up to and including the named one (skill 1 is the unlock). */
-const STEP = { hold: 2, upper: 3, offOverclocks: 4, thresholds: 9 } as const;
+const STEP = { hold: 2, upper: 3, offOverclocks: 4, thresholds: 8 } as const;
 
 describe('heat below 1 counts as cooled', () => {
   it('the toggle uses no lead on a leftover fraction of a point, and one a second from 1 point up', () => {

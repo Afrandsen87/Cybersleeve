@@ -160,9 +160,13 @@ export const BRANCH_DISPERSAL = 'dispersal' as const;
 export const AUTOMATION_LINE_LENGTH = 10;
 /** Id of the `step`-th skill (1-based) of an automation lane. */
 export const automationSkillId = (branch: string, step: number): string => `skill-${branch}-${step}`;
-/** Every automation skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first. */
+/** Auto Burn lane slots that hold no skill (slot 8 was Pick Targets, removed; the slot stays empty so the ids of the later skills stay stable). */
+export const AUTO_BURN_EMPTY_SLOTS: readonly number[] = [8];
+/** Every automation skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first; the empty Auto Burn slots are left out. */
 export const AUTOMATION_SKILLS: readonly string[] = [BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL].flatMap((branch) =>
-  Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => automationSkillId(branch, i + 1)),
+  Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1)
+    .filter((slot) => branch !== BRANCH_AUTO_BURN || !AUTO_BURN_EMPTY_SLOTS.includes(slot))
+    .map((slot) => automationSkillId(branch, slot)),
 );
 /** Id of the Kill servers auto-run buyable. */
 export const KILL_AUTO_RUN = 'kill-auto-run';

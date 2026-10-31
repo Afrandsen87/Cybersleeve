@@ -1,6 +1,6 @@
 /**
- * Auto Burn, the toggle and the lead use: skill 1 (the Inventory toggle, one lead a second), "hold" (skill 2), the reserve (skill 10) and
- * the thresholds (skill 9). The switching of Overclocks and Auto-runs is in `autoBurnSwitches.test.ts`.
+ * Auto Burn, the toggle and the lead use: skill 1 (the Inventory toggle, one lead a second), "hold" (skill 2), the reserve (skill 9) and
+ * the thresholds (skill 8). The switching of Overclocks and Auto-runs is in `autoBurnSwitches.test.ts`.
  */
 import { describe, expect, it } from 'vitest';
 import { burnGame, burnState } from '../../testing/autoBurnKit';
@@ -109,9 +109,9 @@ describe('hold at the lower threshold (skill 2)', () => {
   });
 });
 
-describe('the thresholds (skill 9) and the reserve (skill 10)', () => {
+describe('the thresholds (skill 8) and the reserve (skill 9)', () => {
   it('are fixed at the configured start until their skills are owned, and refuse to be set', () => {
-    const g = burnGame(8);
+    const g = burnGame(7);
     const burn = g.automation().autoBurn();
     expect(burn.setThresholds(5, 60)).toBe(false);
     expect(burn.setReserve(5)).toBe(false);
@@ -119,7 +119,7 @@ describe('the thresholds (skill 9) and the reserve (skill 10)', () => {
   });
 
   it('can be edited once owned, and only to finite values with 0 <= lower < upper', () => {
-    const burn = burnGame(10).automation().autoBurn();
+    const burn = burnGame(9).automation().autoBurn();
     expect(burn.setThresholds(5, 60)).toBe(true);
     expect(burn.rules()).toMatchObject({ lower: 5, upperAt: 60 });
     for (const [lower, upper] of [
@@ -140,7 +140,7 @@ describe('the thresholds (skill 9) and the reserve (skill 10)', () => {
   });
 
   it('hold uses the edited lower threshold', () => {
-    const g = burnGame(10, 1_000, 100);
+    const g = burnGame(9, 1_000, 100);
     const burn = g.automation().autoBurn();
     burn.setThresholds(50, 90);
     burn.setSwitch('hold', true);
@@ -151,12 +151,12 @@ describe('the thresholds (skill 9) and the reserve (skill 10)', () => {
   });
 
   it('the reserve is never used, by one lead a second or by hold', () => {
-    const slow = burnGame(10, 8, 100);
+    const slow = burnGame(9, 8, 100);
     slow.automation().autoBurn().setReserve(5);
     slow.toggleBurnLead();
     slow.tick(60_000);
     expect(leadsOf(slow)).toBe(5);
-    const hold = burnGame(10, 100, 100);
+    const hold = burnGame(9, 100, 100);
     hold.automation().autoBurn().setReserve(80);
     hold.automation().autoBurn().setSwitch('hold', true);
     hold.toggleBurnLead();
@@ -165,7 +165,7 @@ describe('the thresholds (skill 9) and the reserve (skill 10)', () => {
   });
 
   it('a reserve above what is held leaves every lead alone', () => {
-    const g = burnGame(10, 4, 100);
+    const g = burnGame(9, 4, 100);
     g.automation().autoBurn().setReserve(50);
     g.toggleBurnLead();
     g.tick(10_000);

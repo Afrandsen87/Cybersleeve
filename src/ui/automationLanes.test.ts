@@ -47,7 +47,7 @@ describe('the skill lane inside each automation box', () => {
     for (const f of vm.automation.features) {
       expect(f.lanes, f.id).toHaveLength(1);
       expect(f.lanes[0]!.nodes.map((n) => n.view.id)).toEqual(
-        Array.from({ length: f.id === 'autoBurn' ? 10 : 3 }, (_, i) => laneSkillId(f.id, i + 1)),
+        Array.from({ length: f.id === 'autoBurn' ? 9 : 3 }, (_, i) => laneSkillId(f.id, i + 1)),
       );
       expect(f.lanes[0]!.nodes.some((n) => n.masked)).toBe(false);
     }
@@ -58,7 +58,7 @@ describe('the skill lane inside each automation box', () => {
     const { root, game, render } = mount(2);
     const box = root.querySelector<HTMLElement>('.automation-autoBurn')!;
     const nodes = () => [...box.querySelectorAll<HTMLButtonElement>('.skill-node')];
-    expect(nodes()).toHaveLength(10); // the Auto Burn lane is the full ten skills
+    expect(nodes()).toHaveLength(9); // the Auto Burn lane is the full nine skills
     expect(box.querySelector('.automation-unlock')).toBeNull();
     expect(game.automation().isUnlocked('autoBurn')).toBe(false);
     nodes()[1]!.click(); // the second skill cannot be bought before the first

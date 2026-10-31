@@ -1,6 +1,6 @@
 /**
  * Auto Burn's switches: the upper threshold trigger (skill 3), switching heat-making Overclocks and Auto-runs off when out of leads (skills 4
- * and 5) and back on (skills 6 and 7), choosing the categories apart (skill 8), and how all of it is saved.
+ * and 5) and back on through the resume checklists (skills 6 and 7), and how all of it is saved. Every switch is independent of the others.
  */
 import { describe, expect, it } from 'vitest';
 import { deserializeState, serializeState } from '..';
@@ -21,9 +21,8 @@ const STEP = {
   offActions: 5,
   onActions: 6,
   onOverclocks: 7,
-  choose: 8,
-  thresholds: 9,
-  reserve: 10,
+  thresholds: 8,
+  reserve: 9,
 } as const;
 
 describe('switch on at the upper threshold (skill 3)', () => {
@@ -110,24 +109,18 @@ describe('switching off when out of leads (skills 4 and 5)', () => {
     expect(ocOn(g, 'hot')).toBe(true);
   });
 
-  it('before skill 8 the Auto-run switch (5) implies the Overclock one (4); after it each is its own choice', () => {
-    const before = outOfLeads(STEP.offActions);
-    burn(before).setSwitch('offActions', true);
-    expect(burn(before).rules()).toMatchObject({ offOverclocks: true, offActions: true });
-    burn(before).setSwitch('offOverclocks', false);
-    expect(burn(before).rules()).toMatchObject({ offOverclocks: false, offActions: false });
-
-    const after = outOfLeads(STEP.choose);
-    burn(after).setSwitch('offActions', true);
-    expect(burn(after).rules()).toMatchObject({ offOverclocks: false, offActions: true });
-    after.tick(100);
-    expect(autoOn(after, 'hot')).toBe(false);
-    expect(autoOn(after, 'warm')).toBe(true); // warm's action makes no heat: only its Overclock does
-    expect(ocOn(after, 'hot')).toBe(true);
+  it('each switch is independent of the others (no switch implies another)', () => {
+    const g = outOfLeads(STEP.offActions);
+    burn(g).setSwitch('offActions', true);
+    expect(burn(g).rules()).toMatchObject({ offOverclocks: false, offActions: true });
+    g.tick(100);
+    expect(autoOn(g, 'hot')).toBe(false);
+    expect(autoOn(g, 'warm')).toBe(true); // warm's action makes no heat: only its Overclock does
+    expect(ocOn(g, 'hot')).toBe(true);
   });
 });
 
-describe('switching back on (skills 6 and 7)', () => {
+describe('switching back on: the resume checklists (skills 6 and 7)', () => {
   /** Out of leads with everything on and both off rules set, so the automation switches the heat-making things off. */
   const switchedOff = (steps: number) => {
     const g = burnGame(steps, 0, 100);
@@ -145,60 +138,92 @@ describe('switching back on (skills 6 and 7)', () => {
     burnState(g).heat = 5;
   };
 
-  it('switches back on only what it switched off, and the toggle', () => {
-    const g = switchedOff(STEP.onOverclocks);
-    g.toggleOverclock('cold'); // the player turns a harmless one off by hand: not the automation's to restore
-    g.toggleBurnLead(); // the player switches the toggle off; the on rules switch it back on
+  /** Both resume switches on, with the named Overclocks and Auto-runs ticked. */
+  const resumeWith = (g: Game, overclocks: string[], autoRuns: string[]): void => {
     burn(g).setSwitch('onActions', true);
     burn(g).setSwitch('onOverclocks', true);
+    for (const id of overclocks) burn(g).setResumeOverclock(id, true);
+    for (const id of autoRuns) burn(g).setResumeAutoRun(`auto-${id}`, true);
+  };
+
+  it('switches on every ticked Overclock and Auto-run that is off, and the toggle; unticked ones stay off', () => {
+    const g = switchedOff(STEP.onOverclocks);
+    g.toggleBurnLead(); // the player switches the toggle off; the on rules switch it back on
+    resumeWith(g, ['hot'], ['hot']);
     cooledWithLeads(g);
     g.tick(100);
-    expect(ocOn(g, 'hot') && ocOn(g, 'warm') && autoOn(g, 'hot')).toBe(true);
-    expect(ocOn(g, 'cold')).toBe(false);
+    expect(ocOn(g, 'hot') && autoOn(g, 'hot')).toBe(true);
+    expect(ocOn(g, 'warm')).toBe(false); // it was switched off, but not ticked
     expect(g.burnLeadToggle()?.on).toBe(true);
+  });
+
+  it('also switches on a ticked thing the player switched off by hand, and leaves an unticked one off', () => {
+    const g = switchedOff(STEP.onOverclocks);
+    g.toggleOverclock('hot');
+    g.toggleOverclock('hot'); // on and off by hand again
+    g.toggleOverclock('cold'); // a harmless one, off... then ticked below
+    resumeWith(g, ['hot'], []);
+    cooledWithLeads(g);
+    g.tick(100);
+    expect(ocOn(g, 'hot')).toBe(true);
+    expect(ocOn(g, 'warm')).toBe(false);
+    expect(autoOn(g, 'hot')).toBe(false); // the Auto-run is not ticked
+  });
+
+  it('each resume switch works alone: actions without their Overclock, and the reverse', () => {
+    const actions = switchedOff(STEP.onOverclocks);
+    burn(actions).setSwitch('onActions', true);
+    burn(actions).setResumeAutoRun('auto-hot', true);
+    burn(actions).setResumeOverclock('hot', true); // ticked, but its own switch is off
+    cooledWithLeads(actions);
+    actions.tick(100);
+    expect(autoOn(actions, 'hot')).toBe(true);
+    expect(ocOn(actions, 'hot')).toBe(false);
+    const clocks = switchedOff(STEP.onOverclocks);
+    burn(clocks).setSwitch('onOverclocks', true);
+    burn(clocks).setResumeOverclock('hot', true);
+    cooledWithLeads(clocks);
+    clocks.tick(100);
+    expect(ocOn(clocks, 'hot')).toBe(true);
+    expect(autoOn(clocks, 'hot')).toBe(false);
   });
 
   it('does not act while heat is not below the lower threshold, or no lead is available, or the switches are off', () => {
     for (const setup of [(g: Game) => (burnState(g).heat = 30), (g: Game) => (burnState(g).inventory['lead'] = { common: 0 })]) {
       const g = switchedOff(STEP.onOverclocks);
-      burn(g).setSwitch('onActions', true);
-      burn(g).setSwitch('onOverclocks', true);
+      resumeWith(g, ['hot', 'warm'], ['hot']);
       cooledWithLeads(g);
       setup(g);
       g.tick(100);
       expect(ocOn(g, 'hot') || autoOn(g, 'hot')).toBe(false);
     }
     const off = switchedOff(STEP.onOverclocks);
+    burn(off).setResumeOverclock('hot', true);
     cooledWithLeads(off);
     off.tick(100);
     expect(ocOn(off, 'hot') || autoOn(off, 'hot')).toBe(false);
   });
 
-  it('what the player switched by hand after the automation is not switched back on', () => {
+  it('does not switch the toggle on when nothing was switched on', () => {
     const g = switchedOff(STEP.onOverclocks);
-    g.toggleOverclock('hot'); // on by hand ...
-    g.toggleOverclock('hot'); // ... and off by hand again: the record of the automation is gone
-    burn(g).setSwitch('onActions', true);
-    burn(g).setSwitch('onOverclocks', true);
+    g.toggleBurnLead();
+    resumeWith(g, [], []); // nothing ticked
     cooledWithLeads(g);
     g.tick(100);
-    expect(ocOn(g, 'hot')).toBe(false);
-    expect(ocOn(g, 'warm')).toBe(true);
-    expect(autoOn(g, 'hot')).toBe(true);
-    g.toggleAutoRun('auto-hot'); // by hand: off
-    expect(autoOn(g, 'hot')).toBe(false);
+    expect(g.burnLeadToggle()?.on).toBe(false);
   });
 
-  it('before skill 8 the Overclock switch (7) implies the Auto-run one (6); after it they are independent', () => {
-    const before = switchedOff(STEP.onOverclocks);
-    burn(before).setSwitch('onOverclocks', true);
-    expect(burn(before).rules()).toMatchObject({ onActions: true, onOverclocks: true });
-    const after = switchedOff(STEP.choose);
-    burn(after).setSwitch('onActions', true);
-    cooledWithLeads(after);
-    after.tick(100);
-    expect(autoOn(after, 'hot')).toBe(true);
-    expect(ocOn(after, 'hot')).toBe(false); // actions back on without their Overclock
+  it('refuses a tick without the skill, and for things that make no heat', () => {
+    const early = burnGame(STEP.offActions, 0, 0);
+    expect(burn(early).setResumeOverclock('hot', true)).toBe(false);
+    expect(burn(early).setResumeAutoRun('auto-hot', true)).toBe(false);
+    const g = burnGame(STEP.onOverclocks, 0, 0);
+    expect(burn(g).setResumeOverclock('cold', true)).toBe(false); // its Overclock makes no heat
+    expect(burn(g).setResumeAutoRun('auto-warm', true)).toBe(false); // its action makes no heat
+    expect(burn(g).setResumeOverclock('hot', true)).toBe(true);
+    expect(burn(g).rules().resumeOverclocks).toEqual({ hot: true });
+    expect(burn(g).setResumeOverclock('hot', false)).toBe(false);
+    expect(burn(g).rules().resumeOverclocks).toEqual({});
   });
 
   it('the record is per life: a re-sleeve clears it', () => {

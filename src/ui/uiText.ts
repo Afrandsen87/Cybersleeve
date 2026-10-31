@@ -74,8 +74,8 @@ export const uiText: UiText = {
       switches: {
         offOverclocks: 'Toggle on, out of leads: switch off Overclocks that make heat',
         offActions: 'Toggle on, out of leads: switch off Auto-run of actions that make heat',
-        onActions: 'Heat low, leads available: switch Auto-runs back on',
-        onOverclocks: 'Heat low, leads available: switch Overclocks back on',
+        onActions: 'Heat low, leads available: switch on the ticked Auto-runs',
+        onOverclocks: 'Heat low, leads available: switch on the ticked Overclocks',
       },
       holdAt: (heat) => `Hold at lower threshold (${heat} heat)`,
       upperAt: (heat) => `Switch on at upper threshold (${heat} heat)`,
