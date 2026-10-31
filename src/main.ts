@@ -5,6 +5,14 @@
  * All timings come from `gameConfig.runtime`.
  */
 import './ui/style.css';
+import './ui/styles/hud.css';
+import './ui/styles/panels.css';
+import './ui/styles/sleeve.css';
+import './ui/styles/actions.css';
+import './ui/styles/inventory.css';
+import './ui/styles/skills.css';
+import './ui/styles/automation.css';
+import './ui/styles/upgrades.css';
 import './ui/autoBurn.css';
 import { createGame } from './app/createGame';
 import { debugControlsEnabled } from './app/debugControls';

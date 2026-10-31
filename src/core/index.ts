@@ -6,7 +6,7 @@ export { Snapshot } from './kernel/snapshot';
 export { SPEED_FACTOR_IDS, createSpeedModifiers, levelFactor, speedFactors, speedMultiplier, effectiveDurationMs } from './actions/speed';
 export { type FactorTerm, type SleeveStats, resolveEffects, resolveSleeveStats, earnedSpeedBeyond } from './effects/effects';
 export { coolHeat, coolHeatBoosted, heatTaxFactor } from './heat/heat';
-export { coolsNow, cycleMs, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heat/heatModel';
+export { coolsNow, cycleMs, cycleSeconds, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heat/heatModel';
 export { actionMakesHeat, heatMakingAutoRuns, heatMakingOverclockActions, overclockMakesHeat } from './heat/heatMakers';
 export { applyCompletionEffects } from './actions/completion';
 export { SCALAR_FIELDS, scalarValue } from './kernel/fields';

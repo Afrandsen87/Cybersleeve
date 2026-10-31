@@ -15,6 +15,8 @@ import type { SkillLaneView } from './skillTreeTypes';
 export interface TabView {
   readonly id: (typeof TAB_IDS)[number];
   readonly label: string;
+  /** Unspent points, or null when none are available. */
+  readonly count: number | null;
   /** Shown once the tab is useful: no tab shows until the first skill point has been earned. */
   readonly visible: boolean;
   /** The tab blinks: it has earned points the player has not looked at yet (see `tabAttention.ts`). */

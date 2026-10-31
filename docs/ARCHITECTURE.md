@@ -31,6 +31,10 @@ Actions: core/actions/effectiveLevel.ts owns effective levels; runIce.ts batches
 
 automation.ts remains the stable facade. automationTypes.ts holds settings, controls, point accounting and feature ownership; rarityPermissions.ts owns allowedRarities and dispersalSlots for live controls, save loading and invariants. createGame injects the same BackChannel instance into the engine manual command and Automation. autosaleLane.ts supplies one forked branch and dispersalLane.ts supplies its nine-node chain; existing placeNodes draws it. Shared test fixtures are in testing/rarityAutomationKit.ts.
 
+## UI files
+- `src/ui/style.css`: colour language (comment + tokens), page layout, buttons, tooltip, modal, debug bar, LED pill. Area files in `src/ui/styles/` (imported by `main.ts` in a fixed order): `hud.css` (top bar, tabs), `panels.css` (panel chrome, `// TAG` headers), `sleeve.css` (stat rows, groups, heat gauge, re-sleeve box), `actions.css` (cards, bars), `inventory.css`, `skills.css` (tree, runs table), `automation.css`, `upgrades.css` (buyable states; last so the purchase look wins).
+- `widgets/hud.ts` top bar; `widgets/tabBar.ts` tabs with badges; `widgets/panelHeader.ts` the `.ph` header and LED; `widgets/heatGauge.ts` the heat strip; `widgets/statWidget.ts` stat rows with group headers.
+
 ## Layering (dependencies point downwards only)
 
 *Moved to [contexts/_layering.md](contexts/_layering.md).*

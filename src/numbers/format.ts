@@ -4,6 +4,7 @@
  * Human-readable formatting of {@link BigNum} values.
  */
 import type { BigNum } from './BigNum';
+import { num } from './BreakInfinityNum';
 
 const SUFFIXES = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
 const SUFFIX_LIMIT_GROUP = SUFFIXES.length - 1;
@@ -77,4 +78,36 @@ function scientific(mantissa: number, exponent: number, decimals: number): strin
  */
 export function formatPlain(n: number, decimals = 3): string {
   return String(Number(n.toFixed(decimals)));
+}
+
+/**
+ * Formats a plain number with at most `digits` significant figures, for the values in a panel row (tooltips keep full precision).
+ *
+ * @remarks
+ * - `< 1000`: rounded to `digits` significant figures but never past the decimal point (`652.3491` at 3 is `652`), trailing
+ *   zeros trimmed.
+ * - from 1000 (also after rounding: `999.95` at 4 is `1K`): the suffix or scientific notation of {@link formatBigNum}, with as
+ *   many decimals as keep `digits` significant figures (`12345.6` at 4 is `12.35K`; `1e308` stays short).
+ * - `NaN` and `-0` give `0`; infinities give `Infinity` / `-Infinity`. Negatives keep their sign.
+ *
+ * Called by: the panel rows in `ui/view/`. Calls: {@link formatBigNum}.
+ *
+ * @param n value to format
+ * @param digits significant figures kept (clamped to 1..21)
+ * @returns display string
+ */
+export function formatSignificant(n: number, digits: number): string {
+  if (Number.isNaN(n) || n === 0) return '0';
+  if (!Number.isFinite(n)) return String(n);
+  const precision = Number.isFinite(digits) ? Math.max(1, Math.min(21, Math.floor(digits))) : 1;
+  const exponent = Math.floor(Math.log10(Math.abs(n)));
+  if (exponent < 3) {
+    const plain = Number(n.toFixed(Math.min(100, Math.max(0, precision - exponent - 1))));
+    if (Math.abs(plain) < 1000) return String(plain);
+  }
+  // Rounded first, so the suffix formatter never meets a value just under a carry (999.95K at 4 figures is 1M).
+  const rounded = Number(n.toPrecision(Math.max(precision, 3)));
+  const roundedExponent = Math.floor(Math.log10(Math.abs(rounded)));
+  const leading = Math.floor(roundedExponent / 3) > SUFFIX_LIMIT_GROUP ? 1 : (roundedExponent % 3) + 1;
+  return formatBigNum(num(rounded), Math.max(0, precision - leading));
 }

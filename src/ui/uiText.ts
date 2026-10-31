@@ -1,6 +1,7 @@
 import { autoBurnText } from './autoBurnText';
 import { formatPlain } from '../numbers';
 
+import { hudText } from './hudText';
 import { tipText } from './tipText';
 
 export * from './uiTextParts';
@@ -38,8 +39,8 @@ export const uiText: UiText = {
   },
   tabs: {
     character: 'Character',
-    skills: (points) => (points > 0 ? `Skills (${points})` : 'Skills'),
-    automation: (points) => (points > 0 ? `Automation (${points})` : 'Automation'),
+    skills: 'Skills',
+    automation: 'Automation',
     stats: 'Stats',
     corporation: 'Corporation',
   },
@@ -126,7 +127,7 @@ export const uiText: UiText = {
   },
   bars: {
     heat: (running) => (running ? 'Heat cooldown' : 'Heat cooldown (paused: needs a whole point of heat)'),
-    legend: (running) => (running ? 'Legend cooldown' : 'Legend cooldown (paused: no legend)'),
+    legend: 'Legend cooldown',
   },
   rewardUnits: {
     credits: 'credits',
@@ -179,6 +180,7 @@ export const uiText: UiText = {
     },
   },
   tips: tipText,
+  mainScreen: hudText,
   resleeve: {
     idle: 'Re-sleeve',
     armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a sleeve skill point.',

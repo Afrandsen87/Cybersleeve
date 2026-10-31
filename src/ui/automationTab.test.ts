@@ -61,10 +61,10 @@ describe('automation in the view model', () => {
     setCredits(g, num(100));
     g.buy('core');
     const t = buildViewModel(g).tabs.find((x) => x.id === 'automation')!;
-    expect([t.visible, t.attention, t.label]).toEqual([true, true, 'Automation (1)']);
+    expect([t.visible, t.attention, t.label, t.count]).toEqual([true, true, 'Automation', 1]);
     g.automation().unlock('autosale');
     const after = buildViewModel(g).tabs.find((x) => x.id === 'automation')!;
-    expect([after.visible, after.attention, after.label]).toEqual([true, false, 'Automation']);
+    expect([after.visible, after.attention, after.label, after.count]).toEqual([true, false, 'Automation', null]);
   });
 
   it('lists the three features with their unlock state, and the current settings', () => {

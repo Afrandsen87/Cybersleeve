@@ -259,7 +259,7 @@ describe('inventory widget', () => {
     expect(game.getState().wallet.inventory['file']!['rare']).toBe(2);
     expect(game.getState().wallet.credits.eq(num(100))).toBe(true);
     expect(tiles()[1]!.querySelector('.item-count')!.textContent).toBe('2');
-    expect(root.querySelector('.credits')!.textContent).toBe('Credits: 100');
+    expect(root.querySelector('.credits')!.textContent).toBe('100');
     expect(tiles()[1]!.classList.contains('selected')).toBe(true); // still selected: sell more
     button('Sell all').click();
     expect(game.getState().wallet.credits.eq(num(300))).toBe(true);

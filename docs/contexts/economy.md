@@ -69,4 +69,4 @@ Sorted by base price within *Rebuyable* (no heading in the widget), *One-time* a
 
 - **Peak income also prices Kompromat (2026-10-30, by the user):** `network.ts` raises `sleeve.peakNetworkIncome`; `items/inventory.ts` (`Inventory.sellValue`) reads it as `max(rarity floor, sellSeconds x peak)`. Economy owns the peak, items only reads the state field.
 
-
+- `NetworkSystem.creditsPerSecond` owns total passive income (taxed network plus synthetic sleeves). Payment reads the same rate calculation while tracking peak network income without synths. `testing/networkIncomeKit.ts` supplies the isolated payment/query fixture.

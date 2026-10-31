@@ -9,7 +9,7 @@
  */
 import type { FactorTerm, GameConfig } from '../../core';
 import { type StatId, type TipTerm, type UiText, uiText as defaultText } from '../uiText';
-import type { StatBarView, StatRowView } from './viewTypes';
+import type { StatBarView, StatRowView, StatTone } from './viewTypes';
 
 /** Finds a stat row by id. @throws Error if the widget has no such row */
 export function statRow(rows: readonly StatRowView[], id: StatId): StatRowView {
@@ -29,6 +29,7 @@ export function statRow(rows: readonly StatRowView[], id: StatId): StatRowView {
  * @param tip builds the hover text; `null` when the stat has none
  * @param bar the cycle bar under the row, if any
  * @param hidden the row is not shown yet
+ * @param tone what the value's colour means, if it has one
  */
 export const buildStatRow = (
   id: StatId,
@@ -37,6 +38,7 @@ export const buildStatRow = (
   tip: (() => string) | null = null,
   bar: StatBarView | null = null,
   hidden = false,
+  tone?: StatTone,
 ): StatRowView => ({
   id,
   label: text.statLabels[id],
@@ -47,6 +49,7 @@ export const buildStatRow = (
   },
   bar,
   hidden,
+  ...(tone ? { tone } : {}),
 });
 
 /**
@@ -74,6 +77,9 @@ export function namedTerms(
 
 /** Decimals shown for Hacking Proficiency: each run adds a small amount (0.001), which two decimals would hide. */
 export const PROFICIENCY_DECIMALS = 4;
+
+/** Significant figures of a value shown in a panel row (display policy; tooltips keep full precision). */
+export const PANEL_DIGITS = 4;
 
 /** Decimals shown for speeds in the calculation tooltips, so that the lines add up (5s / 0.1546 = 32.34s). */
 export const SPEED_DECIMALS = 4;

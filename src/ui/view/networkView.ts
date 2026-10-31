@@ -6,11 +6,11 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the helpers in `viewFormat.ts`.
  */
-import type { GameConfig, ItemQueries, SleeveQueries, GameStateView, SleeveStats } from '../../core';
-import { formatBigNum, formatPlain } from '../../numbers';
+import type { GameConfig, GameStateView, ItemQueries, SleeveQueries, SleeveStats } from '../../core';
+import { formatBigNum, formatPlain, formatSignificant } from '../../numbers';
 import type { UiText } from '../uiText';
 import { aggregatedMoleText } from './moleBonus';
-import { ACTION_BONUS_DECIMALS, MULTIPLIER_DECIMALS, PER_NODE_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
+import { ACTION_BONUS_DECIMALS, MULTIPLIER_DECIMALS, PANEL_DIGITS, PER_NODE_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
 import type { NetworkView } from './viewTypes';
 
 /**
@@ -32,10 +32,17 @@ export function networkView(
   text: UiText,
 ): NetworkView {
   const keep = engine.creditKeepFactor();
+  const taxShare = 1 - keep;
+  const income = engine.passiveCreditsPerSecond();
+  const linked = !state.sleeve.network.isZero();
+  // with no nodes there is no network income for the tax to take, so no note (and no red +0)
+  const taxNote = linked && taxShare > 0 ? text.mainScreen.taxNote(formatSignificant(taxShare * 100, PANEL_DIGITS)) : null;
   return {
     title: text.titles.network,
+    status: linked ? text.mainScreen.linked : null,
+    taxNote,
     stats: [
-      row('nodes', text, formatBigNum(state.sleeve.network)),
+      row('nodes', text, formatBigNum(state.sleeve.network), null, null, false, 'info'),
       row('payout', text, text.perSecond(formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS)), () =>
         text.tips.payout({
           base: formatPlain(config.network.creditsPerNodePerSecond),
@@ -50,19 +57,26 @@ export function networkView(
           perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
         }),
       ),
-      row('income', text, text.format.income(formatBigNum(engine.passiveCreditsPerSecond())), () =>
-        text.tips.income({
-          nodes: formatBigNum(state.sleeve.network),
-          perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
-          keepPercent: keep >= 1 ? null : formatPlain(keep * 100),
-          gross: formatBigNum(engine.passiveCreditsPerNode().mul(state.sleeve.network)),
-          total: formatBigNum(engine.passiveCreditsPerSecond()),
-        }),
+      row(
+        'income',
+        text,
+        text.format.income(formatBigNum(income)),
+        () =>
+          text.tips.income({
+            nodes: formatBigNum(state.sleeve.network),
+            perNode: formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS),
+            keepPercent: keep >= 1 ? null : formatPlain(keep * 100),
+            gross: formatBigNum(engine.passiveCreditsPerNode().mul(state.sleeve.network)),
+            total: formatBigNum(income),
+          }),
+        null,
+        false,
+        taxNote !== null && income.isZero() ? 'danger' : 'gain', // a taxed +0 reads as a loss
       ),
       row(
         'synths',
         text,
-        formatPlain(engine.synthCount()),
+        formatSignificant(engine.synthCount(), PANEL_DIGITS),
         () =>
           text.tips.synths({
             count: formatPlain(engine.synthCount()),
@@ -83,7 +97,7 @@ export function networkView(
       row(
         'moles',
         text,
-        formatPlain(state.sleeve.moles),
+        formatSignificant(state.sleeve.moles, PANEL_DIGITS),
         () =>
           text.tips.moles({
             moles: formatPlain(state.sleeve.moles),

@@ -195,10 +195,10 @@ describe('the tooltips of the real game follow one standard', () => {
       'access',
       'interfaceSpeed',
       'hackingProficiency',
-      'iceRating',
-      'heat',
-      'legend',
       'criticalChance',
+      'iceRating',
+      'legend',
+      'heat',
     ]);
     for (const s of vm.sleeve.stats) expect(s.tip, `${s.id} has no tooltip`).toBeTruthy();
   });

@@ -33,10 +33,29 @@ export class NetworkSystem {
    */
   constructor(
     private readonly state: GameState,
-    private readonly stats: DerivedStats,
+    private readonly stats: Pick<DerivedStats, 'passiveCreditsPerSecond' | 'networkGrowthRate'>,
     private readonly factory: NumberFactory,
     private readonly synths: SynthIncome | null = null,
   ) {}
+
+  /**
+   * Total current passive income owned by economy: taxed network plus synthetic sleeves.
+   * Called by: GameEngine.creditsPerSecond. Calls: incomeRates.
+   * @returns credits earned per second; reads state without mutation
+   */
+  creditsPerSecond(): BigNum {
+    return this.incomeRates().total;
+  }
+
+  /**
+   * Reads both the network-only peak rate and the total paid rate from one calculation.
+   * Called by: creditsPerSecond, payPassiveIncome. Calls: DerivedStats.passiveCreditsPerSecond, SynthIncome.creditsPerSecond.
+   * @returns current network and total rates without changing state
+   */
+  private incomeRates(): { network: BigNum; total: BigNum } {
+    const network = this.state.sleeve.network.isZero() ? this.factory.fromNumber(0) : this.stats.passiveCreditsPerSecond();
+    return { network, total: this.synths ? network.add(this.synths.creditsPerSecond()) : network };
+  }
 
   /**
    * Pays the credits the network produced over `deltaMs`, using the nodes and heat held now (nodes finished during the
@@ -46,12 +65,9 @@ export class NetworkSystem {
    */
   payPassiveIncome(deltaMs: number): void {
     const seconds = this.factory.fromNumber(deltaMs / 1000);
-    if (!this.state.sleeve.network.isZero()) {
-      const rate = this.stats.passiveCreditsPerSecond();
-      if (rate.gt(this.state.sleeve.peakNetworkIncome)) this.state.sleeve.peakNetworkIncome = rate;
-      this.state.wallet.credits = this.state.wallet.credits.add(rate.mul(seconds));
-    }
-    if (this.synths) this.state.wallet.credits = this.state.wallet.credits.add(this.synths.creditsPerSecond().mul(seconds));
+    const rates = this.incomeRates();
+    if (rates.network.gt(this.state.sleeve.peakNetworkIncome)) this.state.sleeve.peakNetworkIncome = rates.network;
+    this.state.wallet.credits = this.state.wallet.credits.add(rates.total.mul(seconds));
   }
 
   /**

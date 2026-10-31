@@ -91,11 +91,17 @@ export function tabsView(
     activeTab === 'automation',
   );
   return [
-    { id: 'character', label: text.tabs.character, visible: tabsShown, attention: false },
-    { id: 'skills', label: text.tabs.skills(skillPoints), visible: skillsShown, attention: skillBlink },
-    { id: 'automation', label: text.tabs.automation(automation.pointsAvailable()), visible: automationShown, attention: automationBlink },
-    { id: 'stats', label: text.tabs.stats, visible: statsTab, attention: false },
-    { id: 'corporation', label: text.tabs.corporation, visible: corporationShown, attention: false },
+    { id: 'character', label: text.tabs.character, count: null, visible: tabsShown, attention: false },
+    { id: 'skills', label: text.tabs.skills, count: skillPoints > 0 ? skillPoints : null, visible: skillsShown, attention: skillBlink },
+    {
+      id: 'automation',
+      label: text.tabs.automation,
+      count: automation.pointsAvailable() > 0 ? automation.pointsAvailable() : null,
+      visible: automationShown,
+      attention: automationBlink,
+    },
+    { id: 'stats', label: text.tabs.stats, count: null, visible: statsTab, attention: false },
+    { id: 'corporation', label: text.tabs.corporation, count: null, visible: corporationShown, attention: false },
   ];
 }
 

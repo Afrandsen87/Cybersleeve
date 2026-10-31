@@ -6,7 +6,7 @@
  * widgets of `ui/widgets/`.
  */
 import type { GameCommands, GameQueries } from '../core';
-import { CREDITS_ICON_ID, type IconSource, noIcons } from './pixelIcon';
+import { type IconSource, noIcons } from './pixelIcon';
 import { installTooltips, TipRegistry } from './tooltip';
 import { type UiText, uiText as defaultText } from './uiText';
 import { TabAttention } from './view/tabAttention';
@@ -16,13 +16,13 @@ import { buildAutomationWidget, renderAutomation } from './widgets/automationWid
 import type { ChangelogEntry } from './widgets/changelogModal';
 import { buildDebugControls, buildResleeveRow, buildSaveRow } from './widgets/controls';
 import { mountCorporationPanel } from './widgets/corporationPanel';
-import { applyIcon, h, setText, type UiContext, type UiSelection } from './widgets/domKit';
+import { h, setText, type UiContext, type UiSelection } from './widgets/domKit';
+import { buildHud } from './widgets/hud';
 import { buildInventoryWidget, inventoryActions, renderInventory } from './widgets/inventoryWidget';
 import { mountSkillsPanel } from './widgets/skillsPanel';
 import { mountSleeveWidgets } from './widgets/sleeveWidgets';
 import { mountStatsPanel } from './widgets/statsPanel';
 import { buildStatWidget, renderStats } from './widgets/statWidget';
-import { buildTabBar } from './widgets/tabBar';
 
 import type { SpeedControl } from './speedControl';
 
@@ -86,15 +86,12 @@ export function mountUi(
   const tooltips = installTooltips(root.ownerDocument, tips);
   const ctx: UiContext = { engine, text, icons, tips, selection, activate: (id) => engine.activateBuyable(id), refresh: () => render() };
 
-  const header = h('header');
-  const credits = h('div', 'credits');
-  applyIcon(credits, icons.urlFor(CREDITS_ICON_ID));
-  header.append(credits);
-
   const actions = mountActionCards(ctx, initial.actions);
   const sleeve = mountSleeveWidgets(ctx, initial.sleeve);
   const resleeveRow = buildResleeveRow(ctx);
-  const networkWidget = buildStatWidget('network-widget', initial.network.title, initial.network.stats);
+  const taxNote = h('div', 'tax-note');
+  taxNote.hidden = true;
+  const networkWidget = buildStatWidget('network-widget', initial.network.title, initial.network.stats, { under: { income: taxNote } });
   const inventoryWidget = buildInventoryWidget(
     initial.inventory,
     icons,
@@ -119,9 +116,9 @@ export function mountUi(
   const debug = (options.debugControls ?? true) ? buildDebugControls(ctx, root, speed, onResetSave) : null;
   if (debug) root.append(debug.root);
 
-  // The tabs sit on the credits line, to the right of the balance: the character's actions are on the Character tab, the corporation's on the Corporation tab.
+  // The top bar: balance and income, the small heat gauge and the tabs. The character's actions are on the Character tab, the corporation's on the Corporation tab.
   let activeTab: TabView['id'] = 'character';
-  const tabBar = buildTabBar(initial.tabs, (id) => {
+  const hud = buildHud(icons, initial.tabs, (id) => {
     activeTab = id;
     render();
   });
@@ -131,19 +128,20 @@ export function mountUi(
   const automationWidget = buildAutomationWidget(ctx, initial.automation, engine.automation(), () => render());
   const automationPanel = h('div', 'tab-panel automation-panel');
   automationPanel.append(automationWidget.root);
-  header.append(tabBar.root);
-  root.append(header, characterPanel, corporation.root, skills.root, automationPanel, stats.root);
+  root.append(hud.root, characterPanel, corporation.root, skills.root, automationPanel, stats.root);
 
   function render(): void {
     selection.activeTab = activeTab;
     const vm = buildViewModel(engine, undefined, text, selection);
     if (vm.newlyRevealed.length > 0) engine.noteRevealed(vm.newlyRevealed); // the ledger only changes when a key is new
-    setText(credits, vm.creditsLine);
-    renderStats(networkWidget, vm.network.stats, tips);
+    hud.render(vm.hud);
+    renderStats(networkWidget, vm.network.stats, tips, { status: vm.network.status });
+    setText(taxNote, vm.network.taxNote ?? '');
+    taxNote.hidden = vm.network.taxNote === null;
     renderInventory(inventoryWidget, vm.inventory, tips, selection);
     // The corporation can close again (a new game): its tab then gives way to the Character tab.
     if (activeTab === 'corporation' && !vm.tabs.some((t) => t.id === 'corporation' && t.visible)) activeTab = 'character';
-    tabBar.render(vm.tabs, activeTab);
+    hud.tabBar.render(vm.tabs, activeTab);
     characterPanel.hidden = activeTab !== 'character';
     corporation.root.hidden = activeTab !== 'corporation';
     skills.root.hidden = activeTab !== 'skills';
@@ -155,7 +153,13 @@ export function mountUi(
     actions.render(vm.actions);
     corporation.render(vm.corporation);
     sleeve.render(vm.sleeve);
-    resleeveRow.render({ canResleeve: vm.canResleeve, shown: vm.resleeveShown, buy: vm.resleeveBuy, shortfall: vm.resleeveShortfall });
+    resleeveRow.render({
+      canResleeve: vm.canResleeve,
+      shown: vm.resleeveShown,
+      buy: vm.resleeveBuy,
+      shortfall: vm.resleeveShortfall,
+      title: vm.sleeve.resleeveTitle,
+    });
     debug?.render();
     tooltips.refresh();
   }

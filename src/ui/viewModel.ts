@@ -15,6 +15,7 @@ import { buildBuyableViews } from './view/buyableViews';
 import { corporationView } from './view/corporationView';
 import { inventoryView } from './view/inventoryView';
 import { networkView } from './view/networkView';
+import { hudView } from './view/hudView';
 import { automationView } from './view/automationView';
 import { runsView, skillsView, tabsView } from './view/panelViews';
 import { revealEverything } from './view/revealAll';
@@ -58,10 +59,11 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
   const tracker = new RevealTracker(state.wallet.revealed);
   const buyableViews = buildBuyableViews(engine, config, text, revealAll, tracker);
   const viewById = new Map(buyableViews.map((v) => [v.id, v]));
+  const sleeve = sleeveView(stats, state, config, buyableViews, viewById, text, tracker);
 
   const vm: ViewModel = {
     creditsText: formatBigNum(state.wallet.credits),
-    creditsLine: text.credits(formatBigNum(state.wallet.credits)),
+    hud: hudView(engine, state, text, tracker),
     network: networkView(engine, config, state, stats, text),
     tabs: tabsView(engine, state, text, tracker, selection.tabAttention, selection.activeTab),
     skills: skillsView(engine, state, config, viewById, stats, text, revealAll, tracker),
@@ -70,7 +72,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
     corporation: corporationView(engine, config, buyableViews, text),
     inventory: inventoryView(engine, factory, text),
     actions: buildActionViews(engine, config, state, buyableViews, viewById, factory, text, selection),
-    sleeve: sleeveView(stats, state, config, buyableViews, viewById, text, tracker),
+    sleeve,
     canResleeve: engine.canResleeve(),
     resleeveShown: sleeveLevelsOpen(state, config),
     resleeveBuy: resleeveBuyView(state, config, viewById),

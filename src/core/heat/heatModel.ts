@@ -26,6 +26,21 @@ export function cycleMs(sleeve: Pick<SleeveConfig, 'heatCooldownMs' | 'legendHea
 }
 
 /**
+ * Seconds one heat cooldown cycle takes at a cooldown speed: the cooldown advances `speed` times as fast as game time
+ * (as `coolHeat` is fed), so a cycle of {@link cycleMs} takes `cycleMs / speed`. The one owner of the displayed cycle.
+ *
+ * Called by: `ui/view/sleeveView.ts` (the heat tip and the cooldown bar label). Calls: {@link cycleMs}.
+ *
+ * @param sleeve reads `heatCooldownMs` and `legendHeatSpeedup`
+ * @param legend the Legend held now
+ * @param speed the cooldown speed (`SleeveStats.heatCooldownSpeed`, >= 1)
+ * @returns seconds per cycle; `Infinity` for a speed of 0
+ */
+export function cycleSeconds(sleeve: Pick<SleeveConfig, 'heatCooldownMs' | 'legendHeatSpeedup'>, legend: number, speed: number): number {
+  return cycleMs(sleeve, legend) / speed / 1000;
+}
+
+/**
  * Whether the cooldown is running: it waits until there is a whole `amount` of heat to remove.
  *
  * @param heat current heat

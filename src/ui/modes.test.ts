@@ -128,7 +128,8 @@ describe('the heat bar with fractions of a point', () => {
     state(g).heat = 0.5;
     expect(bar(g)).toMatchObject({ running: false, label: 'Heat cooldown (paused: needs a whole point of heat)' });
     state(g).heat = 1;
-    expect(bar(g)).toMatchObject({ running: true, label: 'Heat cooldown' });
+    expect(bar(g).running).toBe(true);
+    expect(bar(g).label).toMatch(/^-\d[\d.]* \/ [\d.]+s$/); // while it cools, the bar gives the cycle: amount per seconds
   });
 
   it('shows heat in fractions', () => {

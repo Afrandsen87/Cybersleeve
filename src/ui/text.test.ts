@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+﻿// @vitest-environment happy-dom
 import { hoverText } from '../testing/hover';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
@@ -16,7 +16,7 @@ const state = (g: { getState(): unknown }) => flat<{ heat: number; legend: numbe
 /** A complete text table whose every entry is recognisable, to prove that nothing is spelled out in logic. */
 const shouting: UiText = {
   ...uiText,
-  credits: (amount) => `<<${amount} CR>>`,
+  mainScreen: { ...uiText.mainScreen, creditsLabel: 'CHIPS' },
   titles: { ...uiText.titles, sleeve: 'SLEEVE!', network: 'NETWORK!' },
   statLabels: { ...uiText.statLabels, heat: 'HEAT!' },
   action: { ...uiText.action, levelBar: (level) => `LEVEL ${level}`, reward: ({ amount }) => `PAYS ${amount}` },
@@ -32,7 +32,7 @@ describe('display text comes from the text table', () => {
   it('the view model uses the injected text for every line it builds', () => {
     const g = createGame({ config: testConfig });
     const vm = buildViewModel(g, undefined, shouting);
-    expect(vm.creditsLine).toBe('<<0 CR>>');
+    expect(vm.hud.creditsLabel).toBe('CHIPS');
     expect(vm.sleeve.title).toBe('SLEEVE!');
     expect(vm.network.title).toBe('NETWORK!');
     expect(statRow(vm.sleeve.stats, 'heat').label).toBe('HEAT!');
@@ -44,7 +44,7 @@ describe('display text comes from the text table', () => {
     const root = document.createElement('div');
     document.body.append(root);
     mountTestUi(root, createGame({ config: testConfig }), { text: shouting });
-    expect(root.querySelector('.credits')?.textContent).toBe('<<0 CR>>');
+    expect(root.querySelector('.credits')?.textContent).toBe('0');
     expect(root.querySelector('.resleeve')?.textContent).toBe('IDLE');
     expect(root.querySelector('.resleeve-cancel')?.textContent).toBe('NEVERMIND');
     expect(root.querySelector('.reset-save')?.textContent).toBe('WIPE');
@@ -55,7 +55,7 @@ describe('display text comes from the text table', () => {
 
   it('the default table still reads like the game', () => {
     const vm = buildViewModel(createGame({ config: testConfig }));
-    expect(vm.creditsLine).toBe('Credits: 0');
+    expect(vm.hud.creditsText).toBe('0');
     expect(vm.sleeve.stats.filter((s) => !s.hidden).map((s) => s.label)).toEqual([
       'Access Level',
       'Interface speed',
@@ -69,7 +69,7 @@ describe('stat rows', () => {
   it('only heat and Legend have a cycle bar, and every Sleeve row has a tip', () => {
     const vm = buildViewModel(createGame({ config: testConfig }));
     const withBar = [...vm.sleeve.stats, ...vm.network.stats].filter((s) => s.bar).map((s) => s.id);
-    expect(withBar).toEqual(['heat', 'legend']);
+    expect(withBar).toEqual(['legend', 'heat']);
     for (const row of vm.sleeve.stats) expect(row.tip, `${row.id} has no tip`).toBeTruthy();
     expect(statRow(vm.network.stats, 'nodes').tip).toBeNull();
   });
@@ -103,9 +103,10 @@ describe('stat rows', () => {
       label: 'Heat cooldown (paused: needs a whole point of heat)',
       percent: 0,
       running: false,
+      hidden: false,
     });
     state(g).heat = 3;
-    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').bar!.label).toBe('Heat cooldown');
+    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').bar!.label).toBe('-1 / 60s');
   });
 });
 

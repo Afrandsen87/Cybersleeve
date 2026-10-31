@@ -1,0 +1,251 @@
+/* The note at the top of the Skills tab. */
+.skills-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.skills-note[hidden] {
+  display: none;
+}
+
+/* The Skills tab: a box holding the skills. */
+.skills-widget {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.skills-widget h2 {
+  margin: 0;
+}
+.skills-points {
+  font-size: 14px;
+  color: var(--cyan);
+}
+.skills-widget[hidden] {
+  display: none;
+}
+
+/*
+ * The skill trees grow sideways: one lane per branch, the roots on the left, each skill to the right of the ones it needs. A lane
+ * is coloured by its branch (`--lane`, set from the branch tokens below) with a neon gradient under it that fades to the right.
+ * A skill is placed by --col / --row in steps of --step; the lines between skills are an SVG in the same grid units.
+ */
+.skill-tree {
+  /* --step and --tile (the grid cell and the button, in px) are set by widgets/skillTree.ts, which also places the ends of the lines */
+  display: grid;
+  gap: 14px;
+  overflow-x: auto;
+}
+.skill-lane[hidden] {
+  display: none;
+}
+.skill-lane {
+  --lane: var(--cyan);
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  min-width: 100%;
+  padding: 8px 14px 12px 12px;
+  border-left: 3px solid var(--lane);
+  border-radius: 6px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--lane) 26%, transparent), transparent 80%);
+  box-shadow: inset 3px 0 10px -6px var(--lane);
+  position: relative;
+}
+.skill-lane::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--lane), transparent 70%);
+  box-shadow: 0 0 8px var(--lane);
+  opacity: 0.8;
+}
+.skill-lane[data-branch="cybernetics"] {
+  --lane: var(--branch-cybernetics);
+}
+.skill-lane[data-branch="anonymity"] {
+  --lane: var(--branch-anonymity);
+}
+.skill-lane[data-branch="leverage"] {
+  --lane: var(--branch-leverage);
+}
+.skill-lane[data-branch="autoBurn"] {
+  --lane: var(--branch-autoBurn);
+}
+.skill-lane[data-branch="autosale"] {
+  --lane: var(--branch-autosale);
+}
+.skill-lane[data-branch="dispersal"] {
+  --lane: var(--branch-dispersal);
+}
+.skill-lane[data-branch="retention"] {
+  --lane: var(--branch-retention);
+}
+.skill-lane[data-branch="sleeveUp"] {
+  --lane: var(--branch-sleeveUp);
+}
+.skill-lane[data-branch="reach"] {
+  --lane: var(--branch-reach);
+}
+.skill-lane[data-branch="synthetics"] {
+  --lane: var(--branch-synthetics);
+}
+.skill-lane[data-branch="corporation"] {
+  --lane: var(--branch-corporation);
+}
+.lane-title {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lane);
+  text-shadow: 0 0 8px var(--lane);
+}
+/* Joined bands share a global grid; their node layers cancel the band offset. */
+.skill-tree-joined {
+  display: block;
+  position: relative;
+  gap: 0;
+  width: calc(var(--cols) * var(--step));
+  min-width: 100%;
+  height: calc(var(--rows) * var(--step));
+  overflow: visible;
+}
+.skill-tree-joined > .skill-lane {
+  position: absolute;
+  top: calc(var(--first-row) * var(--step));
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--band-rows) * var(--step));
+  padding: 0;
+  border-radius: 0;
+  border-left: 0;
+  box-shadow: inset 3px 0 var(--lane);
+  display: block;
+}
+.skill-tree-joined .lane-grid {
+  position: absolute;
+  top: calc(-1 * var(--first-row) * var(--step));
+  pointer-events: none;
+}
+.skill-tree-joined .skill-node {
+  pointer-events: auto;
+  z-index: 2;
+}
+.skill-tree-joined .lane-title {
+  position: absolute;
+  top: 0;
+  left: calc(var(--step) + 4px);
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0.04em;
+}
+.skill-tree-joined > .trunk-lane {
+  background: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+.skill-tree-joined > .trunk-lane::after {
+  display: none;
+}
+.skill-tree-joined > .lane-edges {
+  z-index: 1;
+  width: calc(var(--cols) * var(--step));
+}
+.lane-grid {
+  position: relative;
+  width: calc(var(--cols) * var(--step));
+  height: calc(var(--rows) * var(--step));
+}
+.lane-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+/* A line is the colour of its lane: dim until its parent is owned, then full colour with a glow. */
+.lane-edge {
+  fill: none;
+  stroke: var(--lane);
+  stroke-opacity: 0.4;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.lane-edge.lit {
+  stroke-opacity: 1;
+  filter: drop-shadow(0 0 3px var(--lane));
+}
+.skill-node {
+  position: absolute;
+  width: var(--tile);
+  height: var(--tile);
+  left: calc(var(--col) * var(--step) + (var(--step) - var(--tile)) / 2);
+  top: calc(var(--row) * var(--step) + (var(--step) - var(--tile)) / 2);
+}
+.skill-lane .upgrade.purchasable {
+  border-color: var(--lane);
+  color: var(--lane);
+}
+.skill-lane .upgrade.owned,
+.skill-lane .upgrade.owned.single {
+  border-color: var(--lane);
+  color: var(--lane);
+  box-shadow: 0 0 10px var(--lane);
+}
+.upgrade.locked {
+  opacity: 0.35;
+}
+/* A masked skill keeps its place and its lane colour, but nothing glows: it is not lit yet. */
+.skill-lane .skill-node.masked,
+.skill-lane .skill-node.masked.purchasable {
+  opacity: 0.35;
+  color: var(--muted);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+/* The Stats tab: the latest finished sleeve-runs. */
+.stats-widget {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.stats-widget h2 {
+  margin: 0;
+}
+.runs-table {
+  display: grid;
+  gap: 4px;
+}
+.run-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 2fr;
+  gap: 12px;
+  font-size: 14px;
+}
+.run-row .run-levels {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--muted, #8a93b5);
+}
+.run-row.run-head {
+  color: var(--cyan);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+.runs-empty[hidden] {
+  display: none;
+}

@@ -13,3 +13,4 @@ export * from './parts/actionTipParts';
 export * from './parts/xpTipParts';
 export * from './parts/itemTipParts';
 export * from './parts/buyableTipParts';
+export * from './parts/hudText';

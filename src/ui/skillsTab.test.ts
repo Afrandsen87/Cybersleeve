@@ -1,41 +1,11 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
-import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
-import { testConfig } from '../testing/testConfig';
-import { buildViewModel, statRow } from './viewModel';
-import { skillViews } from '../testing/skillViews';
-import { flat } from '../testing/flatState';
 import { mountTestUi } from '../testing/domMountKit';
-
-const skill = (id: string, effect: BuyableDefinition['effect'], symbol = id.toUpperCase()): BuyableDefinition => ({
-  id,
-  name: `Skill ${id}`,
-  description: 'Does something.',
-  symbol,
-  currency: 'skillPoints',
-  cost: num(1),
-  effect,
-});
-const skills = [
-  skill('s1', { kind: 'interfaceSpeedMultiplier', factor: 1.05 }),
-  skill('s2', { kind: 'heatCooldownSpeed', factor: 1.05 }),
-  skill('bc', { kind: 'backChannel', itemId: 'file', rarityId: 'common', molesPerItem: 5, cooldownBoost: 0.5 }),
-];
-/** An action that does nothing: its level 1 is how a test earns the first skill point without touching the other actions. */
-const inert = { id: 'z', name: 'Z', baseDurationMs: 1_000, reward: num(0), xpPerRun: num(1) };
-const config = createConfig(testConfig, { actions: [...testConfig.actions, inert], buyables: [...testConfig.buyables, ...skills] });
-
-type Loose = { inventory: unknown; moles: number; heat: number; actions: Record<string, { xp: unknown }> };
-const loose = (g: { getState(): unknown }): Loose => flat<Loose>(g);
-
-/** A game in which the first skill point has been earned (the inert action reached level 1). */
-const pointGame = (): ReturnType<typeof createGame> => {
-  const g = createGame({ config });
-  loose(g).actions['z']!.xp = num(10);
-  return g;
-};
+import { config, loose, pointGame } from '../testing/skillsTabKit';
+import { skillViews } from '../testing/skillViews';
+import { buildViewModel } from './viewModel';
 
 beforeEach(() => {
   document.body.innerHTML = '';
@@ -47,17 +17,17 @@ describe('skills in the view model', () => {
     expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
     expect(buildViewModel(g).skills.points).toBe(0);
     loose(g).actions['z']!.xp = num(10);
-    expect(buildViewModel(g).tabs[1]!.label).toBe('Skills (1)');
+    expect([buildViewModel(g).tabs[1]!.label, buildViewModel(g).tabs[1]!.count]).toEqual(['Skills', 1]);
   });
 
   it('has the two tabs, Character and Skills, and shows the points next to Skills unless there are none', () => {
     const g = pointGame();
     expect(buildViewModel(g).tabs).toEqual([
-      { id: 'character', label: 'Character', visible: true, attention: false },
-      { id: 'skills', label: 'Skills (1)', visible: true, attention: true },
-      { id: 'automation', label: 'Automation', visible: false, attention: false },
-      { id: 'stats', label: 'Stats', visible: false, attention: false },
-      { id: 'corporation', label: 'Corporation', visible: false, attention: false },
+      { id: 'character', label: 'Character', count: null, visible: true, attention: false },
+      { id: 'skills', label: 'Skills', count: 1, visible: true, attention: true },
+      { id: 'automation', label: 'Automation', count: null, visible: false, attention: false },
+      { id: 'stats', label: 'Stats', count: null, visible: false, attention: false },
+      { id: 'corporation', label: 'Corporation', count: null, visible: false, attention: false },
     ]);
     g.buy('s1');
     expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
@@ -107,52 +77,6 @@ describe('skills in the view model', () => {
   });
 });
 
-describe('Moles and the back channel in the view model', () => {
-  it('the Moles row is hidden until the Back Channel Deals skill is owned (or Moles are held)', () => {
-    const g = pointGame();
-    expect(statRow(buildViewModel(g).network.stats, 'moles').hidden).toBe(true);
-    g.buy('bc');
-    const row = statRow(buildViewModel(g).network.stats, 'moles');
-    expect(row.hidden).toBe(false);
-    expect(row.text).toBe('0');
-    loose(g).moles = 12;
-    expect(statRow(buildViewModel(g).network.stats, 'moles').text).toBe('12');
-    expect(statRow(buildViewModel(g).network.stats, 'moles').tip).toContain('Moles = 12');
-  });
-
-  it('the back channel button is offered on the common stack only, once the skill is owned', () => {
-    const g = pointGame();
-    loose(g).inventory = { file: { common: 2, rare: 1 } };
-    expect(buildViewModel(g).inventory.rows.some((r) => r.backChannel)).toBe(false);
-    g.buy('bc');
-    const rows = buildViewModel(g).inventory.rows;
-    expect(rows.map((r) => [r.rarityId, r.backChannel])).toEqual([
-      ['common', true],
-      ['rare', false],
-    ]);
-    expect(rows[0]!.backChannelTip).toContain('Give up one for 5 Moles');
-    expect(rows[0]!.backChannelTip).toContain('50% faster');
-    expect(rows[1]!.backChannelTip).toBe('');
-  });
-
-  it('the heat tip mentions the Moles while there are some', () => {
-    const g = pointGame();
-    g.buy('bc');
-    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').tip).not.toContain('Moles make it');
-    loose(g).moles = 7;
-    expect(statRow(buildViewModel(g).sleeve.stats, 'heat').tip).toContain('7 Moles make it 50% faster');
-  });
-
-  it('the interface speed tip lists the skill factor once a skill gives one', () => {
-    const g = pointGame();
-    expect(statRow(buildViewModel(g).sleeve.stats, 'interfaceSpeed').tip).not.toContain('Skills');
-    g.buy('s1');
-    const tip = statRow(buildViewModel(g).sleeve.stats, 'interfaceSpeed').tip!;
-    expect(tip).toContain('x Skills');
-    expect(tip).toContain('Skills = 1.05');
-  });
-});
-
 describe('the screen', () => {
   const mount = () => {
     const root = document.createElement('div');
@@ -166,18 +90,18 @@ describe('the screen', () => {
   it('has the two tabs on the credits line, and the Skills tab blinks while a point waits', () => {
     const { root } = mount();
     const tabs = root.querySelector<HTMLElement>('.tabs')!;
-    expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual([
+    expect([...tabs.querySelectorAll('.tab')].map((t) => t.querySelector('.tab-label')!.textContent)).toEqual([
       'Character',
-      'Skills (1)',
+      'Skills',
       'Automation',
       'Stats',
       'Corporation',
     ]);
     expect(tabs.querySelectorAll<HTMLElement>('.tab[hidden]')).toHaveLength(3); // Automation waits for its first point, Stats for the first re-sleeve, Corporation for its unlock
     expect(tabs.parentElement).toBe(root.querySelector('header')); // the same line as the credits
-    expect(tabs.previousElementSibling).toBe(root.querySelector('.credits'));
+    expect(root.querySelector('header .credits')).not.toBeNull(); // the balance is in the same bar
     expect(tabs.hidden).toBe(false);
-    expect(root.querySelector('.tab.attention')!.textContent).toBe('Skills (1)');
+    expect(root.querySelector('.tab.attention .tab-label')!.textContent).toBe('Skills');
   });
 
   it('hides the tab bar until the first skill point is earned, then shows it', () => {
@@ -215,7 +139,7 @@ describe('the screen', () => {
 
   it('the credits stay visible on both tabs', () => {
     const { root } = mount();
-    expect(root.querySelector('.credits')!.parentElement).toBe(root.querySelector('header')!);
+    expect(root.querySelector('.credits')!.closest('header')).toBe(root.querySelector('header')!);
     expect(root.querySelector('header')!.closest('.tab-panel')).toBeNull();
   });
 
@@ -228,7 +152,7 @@ describe('the screen', () => {
     expect(game.ownedCount('s1')).toBe(1);
     render(); // the game loop redraws the screen a moment after a click
     expect(root.querySelector('.skills-points')!.textContent).toBe('Skill points: 0');
-    expect([...root.querySelectorAll('.tab')][1]!.textContent).toBe('Skills');
+    expect([...root.querySelectorAll('.tab-label')][1]!.textContent).toBe('Skills');
     expect(buttons[1]!.disabled).toBe(true);
     expect(buttons[0]!.classList.contains('owned')).toBe(true);
   });

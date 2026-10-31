@@ -68,7 +68,7 @@ Every decision entry now lives in the doc of the context it decides (section "De
 | [save](contexts/save.md) | 2 |
 | [skills](contexts/skills.md) | 4 |
 | [synth](contexts/synth.md) | 1 |
-| [ui](contexts/ui.md) | 8 |
+| [ui](contexts/ui.md) | 9 |
 
 *Group: Decided 2026-10-29/30 (by the user, S8 state and save)*
 - **Automation: Pick Targets removed, resume checklists (2026-10-31).** Every Auto Burn switch is independent, so the Pick Targets skill is gone (lane slot 8 stays empty to keep saved skill ids stable); the resume switches turn on the Overclocks / Auto-runs the player ticks (`resumeOverclocks`, `resumeAutoRuns` in the wallet's Auto Burn settings), even ones switched off by hand. See [contexts/automation.md](contexts/automation.md).

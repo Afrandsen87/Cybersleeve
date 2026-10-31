@@ -1,0 +1,91 @@
+/* Shown because the ledger remembers it, but its requirements are unmet again: greyed. */
+.upgrade.gated {
+  opacity: 0.45;
+}
+.upgrades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.upgrades:empty {
+  display: none;
+}
+.upgrade {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  text-align: center;
+  font-weight: 700;
+  line-height: 42px;
+}
+.upgrade.owned {
+  border-color: var(--bright-blue);
+  color: var(--teal);
+}
+/* A purchase with no more copies to buy (a one-off that was bought, or a repeatable at its cap): golden border instead of the repeatable blue. */
+.upgrade.maxed {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.upgrade.owned.off {
+  border-color: var(--line);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.upgrade:disabled {
+  opacity: 1;
+  color: #5b6b86;
+} /* dimmed by colour, not opacity, so the tooltip stays readable */
+/* Pixel-art icon before the text of an action title, an inventory label or the credits (see applyIcon in dom.ts). */
+.has-icon::before {
+  content: "";
+  display: inline-block;
+  width: 1.4em;
+  height: 1.4em;
+  margin-right: 0.4em;
+  vertical-align: -0.3em;
+  background: var(--icon) center / contain no-repeat;
+  image-rendering: pixelated;
+}
+.credits.has-icon::before {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.15em;
+}
+
+/* A purchase button with an icon shows the icon instead of its letters (the letters stay as the fallback and are hidden). */
+.upgrade.has-icon {
+  font-size: 0;
+}
+.upgrade.has-icon::before {
+  position: absolute;
+  inset: 6px;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+/* An icon dims with its button: unaffordable or switched off. Affordable and maxed buttons show it at full colour. */
+.upgrade.has-icon:disabled:not(.maxed)::before,
+.upgrade.has-icon.off::before {
+  filter: grayscale(0.8) brightness(0.55);
+}
+.upgrade.has-icon.owned.off::before {
+  filter: grayscale(1) brightness(0.45);
+}
+/*
+ * A buyable that can be bought right now glows in the colour of its border: bright blue the first time, teal for another copy. Last in
+ * the file so it wins over the lane and owned rules. Skill nodes keep their lane colours.
+ */
+.upgrade.purchasable:not(:disabled):not(.owned):not(.skill-node),
+.square-unlock.purchasable:not(:disabled),
+.cell.purchasable:not(:disabled) {
+  border-color: var(--bright-blue);
+  color: var(--bright-blue);
+  box-shadow: 0 0 8px var(--bright-blue);
+}
+.upgrade.owned.purchasable:not(:disabled):not(.maxed):not(.skill-node) {
+  border-color: var(--teal);
+  box-shadow: 0 0 8px var(--teal);
+}
