@@ -9,6 +9,7 @@ import type { GameCommands, GameQueries } from '../core';
 import { CREDITS_ICON_ID, type IconSource, noIcons } from './pixelIcon';
 import { installTooltips, TipRegistry } from './tooltip';
 import { type UiText, uiText as defaultText } from './uiText';
+import { TabAttention } from './view/tabAttention';
 import { buildViewModel, type TabView } from './viewModel';
 import { mountActionCards } from './widgets/actionCards';
 import { buildAutomationWidget, renderAutomation } from './widgets/automationWidget';
@@ -78,7 +79,7 @@ export function mountUi(
 ): () => void {
   const text = options.text ?? defaultText;
   const icons = options.icons ?? noIcons;
-  const selection: UiSelection = { augmentRarityId: null, revealAll: false };
+  const selection: UiSelection = { augmentRarityId: null, revealAll: false, tabAttention: new TabAttention(), activeTab: 'character' };
   const initial = buildViewModel(engine, undefined, text, selection);
   root.innerHTML = '';
   const tips = new TipRegistry();
@@ -134,7 +135,9 @@ export function mountUi(
   root.append(header, characterPanel, corporation.root, skills.root, automationPanel, stats.root);
 
   function render(): void {
+    selection.activeTab = activeTab;
     const vm = buildViewModel(engine, undefined, text, selection);
+    if (vm.newlyRevealed.length > 0) engine.noteRevealed(vm.newlyRevealed); // the ledger only changes when a key is new
     setText(credits, vm.creditsLine);
     renderStats(networkWidget, vm.network.stats, tips);
     renderInventory(inventoryWidget, vm.inventory, tips, selection);

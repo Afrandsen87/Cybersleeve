@@ -9,6 +9,7 @@
  */
 import type { GameCommands, GameQueries } from '../../core';
 import type { IconSource } from '../pixelIcon';
+import type { TabAttention } from '../view/tabAttention';
 import type { TipRegistry } from '../tooltip';
 import type { UiText } from '../uiText';
 
@@ -18,6 +19,10 @@ export interface UiSelection {
   augmentRarityId: string | null;
   /** Test aid: show everything the rules of the game hide (the "Show all" button). */
   revealAll: boolean;
+  /** Which points the player has looked at, per tab. */
+  tabAttention?: TabAttention;
+  /** The tab the player is looking at now. */
+  activeTab?: string;
 }
 
 /** Everything a widget needs from the screen it is part of. */

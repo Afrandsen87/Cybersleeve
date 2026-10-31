@@ -12,6 +12,7 @@ import { actionsSavePart, autoRunSavePart, togglesSavePart } from '../actions/ac
 import { automationSavePart } from '../automation/automationSave';
 import { corporationSavePart } from '../corporation/corporationSave';
 import { critsSavePart } from '../crits/critsSave';
+import { revealedSavePart } from '../economy/revealLedgerSave';
 import { inventorySavePart, seenItemsSavePart } from '../items/inventorySave';
 import type { SavePart } from '../kernel/savePart';
 import { runsSavePart } from '../resleeve/runsSave';
@@ -41,6 +42,7 @@ export const SAVE_PARTS: readonly SavePart<SaveConfig>[] = [
   togglesSavePart,
   inventorySavePart,
   seenItemsSavePart,
+  revealedSavePart,
   critsSavePart,
   automationSavePart,
 ];
@@ -55,6 +57,7 @@ export const WALLET_KEY_ORDER: readonly string[] = [
   'automation',
   'inventory',
   'seenItems',
+  'revealed',
 ];
 
 /** Order of the keys of the saved sleeve (the scalars follow). */

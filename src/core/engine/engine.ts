@@ -31,6 +31,7 @@ import { type Inventory, hasSeenItem } from '../items/inventory';
 import type { NetworkSystem } from '../economy/network';
 import type { OverflowPolicy } from '../kernel/overflow';
 import { notePeaks } from '../economy/reveal';
+import { noteRevealed } from '../economy/revealLedger';
 import type { Progression } from '../actions/progression';
 import type { XpCurve } from '../actions/xpCurve';
 import type { XpPerRunBreakdown } from '../actions/runStats';
@@ -233,6 +234,16 @@ export class GameEngine implements GameQueries, GameCommands {
   }
 
   /** Buys one copy of a buyable. Auto-run takes effect on the next tick. */
+  /**
+   * Writes keys the screen showed into the reveal ledger (`wallet.revealed`), see `economy/revealLedger.ts`. The only writer; the view build
+   * only collects the keys, so no query mutates.
+   *
+   * Called by: `ui/dom.ts` (only when the view found a new key). Calls: `noteRevealed`.
+   */
+  noteRevealed(keys: readonly string[]): void {
+    noteRevealed(this.state, this.config, keys);
+  }
+
   buy(id: BuyableId): PurchaseResult {
     return this.shop.buy(this.state, id);
   }
@@ -630,6 +641,11 @@ export class GameEngine implements GameQueries, GameCommands {
   /** Skill points the player can still spend (earned from the action levels, minus what the owned skills cost). */
   skillPointsEarned(): number {
     return this.shop.skillPointsEarned(this.state);
+  }
+
+  /** Re-sleeve points earned in total, spent or not. */
+  resleevePointsEarned(): number {
+    return this.shop.resleevePointsEarned(this.state);
   }
 
   /** Skill points the player can still spend. */

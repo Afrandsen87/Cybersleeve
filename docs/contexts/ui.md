@@ -4,6 +4,10 @@ Rendering, view models, text, tooltips, layout.
 
 Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+## Reveal ledger and tab blink
+
+**Reveal ledger** (`wallet.revealed`, `economy/revealLedger.ts`): a set of typed keys `stat:<id>`, `tab:<id>`, `skill:<id>`, `buyable:<id>` for everything the player has ever been shown. Only grows; survives a re-sleeve (`CARRIED_OVER_WALLET_FIELDS`). Queries never write it: each view build uses one `RevealTracker` (`ui/view/revealTracker.ts`) that says "shown" when the key is noted or the natural rule says so now, and collects keys that are new into `ViewModel.newlyRevealed`; `ui/dom.ts` then calls the engine command `noteRevealed(keys)` only when that list is not empty. Unknown and repeated keys are ignored (ids are resolved against the content, not a branch). Tabs: `tabsView` takes the tracker and a `TabAttention` (held by `ui/dom.ts` in `UiSelection`); `BuyableView.gated` marks a remembered purchase whose requirements are unmet (class `gated`, greyed).
+
 ## Decisions (from docs/DECISIONS.md)
 
 

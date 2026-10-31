@@ -3,6 +3,7 @@
  *
  * Invariants of the wallet's records: finished runs, synthetic sleeves and the corporation.
  */
+import { isKnownRevealKey } from '../../core';
 import { type InvariantCheck, validAmount, validCount } from './shared';
 
 /**
@@ -31,6 +32,10 @@ export const checkWallet: InvariantCheck = (state, config, problems) => {
     !config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (state.sleeve.purchased[b.id] ?? 0) > 0)
   )
     problems.push('synthetic sleeves exist without the skill that gives them');
+  // the reveal ledger: a set of keys that name something that exists (resolved by id)
+  const revealed = state.wallet.revealed;
+  if (new Set(revealed).size !== revealed.length) problems.push('the reveal ledger holds a key twice');
+  for (const key of revealed) if (!isKnownRevealKey(key, config.buyables)) problems.push(`the reveal ledger holds an unknown key: ${key}`);
   for (const def of config.corporation?.actions ?? []) {
     const action = state.wallet.corporation.actions[def.id];
     if (!action) problems.push(`corporation action ${def.id} has no state`);

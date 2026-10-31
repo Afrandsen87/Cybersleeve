@@ -10,6 +10,7 @@
  */
 import { type GameConfig, ownsAutoRun, type SleeveStats, type StateSliceView } from '../../core';
 import { BRANCH_ANONYMITY } from '../../content/ids';
+import type { RevealTracker } from './revealTracker';
 import { heatOrIceMoved, isStatHidden, type RevealableStat } from './statReveal';
 
 /** Branch id to the stat that must be revealed before the text of its skills is readable. */
@@ -25,14 +26,21 @@ export const BRANCH_REVEAL_STAT: Readonly<Record<string, RevealableStat>> = {
  * @param config game configuration
  * @param state the game state (reads `purchased`)
  * @param stats the sleeve stats now (access level, heat, ICE Rating)
+ * @param tracker the reveal ledger reader (a branch whose stat the ledger holds is not masked)
  * @returns a function from a branch id to `true` when every skill of the branch must read as hidden; branches without a rule are never masked
  */
-export function branchMaskedFn(config: GameConfig, state: StateSliceView<'purchased'>, stats: SleeveStats): (branchId: string) => boolean {
+export function branchMaskedFn(
+  config: GameConfig,
+  state: StateSliceView<'purchased'>,
+  stats: SleeveStats,
+  tracker?: RevealTracker,
+): (branchId: string) => boolean {
   const reveal = {
     config,
     accessLevel: stats.accessLevel,
     owned: (id: string): number => state.sleeve.purchased[id] ?? 0,
     ownsAuto: (id: string): boolean => ownsAutoRun(config.buyables, state, id),
+    ...(tracker ? { tracker } : {}),
   };
   const moved = heatOrIceMoved(stats, config);
   return (branchId) => {

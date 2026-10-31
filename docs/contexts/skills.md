@@ -4,6 +4,8 @@ Skill trees and skill points.
 
 Code: `src/core/skills/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+- **Remembered skills:** a skill that has been readable is noted as `skill:<id>` in the reveal ledger (`docs/REVEAL_RULES.md`) and stays readable after a re-sleeve; while its gates are unmet again it is shown faded (`locked`) and cannot be bought. The Skills tab blinks while skill + re-sleeve points earned exceed those seen; the Automation tab likewise for automation points.
+
 ## Design (from DESIGN.md)
 
 ### 8. Skills

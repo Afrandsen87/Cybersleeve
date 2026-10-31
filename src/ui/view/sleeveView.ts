@@ -24,6 +24,7 @@ import { formatBigNum, formatPlain, numberFactory } from '../../numbers';
 import type { UiText } from '../uiText';
 import { isCorporate, isPointCurrency, sectionLayout } from './buyableViews';
 import { aggregatedMoleText } from './moleBonus';
+import type { RevealTracker } from './revealTracker';
 import { heatOrIceMoved, isStatHidden } from './statReveal';
 import { MULTIPLIER_DECIMALS, PROFICIENCY_DECIMALS, SPEED_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
 import type { BuyableView, SleeveView, StatRowView } from './viewTypes';
@@ -62,7 +63,7 @@ function iceBonusSource(config: GameConfig, ownedCount: (id: string) => number):
 }
 
 /** The sleeve stat rows. */
-function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig, text: UiText): StatRowView[] {
+function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig, text: UiText, tracker?: RevealTracker): StatRowView[] {
   const ownedCount = (id: string): number => state.sleeve.purchased[id] ?? 0;
   const { sleeve } = config;
   const reveal = {
@@ -70,6 +71,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
     accessLevel: stats.accessLevel,
     owned: ownedCount,
     ownsAuto: (id: string): boolean => ownsAutoRun(config.buyables, state, id),
+    ...(tracker ? { tracker } : {}),
   };
   // heat and ICE Rating appear together, so either having moved keeps both on show
   const heatOrIceShown = heatOrIceMoved(stats, config);
@@ -212,6 +214,7 @@ function sleeveRows(stats: SleeveStats, state: GameStateView, config: GameConfig
  * @param buyableViews the view of every buyable
  * @param viewById the same views by id
  * @param text the display text
+ * @param tracker the reveal ledger reader (default: none, the stat rules decide alone)
  */
 export function sleeveView(
   stats: SleeveStats,
@@ -220,10 +223,11 @@ export function sleeveView(
   buyableViews: readonly BuyableView[],
   viewById: ReadonlyMap<string, BuyableView>,
   text: UiText,
+  tracker?: RevealTracker,
 ): SleeveView {
   return {
     title: text.titles.sleeve,
-    stats: sleeveRows(stats, state, config, text),
+    stats: sleeveRows(stats, state, config, text, tracker),
     buyables: buyableViews.filter(
       (b) =>
         b.actionId === undefined &&
