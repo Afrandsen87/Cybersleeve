@@ -11,6 +11,7 @@
  * are SVG paths in grid units (no measuring of the page), and a refresh only toggles classes and text.
  */
 import type { SkillLaneView, SkillNodeView } from '../viewModel';
+import { joinSkillLanes } from '../view/skillTreeJoin';
 import { type UiContext, h, setText } from './domKit';
 import { renderUpgrades } from './upgradeButtons';
 
@@ -44,28 +45,53 @@ interface Edge {
  *
  * @param ctx what the tree needs from the screen (icons, tips, the buy command)
  * @param initial the lanes as the first refresh sees them (decides which nodes exist; the tree's shape does not change afterwards)
+ * @param mode Joined mode shares one grid and SVG when a cross-branch trunk exists.
  */
-export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]): SkillTreeWidget {
+export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[], mode: 'lanes' | 'joined' = 'lanes'): SkillTreeWidget {
   const element = h('div', 'skill-tree');
   element.style.setProperty('--step', `${STEP_PX}px`);
   element.style.setProperty('--tile', `${TILE_PX}px`);
   const buttons = new Map<string, HTMLButtonElement>();
   const edges: Edge[] = [];
+  const joined = mode === 'joined' ? joinSkillLanes(initial) : null;
+  let sharedSvg: SVGSVGElement | undefined;
+  if (joined) {
+    element.classList.add('skill-tree-joined');
+    element.style.setProperty('--cols', String(joined.cols));
+    element.style.setProperty('--rows', String(joined.rows));
+    sharedSvg = document.createElementNS(SVG_NS, 'svg');
+    sharedSvg.setAttribute('class', 'lane-edges');
+    sharedSvg.setAttribute('viewBox', `0 0 ${joined.cols} ${joined.rows}`);
+    sharedSvg.setAttribute('aria-hidden', 'true');
+    element.append(sharedSvg);
+  }
+  const drawingLanes = joined
+    ? [...joined.bands, { id: joined.trunkBranch, title: '', cols: joined.cols, rows: joined.rows, nodes: [joined.trunk], firstRow: 0 }]
+    : initial;
+  const globalNodes = new Map(drawingLanes.flatMap((lane) => lane.nodes.map((node) => [node.view.id, node] as const)));
 
-  for (const lane of initial) {
+  for (const lane of drawingLanes) {
     const laneEl = h('section', 'skill-lane');
     laneEl.dataset['branch'] = lane.id;
+    if (joined) {
+      const firstRow = 'firstRow' in lane ? Number(lane.firstRow) : 0;
+      laneEl.style.setProperty('--first-row', String(firstRow));
+      laneEl.style.setProperty('--band-rows', String(lane.rows));
+      if (lane.id === joined.trunkBranch) laneEl.classList.add('trunk-lane');
+    }
     if (lane.title) laneEl.append(h('h3', 'lane-title', lane.title));
     const grid = h('div', 'lane-grid');
     grid.style.setProperty('--cols', String(lane.cols));
     grid.style.setProperty('--rows', String(lane.rows));
-    const svg = document.createElementNS(SVG_NS, 'svg');
-    svg.setAttribute('class', 'lane-edges');
-    svg.setAttribute('viewBox', `0 0 ${lane.cols} ${lane.rows}`);
-    svg.setAttribute('aria-hidden', 'true');
-    grid.append(svg);
+    const svg = sharedSvg ?? document.createElementNS(SVG_NS, 'svg');
+    if (!sharedSvg) {
+      svg.setAttribute('class', 'lane-edges');
+      svg.setAttribute('viewBox', `0 0 ${lane.cols} ${lane.rows}`);
+      svg.setAttribute('aria-hidden', 'true');
+      grid.append(svg);
+    }
 
-    const byId = new Map(lane.nodes.map((n) => [n.view.id, n]));
+    const byId = joined ? globalNodes : new Map(lane.nodes.map((n) => [n.view.id, n]));
     for (const node of lane.nodes) {
       const button = h('button', 'upgrade skill-node') as HTMLButtonElement;
       button.style.setProperty('--col', String(node.col));
@@ -84,6 +110,7 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
         const path = document.createElementNS(SVG_NS, 'path');
         path.setAttribute('d', edgePath(parent, node));
         path.setAttribute('class', 'lane-edge');
+        if (joined) path.style.setProperty('--lane', `var(--branch-${lane.id})`);
         svg.append(path);
         edges.push({ path, parentId });
       }

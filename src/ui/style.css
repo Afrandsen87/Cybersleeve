@@ -17,6 +17,7 @@
   --branch-autosale: #ffe14d;
   --branch-dispersal: #4dd2ff;
   --branch-retention: #5ee6c8;
+  --branch-sleeveUp: #c4d8ed;
   --branch-reach: #ffa64d;
   --branch-synthetics: #7a8cff;
   --branch-corporation: #ff6fb5;
@@ -830,6 +831,9 @@ button:not(:disabled):hover {
 .skill-lane[data-branch="retention"] {
   --lane: var(--branch-retention);
 }
+.skill-lane[data-branch="sleeveUp"] {
+  --lane: var(--branch-sleeveUp);
+}
 .skill-lane[data-branch="reach"] {
   --lane: var(--branch-reach);
 }
@@ -846,6 +850,57 @@ button:not(:disabled):hover {
   text-transform: uppercase;
   color: var(--lane);
   text-shadow: 0 0 8px var(--lane);
+}
+/* Joined bands share a global grid; their node layers cancel the band offset. */
+.skill-tree-joined {
+  display: block;
+  position: relative;
+  gap: 0;
+  width: calc(var(--cols) * var(--step));
+  min-width: 100%;
+  height: calc(var(--rows) * var(--step));
+  overflow: visible;
+}
+.skill-tree-joined > .skill-lane {
+  position: absolute;
+  top: calc(var(--first-row) * var(--step));
+  width: 100%;
+  min-width: 0;
+  height: calc(var(--band-rows) * var(--step));
+  padding: 0;
+  border-radius: 0;
+  border-left: 0;
+  box-shadow: inset 3px 0 var(--lane);
+  display: block;
+}
+.skill-tree-joined .lane-grid {
+  position: absolute;
+  top: calc(-1 * var(--first-row) * var(--step));
+  pointer-events: none;
+}
+.skill-tree-joined .skill-node {
+  pointer-events: auto;
+  z-index: 2;
+}
+.skill-tree-joined .lane-title {
+  position: absolute;
+  top: 0;
+  left: calc(var(--step) + 4px);
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0.04em;
+}
+.skill-tree-joined > .trunk-lane {
+  background: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+.skill-tree-joined > .trunk-lane::after {
+  display: none;
+}
+.skill-tree-joined > .lane-edges {
+  z-index: 1;
+  width: calc(var(--cols) * var(--step));
 }
 .lane-grid {
   position: relative;

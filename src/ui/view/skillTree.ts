@@ -93,7 +93,7 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
         view: masked ? maskedView(view, input.hiddenText) : view,
         col: place.col,
         row: place.row,
-        parents: place.parents,
+        parents: (b.parents ?? []).filter((id) => byId.has(id) && id !== b.id),
         masked,
         // readable only through the ledger (its gates are unmet again) also counts as locked
         locked: !masked && ((b.parents ?? []).some((p) => owned(p) <= 0) || naturalMemo.get(b.id) === false),

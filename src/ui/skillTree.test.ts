@@ -4,6 +4,7 @@ import { num } from '../numbers';
 import { RevealTracker } from './view/revealTracker';
 import { GENERAL_LANE, type SkillTreeInput, buildSkillLanes } from './view/skillTree';
 import type { BuyableView } from './view/viewTypes';
+import { joinSkillLanes } from './view/skillTreeJoin';
 
 const def = (id: string, extra: Partial<BuyableDefinition> = {}): BuyableDefinition => ({
   id,
@@ -116,6 +117,20 @@ describe('skill tree layout: where a skill sits', () => {
 });
 
 describe('skill tree lanes', () => {
+  it('retains cross-lane parents for joined drawing without changing local placement', () => {
+    const result = lanes([def('trunk', { branch: 'trunk' }), def('root', { branch: 'path', parents: ['trunk'] })]);
+    expect(result[1]!.nodes[0]!.parents).toEqual(['trunk']);
+    expect(result[1]!.nodes[0]!.col).toBe(0);
+    expect(joinSkillLanes(result)?.bands[0]?.nodes[0]?.col).toBe(1);
+  });
+
+  it('leaves ordinary lanes unchanged when no cross-branch trunk exists', () => {
+    const result = lanes([def('a', { branch: 'red' }), def('b', { branch: 'blue' })]);
+    const before = result.map((lane) => ({ ...lane, nodes: [...lane.nodes] }));
+    expect(joinSkillLanes(result)).toBeNull();
+    expect(result).toEqual(before);
+    expect(result.map((lane) => lane.nodes.map((node) => [node.col, node.row]))).toEqual([[[0, 0]], [[0, 0]]]);
+  });
   it('one lane per branch in order of first appearance, with the skills without a branch in the general lane', () => {
     const result = lanes([def('a', { branch: 'red' }), def('b', { branch: 'blue' }), def('c', { branch: 'red' }), def('d')]);
     expect(result.map((l) => l.id)).toEqual(['red', 'blue', GENERAL_LANE]);
