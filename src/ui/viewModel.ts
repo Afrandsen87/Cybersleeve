@@ -63,7 +63,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
 
   const vm: ViewModel = {
     creditsText: formatBigNum(state.wallet.credits),
-    hud: hudView(engine, state, sleeve.heatGauge, text),
+    hud: hudView(engine, state, text, tracker),
     network: networkView(engine, config, state, stats, text),
     tabs: tabsView(engine, state, text, tracker, selection.tabAttention, selection.activeTab),
     skills: skillsView(engine, state, config, viewById, stats, text, revealAll, tracker),

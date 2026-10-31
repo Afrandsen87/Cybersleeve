@@ -3,7 +3,7 @@ import { createGame } from '../../app/createGame';
 import { formatPlain } from '../../numbers';
 import { buildViewModel, statRow } from '../../ui/viewModel';
 import { testConfig } from '../../testing/testConfig';
-import { cycleMs, coolsNow, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heatModel';
+import { cycleMs, cycleSeconds, coolsNow, heatStopPoint, heatTaxShare, moleSpeedFactor } from './heatModel';
 import { heatTaxFactor } from './heat';
 
 const EDGES = [0, -3, 0.5, 1, 2, 100, 1e6, 1e300, Number.NaN, Number.POSITIVE_INFINITY];
@@ -13,6 +13,16 @@ describe('cycleMs', () => {
     const sleeve = { heatCooldownMs: 1000, legendHeatSpeedup: 0.1 };
     expect(cycleMs(sleeve, 0)).toBe(1000);
     expect(cycleMs(sleeve, 10)).toBe(500);
+  });
+});
+
+describe('cycleSeconds', () => {
+  it('is the cycle in seconds, divided by the cooldown speed', () => {
+    const sleeve = { heatCooldownMs: 60_000, legendHeatSpeedup: 0.1 };
+    expect(cycleSeconds(sleeve, 0, 1)).toBe(60);
+    expect(cycleSeconds(sleeve, 10, 2)).toBe(15);
+    expect(cycleSeconds(sleeve, 0, 1e300)).toBeCloseTo(0);
+    expect(cycleSeconds(sleeve, 0, 0)).toBe(Number.POSITIVE_INFINITY);
   });
 });
 

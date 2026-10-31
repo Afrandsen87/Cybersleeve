@@ -33,7 +33,7 @@ export function tabView(id: TabView['id'], count: number | null, visible = true)
   return { id, label: id, count, visible, attention: false };
 }
 
-/** A HUD view with no rate and no heat; pass what the test is about. */
+/** A HUD view with no rate; pass what the test is about. */
 export function hudView(overrides: Partial<HudView> = {}): HudView {
-  return { creditsLabel: 'CREDITS', creditsText: '12', rateText: null, heat: null, ...overrides };
+  return { creditsLabel: 'CREDITS', creditsText: '12', rateText: null, ...overrides };
 }

@@ -35,8 +35,10 @@ export function networkView(
   const taxShare = 1 - keep;
   const income = engine.passiveCreditsPerSecond();
   const stop = heatStopPoint(stats.heatReduction, config.sleeve.heatTaxPerPoint, stats.heatTaxCap);
+  const linked = !state.sleeve.network.isZero();
+  // with no nodes there is no network income for the tax to take, so no note (and no red +0)
   const taxNote =
-    taxShare > 0
+    linked && taxShare > 0
       ? text.mainScreen.taxNote(
           formatSignificant(taxShare * 100, PANEL_DIGITS),
           formatSignificant(stats.heat, PANEL_DIGITS),
@@ -45,7 +47,7 @@ export function networkView(
       : null;
   return {
     title: text.titles.network,
-    status: !state.sleeve.network.isZero() ? text.mainScreen.linked : null,
+    status: linked ? text.mainScreen.linked : null,
     taxNote,
     stats: [
       row('nodes', text, formatBigNum(state.sleeve.network), null, null, false, 'info'),

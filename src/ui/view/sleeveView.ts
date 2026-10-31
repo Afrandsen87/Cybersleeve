@@ -15,6 +15,7 @@ import {
   earnedSpeedBeyond,
   coolsNow as heatCoolsNow,
   cycleMs as heatCycleMs,
+  cycleSeconds as heatCycleSeconds,
   heatStopPoint,
   heatTaxShare,
   ownsAutoRun,
@@ -69,7 +70,7 @@ function sleeveRows(
     ...(beyond && beyond.exponent !== sleeve.earnedSpeedExponent ? { beyond } : {}),
   };
   const proficiency = state.sleeve.hackingProficiency.mul(numberFactory.fromNumber(stats.hackingProficiencyFactor));
-  const cooldownSpeed = stats.heatCooldownSpeed;
+  const cycleSeconds = heatCycleSeconds(sleeve, stats.legend, stats.heatCooldownSpeed);
   const coolsNow = heatCoolsNow(stats.heat, stats.heatCooldownAmount);
   const panel = (n: number): string => formatSignificant(n, PANEL_DIGITS);
   const heatTip = (): string =>
@@ -81,7 +82,7 @@ function sleeveRows(
       stopsAt,
       taxCapPercent: capped ? formatPlain(stats.heatTaxCap * 100) : null,
       amount: formatPlain(stats.heatCooldownAmount),
-      cycleSeconds: formatPlain(cycleMs / cooldownSpeed / 1000),
+      cycleSeconds: formatPlain(cycleSeconds),
       moles:
         state.sleeve.moles > 0
           ? {
@@ -150,9 +151,7 @@ function sleeveRows(
       heatTip,
       {
         // while it cools, the bar says by how much and how often; otherwise why it waits
-        label: coolsNow
-          ? text.mainScreen.cooldown(panel(stats.heatCooldownAmount), panel(cycleMs / cooldownSpeed / 1000))
-          : text.bars.heat(false),
+        label: coolsNow ? text.mainScreen.cooldown(panel(stats.heatCooldownAmount), panel(cycleSeconds)) : text.bars.heat(false),
         percent: Math.min(100, (state.sleeve.heatCooldownMs / cycleMs) * 100),
         running: coolsNow,
         hidden: false,

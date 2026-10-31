@@ -1,7 +1,7 @@
-/* The top bar: balance and income on the left, the small heat gauge, the tabs on the right. */
+/* The top bar: balance and income on the left, the tabs on the right. */
 header.hud {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto 1fr;
   gap: 8px 22px;
   align-items: center;
   padding: 8px 14px;
@@ -32,52 +32,6 @@ header.hud {
 }
 .rate[hidden] {
   display: none;
-}
-.hud-heat {
-  display: grid;
-  gap: 3px;
-  min-width: 210px;
-  font: 11px var(--mono);
-}
-.hud-heat[hidden] {
-  display: none;
-}
-.hud-heat-row {
-  display: flex;
-  gap: 10px;
-}
-.hud-heat-value {
-  color: var(--heat);
-  font-weight: 700;
-}
-.hud-heat-tax {
-  color: var(--danger);
-  font-weight: 700;
-}
-.hud-heat-tax::before {
-  content: "· ";
-  color: var(--muted);
-}
-.mini {
-  height: 6px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: var(--bg);
-  overflow: hidden;
-}
-.mini-fill {
-  display: block;
-  height: 100%;
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform var(--render-ms, 100ms) linear;
-  background: linear-gradient(90deg, var(--heat), var(--danger));
-  box-shadow: 0 0 8px var(--danger);
-}
-@media (prefers-reduced-motion: reduce) {
-  .mini-fill {
-    transition: none;
-  }
 }
 /* The tabs, on the credits line: terminal style, the active one underlined. */
 .tabs {

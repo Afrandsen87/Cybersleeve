@@ -1,11 +1,15 @@
 /**
  * @module ui
- * Main-screen wording kept outside the uiText facade.
- * Called by: uiText. Calls: none; no side effects.
+ *
+ * The default wording of the main screen's top bar, Sleeve stat groups, heat gauge and status lights (`uiText.mainScreen`),
+ * kept in its own file so `uiText.ts` stays small.
+ *
+ * @remarks
+ * Called by: `uiText.ts`. Calls: nothing.
  */
 import type { MainScreenText } from './parts/hudText';
 
-/** Main-screen words. Called by: view builders via uiText. Calls: none. */
+/** The default main screen wording (see `MainScreenText`). */
 export const hudText: MainScreenText = {
   creditsLabel: 'CREDITS',
   online: 'ONLINE',
@@ -14,7 +18,6 @@ export const hudText: MainScreenText = {
   zoneText: 'FULLY TAXED ZONE',
   resleeveTitle: 'RE-SLEEVE',
   heatValue: (value) => `HEAT ${value}`,
-  taxValue: (percent) => `TAX ${percent}%`,
   taxNote: (percent, heat, stop) => `heat tax takes ${percent}% (heat ${heat}${stop === null ? '' : ` ≥ ${stop}`})`,
   rate: (value) => `+${value}/s`,
   stopLegend: (stop) => `all credits taxed ≥ ${stop}`,

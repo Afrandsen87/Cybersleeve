@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 /**
  * @module ui
- * The top bar draws the credits, hides the rate and the heat gauge while the view has none.
+ * The top bar draws the credits, and hides the rate while the view has none.
  * Called by: vitest. Calls: buildHud, widgetKit.
  */
 import { describe, expect, it } from 'vitest';
@@ -26,15 +26,5 @@ describe('top bar', () => {
     hud.render(hudView({ rateText: '+3/s' }));
     hud.render(hudView({ rateText: null }));
     expect(hud.rate.hidden).toBe(true);
-  });
-
-  it('hides the heat gauge while the view has none, and scales the mini bar with a transform when it has one', () => {
-    const hud = mount();
-    hud.render(hudView());
-    expect(hud.heat.hidden).toBe(true);
-    hud.render(hudView({ heat: { valueText: 'HEAT 5', taxText: 'TAX 10%', fillPercent: 25 } }));
-    expect(hud.heat.hidden).toBe(false);
-    expect(hud.heat.textContent).toBe('HEAT 5TAX 10%');
-    expect(hud.heat.querySelector<HTMLElement>('.mini-fill')!.style.transform).toBe('scaleX(0.25)');
   });
 });

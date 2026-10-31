@@ -12,9 +12,13 @@ export const HEAT_STRIP_HEADROOM = 1.5;
  * Called by: heatStripLayout consumers. Calls: none.
  */
 export interface HeatStripLayout {
+  /** How far the heat fills the strip (100 when it is beyond the end). */
   readonly fillPercent: number;
+  /** Where the given tax start sits; `null` when there is none (a capped tax). */
   readonly taxStartPercent: number | null;
+  /** Where each marker sits, in the order given. */
   readonly markerPercents: number[];
+  /** The heat is beyond the end of the strip, so the fill is pinned at the right edge. */
   readonly overflow: boolean;
 }
 

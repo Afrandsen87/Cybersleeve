@@ -74,11 +74,13 @@ const heatAndIce = (ctx: RevealContext): boolean => heatExists(ctx) || iceExists
  * - Heat and ICE Rating (linked, one shared rule): an open action that makes heat (`heatPerRun`, `heatPerSecond`), an Overclock
  *   unlock (owned, or shown in the square) whose overclock makes heat (`heatPerMinute`, or the action makes heat itself), an owned buyable that boosts ICE Rating, or an open action that earns it.
  * - Legend: an open action that earns it.
+ * - Income rate (top bar, `hudView.ts`): no rule of its own; it shows from the first time the income is above 0 (its value).
  */
 export const REVEAL_RULES: Readonly<Record<RevealableStat, (ctx: RevealContext) => boolean>> = {
   heat: heatAndIce,
   iceRating: heatAndIce,
   legend: (ctx) => ctx.config.actions.some((a) => isOpen(a, ctx) && a.rewardKind === 'legend'),
+  incomeRate: () => false,
 };
 
 /**

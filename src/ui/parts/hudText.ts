@@ -1,33 +1,38 @@
 /**
  * @module ui
- * Main-screen text contracts; all numbers arrive already formatted.
- * Called by: hudText and view builders. Calls: none.
+ *
+ * The text the main screen's top bar, Sleeve stat groups, heat gauge and panel status lights are written with. Every number
+ * arrives already formatted.
+ *
+ * @remarks
+ * Pure types; part of `UiText` (`uiText.mainScreen`, filled in by `ui/hudText.ts`). Called by: `hudView.ts`, `sleeveView.ts`,
+ * `sleeveGroups.ts`, `networkView.ts`. Calls: nothing.
  */
 
-/**
- * Wording for the HUD, panel groups and heat gauge.
- * Called by: main-screen view builders. Calls: none.
- */
+/** The wording of the top bar, the Sleeve stat groups, the heat gauge and the panel status lights. */
 export interface MainScreenText {
+  /** The label beside the credits balance in the top bar. */
   readonly creditsLabel: string;
+  /** The Sleeve panel's status light. */
   readonly online: string;
+  /** The Network panel's status light while there are nodes. */
   readonly linked: string;
+  /** The header of each Sleeve stat group. */
   readonly groupTitles: Readonly<Record<'access' | 'skill' | 'defense' | 'risk', string>>;
   /** The label of the zone where the tax takes every credit (not where the tax starts: it starts with the first point of heat). */
   readonly zoneText: string;
+  /** The title of the re-sleeve box at the bottom of the Sleeve panel. */
   readonly resleeveTitle: string;
-  /** Formats the heat readout. Called by: heat gauge/HUD. Calls: none. */
+  /** The heat written on the heat strip, e.g. `HEAT 652`. */
   heatValue(value: string): string;
-  /** Formats tax percent. Called by: HUD. Calls: none. */
-  taxValue(percent: string): string;
-  /** Formats the heat tax note. Called by: networkView. Calls: none. */
+  /** The red note under the network income: the share the heat tax takes, the heat, and where it takes everything (`null`: capped). */
   taxNote(percent: string, heat: string, stop: string | null): string;
-  /** Formats total income. Called by: HUD. Calls: none. */
+  /** The total income per second in the top bar, e.g. `+34.73T/s`. */
   rate(value: string): string;
-  /** Formats the all-income tax threshold. Called by: sleeveGroups. Calls: none. */
+  /** Under the heat strip: the heat from which every credit is taxed. */
   stopLegend(stop: string): string;
-  /** Formats a capped tax. Called by: sleeveGroups. Calls: none. */
+  /** Under the heat strip when the tax is capped: the cap in percent. */
   capLegend(percent: string): string;
-  /** Formats one cooldown cycle. Called by: sleeveRows. Calls: none. */
+  /** The cooldown bar's label while heat cools: heat removed per cycle and seconds per cycle, e.g. `-1 / 60s`. */
   cooldown(amount: string, seconds: string): string;
 }

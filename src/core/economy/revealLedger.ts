@@ -15,8 +15,8 @@
  */
 import type { BuyableDefinition, GameConfig, StateSlice } from '../types';
 
-/** The sleeve stats that start hidden (one `stat:` key each). */
-export const REVEALABLE_STATS = ['heat', 'iceRating', 'legend'] as const;
+/** The stats that start hidden (one `stat:` key each): three sleeve stat rows and the top bar's income rate. */
+export const REVEALABLE_STATS = ['heat', 'iceRating', 'legend', 'incomeRate'] as const;
 
 /** The tabs (one `tab:` key each). */
 export const TAB_IDS = ['character', 'skills', 'automation', 'stats', 'corporation'] as const;

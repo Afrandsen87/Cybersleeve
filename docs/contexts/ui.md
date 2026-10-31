@@ -7,18 +7,18 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 ## Main screen view (2026-10-31)
 
 - **Panel precision:** panel stat values keep `PANEL_DIGITS` (4) significant figures through `formatSignificant` (`numbers/format.ts`; from 1000 it hands over to the `formatBigNum` suffixes). Tooltips keep full precision.
-- **HUD** (`view/hudView.ts`, `ViewModel.hud`): the credits readout, the income rate from `SleeveQueries.creditsPerSecond` (owner: `NetworkSystem.creditsPerSecond`, shown only above 0) and a small heat gauge shown with the heat row.
+- **HUD** (`view/hudView.ts`, `ViewModel.hud`): the credits readout, the income rate from `SleeveQueries.creditsPerSecond` (owner: `NetworkSystem.creditsPerSecond`), first shown when it is above 0 and then kept through the reveal ledger (`stat:incomeRate`). The top bar has no heat gauge (removed 2026-10-31 by the user: the Sleeve panel shows heat).
 - **Tabs:** `TabView.count` carries the skill or automation points (`null` at 0); the label holds no count.
 - **Sleeve groups** (`view/sleeveGroups.ts`): a table puts every sleeve stat row in ACCESS, SKILL, DEFENSE (ICE Rating, Legend) or RISK (heat); a group is hidden when all its rows are. The Legend decay bar is hidden while Legend is 0 (`StatBarView.hidden`).
-- **Heat gauge:** `SleeveView.heatGauge` (`null` while the heat row is hidden) places heat on a strip from `view/heatStrip.ts` (`heatStripLayout`, the one owner of strip positions, also meant for the Auto Burn panel: span `1.5 x` the largest of the tax start and markers, heat beyond pinned with `overflow`). The tax zone starts at `heatStopPoint`; with a capped tax there is no zone and the legend names the cap. While heat cools the heat bar's label is the cycle (`-amount / seconds`).
-- **Network:** `NetworkView.taxNote` (red, from `creditKeepFactor` and `heatStopPoint`, `null` at no tax) and `status` (`LINKED` while there are nodes). Main screen wording is `uiText.mainScreen` (`ui/hudText.ts`).
+- **Heat gauge:** `SleeveView.heatGauge` (`null` while the heat row is hidden) places heat on a strip from `view/heatStrip.ts` (`heatStripLayout`, the one owner of strip positions, also meant for the Auto Burn panel: span `1.5 x` the largest of the tax start and markers, heat beyond pinned with `overflow`). The tax zone starts at `heatStopPoint`; with a capped tax there is no zone and the legend names the cap. While heat cools the heat bar's label is the cycle (`-amount / seconds`, seconds from `cycleSeconds` in `heat/heatModel.ts`, the one owner the heat tip also reads).
+- **Network:** `NetworkView.taxNote` (red, from `creditKeepFactor` and `heatStopPoint`, `null` at no tax or with no nodes) and `status` (`LINKED` while there are nodes). Main screen wording is `uiText.mainScreen` (`ui/hudText.ts`).
 
 ### Look of the main screen (presentation, 2026-10-31)
 
 - **Colour language:** one meaning per colour, listed in the comment at the top of `ui/style.css` (`--info` on/information, `--run` running, `--heat`, `--danger` loss, `--gain`, `--auto`, `--afford`); numbers and data values use `--mono`. `--cyan` and `--magenta` are aliases of `--info` and `--run`.
 - **Panel chrome** (`styles/panels.css`): notched corners (`clip-path`), bracket accents, a faint page grid and a fixed scanline overlay. Headers are built by `widgets/panelHeader.ts` (`.ph`: `// TITLE` drawn by CSS, status LED hidden for `null`). `.led` and `.led-dot` are shared, coloured through `--c`.
 - **Style folder:** `ui/style.css` is the base; area files live in `ui/styles/` (list in `docs/ARCHITECTURE.md`).
-- **Widgets only draw view fields:** `widgets/hud.ts` (credits, rate, mini heat bar, tabs), `widgets/tabBar.ts` (badge from `TabView.count`, colour by `data-tab` in CSS), `widgets/heatGauge.ts` (fill by `transform`, tax zone from `strip.taxStartPercent`), `widgets/statWidget.ts` (group headers, hidden bars, `StatRowView.tone` as `data-tone`). `networkView` sets the tone (income gain, a taxed +0 danger, nodes info). The re-sleeve box title is `SleeveView.resleeveTitle`.
+- **Widgets only draw view fields:** `widgets/hud.ts` (credits, rate, tabs), `widgets/tabBar.ts` (badge from `TabView.count`, colour by `data-tab` in CSS), `widgets/heatGauge.ts` (fill by `transform`, tax zone from `strip.taxStartPercent`), `widgets/statWidget.ts` (group headers, hidden bars, `StatRowView.tone` as `data-tone`). `networkView` sets the tone (income gain, a taxed +0 danger, nodes info). The re-sleeve box title is `SleeveView.resleeveTitle`.
 
 ## Reveal ledger and tab blink
 
