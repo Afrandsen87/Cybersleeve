@@ -54,7 +54,7 @@ When subagents finish, from the task worktree:
 
 ## 4. Verify
 
-While iterating, run only `npx vitest run <path>` for the changed area. Once, before the preview, run `npm run check` in the task worktree (typecheck, Biome, tests, build). Fix failures. For a UI change, also launch the preview (the `run` skill), screenshot the changed screen and check it. Do not proceed to landing while it fails; report honestly if you cannot fix it.
+While iterating, run only `npx vitest run <path>` for the changed area. Before the final check, run `git log --oneline HEAD..main`; if `main` moved, merge it into the task branch now (`git merge --no-ff main`), so conflicts surface before the preview rather than at landing. This matters most when the branch moved or split a file that `main` may also edit. Once, before the preview, run `npm run check` in the task worktree (typecheck, Biome, tests, build). Fix failures. For a UI change, also use the `preview` skill: screenshot the changed screen from a fixture save and check it. Read every new player-facing label against that mid-game state and ask whether it states something true and unambiguous; rewrite it if not (even when the plan gave the wording) and say so in the report. Do not proceed to landing while it fails; report honestly if you cannot fix it.
 
 Scope reminders: your change includes its docs (`docs/ARCHITECTURE.md`, `docs/CONFIG.md`, `DESIGN.md`, TSDoc, tests next to the code). Do not generate, edit or stage `docs/architecture.html`; only run `npm run docs` if the user asks. Outside scope without asking: `package.json`, `package-lock.json`, build and deploy config, the save version and migrations, and `CLAUDE.md`.
 
@@ -72,10 +72,11 @@ Never merge into `main` without the user's explicit approval of this task.
 
 Only after approval and a passing `npm run check`:
 
+0. Stop the preview dev server first (TaskStop), so no process holds files in the worktree. If the session is pinned to the worktree (EnterWorktree), call ExitWorktree with `keep`: a pinned session may not run git in the primary checkout. Then continue from `C:\Code\CyberSleeve`.
 1. In the primary checkout (`C:\Code\CyberSleeve`), confirm `main` is checked out and has no uncommitted changes to tracked files (`git status`). If it is dirty, or `main` moved so the merge is not clean, first merge `main` into the task branch, re-run `npm run check`, then retry. If that still cannot be done cleanly, stop and report; never stash, reset or discard the user's changes.
 2. Merge with `git merge --no-ff <task-branch>` from the primary checkout. (Merge commits are skipped by the changelog, so the real commit subjects carry through.)
 3. **Never push.** Pushing to `main` triggers the deploy; only the user does that.
-4. Stop the preview dev server, then clean up what you created: remove the subagent worktrees and the task worktree (`git worktree remove`), and delete their merged branches (`git branch -d`). Never delete a branch you did not create or that is not fully merged.
+4. Clean up what you created: remove the subagent worktrees and the task worktree (`git worktree remove`), and delete their merged branches (`git branch -d`). Never delete a branch you did not create or that is not fully merged.
 
 ## 7. Report
 
