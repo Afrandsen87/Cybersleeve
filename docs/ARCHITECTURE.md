@@ -27,6 +27,10 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 ## Core folders
 One folder per bounded context under `src/core/` (layers and allowed exceptions: `core/boundaries.test.ts`; folder map: `docs/contexts/_folders.md`). The full description, with the test kits, is `docs/contexts/_folders.md`. The docs are split per context in `docs/contexts/<context>.md` (index: `docs/contexts/README.md`).
 
+## UI files
+- `src/ui/style.css`: colour language (comment + tokens), page layout, buttons, tooltip, modal, debug bar, LED pill. Area files in `src/ui/styles/` (imported by `main.ts` in a fixed order): `hud.css` (top bar, tabs), `panels.css` (panel chrome, `// TAG` headers), `sleeve.css` (stat rows, groups, heat gauge, re-sleeve box), `actions.css` (cards, bars), `inventory.css`, `skills.css` (tree, runs table), `automation.css`, `upgrades.css` (buyable states; last so the purchase look wins).
+- `widgets/hud.ts` top bar; `widgets/tabBar.ts` tabs with badges; `widgets/panelHeader.ts` the `.ph` header and LED; `widgets/heatGauge.ts` the heat strip; `widgets/statWidget.ts` stat rows with group headers.
+
 ## Layering (dependencies point downwards only)
 
 *Moved to [contexts/_layering.md](contexts/_layering.md).*
