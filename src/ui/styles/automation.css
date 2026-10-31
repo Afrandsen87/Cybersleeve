@@ -1,4 +1,65 @@
 /* Automation daemon chrome; protocol rows share autoBurn.css through .ab. */
+html.automation-anchoring {
+  overflow-anchor: none;
+}
+.automation-feat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0px;
+  gap: 0;
+  align-items: stretch;
+  transition:
+    grid-template-columns 250ms ease,
+    gap 250ms ease;
+}
+.automation-feat.open {
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 12px;
+}
+.automation-feat > .panel {
+  align-content: start;
+}
+.automation-slot {
+  min-width: 0;
+  overflow: hidden;
+}
+.automation-slot > .inspector-docked {
+  position: static;
+  width: 300px;
+  min-height: max(100%, var(--automation-inspector-height, 0px));
+  opacity: 0;
+  transition: opacity 200ms ease 50ms;
+}
+.automation-feat.open .inspector-docked {
+  opacity: 1;
+}
+.automation-inspector-parking {
+  display: none;
+}
+.automation-widget > .automation-inspector-measure {
+  position: absolute;
+  top: 0;
+  left: -9999px;
+  width: 300px;
+  visibility: hidden;
+  pointer-events: none;
+}
+.automation-widget .preview {
+  outline: 1px dashed var(--lane);
+  outline-offset: 3px;
+}
+.automation-widget .fresh {
+  animation: automation-fresh 1.4s ease-out;
+}
+@keyframes automation-fresh {
+  from {
+    outline: 2px solid var(--lane);
+    box-shadow: 0 0 16px var(--lane);
+  }
+  to {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 transparent;
+  }
+}
 .automation-widget {
   display: grid;
   align-content: start;

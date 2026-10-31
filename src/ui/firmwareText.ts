@@ -3,6 +3,7 @@
  * Firmware-tab wording, kept separate from presentation and game rules.
  * Called by: uiText facade, firmware inspector and panel. Calls: nothing.
  */
+import type { AutoBurnStep } from '../core';
 import type { FirmwareNodeState } from './view/firmwareNodeState';
 
 /** Firmware panel wording contract. Called by: UiText and firmware views/widgets. Calls: nothing. */
@@ -20,6 +21,27 @@ export interface FirmwareText {
   readonly requires: string;
   readonly unlocksNext: string;
   readonly install: string;
+  readonly inspector: string;
+  readonly preview: string;
+  readonly pinned: string;
+  readonly close: string;
+  readonly installed: string;
+  readonly alreadyRunning: string;
+  readonly adds: string;
+  readonly firstFirmware: string;
+  readonly endOfTree: string;
+  readonly automationAdds: {
+    readonly burnUnlock: string;
+    readonly burnSteps: Readonly<Record<AutoBurnStep, string>>;
+    /** Formats a panel chip. Called by: automationAdds. Calls: nothing. */
+    chip(rarity: string, backchannel: boolean, root: boolean): string;
+    /** Formats the first dispersal controls. Called by: automationAdds. Calls: nothing. */
+    dispersal(rarity: string): string;
+    /** Formats a rarity permit. Called by: automationAdds. Calls: nothing. */
+    permit(rarity: string): string;
+    /** Formats cumulative target capacity. Called by: automationAdds. Calls: nothing. */
+    slot(count: number): string;
+  };
   /** Balance explanation. Called by: inspector. Calls: nothing. */
   have(points: string): string;
   /** Unaffordable explanation for the selected pool. Called by: inspector. Calls: nothing. */
@@ -60,6 +82,33 @@ export const firmwareText: FirmwareText = {
   requires: 'REQUIRES',
   unlocksNext: 'UNLOCKS NEXT',
   install: 'INSTALL',
+  inspector: '// INSPECTOR',
+  preview: 'preview',
+  pinned: 'pinned',
+  close: '\u2715',
+  installed: 'INSTALLED',
+  alreadyRunning: 'already running',
+  adds: 'ADDS',
+  firstFirmware: 'nothing: first firmware of this daemon',
+  endOfTree: 'nothing: end of this tree',
+  automationAdds: {
+    burnUnlock: 'the status line',
+    burnSteps: {
+      hold: 'the heat strip and the THROTTLE row',
+      upper: 'the Redline notch and the REDLINE row',
+      offOverclocks: 'the FAILSAFE row',
+      offActions: 'the Auto-runs chip in FAILSAFE',
+      onActions: 'the RESTART row',
+      onOverclocks: 'the Overclock line in RESTART',
+      thresholds: 'editable Floor and Redline',
+      reserve: 'the Reserve field',
+    },
+    chip: (rarity, backchannel, root) =>
+      root ? `the AUTOSALE row with a ${rarity} chip` : `a ${rarity} chip in ${backchannel ? 'BACK CHANNEL' : 'AUTOSALE'}`,
+    dispersal: (rarity) => `the panel, ${rarity} permit and 1 target slot`,
+    permit: (rarity) => `the ${rarity} permit`,
+    slot: (count) => `target slot ${count}`,
+  },
   have: (points) => `You have ${points}`,
   earnMore: (points, sleeve) => `You have ${points}: earn more ${sleeve ? 'sleeve firmware points' : 'firmware points'}`,
   installFirst: (name) => `Install ${name} first`,

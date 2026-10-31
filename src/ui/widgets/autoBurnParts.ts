@@ -77,15 +77,24 @@ export interface ChipListView {
  * @param group 'autoRuns' for the Auto-run resume list; any other value ticks Overclocks (switch chips ignore it)
  * @returns the list element and its renderer
  */
-export function chipList(ctx: UiContext, burn: AutoBurnControls, refresh: () => void, group: string): Part<HTMLElement, ChipListView> {
+export function chipList(
+  ctx: UiContext,
+  burn: AutoBurnControls,
+  refresh: () => void,
+  group: string,
+): Part<HTMLElement, ChipListView> & { readonly offActionsTarget: HTMLElement } {
   const element = h('div', 'line');
   let key = '';
   let current: readonly BurnChipView[] = [];
   const buttons = new Map<string, HTMLButtonElement>();
+  const offActionsTarget = h('span', 'automation-control-target');
+  offActionsTarget.hidden = true;
   const emptyLine = h('span', 'cond');
   element.append(emptyLine); // in place from the start: an empty first list never triggers a rebuild
   const build = (chips: readonly BurnChipView[]): void => {
     buttons.clear();
+    offActionsTarget.replaceChildren();
+    offActionsTarget.hidden = true;
     element.replaceChildren(emptyLine);
     for (const chip of chips) {
       const b = h('button', 'chip') as HTMLButtonElement;
@@ -102,11 +111,16 @@ export function chipList(ctx: UiContext, burn: AutoBurnControls, refresh: () => 
         refresh();
       });
       buttons.set(chip.id, b);
-      element.append(b);
+      if (chip.id === 'offActions') {
+        offActionsTarget.hidden = false;
+        offActionsTarget.append(b);
+        element.append(offActionsTarget);
+      } else element.append(b);
     }
   };
   return {
     element,
+    offActionsTarget,
     render({ chips, empty = '' }) {
       current = chips;
       const next = chips.map((c) => c.id).join('\n');

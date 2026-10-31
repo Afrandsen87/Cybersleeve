@@ -352,3 +352,54 @@
     stroke-dasharray: none;
   }
 }
+/* Shared inspector's optional Automation dock; Firmware's default styles stay unchanged. */
+.inspector-docked {
+  display: flex;
+  flex-direction: column;
+  position: static;
+  align-content: start;
+  align-self: stretch;
+  width: 300px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+.inspector-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.inspector-labels,
+.inspector-buy {
+  display: grid;
+  gap: 8px;
+}
+.inspector-buy {
+  margin-top: auto;
+}
+.inspector-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+  color: var(--accent);
+  font: 700 10px var(--mono);
+  letter-spacing: 0.12em;
+}
+.inspector-mode {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: 400;
+}
+.inspector-close {
+  padding: 2px 5px;
+  color: var(--muted);
+}
+.inspector-adds {
+  display: grid;
+  gap: 4px;
+  font: 11px / 1.5 var(--mono);
+}
+.inspector-adds-text {
+  color: var(--accent);
+}

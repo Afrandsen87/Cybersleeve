@@ -6,6 +6,8 @@ import { type UiContext, applyIcon, h, setClass, setHidden, setText } from '../d
 /** Mounted Kompromat controls. Called by: automationWidget. Calls: nothing. */
 export interface KompromatPanel {
   readonly element: HTMLElement;
+  /** Stable inspector controls. Called by: automation inspector. Calls: nothing. */
+  readonly controlTargets: ReadonlyMap<string, HTMLElement>;
   render(view: KompromatView): void;
 }
 
@@ -23,6 +25,7 @@ export function mountKompromatPanel(
   controls: AutomationControls,
   refresh: () => void,
 ): KompromatPanel {
+  const controlTargets = new Map<string, HTMLElement>();
   const words = ctx.text.automation.kompromat;
   const element = h('div', 'ab kompromat-protocol');
   const status = h('div', 'status');
@@ -45,6 +48,7 @@ export function mountKompromatPanel(
     const chips = new Map(
       row.chips.map((chip) => {
         const button = h('button', `chip automation-switch rarity-${chip.rarityIndex}`) as HTMLButtonElement;
+        controlTargets.set(`chip-${row.id === 'backchannel' ? 'chan' : 'sale'}-${chip.id}`, button);
         button.dataset['rarity'] = chip.id;
         button.dataset['protocol'] = row.id;
         if (chip.skillId) applyIcon(button, ctx.icons.urlFor(chip.skillId));
@@ -68,6 +72,7 @@ export function mountKompromatPanel(
   element.append(status, proto);
   return {
     element,
+    controlTargets,
     render(view) {
       setText(stateText, view.status);
       setText(summary, view.summary);

@@ -8,6 +8,7 @@ import type { AutoBurnView } from './autoBurnViewTypes';
 import type { KompromatView } from './kompromatViewTypes';
 import type { DispersalView } from './dispersalViewTypes';
 import type { SkillLaneView } from './skillTreeTypes';
+import type { AutomationAddition } from './automationAdds';
 
 /** One daemon and its card tree. Called by: automationView, daemonPanel. Calls: nothing. */
 export interface AutomationFeatureView {
@@ -19,6 +20,8 @@ export interface AutomationFeatureView {
   readonly offlineNote: string;
   /** The feature's skill lane, drawn in its box: the first skill is the unlock, the rest are what the automation can grow into. */
   readonly lanes: readonly SkillLaneView[];
+  /** Reveal-safe control descriptions, keyed by firmware id. */
+  readonly additions: ReadonlyMap<string, AutomationAddition>;
 }
 
 /** Resume controls revealed by their permission. Called by: Auto Burn views. Calls: nothing. */

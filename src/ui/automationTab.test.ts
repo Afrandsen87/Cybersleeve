@@ -134,6 +134,7 @@ describe('the Automation tab on the screen', () => {
     tab(root, /Automation/).click();
     const first = (feature: string) => panel(root).querySelector<HTMLButtonElement>(`.automation-${feature} .skill-node`)!;
     first('autoBurn').click();
+    panel(root).querySelector<HTMLButtonElement>('.automation-slot .firmware-install')!.click();
     render();
     expect(game.automation().isUnlocked('autoBurn')).toBe(true);
     expect(panel(root).querySelector('.automation-autoBurn .ph')!.textContent).toContain('ONLINE');

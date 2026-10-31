@@ -15,6 +15,8 @@ import { type UiContext, h, setText, syncInput } from './domKit';
 /** The mounted panel. */
 export interface AutoBurnPanel {
   readonly element: HTMLElement;
+  /** Stable inspector targets. Called by: automation inspector. Calls: nothing. */
+  readonly controlTargets: ReadonlyMap<string, HTMLElement>;
   render(view: AutoBurnView): void;
 }
 
@@ -34,8 +36,11 @@ function protocol(
   initial: BurnRowView,
   burn: AutoBurnControls,
   refresh: () => void,
-): { element: HTMLElement; render(v: BurnRowView): void } {
+): { element: HTMLElement; controlTargets: ReadonlyMap<string, HTMLElement>; render(v: BurnRowView): void } {
   const element = h('div', `rule t-${initial.id}`);
+  const controlTargets = new Map<string, HTMLElement>();
+  const rowKey = initial.id === 'trigger' ? 'redline' : initial.id;
+  controlTargets.set(`row-${rowKey}`, element);
   const tag = h('div', 'tag', initial.tag);
   const body = h('div', 'body');
   const condition = h('span', 'cond');
@@ -44,6 +49,7 @@ function protocol(
   const arrow = h('span', 'arrow');
   line.append(condition, arrow, action);
   const chips = chipList(ctx, burn, refresh, 'failsafe');
+  if (initial.id === 'failsafe') controlTargets.set('chip-offActions', chips.offActionsTarget);
   body.append(line, chips.element);
   const toggle = initial.switch ? led(initial.switch, burn, refresh) : null;
   element.append(tag, body, toggle?.element ?? h('span'));
@@ -53,10 +59,12 @@ function protocol(
     const sw = led(sub.switch, burn, refresh);
     row.append(list.element, sw.element);
     body.append(row);
+    if (sub.id === 'overclocks') controlTargets.set('sub-restartOc', row);
     return { id: sub.id, row, list, sw };
   });
   return {
     element,
+    controlTargets,
     render(v) {
       element.hidden = !v.visible;
       element.classList.toggle('firing', v.firing);
@@ -121,8 +129,15 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
   const rows = initial.rows.map((row) => protocol(ctx, row, burn, refresh));
   proto.append(...rows.map((r) => r.element));
   element.append(status, wrap, proto);
+  const controlTargets = new Map<string, HTMLElement>([
+    ['ab-status', status],
+    ['ab-strip', wrap],
+    ['ab-reserve', reserve],
+    ...rows.flatMap((row) => [...row.controlTargets]),
+  ]);
   return {
     element,
+    controlTargets,
     render(view) {
       status.hidden = !view.status.visible;
       const stateClass = `state s-${view.status.activity}`;

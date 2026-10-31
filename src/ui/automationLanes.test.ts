@@ -57,6 +57,7 @@ describe('the skill lane inside each automation box', () => {
 
   it('the box shows the lane from the start, with no separate unlock button; pressing the first skill unlocks the feature, the next one needs it', () => {
     const { root, game, render } = mount(2);
+    [...root.querySelectorAll<HTMLButtonElement>('.tab')].find((button) => /Automation/.test(button.textContent ?? ''))?.click();
     const box = root.querySelector<HTMLElement>('.automation-autoBurn')!;
     const nodes = () => [...box.querySelectorAll<HTMLButtonElement>('.skill-node')];
     expect(nodes()).toHaveLength(9); // the Auto Burn lane is the full nine skills
@@ -65,10 +66,12 @@ describe('the skill lane inside each automation box', () => {
     nodes()[1]!.click(); // the second skill cannot be bought before the first
     expect(game.ownedCount(laneSkillId('autoBurn', 2))).toBe(0);
     nodes()[0]!.click();
+    root.querySelector<HTMLButtonElement>('.automation-slot .firmware-install')!.click();
     render();
     expect(game.automation().isUnlocked('autoBurn')).toBe(true);
     expect(box.classList.contains('unlocked')).toBe(true);
     nodes()[1]!.click();
+    root.querySelector<HTMLButtonElement>('.automation-slot .firmware-install')!.click();
     expect(game.ownedCount(laneSkillId('autoBurn', 2))).toBe(1);
     expect(game.automation().pointsAvailable()).toBe(0);
   });
@@ -76,6 +79,7 @@ describe('the skill lane inside each automation box', () => {
   it('a lane can be started with the first point whichever feature it is', () => {
     const { root, game, render } = mount(1);
     root.querySelector<HTMLButtonElement>('.automation-dispersal .skill-node')!.click();
+    root.querySelector<HTMLButtonElement>('.automation-slot .firmware-install')!.click();
     render();
     expect(game.ownedCount(laneSkillId('dispersal', 1))).toBe(1);
     expect(game.automation().isUnlocked('dispersal')).toBe(true);

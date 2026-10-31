@@ -57,7 +57,7 @@ export function widgetContext(engine: GameEngine, activate: UiContext['activate'
     text: uiText,
     icons: noIcons,
     tips: new TipRegistry(),
-    selection: { augmentRarityId: null, revealAll: false, firmwareSelected: null },
+    selection: { augmentRarityId: null, revealAll: false, firmwareSelected: null, automationSelected: null },
     activate,
     refresh,
   };

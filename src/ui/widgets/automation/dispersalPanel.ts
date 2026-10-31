@@ -10,6 +10,8 @@ import { h, setClass, setHidden, setText, type UiContext } from '../domKit';
 /** Mounted dispersal protocol with stable target buttons. Called by: automationWidget. Calls: nothing. */
 export interface DispersalPanel {
   readonly element: HTMLElement;
+  /** Stable inspector controls. Called by: automation inspector. Calls: nothing. */
+  readonly controlTargets: ReadonlyMap<string, HTMLElement>;
   readonly targets: ReadonlyMap<string, HTMLButtonElement>;
   render(view: DispersalView): void;
 }
@@ -28,6 +30,7 @@ export function mountDispersalPanel(
   controls: AutomationControls,
   refresh: () => void,
 ): DispersalPanel {
+  const controlTargets = new Map<string, HTMLElement>();
   const text = ctx.text.automation.dispersal;
   const element = h('div', 'ab dispersal-protocol');
   const status = h('div', 'status');
@@ -38,6 +41,9 @@ export function mountDispersalPanel(
   const meter = h('span', 'slots');
   const cells = Array.from({ length: initial.maxSlots }, () => h('i'));
   meter.append(...cells);
+  cells.forEach((cell, index) => {
+    controlTargets.set(`slot-${index + 1}`, cell);
+  });
   const count = h('span', 'automation-dispersal-count');
   const slotReadout = h('span', 'slot-readout');
   slotReadout.append(h('span', 'k', text.targets), meter, count);
@@ -51,6 +57,7 @@ export function mountDispersalPanel(
     initial.rarityOptions.map((rarity, index) => {
       const pill = h('span', `pill rarity-${index}`, rarity.name);
       permitLine.append(pill);
+      controlTargets.set(`pill-${rarity.id}`, pill);
       return [rarity.id, pill] as const;
     }),
   );
@@ -77,8 +84,11 @@ export function mountDispersalPanel(
   targetRow.append(h('div', 'tag', text.targetTag), targetBody, h('span'));
   proto.append(permitRow, targetRow);
   element.append(status, proto);
+  controlTargets.set('ds-status', element);
+  controlTargets.set('row-target', targetRow);
   return {
     element,
+    controlTargets,
     targets,
     render(view) {
       setText(word, view.word);

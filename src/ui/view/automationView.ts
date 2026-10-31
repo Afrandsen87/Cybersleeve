@@ -20,6 +20,7 @@ import { kompromatView } from './kompromatView';
 import { buildDispersalView } from './dispersalView';
 import { daemonOfflineNote } from './daemonView';
 import { autoBurnView } from './autoBurnView';
+import { automationAdds } from './automationAdds';
 import type { RevealTracker } from './revealTracker';
 import { buildSkillLanes } from './skillTree';
 import type { AutomationView, BuyableView, SkillLaneView } from './viewTypes';
@@ -85,12 +86,26 @@ export function automationView(
     pointsValueText: formatPlain(automation.pointsAvailable()),
     features: AUTOMATION_FEATURES.map((id) => {
       const lanes = laneOf(id);
+      const skills = config.buyables.filter((skill) => skill.currency === 'automationPoints' && skill.branch === id);
+      const additions = new Map();
+      for (const node of lanes.flatMap((lane) => lane.nodes)) {
+        const skill = skills.find((entry) => entry.id === node.view.id);
+        if (!skill || node.masked) continue;
+        const addition = automationAdds(
+          skill,
+          skills,
+          (rarity) => config.items.rarities.find((entry) => entry.id === rarity)?.name ?? rarity,
+          text.firmware,
+        );
+        if (addition) additions.set(skill.id, addition);
+      }
       return {
         id,
         name: text.automation.features[id].name,
         description: text.automation.features[id].description,
         unlocked: automation.isUnlocked(id),
         lanes,
+        additions,
         offlineNote: daemonOfflineNote(lanes, text),
       };
     }),

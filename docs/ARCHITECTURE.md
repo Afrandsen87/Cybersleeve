@@ -101,3 +101,5 @@ See `docs/contexts/_limitations.md`.
 - `src/ui/widgets/inventorySlots.ts`: named slot building and state rendering, extracted from the stable `inventoryWidget.ts` facade.
 - `src/ui/parts/stashText.ts` and `src/ui/stashText.ts`: StashText contract and default `uiText.stash` captions/gains.
 - `src/testing/inventoryKit.ts`: shared testConfig-based inventory fixtures for separate view, DOM and stash tests.
+
+Automation dock behavior lives in `widgets/automation/dockedInspector.ts`, backed by pure `view/dockedFocus.ts`, `rowHolds.ts` and injected `widgets/scrollAnchor.ts`. `view/automationAdds.ts` projects effects to reveal-safe control guidance; persistent panel control registries drive preview/fresh feedback. The shared Firmware inspector has an optional docked mode. Heights are measured offscreen at 300px only after node/point changes; finite scroll compensation, row holds and a bottom spacer keep the pointer anchored. Native anchoring is disabled only on the Automation tab.
