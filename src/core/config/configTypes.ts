@@ -72,8 +72,10 @@ export interface SleeveConfig {
   readonly heatCooldownAmount: number;
   /** ICE Rating of a new sleeve (>= 1). The stat is multiplied by buyables and raised by actions. */
   readonly baseIceRating: number;
-  /** Share of the heat tax removed per order of magnitude of ICE Rating (0.01 = 1%; 100% is reached at 1e100). */
-  readonly iceRatingReductionPerOrder: number;
+  /** Orders of magnitude of ICE Rating at which the heat tax is fully removed (> 0; 100 means 1e100). */
+  readonly iceRatingOrdersForFullReduction: number;
+  /** Shape of the ICE Rating curve: reduction = `(orders / ordersForFull) ^ this`, at most 1 (> 0; 1 is a straight line, below 1 the first orders count the most). */
+  readonly iceRatingReductionExponent: number;
   /** Each point of Legend makes heat cool this much faster: the cycle is divided by `1 + this x Legend` (0.1 = 10% faster per point; >= 0). */
   readonly legendHeatSpeedup: number;
   /** Legend falls by exactly 1 each time this many ms have passed (a cycle, like the heat cooldown; > 0). */
@@ -147,10 +149,18 @@ export interface ResleeveConfig {
    */
   readonly lockoutMs?: number;
   /**
-   * The total of all actions' sleeve levels the Nth re-sleeve needs: `base + perResleeve x (N - 1)`, where N counts the re-sleeve about to
-   * happen (sleeve levels carry over, so the total only grows). Both are numbers >= 0. Leave it out for a game whose re-sleeve needs no levels.
+   * The progress gate: a re-sleeve needs this run's total action levels to be at least the last run's plus `actionLevels`, and the total
+   * sleeve levels at least the last run's plus `sleeveLevels` (both whole numbers >= 1; with no earlier run the baseline is 0).
    */
-  readonly sleeveLevelsNeeded?: { readonly base: number; readonly perResleeve: number };
+  readonly progressNeeded: { readonly actionLevels: number; readonly sleeveLevels: number };
+}
+
+/** When skill points are earned from the total of all action levels. */
+export interface SkillsConfig {
+  /** Totals of action levels that each give one point on their own (whole numbers >= 1, ascending), e.g. `[1, 5]`. */
+  readonly earlyThresholds: readonly number[];
+  /** After that one more point for every this many total action levels (a whole number >= 1). */
+  readonly every: number;
 }
 
 /** The automation features and their starting values. Leave the section out for a game without automation. */
@@ -175,6 +185,8 @@ export interface RevealConfig {
 export interface GameConfig {
   /** Re-sleeve points and the history of finished runs. */
   readonly resleeve: ResleeveConfig;
+  /** How skill points are earned from action levels. */
+  readonly skills: SkillsConfig;
   readonly actions: readonly ActionDefinition[];
   readonly buyables: readonly BuyableDefinition[];
   /** The item entity: kinds and rarity tiers (with their sell values). */

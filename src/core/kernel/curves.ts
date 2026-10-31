@@ -36,6 +36,25 @@ export function bigOrders(value: BigNum): number {
 }
 
 /**
+ * A concave share of a goal: `(orders / ordersForFull) ^ exponent`, clamped to [0, 1]. With an exponent below 1 the first orders count
+ * the most; the share reaches 1 at `ordersForFull` and stays there.
+ *
+ * Called by: `effects/sleeveResolver.ts` (ICE Rating heat reduction). Calls: nothing.
+ *
+ * @param orders orders of magnitude reached (NaN, 0 and negatives give 0; `Infinity` gives 1)
+ * @param ordersForFull orders at which the share is 1 (> 0; anything else gives 1 for any positive `orders`, else 0)
+ * @param exponent the shape (> 0; 1 is a straight line, 0.5 a square root)
+ * @returns a number in [0, 1]
+ */
+export function concaveShare(orders: number, ordersForFull: number, exponent: number): number {
+  if (!(orders > 0)) return 0;
+  if (!(ordersForFull > 0)) return 1;
+  const share = (orders / ordersForFull) ** exponent;
+  if (Number.isNaN(share)) return 0;
+  return Math.min(1, share);
+}
+
+/**
  * `scale * log10(1 + amount)`, unclamped (the caller decides what a negative or non-finite result means).
  *
  * Called by: `resleeve/resleeveCarry.ts` (Residual Proficiency). Calls: nothing.

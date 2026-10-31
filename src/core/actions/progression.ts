@@ -151,6 +151,20 @@ export class Progression {
   }
 
   /**
+   * The total of the SLEEVE levels of all actions (the progress gate and the run record compare it).
+   *
+   * Called by: `resleeve/progressGate.ts`, `resleeve/resleever.ts`. Calls: {@link Progression.sleeveLevel}.
+   *
+   * @param state current state
+   * @returns a whole number >= 0 (NaN counts as 0)
+   */
+  totalSleeveLevels(state: GameState): number {
+    let total = 0;
+    for (const id of this.actionRules.keys()) total += this.sleeveLevel(state, id);
+    return Math.max(0, total) || 0;
+  }
+
+  /**
    * The total of the action levels with the fraction of each action's current level added (level + progress into it), so it rises
    * continuously. Synthetic sleeves measure the live sleeve with it.
    *
@@ -203,7 +217,7 @@ export class Progression {
     return this.rule(this.actionRules, actionId).progressFraction(this.scaledActionXp(state, actionId), this.xpDelay(state, actionId));
   }
 
-  /** Sleeve level of an action (see {@link SleeveLevels.level}). Called by: `engine.ts`, `runStats.ts`, `toggleStats.ts`, `stats.ts`, `sleeveLevelGate.ts`. */
+  /** Sleeve level of an action (see {@link SleeveLevels.level}). Called by: `engine.ts`, `runStats.ts`, `toggleStats.ts`, `stats.ts`, `progressGate.ts`. */
   sleeveLevel(state: GameState, actionId: ActionId): number {
     return this.sleeve.level(state, actionId);
   }

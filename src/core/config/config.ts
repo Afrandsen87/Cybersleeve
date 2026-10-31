@@ -32,6 +32,7 @@ export interface ConfigOverrides {
   readonly criticalSuccess?: Partial<GameConfig['criticalSuccess']>;
   readonly focus?: Partial<GameConfig['focus']>;
   readonly resleeve?: Partial<ResleeveConfig>;
+  readonly skills?: Partial<GameConfig['skills']>;
   readonly reveal?: Partial<RevealConfig>;
   readonly automation?: Partial<AutomationConfig>;
   readonly corporation?: GameConfig['corporation'];
@@ -63,6 +64,7 @@ export function createConfig(base: GameConfig, overrides: ConfigOverrides = {}):
     criticalSuccess: { ...base.criticalSuccess, ...overrides.criticalSuccess },
     focus: { ...base.focus, ...overrides.focus },
     resleeve: { ...base.resleeve, ...overrides.resleeve },
+    skills: { ...base.skills, ...overrides.skills },
     ...(base.automation || overrides.automation
       ? { automation: { autoBurnCeiling: 0, autoBurnUpper: 100, ...base.automation, ...overrides.automation } }
       : {}),
@@ -367,12 +369,15 @@ export function validateConfig(config: GameConfig): string[] {
 
   if (!positiveInt(config.resleeve.pointsPerResleeve)) errors.push('resleeve.pointsPerResleeve must be an integer >= 1');
   if (!positiveInt(config.resleeve.runsShown)) errors.push('resleeve.runsShown must be an integer >= 1');
-  const needed = config.resleeve.sleeveLevelsNeeded;
-  if (
-    needed !== undefined &&
-    !(Number.isFinite(needed.base) && needed.base >= 0 && Number.isFinite(needed.perResleeve) && needed.perResleeve >= 0)
-  )
-    errors.push('resleeve.sleeveLevelsNeeded base and perResleeve must be numbers >= 0');
+  const sk = config.skills;
+  if (!sk.earlyThresholds.every((t, i, a) => Number.isInteger(t) && t >= 1 && (i === 0 || t > a[i - 1]!))) {
+    errors.push('skills.earlyThresholds must be ascending whole numbers >= 1');
+  }
+  if (!positiveInt(sk.every)) errors.push('skills.every must be an integer >= 1');
+  const need = config.resleeve.progressNeeded;
+  if (!(positiveInt(need.actionLevels) && positiveInt(need.sleeveLevels))) {
+    errors.push('resleeve.progressNeeded actionLevels and sleeveLevels must be integers >= 1');
+  }
   const lockout = config.resleeve.lockoutMs;
   if (lockout !== undefined && !(Number.isFinite(lockout) && lockout >= 0)) errors.push('resleeve.lockoutMs must be >= 0');
   if (config.buyables.filter((b) => b.effect.kind === 'unlockSleeveLevels').length > 1) {
@@ -412,9 +417,8 @@ export function validateConfig(config: GameConfig): string[] {
   if (!positive(sl.heatCooldownMs)) errors.push('sleeve.heatCooldownMs must be > 0');
   if (!positive(sl.heatCooldownAmount)) errors.push('sleeve.heatCooldownAmount must be > 0');
   if (!(Number.isFinite(sl.baseIceRating) && sl.baseIceRating >= 1)) errors.push('sleeve.baseIceRating must be >= 1');
-  if (!(Number.isFinite(sl.iceRatingReductionPerOrder) && sl.iceRatingReductionPerOrder >= 0)) {
-    errors.push('sleeve.iceRatingReductionPerOrder must be >= 0');
-  }
+  if (!positive(sl.iceRatingOrdersForFullReduction)) errors.push('sleeve.iceRatingOrdersForFullReduction must be > 0');
+  if (!positive(sl.iceRatingReductionExponent)) errors.push('sleeve.iceRatingReductionExponent must be > 0');
   if (!(Number.isFinite(sl.legendHeatSpeedup) && sl.legendHeatSpeedup >= 0)) errors.push('sleeve.legendHeatSpeedup must be >= 0');
   if (!positive(sl.legendDecayPeriodMs)) errors.push('sleeve.legendDecayPeriodMs must be > 0');
 

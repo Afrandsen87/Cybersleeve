@@ -35,7 +35,7 @@ import {
   Resleever,
   Shop,
   ResleeveGate,
-  SleeveLevelGate,
+  ProgressGate,
   allOf,
   createActionLookup,
   createClampOverflowPolicy,
@@ -96,7 +96,10 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     config.global.costMultiplier,
     (currency, s) =>
       currency === 'skillPoints'
-        ? earnedSkillPoints(config.actions.map((a) => progression.actionLevel(s, a.id)))
+        ? earnedSkillPoints(
+            config.actions.map((a) => progression.actionLevel(s, a.id)),
+            config.skills,
+          )
         : currency === 'automationPoints'
           ? config.automation === undefined
             ? 0
@@ -196,7 +199,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     network: new NetworkSystem(state, stats, factory, synths),
     synths,
     resleever: new Resleever(config, state, stats, progression, synths, factory),
-    resleevePolicy: allOf(resleeveGate, new SleeveLevelGate(config, progression)),
+    resleevePolicy: allOf(resleeveGate, new ProgressGate(config, progression)),
     resleeveLockout: resleeveGate,
     overflowPolicy: createClampOverflowPolicy(factory),
     factory,

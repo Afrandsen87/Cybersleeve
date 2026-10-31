@@ -13,7 +13,6 @@ import {
   STUDY_METHODS,
   KOMPROMAT_HARVEST,
   KOMPROMAT,
-  RARITY_REFINEMENT,
   SLEEVE_LEVELS,
 } from '../ids';
 import { autoRunCost, overclockUnlock, focusUnlock } from './helpers';
@@ -47,20 +46,6 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
         rarityWeights: { common: 90, uncommon: 10, rare: 0, legendary: 0, crisis: 0 },
       },
     },
-  },
-
-  {
-    id: RARITY_REFINEMENT,
-    name: 'Rarity refinement',
-    symbol: 'RR',
-    description:
-      'Increases the rarity of Kompromat drops based on Hacking Proficiency: for every doubling of your Hacking Proficiency (plus 1), 5% of each rarity moves up to the next rarity.',
-    actionId: PRACTICE_HACKING,
-    cost: num(10_000),
-    requires: [KOMPROMAT_HARVEST],
-    // steps = log_stepBase(1 + proficiency), continuous (works from low proficiency); each step moves fractionPerStep of every rarity's
-    // weight on to the next rarity, all worked out up front and moved at once
-    effect: { kind: 'rarityShiftFromProficiency', fractionPerStep: 0.05, stepBase: 2 },
   },
 
   {

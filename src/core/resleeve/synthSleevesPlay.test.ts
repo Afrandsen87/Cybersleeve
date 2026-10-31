@@ -108,10 +108,10 @@ describe('synthetic sleeves', () => {
     g.resleeve();
     g.buy('syn');
     const state = flat<{
-      runs: { creditsPerSecond: unknown; actionLevelsTotal: number }[];
+      runs: { creditsPerSecond: unknown; actionLevelsTotal: number; sleeveLevelsTotal: number }[];
       synths: { runIndex: number }[];
     }>(g);
-    state.runs.push({ creditsPerSecond: num(100), actionLevelsTotal: 4 }, { creditsPerSecond: num(30), actionLevelsTotal: 2 });
+    state.runs.push({ creditsPerSecond: num(100), actionLevelsTotal: 4, sleeveLevelsTotal: 0 }, { creditsPerSecond: num(30), actionLevelsTotal: 2, sleeveLevelsTotal: 0 });
     state.synths.push({ runIndex: 2 }, { runIndex: 3 });
     atLevel(g, 1); // a quarter of the way to run 2, half of the way to run 3
     expect(g.synthCreditsPerSecond().toNumber()).toBeCloseTo(101 ** 0.25 - 1 + (31 ** 0.5 - 1), 9);
@@ -121,12 +121,12 @@ describe('synthetic sleeves', () => {
   });
 
   it('a synthetic sleeve whose run had no action levels pays in full at once', () => {
-    expect(synthCreditsPerSecond({ creditsPerSecond: num(7), actionLevelsTotal: 0 }, 0, numberFactory).toNumber()).toBe(7);
+    expect(synthCreditsPerSecond({ creditsPerSecond: num(7), actionLevelsTotal: 0, sleeveLevelsTotal: 0 }, 0, numberFactory).toNumber()).toBe(7);
   });
 });
 
 describe('synthCreditsPerSecond', () => {
-  const record = { creditsPerSecond: num(80), actionLevelsTotal: 8 };
+  const record = { creditsPerSecond: num(80), actionLevelsTotal: 8, sleeveLevelsTotal: 0 };
   it.each([
     [0, 0],
     [1, 81 ** (1 / 8) - 1],
@@ -149,18 +149,18 @@ describe('synthCreditsPerSecond', () => {
   });
 
   it('moves in orders of magnitude: a record of 3.5e8 at 350 levels gives about 0.058 at 1 level and 1.9e4 at half', () => {
-    const big = { creditsPerSecond: num(3.5e8), actionLevelsTotal: 350 };
+    const big = { creditsPerSecond: num(3.5e8), actionLevelsTotal: 350, sleeveLevelsTotal: 0 };
     expect(synthCreditsPerSecond(big, 1, numberFactory).toNumber()).toBeCloseTo(0.0583, 3);
     expect(synthCreditsPerSecond(big, 175, numberFactory).toNumber() / 1.87e4).toBeCloseTo(1, 1);
     expect(synthCreditsPerSecond(big, 350, numberFactory).toNumber()).toBe(3.5e8);
   });
 
   it('handles a record of 0 and a huge record', () => {
-    expect(synthCreditsPerSecond({ creditsPerSecond: num(0), actionLevelsTotal: 8 }, 4, numberFactory).toNumber()).toBe(0);
-    const huge = synthCreditsPerSecond({ creditsPerSecond: num('1e300'), actionLevelsTotal: 8 }, 4, numberFactory);
+    expect(synthCreditsPerSecond({ creditsPerSecond: num(0), actionLevelsTotal: 8, sleeveLevelsTotal: 0 }, 4, numberFactory).toNumber()).toBe(0);
+    const huge = synthCreditsPerSecond({ creditsPerSecond: num('1e300'), actionLevelsTotal: 8, sleeveLevelsTotal: 0 }, 4, numberFactory);
     expect(huge.isFinite()).toBe(true);
     expect(huge.floorLog10()).toBe(150);
-    expect(synthCreditsPerSecond({ creditsPerSecond: num('1e300'), actionLevelsTotal: 8 }, 8, numberFactory).floorLog10()).toBe(300);
+    expect(synthCreditsPerSecond({ creditsPerSecond: num('1e300'), actionLevelsTotal: 8, sleeveLevelsTotal: 0 }, 8, numberFactory).floorLog10()).toBe(300);
   });
 
   it('never goes below 0 or above the recorded amount, whatever it is given', () => {

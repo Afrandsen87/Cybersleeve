@@ -1,3 +1,4 @@
+import type { ResleeveRequirement } from '../../core';
 import type { ActionView } from './actionViewTypes';
 import type { SleeveView, NetworkView } from './sleeveViewTypes';
 import type { InventoryView } from './inventoryViewTypes';
@@ -56,5 +57,5 @@ export interface ViewModel {
    * While the button is the Re-sleeve action and the sleeve levels held are short of what the next re-sleeve needs: how many are held and needed;
    * otherwise `null`. Only set once the Sleeve levels unlock is owned (the button, and the idea of sleeve levels, are hidden before).
    */
-  readonly resleeveShortfall: { readonly held: number; readonly needed: number } | null;
+  readonly resleeveShortfall: readonly ResleeveRequirement[];
 }

@@ -6,7 +6,7 @@
  * @remarks
  * Called by: `viewModel.ts`, `actionView.ts`, `panelViews.ts`. Pure; reads the same rules as the game (`sleeveLevelsGateId`, `resleeveGateId`).
  */
-import { type GameConfig, type GameQueries, resleeveGateId, sleeveLevelsGateId, type StateSliceView } from '../../core';
+import { type GameConfig, type GameQueries, type ResleeveRequirement, resleeveGateId, sleeveLevelsGateId, type StateSliceView } from '../../core';
 import type { BuyableView, ResleeveBuyView } from './viewTypes';
 
 /**
@@ -62,22 +62,21 @@ export function resleeveBuyView(
 }
 
 /**
- * The sleeve levels the next re-sleeve is short of, for the Re-sleeve button's tip.
+ * The action and sleeve levels the next re-sleeve is short of, for the Re-sleeve button's tip.
  *
- * Called by: `viewModel.ts`. Calls: `GameQueries.resleeveRequirement`.
+ * Called by: `viewModel.ts`. Calls: `GameQueries.resleeveRequirements`.
  *
  * @param engine the game's queries
  * @param state the game state (reads `purchased`)
  * @param config game configuration (finds the unlock buyable)
- * @returns what is held and needed, or `null` when the unlock is not owned (nothing about sleeve levels is shown yet), the content has no
- *   level rule, or the levels held are enough
+ * @returns the requirements not yet met (held and needed), empty when the unlock is not owned (nothing about re-sleeving is shown yet)
+ *   or the progress made is enough
  */
 export function resleeveShortfallView(
-  engine: Pick<GameQueries, 'resleeveRequirement'>,
+  engine: Pick<GameQueries, 'resleeveRequirements'>,
   state: StateSliceView<'purchased'>,
   config: Pick<GameConfig, 'buyables'>,
-): { readonly held: number; readonly needed: number } | null {
-  if (!sleeveLevelsOpen(state, config)) return null;
-  const need = engine.resleeveRequirement();
-  return need !== null && need.held < need.needed ? need : null;
+): readonly ResleeveRequirement[] {
+  if (!sleeveLevelsOpen(state, config)) return [];
+  return engine.resleeveRequirements().filter((r) => r.held < r.needed);
 }

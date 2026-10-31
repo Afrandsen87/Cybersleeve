@@ -71,19 +71,15 @@ describe('Heat, ICE Rating and Legend tooltips', () => {
       'Earned = 1e100',
       'ICE Rating = 1e100',
       '',
-      'Heat Reduction = Orders of Magnitude ICE Rating x Reduction per Order',
+      'Heat Reduction = (Orders of Magnitude ICE Rating / Orders for Full Reduction) ^ Exponent',
       '',
       'Orders of Magnitude ICE Rating = 100',
-      'Reduction per Order = 0.5%',
+      'Orders for Full Reduction = 200',
+      'Exponent = 1',
       '',
       'Heat Reduction = 50%',
       'Reaches 100% at 1e200',
     ]);
-  });
-
-  it('ICE Rating: says nothing about 100% when the reduction never gets there', () => {
-    const g = game({ sleeve: { iceRatingReductionPerOrder: 0 } });
-    expect(sleeveTip(g, 'iceRating')).not.toContain('Reaches 100%');
   });
 
   it('Legend: the heat cooldown time it causes, and how fast it falls', () => {

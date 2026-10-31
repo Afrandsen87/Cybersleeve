@@ -85,7 +85,7 @@ export const sleeveTips: Pick<TipTexts, 'access' | 'interfaceSpeed' | 'hackingPr
               : `${moles.moles} Moles make it ${moles.aggregatedPercent}% faster`,
           ]),
     ].join('\n'),
-  iceRating: ({ earned, levelBonus, levelBonusSource, multipliers, total, orders, perOrderPercent, reductionPercent, fullAt }) =>
+  iceRating: ({ earned, levelBonus, levelBonusSource, multipliers, total, orders, ordersForFull, exponent, reductionPercent, fullAt }) =>
     [
       `ICE Rating = ${levelBonus === null ? 'Earned' : `(Earned + ${levelBonusSource})`}${multipliers.map((t) => ` x ${t.label}`).join('')}`,
       '',
@@ -94,13 +94,14 @@ export const sleeveTips: Pick<TipTexts, 'access' | 'interfaceSpeed' | 'hackingPr
       ...multipliers.map((t) => `${t.label} = x${t.value}`),
       `ICE Rating = ${total}`,
       '',
-      'Heat Reduction = Orders of Magnitude ICE Rating x Reduction per Order',
+      'Heat Reduction = (Orders of Magnitude ICE Rating / Orders for Full Reduction) ^ Exponent',
       '',
       `Orders of Magnitude ICE Rating = ${orders}`,
-      `Reduction per Order = ${perOrderPercent}%`,
+      `Orders for Full Reduction = ${ordersForFull}`,
+      `Exponent = ${exponent}`,
       '',
       `Heat Reduction = ${reductionPercent}%`,
-      ...(fullAt === null ? [] : [`Reaches 100% at ${fullAt}`]),
+      `Reaches 100% at ${fullAt}`,
     ].join('\n'),
   legend: ({ legend, baseSeconds, speedupPercent, cycleSeconds, decayMinutes }) =>
     [

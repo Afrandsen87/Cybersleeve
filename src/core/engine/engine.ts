@@ -787,9 +787,9 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.resleevePolicy.canResleeve(this.state);
   }
 
-  /** What the next re-sleeve is waiting for in sleeve levels (held and needed), or `null` when it needs none. */
-  resleeveRequirement(): ResleeveRequirement | null {
-    return this.resleevePolicy.requirement?.(this.state) ?? null;
+  /** What the next re-sleeve is waiting for (action levels and sleeve levels, held and needed); empty when it needs nothing. */
+  resleeveRequirements(): readonly ResleeveRequirement[] {
+    return this.resleevePolicy.requirements?.(this.state) ?? [];
   }
 
   // ---- time ----------------------------------------------------------------------------------------------------
