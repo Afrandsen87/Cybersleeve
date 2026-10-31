@@ -1,6 +1,6 @@
 ---
 name: agent-task
-description: Run a task end to end in its own git worktree and branch. For complicated tasks, split it across parallel subagents (each in its own worktree), then merge and verify. Serves a preview from the worktree and lands on main locally only after the user approves.
+description: Run a task end to end in its own git worktree and branch. Large build packages go to Codex CLI by default (sonnet subagents are the fallback), then you verify, review and merge. Serves a preview from the worktree and lands on main locally only after the user approves.
 ---
 
 You are the **orchestrator** for a Cybersleeve task. You own the whole git lifecycle: worktrees, subagents, merging, verification and landing on `main`. The user must not have to touch git.
@@ -15,11 +15,15 @@ Task: $ARGUMENTS
 4. If you need the dev server, use a port derived from the worktree name (`npm run dev -- --port <port>`) and say which. Saves live in the browser per origin, so worktrees do not share saves.
 5. State the files and directories in scope. If the task did not name them and they are unclear, propose a scope and ask once.
 
-## 2. Decide: do it yourself or fan out
+## 2. Decide: do it yourself, hand packages to Codex, or fan out
 
-Do it **yourself** in the task worktree by default. Each subagent starts cold and you pay again to review and merge it, so fanning out only pays off for large work.
+Do **small, well-located edits yourself** in the task worktree (about 3 files or fewer). Every builder starts cold and you pay again to review it, so delegating only pays off for large work.
 
-**Fan out to subagents** only when the task splits into 3 or more work packages that can be built independently and are each large (for example content for several actions, separate UI widgets, engine change plus its tests plus docs). Otherwise do it yourself in the task worktree; for related small items, prefer one implementer over several agents. Rules for the split:
+**The default builder for a large package is Codex CLI.** Follow `.claude/skills/codex-task/SKILL.md` for the whole build and verify procedure (cold-start spec file, `scripts/run-codex.ps1`, your own `npm run check`, one `reviewer` over the whole diff after the last package, metrics row). Codex packages run **one at a time** in the task worktree; they need no subagent worktrees, so sections 2 "Worktrees" and 3 below do not apply to them. Skip the rest of this section when you use Codex, and continue at section 4.
+
+**Fall back to the sonnet fan-out below** only when the user asks for it, when Codex cannot run (the script fails, the quota is out, the rules file is missing and the user does not want it installed), or when a package needs something outside Codex's sandbox.
+
+**Fan out to sonnet subagents** only when the task splits into 3 or more work packages that can be built independently and are each large (for example content for several actions, separate UI widgets, engine change plus its tests plus docs). Otherwise do it yourself in the task worktree; for related small items, prefer one implementer over several agents. Rules for the split:
 
 - Packages must have **disjoint file scopes**. Shared files (types, `core/api.ts`, barrels, `docs/*`, `DESIGN.md`, golden save fixtures such as `core/save/v8Golden.test.ts`) go to exactly one package, or you edit them yourself first or after merging, so parallel packages never conflict on them.
 - Decide the shared shapes before spawning and put them in every prompt: new saved fields and the save-migration approach (a raw-text step, or a post-load step when it needs the config), and the golden fixtures to extend. Parallel packages that each invent a migration shape cost a rework after the merge.
