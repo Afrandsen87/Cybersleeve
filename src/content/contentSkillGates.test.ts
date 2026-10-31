@@ -9,7 +9,7 @@ import { createGame } from '../app/createGame';
 import type { BuyableDefinition } from '../core';
 import { markResleeved } from '../testing/sleeveLevelsKit';
 import { skillViews } from '../testing/skillViews';
-import { NETWORKED_SLEEVE, NETWORK_SAFETY_PROTOCOLS, KOMPROMAT_HARVEST, SKILL_TIERED_INFORMANTS } from './ids';
+import { NETWORKED_SLEEVE, NETWORK_SAFETY_PROTOCOLS } from './ids';
 import { BRANCH_REVEAL_STAT } from '../ui/view/branchMask';
 import { buildViewModel } from '../ui/viewModel';
 import {
@@ -171,22 +171,5 @@ describe('the action speed tip', () => {
     expect(tip(g)).not.toMatch(/sleeve/i);
     (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
     expect(tip(g)).toMatch(/Sleeve Level/);
-  });
-});
-
-/** Automation context reveal checklist: harvest introduces files/rarity; the manual skills introduce Back Channel and tiered payouts. */
-describe('Kompromat automation reveal points', () => {
-  it('masks names, descriptions and tips until the relevant manual concept is owned', () => {
-    const g = createGame();
-    const views = () => buildViewModel(g).automation.features.find((f) => f.id === 'autosale')!.lanes[0]!.nodes;
-    expect(views().every((n) => n.masked && n.view.name === '???' && n.view.description === '???' && n.view.tip === '???')).toBe(true);
-    const purchased = g.getState().sleeve.purchased as Record<string, number>;
-    purchased[KOMPROMAT_HARVEST] = 1;
-    expect(views().filter((n) => n.view.id.endsWith('-4'))[0]!.masked).toBe(true);
-    purchased[SKILL_BACK_CHANNEL] = 1;
-    expect(views().find((n) => n.view.id.endsWith('-4'))!.masked).toBe(false);
-    expect(views().find((n) => n.view.id.endsWith('-5'))!.masked).toBe(true);
-    purchased[SKILL_TIERED_INFORMANTS] = 1;
-    expect(views().every((n) => !n.masked)).toBe(true);
   });
 });

@@ -22,7 +22,7 @@ export function allowedRarities(
   feature: RarityAutomation,
 ): RarityId[] {
   const granted = new Set<string>();
-  for (const b of config.buyables) {
+  for (const b of grantingBuyables(config.buyables)) {
     if ((purchased[b.id] ?? 0) <= 0) continue;
     const e: BuyableDefinition['effect'] = b.effect;
     if (feature === 'autosale') {
@@ -31,4 +31,19 @@ export function allowedRarities(
     } else if (e.kind === 'allowsAutoBackchannel') granted.add(e.rarity);
   }
   return config.items.rarities.filter((r) => granted.has(r.id)).map((r) => r.id);
+}
+
+/** The buyables that can grant a rarity switch, found once per content array so a check does not scan every buyable. */
+const grantingByContent = new WeakMap<readonly BuyableDefinition[], readonly BuyableDefinition[]>();
+
+/** Automation context: the rarity-granting subset of the buyables (cached). Called by: allowedRarities. Calls: nothing. */
+function grantingBuyables(buyables: readonly BuyableDefinition[]): readonly BuyableDefinition[] {
+  let found = grantingByContent.get(buyables);
+  if (found === undefined) {
+    found = buyables.filter(
+      (b) => b.effect.kind === 'allowsAutosale' || b.effect.kind === 'allowsAutoBackchannel' || b.effect.kind === 'unlocksAutomation',
+    );
+    grantingByContent.set(buyables, found);
+  }
+  return found;
 }

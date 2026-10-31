@@ -1,12 +1,14 @@
 /**
  * @module content
  * Automation context: the Kompromat trunk forks after rare autosale into Back Channel and higher-rarity sales.
+ * No `requires` gate on purpose: a re-sleeve resets the Kompromat and Back Channel purchases, and a missing `requires` would drop the
+ * kept automation skills on load (like the Auto Burn lane, the lane is always shown in full).
  * Called by: automationLines. Calls: automationSkillId; content data only.
  */
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import { itemsConfig } from '../../items';
-import { automationSkillId, BRANCH_AUTOSALE, KOMPROMAT_HARVEST, SKILL_BACK_CHANNEL, SKILL_TIERED_INFORMANTS } from '../../ids';
+import { automationSkillId, BRANCH_AUTOSALE } from '../../ids';
 
 /** Automation context: stable saved slots, rarity ids and first-parent edges of the single tree. */
 const NODES = [
@@ -32,7 +34,6 @@ export const autosaleSkills: BuyableDefinition[] = NODES.map(({ slot, rarity, pa
       : `Adds a switch to sell ${name.toLowerCase()} Kompromat files automatically at the normal price.`,
     currency: 'automationPoints',
     branch: BRANCH_AUTOSALE,
-    requires: channel ? [rarity === 'common' ? SKILL_BACK_CHANNEL : SKILL_TIERED_INFORMANTS] : [KOMPROMAT_HARVEST],
     ...(parent ? { parents: [automationSkillId(BRANCH_AUTOSALE, parent)] } : {}),
     cost: num(1),
     effect:

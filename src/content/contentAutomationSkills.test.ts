@@ -9,6 +9,7 @@ import { AUTOMATION_FEATURES, AUTO_BURN_STEPS } from '../core';
 import { num } from '../numbers';
 import { setCredits } from '../testing/testConfig';
 import { gameConfig } from './gameConfig';
+import { autosaleSkills } from './buyables/skillBranches/autosaleLane';
 import {
   AUTOMATION_CORE,
   AUTOMATION_LINE_LENGTH,
@@ -115,5 +116,9 @@ describe('the Kompromat automation tree', () => {
     const channel = inLane('autosale').flatMap((b) => (b.effect.kind === 'allowsAutoBackchannel' ? [b.effect.rarity] : []));
     expect(sale.sort()).toEqual(gameConfig.items.rarities.map((r) => r.id).sort());
     expect(channel).toEqual(['common', 'uncommon', 'rare']);
+  });
+
+  it('autosale lane skills carry no requires gate, so Daemon Persistence keeps them through a re-sleeve', () => {
+    for (const b of autosaleSkills) expect(b.requires, b.id).toBeUndefined();
   });
 });

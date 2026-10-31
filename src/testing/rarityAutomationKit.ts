@@ -10,7 +10,7 @@ import { autosaleSkills } from '../content/buyables/skillBranches/autosaleLane';
 import { testConfig } from './testConfig';
 
 /** Automation context: same stable tree edges, independent test names and no external reveal prerequisites. */
-export const raritySkills: BuyableDefinition[] = autosaleSkills.map((b) => ({ ...b, requires: [] }));
+export const raritySkills: BuyableDefinition[] = autosaleSkills;
 /** Automation context: test content, with cooling disabled to compare batches without a tick-dependent heat consumer. */
 export const rarityConfig = createConfig(testConfig, {
   items: {
