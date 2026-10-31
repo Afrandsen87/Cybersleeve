@@ -16,6 +16,14 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 - Reveal checklist: readouts follow the existing tab/pool visibility; legend appears only while a displayed node is encrypted; branch purposes wait for a readable node; encrypted inspection reveals no content. Sleeve Firmware remains subject to the existing first-re-sleeve and parent gates. Persistence wording was verified against `CARRIED_OVER_BUYABLE_CURRENCIES` and the currency descriptor's `carriedOverResleeve` flag.
 - Impact and layer readiness: UI only, with the current sleeve's point pools and existing currency words; no mechanics, save fields, tuning, global singleton, copy iteration or assumption about additional corporations/prestige layers is added.
 
+## Re-sleeve box (2026-11-01)
+
+- `view/resleeveBox.ts` owns `resleeveBoxView`: locked (unaffordable or affordable, with the price on the gold UNLOCK button and a "you have / to go" line, to go clamped at 0), charging (magenta bar at the share met by the furthest-off requirement via `requirementFill`, percentage as the status, one line per requirement; no bar and CHARGING during the post-re-sleeve lockout) and ready (full bar, READY, "on arrival" line). Armed is the widget's, following its confirm gate.
+- The ledger (RESETS / KEEPS / GAINS) and the on-arrival line read the same `uiText.resleeve.ledger` parts; the old one-sentence confirm text is gone, and the shortfall no longer lives in the button tooltip.
+- `widgets/resleeveRow.ts` builds the elements once; `render` flips classes, text and the bar's `transform`. The armed box is absolutely placed at the bottom of the row over the (hidden, still in-flow) box, so it grows upwards; the bottom edge of the buttons never moves. The breathing glow is CSS only.
+- Also: the runs/s overlay on action bars (`.bar-label`) is mono bold white with a black outline, readable over the new bar graphics.
+- Presentation only: no tuning, save or mechanic change.
+
 ## Main screen view (2026-10-31)
 
 - **Panel precision:** panel stat values keep `PANEL_DIGITS` (4) significant figures through `formatSignificant` (`numbers/format.ts`; from 1000 it hands over to the `formatBigNum` suffixes). Tooltips keep full precision.
@@ -90,7 +98,7 @@ The autosale branch uses the existing first-parent placeNodes layout: slot 3 has
 
 ## Upgrades panel (B1, 2026-10-31)
 
-One Upgrades panel replaces the two purchase widgets. Cached `sectionLayout` groups by currency (SLEEVE for credits, NETWORK for nodes), excluding action, point, corporate and re-sleeve gate purchases. `view/upgradeRows.ts` stably moves bought one-time purchases first; each partition retains base-price order. Maxed repeatables keep their place. Empty and wholly unrevealed rows show no label.
+One Upgrades panel replaces the two purchase widgets. Cached `sectionLayout` groups by currency (SLEEVE for credits, NETWORK for nodes), excluding action, point, corporate and re-sleeve gate purchases. Each row stays in base-price order: buying a purchase never moves it (decided 2026-11-01 by the user; it used to move bought one-time purchases to the front). Empty and wholly unrevealed rows show no label.
 
 `widgets/upgradeButtons.ts` opts into tile mode through `uiText.upgradeTiles` (`parts/upgradeText.ts`, `upgradeText.ts`). Tiles retain pixel icons above a price strip, show MAX from the owner maxed flag, and show an owned badge only for repeatables with copies. Gold means affordable; teal means MAX. Existing action and skill callers retain square buttons. `sleeveWidgets.ts` compares cached row IDs element by element and appends existing buttons only when order changes; equal order allocates no order array. Tests: `upgradeRows.test.ts`, `upgradeTiles.dom.test.ts`; shared engine and mount setup: `testing/testConfig.ts`, `testing/domMountKit.ts`. No game, save, tuning or layer assumptions change.
 

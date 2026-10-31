@@ -4,13 +4,7 @@ import { createGame } from '../app/createGame';
 import { createConfig, type BuyableDefinition } from '../core';
 import { testConfig } from '../testing/testConfig';
 import { sectionLayout } from './view/buyableViews';
-import { boughtOneTimeFirst } from './view/upgradeRows';
-import { buildViewModel, type BuyableView } from './viewModel';
-
-/** Creates deterministic base-price views. Called by: tests. Calls: createGame, buildViewModel. */
-function views(): BuyableView[] {
-  return buildViewModel(createGame({ config: testConfig })).sleeve.sections[0]!.buyables.slice();
-}
+import { buildViewModel } from './viewModel';
 
 describe('upgrade currency rows', () => {
   it('splits exclusively by currency, labels rows, and caches the same layout array', () => {
@@ -30,31 +24,6 @@ describe('upgrade currency rows', () => {
   it('omits empty rows', () => {
     expect(sectionLayout(testConfig).map((s) => s.id)).toEqual(['sleeve']);
     expect(sectionLayout(createConfig(testConfig, { buyables: [] }))).toEqual([]);
-  });
-});
-
-describe('boughtOneTimeFirst', () => {
-  it('moves a dearer bought one-time ahead of cheaper unbought views without mutating input', () => {
-    const input = views();
-    input[1] = { ...input[1]!, owned: 1, maxed: true };
-    const before = input.slice();
-    expect(boughtOneTimeFirst(input)).toEqual([input[1], input[0]]);
-    expect(input).toEqual(before);
-  });
-
-  it('keeps two bought one-time purchases in incoming base-price order', () => {
-    const input = views().map((b) => ({ ...b, owned: 1, maxed: true }));
-    expect(boughtOneTimeFirst(input)).toEqual(input);
-  });
-
-  it('keeps a maxed repeatable in its incoming position among the rest', () => {
-    const input = views();
-    input[1] = { ...input[1]!, owned: 3, repeatable: true, maxed: true };
-    expect(boughtOneTimeFirst(input)).toEqual(input);
-  });
-
-  it('accepts empty input', () => {
-    expect(boughtOneTimeFirst([])).toEqual([]);
   });
 });
 

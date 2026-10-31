@@ -1,95 +1,14 @@
 /**
  * @module ui
  *
- * The buttons around the game: re-sleeve (two clicks), the test aids bar at the top of the page, and the save row (export, import, changelog).
+ * The buttons around the game: the test aids bar at the top of the page, and the save row (export, import, changelog).
  *
  * @remarks
- * Called by: `ui/dom.ts`. Calls: `ConfirmGate`, `GameCommands`.
+ * Called by: `ui/dom.ts`. Calls: `GameCommands`.
  */
-import type { ResleeveRequirement } from '../../core';
-import { formatBigNum, num } from '../../numbers';
-import { ConfirmGate } from '../confirmGate';
 import { type ChangelogEntry, buildChangelogModal } from './changelogModal';
 import { type UiContext, h, setText } from './domKit';
 import type { SpeedControl } from '../speedControl';
-import type { ResleeveBuyView } from '../viewModel';
-
-/** What the re-sleeve button needs to draw itself. */
-export interface ResleeveButtonState {
-  /** A re-sleeve is possible now. */
-  readonly canResleeve: boolean;
-  /** The button shows at all (the Sleeve levels unlock is owned). It is the purchase of Unlock resleeving while `buy` is set, the Re-sleeve action otherwise. */
-  readonly shown: boolean;
-  /** The purchase (Unlock resleeving) to show on the button while it is not yet owned; `null` when the button is the Re-sleeve action. */
-  readonly buy: ResleeveBuyView | null;
-  /** Sleeve levels held and needed while the next re-sleeve is short of them; `null` otherwise. Drives the button's tip. */
-  readonly shortfall: readonly ResleeveRequirement[];
-  /** The title of the box around the button (`SleeveView.resleeveTitle`); absent leaves the title as it was. */
-  readonly title?: string;
-}
-
-/** The re-sleeve button with its cancel button. */
-export interface ResleeveRow {
-  readonly root: HTMLElement;
-  /** Draws the button as the purchase of Unlock resleeving, as the Re-sleeve action, or hides it. */
-  render(state: ResleeveButtonState): void;
-}
-
-/**
- * Builds the re-sleeve row (a titled box), which sits at the bottom of the Sleeve widget. Once Sleeve levels is owned the button shows; until Unlock resleeving is owned it IS that
- * purchase (one click buys it); then it turns into the Re-sleeve action. Re-sleeving wipes most progress, so it takes two clicks: the
- * first arms the gate, the second confirms.
- *
- * Called by: {@link mountUi}. Calls: `ConfirmGate`, `UiContext.activate`, `GameCommands.resleeve`.
- *
- * @param ctx what the row needs from the screen
- */
-export function buildResleeveRow(ctx: UiContext): ResleeveRow {
-  const { engine, text, tips } = ctx;
-  const gate = new ConfirmGate();
-  const button = h('button', 'resleeve') as HTMLButtonElement;
-  let buyId: string | null = null; // the purchase the button stands for, while it is not the Re-sleeve action
-  button.addEventListener('click', () => {
-    if (buyId !== null) ctx.activate(buyId);
-    else if (!engine.canResleeve()) gate.cancel();
-    else if (gate.request()) engine.resleeve();
-    ctx.refresh();
-  });
-  const cancel = h('button', 'resleeve-cancel', text.resleeve.cancel) as HTMLButtonElement;
-  cancel.addEventListener('click', () => {
-    gate.cancel();
-    ctx.refresh();
-  });
-  const root = h('div', 'resleeve-row resleeve-box');
-  const title = h('div', 'resleeve-title');
-  root.append(title, button, cancel);
-  return {
-    root,
-    render({ canResleeve, shown, buy, shortfall, title: boxTitle }) {
-      if (boxTitle !== undefined) setText(title, boxTitle);
-      buyId = buy?.id ?? null;
-      root.hidden = !shown;
-      if (root.hidden || buy !== null) gate.cancel();
-      const armed = gate.isArmed && canResleeve;
-      button.classList.toggle('buy', buy !== null);
-      if (buy !== null) {
-        button.disabled = !buy.affordable;
-        setText(button, buy.text);
-        tips.set(button, () => buy.tip);
-      } else {
-        button.disabled = !canResleeve;
-        setText(button, armed ? text.resleeve.armed : text.resleeve.idle);
-        const tip =
-          shortfall.length > 0
-            ? shortfall.map((r) => text.resleeve.needLevels(r.kind, formatBigNum(num(r.held)), formatBigNum(num(r.needed)))).join('\n')
-            : null;
-        tips.set(button, tip === null ? null : () => tip);
-      }
-      button.classList.toggle('armed', armed);
-      cancel.hidden = !armed;
-    },
-  };
-}
 
 /** The test aids, a bar at the top of the page. */
 export interface DebugControls {

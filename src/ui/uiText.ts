@@ -229,9 +229,20 @@ export const uiText: UiText = {
   upgradeTiles: upgradeText,
   resleeve: {
     idle: 'Re-sleeve',
-    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a sleeve firmware point.',
+    unlock: 'Unlock',
+    confirm: 'Confirm',
     cancel: 'Cancel',
-    needLevels: (_kind, held, needed) => `Needs ${needed} sleeve levels in total across all actions to re-sleeve. You have ${held}.`,
+    status: { locked: 'LOCKED', charging: 'CHARGING', ready: 'READY', armed: 'CONFIRM', percent: (percent) => `${percent}%` },
+    lockedHint: 'Buy the right to re-sleeve into a new body.',
+    have: (have) => `you have ${have}`,
+    haveToGo: (have, toGo) => `you have ${have} · ${toGo} to go`,
+    needLevels: (_kind, held, needed) => `needs ${needed} sleeve levels across all actions · you have ${held}`,
+    onArrival: (gain) => `on arrival: ${gain}`,
+    ledger: {
+      resets: { label: 'RESETS', what: 'credits, network, levels, purchases' },
+      keeps: { label: 'KEEPS', what: 'sleeve levels' },
+      gains: { label: 'GAINS', what: (points) => `+${points} sleeve firmware point${points === 1 ? '' : 's'}` },
+    },
   },
   notices: {
     otherTab: 'This game was opened in another tab, which now owns the save. Reload this page to play here instead.',

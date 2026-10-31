@@ -42,6 +42,7 @@ function mount() {
   const game = createGame({ config });
   const render = mountTestUi(root, game);
   const button = () => root.querySelector<HTMLButtonElement>('.sleeve-widget .resleeve')!;
+  const confirm = () => root.querySelector<HTMLButtonElement>('.sleeve-widget .resleeve-confirm')!;
   const open = () => {
     setCredits(game, num(20));
     game.buy('levels');
@@ -51,7 +52,7 @@ function mount() {
   const setActionXp = (xp: number) => {
     (game.getState().sleeve.actions['a'] as { xp: unknown }).xp = num(xp);
   };
-  return { game, render, button, open, setActionXp };
+  return { root, game, render, button, confirm, open, setActionXp };
 }
 
 beforeEach(() => {
@@ -60,21 +61,24 @@ beforeEach(() => {
 
 describe('the Re-sleeve button when progress is short', () => {
   it('says nothing about levels before the unlock is owned', () => {
-    const { game, button } = mount();
+    const { game, root } = mount();
     expect(buildViewModel(game).resleeveShortfall).toEqual([]);
-    expect(hoverText(button())).not.toContain('levels in total');
+    expect(root.querySelector('.resleeve-lines')?.textContent ?? '').not.toContain('sleeve levels');
   });
 
   it('once the unlock is owned, a disabled button whose tip names only sleeve levels needed and held', () => {
-    const { game, render, button, open } = mount();
+    const { game, render, button, open, root } = mount();
     open();
     render();
     expect(button().disabled).toBe(true);
     expect(buildViewModel(game).resleeveShortfall.map((r) => [r.kind, r.held, r.needed])).toEqual([['sleeveLevels', 0, 5]]);
-    expect(hoverText(button())).not.toContain('action levels');
-    expect(hoverText(button())).toContain('Needs 5 sleeve levels');
-    expect(hoverText(button())).toContain('sleeve levels');
-    expect(hoverText(button())).toContain('You have 0');
+    const box = root.querySelector('.resleeve-box')!;
+    expect(box.textContent).toContain('needs 5 sleeve levels across all actions');
+    expect(box.textContent).not.toContain('action levels');
+    expect(box.textContent).toContain('you have 0');
+    expect(box.textContent).toContain('0%'); // the status light is the percentage
+    expect(root.querySelector<HTMLElement>('.resleeve-bar')?.hidden).toBe(false);
+    expect(hoverText(button())).not.toContain('sleeve levels'); // the shortfall moved out of the tooltip
   });
 
   it('requires no action levels once sleeve levels suffice', () => {
@@ -97,13 +101,13 @@ describe('the Re-sleeve button when progress is short', () => {
   });
 
   it('after a re-sleeve the next one needs one more sleeve level, and the button says so again', () => {
-    const { game, render, button, open, setActionXp } = mount();
+    const { game, render, button, confirm, open, setActionXp } = mount();
     open();
     setSleeveXp(game, num(111110));
     setActionXp(1e6);
     render();
     button().click();
-    button().click();
+    confirm().click();
     expect(game.getState().wallet.runs).toHaveLength(1);
     render();
     expect(button().disabled).toBe(true);

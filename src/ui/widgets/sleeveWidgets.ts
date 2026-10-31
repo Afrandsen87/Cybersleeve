@@ -45,7 +45,7 @@ export function mountSleeveWidgets(ctx: UiContext, initial: SleeveView): SleeveW
       root.append(h('span', 'row-label', section.title), row.element);
       upgrades.append(root);
       for (const [id, button] of row.buttons) buttons.set(id, button);
-      return [section.id, { root, element: row.element, order: section.buyables.map((b) => b.id) }] as const;
+      return [section.id, root] as const;
     }),
   );
   return {
@@ -58,16 +58,7 @@ export function mountSleeveWidgets(ctx: UiContext, initial: SleeveView): SleeveW
       for (const section of view.sections) {
         const row = rows.get(section.id);
         if (!row) continue;
-        row.root.hidden = !section.buyables.some((b) => b.available);
-        let changed = row.order.length !== section.buyables.length;
-        for (let i = 0; !changed && i < row.order.length; i++) changed = row.order[i] !== section.buyables[i]?.id;
-        if (!changed) continue;
-        row.order.length = 0;
-        for (const b of section.buyables) {
-          const button = buttons.get(b.id);
-          if (button) row.element.append(button);
-          row.order.push(b.id);
-        }
+        row.hidden = !section.buyables.some((b) => b.available);
       }
     },
   };

@@ -11,7 +11,7 @@ Task: $ARGUMENTS
 
 ### 0. No `npm install` (replaces agent-task section 1, step 2)
 
-Skip `npm install` in the task worktree. `scripts/run-codex.ps1` links `node_modules` from the primary checkout when `package-lock.json` is unchanged, and installs only when the lockfile differs (a task that changes dependencies). Before removing the worktree at landing time, run `cmd /c rmdir <worktree>\node_modules` to drop the junction; never delete it recursively, or the primary checkout's modules go with it. Your own `npm run check` in the worktree uses the same link.
+Skip `npm install` in the task worktree. `scripts/run-codex.ps1` links `node_modules` from the primary checkout when `package-lock.json` is unchanged, and installs only when the lockfile differs (a task that changes dependencies). Remove the worktree at landing time with `scripts/remove-worktree.ps1` (agent-task section 6 step 4): it drops the junction safely and takes ownership of files the Codex sandbox account owns, which otherwise make `git worktree remove` fail with permission errors. Your own `npm run check` in the worktree uses the same link.
 
 ### 1. Spec (replaces "Decide: do it yourself or fan out")
 

@@ -24,7 +24,6 @@ import { formatBigNum, formatPlain, formatSignificant, numberFactory } from '../
 import type { UiText } from '../uiText';
 import { isCorporate, isPointCurrency, sectionLayout } from './buyableViews';
 import { aggregatedMoleText } from './moleBonus';
-import { boughtOneTimeFirst } from './upgradeRows';
 import type { RevealTracker } from './revealTracker';
 import { sleeveGroups, sleeveHeatGauge } from './sleeveGroups';
 import { iceBonusSource, nextUnlock } from './sleeveTipSources';
@@ -240,7 +239,7 @@ export function sleeveView(
     sections: sectionLayout(config).map((section) => ({
       id: section.id,
       title: text.sections[section.id],
-      buyables: boughtOneTimeFirst(section.ids.flatMap((id) => viewById.get(id) ?? [])),
+      buyables: section.ids.flatMap((id) => viewById.get(id) ?? []),
     })),
   };
 }

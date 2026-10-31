@@ -20,6 +20,7 @@ import { automationView } from './view/automationView';
 import { runsView, skillsView, tabsView } from './view/panelViews';
 import { revealEverything } from './view/revealAll';
 import { RevealTracker } from './view/revealTracker';
+import { resleeveBoxView } from './view/resleeveBox';
 import { resleeveBuyView, resleeveShortfallView, sleeveLevelsOpen } from './view/sleeveGate';
 import { sleeveView } from './view/sleeveView';
 import { NO_SELECTION, type ViewModel, type ViewSelection } from './view/viewTypes';
@@ -62,6 +63,9 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
   const sleeve = sleeveView(stats, state, config, buyableViews, viewById, text, tracker);
 
   const skills = skillsView(engine, state, config, viewById, stats, text, revealAll, tracker);
+  const canResleeve = engine.canResleeve();
+  const resleeveBuy = resleeveBuyView(state, config, viewById);
+  const resleeveShortfall = resleeveShortfallView(engine, state, config);
   const vm: ViewModel = {
     creditsText: formatBigNum(state.wallet.credits),
     hud: hudView(engine, state, text, tracker),
@@ -74,10 +78,11 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
     inventory: inventoryView(engine, factory, text, revealAll),
     actions: buildActionViews(engine, config, state, buyableViews, viewById, factory, text, selection),
     sleeve,
-    canResleeve: engine.canResleeve(),
+    canResleeve,
     resleeveShown: sleeveLevelsOpen(state, config),
-    resleeveBuy: resleeveBuyView(state, config, viewById),
-    resleeveShortfall: resleeveShortfallView(engine, state, config),
+    resleeveBuy,
+    resleeveShortfall,
+    resleeveBox: resleeveBoxView(engine, state, config, text, canResleeve, resleeveBuy, resleeveShortfall),
     newlyRevealed: [],
   };
   const shown = revealAll ? revealEverything(vm) : vm;

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Re-sleeve box – mockup</title>
+<style>
+  /* same language as mainscreen.html */
+  :root {
+    --bg: #0b0f1a; --panel: #121829; --panel-2: #0e1324; --ink: #e6f1ff; --muted: #8da2c0; --line: #26304d; --line-2: #1b2340;
+    --info: #19e3ff; --run: #ff2bd6; --gain: #39ff88; --afford: #ffd23f; --danger: #ff3b5c;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); font: 14px/1.4 system-ui, sans-serif; background: linear-gradient(var(--line-2) 1px, transparent 1px) 0 0 / 100% 24px, var(--bg); }
+  main { max-width: 1260px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  h1 { font-size: 15px; color: var(--muted); font-weight: 600; margin: 0; }
+  button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, 300px); gap: 18px; align-items: start; }
+  .cap { font: 700 10px var(--mono); letter-spacing: .14em; color: var(--muted); margin-bottom: 6px; }
+  .cap b { color: var(--ink); }
+  /* the bottom of the Sleeve panel, for context */
+  .panel { position: relative; background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px 12px;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .panel::after { content: ""; position: absolute; right: 0; bottom: 0; width: 10px; height: 10px; border: solid var(--info); border-width: 0 2px 2px 0; opacity: .8; }
+  .fade { height: 26px; margin-bottom: 10px; border-radius: 3px; background: repeating-linear-gradient(0deg, #1a2238 0 8px, transparent 8px 13px); opacity: .5; }
+
+  /* ---- before: today's box ---- */
+  .old { padding: 10px; border: 1px dashed color-mix(in srgb, var(--run) 50%, transparent); border-radius: 4px; display: grid; gap: 8px; }
+  .old .t { font: 700 11px var(--mono); letter-spacing: .12em; color: var(--run); }
+  .old button { padding: 10px; font-size: 15px; border-color: var(--info); border-radius: 10px; }
+
+  /* ---- after ---- */
+  .rs { --c: var(--run); padding: 9px 10px 10px; border: 1px dashed color-mix(in srgb, var(--c) 50%, transparent); border-radius: 4px; display: grid; gap: 7px;
+    background: color-mix(in srgb, var(--c) 4%, transparent); transition: border-color .2s, background .2s, box-shadow .2s; }
+  .rs .t { display: flex; align-items: center; gap: 8px; font: 700 11px var(--mono); letter-spacing: .12em; color: var(--run); }
+  .rs .t .st { margin-left: auto; font-size: 10px; letter-spacing: .1em; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .rs .t .st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 5px currentColor; }
+  .st.locked { color: #55617f !important; } .st.charging { color: var(--run) !important; } .st.ready { color: var(--gain) !important; } .st.armed { color: var(--danger) !important; }
+  .bar { height: 5px; border-radius: 3px; background: #0b0f1a; border: 1px solid var(--line-2); overflow: hidden; }
+  .bar i { display: block; height: 100%; transform-origin: left; background: var(--run); box-shadow: 0 0 6px var(--run); }
+  .why { font: 11px var(--mono); color: var(--muted); line-height: 1.45; }
+  .why b { color: var(--ink); font-weight: 700; } .why .g { color: var(--gain); } .why .m { color: var(--run); } .why .a { color: var(--afford); }
+  /* the action: mono, full width, same shape as the Firmware INSTALL button */
+  .act { width: 100%; padding: 8px; font: 700 12px var(--mono); letter-spacing: .14em; border-radius: 4px; display: flex; justify-content: center; gap: 10px; align-items: baseline; }
+  .act .price { font-weight: 400; letter-spacing: .02em; }
+  .act:disabled { cursor: default; color: #55617f; border-color: var(--line); background: #0d1222; }
+  .act.unlock:not(:disabled) { color: #0b0f1a; background: var(--afford); border-color: var(--afford); box-shadow: 0 0 14px -2px var(--afford); }
+  .act.go:not(:disabled) { color: var(--run); border-color: var(--run); background: color-mix(in srgb, var(--run) 10%, #0d1222); box-shadow: 0 0 12px -3px var(--run); animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe { 50% { box-shadow: 0 0 18px -2px var(--run); } }
+  .act.confirm { color: #0b0f1a; background: var(--run); border-color: var(--run); box-shadow: 0 0 16px -2px var(--run); }
+  .row2 { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+  .act.cancel { width: auto; padding: 8px 12px; color: var(--muted); }
+  /* armed: the box itself warns */
+  .rs.armed { border-style: solid; border-color: var(--run); background: color-mix(in srgb, var(--run) 9%, transparent); box-shadow: inset 0 0 14px -6px var(--run); }
+  .ledger { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font: 11px var(--mono); }
+  .ledger .k { font-weight: 700; letter-spacing: .1em; } .ledger .lose { color: var(--danger); } .ledger .keep { color: var(--gain); } .ledger .gain { color: var(--run); }
+  .ledger span:nth-child(even) { color: var(--ink); }
+
+  .notes { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+  .notes li { margin: 3px 0; } .notes b { color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mockup: Re-sleeve box (bottom of the Sleeve panel), every state</h1>
+
+  <div>
+    <div class="cap">BEFORE · <b>today</b></div>
+    <div class="grid">
+      <div class="panel"><div class="fade"></div><div class="old"><div class="t">RE-SLEEVE</div><button>Unlock resleeving: 100B credits</button></div></div>
+      <div class="panel"><div class="fade"></div><div class="old"><div class="t">RE-SLEEVE</div><button disabled style="opacity:.6">Re-sleeve</button></div></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="cap">AFTER · <b>one box, five states</b></div>
+    <div class="grid">
+      <div><div class="cap">1 · LOCKED, CAN'T AFFORD</div><div class="panel"><div class="fade"></div>
+        <div class="rs"><div class="t">RE-SLEEVE<span class="st locked">LOCKED</span></div>
+          <div class="why">Buy the right to re-sleeve into a new body.</div>
+          <button class="act unlock" disabled>UNLOCK <span class="price">₵100B</span></button>
+          <div class="why">you have <b>₵61.4B</b> · <span class="a">₵38.6B</span> to go</div></div></div></div>
+
+      <div><div class="cap">2 · LOCKED, AFFORDABLE</div><div class="panel"><div class="fade"></div>
+        <div class="rs"><div class="t">RE-SLEEVE<span class="st locked">LOCKED</span></div>
+          <div class="why">Buy the right to re-sleeve into a new body.</div>
+          <button class="act unlock">UNLOCK <span class="price">₵100B</span></button></div></div></div>
+
+      <div><div class="cap">3 · CHARGING (SHORTFALL)</div><div class="panel"><div class="fade"></div>
+        <div class="rs"><div class="t">RE-SLEEVE<span class="st charging">63%</span></div>
+          <div class="bar"><i style="transform: scaleX(.63)"></i></div>
+          <div class="why">needs <b>120</b> sleeve levels across all actions · you have <b>76</b></div>
+          <button class="act go" disabled>RE-SLEEVE</button></div></div></div>
+
+      <div><div class="cap">4 · READY</div><div class="panel"><div class="fade"></div>
+        <div class="rs"><div class="t">RE-SLEEVE<span class="st ready">READY</span></div>
+          <div class="bar"><i style="transform: scaleX(1)"></i></div>
+          <div class="why">on arrival: <span class="m">+1 sleeve firmware point</span></div>
+          <button class="act go">RE-SLEEVE</button></div></div></div>
+
+      <div><div class="cap">5 · ARMED (CONFIRM)</div><div class="panel"><div class="fade"></div>
+        <div class="rs armed"><div class="t">RE-SLEEVE<span class="st armed">CONFIRM</span></div>
+          <div class="ledger">
+            <span class="k lose">RESETS</span><span>credits, network, levels, purchases</span>
+            <span class="k keep">KEEPS</span><span>sleeve levels</span>
+            <span class="k gain">GAINS</span><span>+1 sleeve firmware point</span>
+          </div>
+          <div class="row2"><button class="act confirm">CONFIRM</button><button class="act cancel">CANCEL</button></div></div></div></div>
+    </div>
+  </div>
+
+  <div class="notes"><ul>
+    <li><b>Same chrome as the rest of the main screen:</b> mono title with a status light on the right (LOCKED, a percentage, READY, CONFIRM), and a full-width mono button in the same shape as the Firmware INSTALL button. The big rounded sans-serif button goes.</li>
+    <li><b>1–2 Unlock:</b> the price is on the button. Affordable is the gold "can buy now" look used everywhere else; otherwise the button is dim and a line says how far off you are.</li>
+    <li><b>3 Charging:</b> the sleeve-level shortfall moves out of the tooltip into the box: a magenta progress bar (held / needed), the percentage in the title, and the need-and-have line. With more than one requirement, one line each and the bar follows the furthest-off one.</li>
+    <li><b>4 Ready:</b> full bar, green READY, and the button breathes magenta. The line says what you get on arrival.</li>
+    <li><b>5 Armed:</b> the long confirm sentence becomes a three-line ledger (RESETS / KEEPS / GAINS) inside a solid magenta box, with CONFIRM and CANCEL side by side. Same words as today's confirm text, just laid out. <b>In the game the armed box expands upwards, not down:</b> CONFIRM takes the RE-SLEEVE button's exact place and the ledger grows into the free space above it, so the buttons you click never move on screen.</li>
+    <li>Numbers are placeholders. All values come from what the button already reads (the buy view, <code>resleeveRequirements</code>, the confirm text); no new game data. The ledger lines and "on arrival" gain should come from the same text as the confirm message (one source).</li>
+  </ul></div>
+</main>
+</body>
+</html>
