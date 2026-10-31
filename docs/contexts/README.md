@@ -15,7 +15,7 @@ One file per bounded context: its design text, architecture notes, config variab
 | [skills](skills.md) | Skill trees and skill points. | 12.6 KB |
 | [automation](automation.md) | Automation points, lanes and features. | 4.7 KB |
 | [sleeve](sleeve.md) | Sleeve stats: access level, ICE Rating, Hacking Proficiency, sleeve levels, Sleeve Euphoria. | 5.2 KB |
-| [resleeve](resleeve.md) | Re-sleeving (first prestige): gate, carry-over lists, run record, re-sleeve skills. | 17.0 KB |
+| [resleeve](resleeve.md) | Re-sleeving (first prestige): gate, carry-over lists, run record, sleeve skills. | 17.0 KB |
 | [synth](synth.md) | Synthetic sleeves: copies of finished runs. | 0.8 KB |
 | [corporation](corporation.md) | The Corporation: actions, levels, stocks, rank. | 10.9 KB |
 | [save](save.md) | Save format, state lifetimes, serialization and versions. | 5.0 KB |

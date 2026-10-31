@@ -7,7 +7,7 @@ Read this before adding or changing any stat, bar, button, purchase, skill, tree
 - **Reveal ledger** (`wallet.revealed`, `economy/revealLedger.ts`): a set of typed keys `stat:<id>`, `tab:<id>`, `skill:<id>`, `buyable:<id>` for everything the player has ever been shown. Only grows; survives a re-sleeve (`CARRIED_OVER_WALLET_FIELDS`). Queries never write it: each view build uses one `RevealTracker` (`ui/view/revealTracker.ts`) that says "shown" when the key is noted or the natural rule says so now, and collects keys that are new into `ViewModel.newlyRevealed`; `ui/dom.ts` then calls the engine command `noteRevealed(keys)` only when that list is not empty. Unknown and repeated keys are ignored (ids are resolved against the content, not a branch).
 - A noted **stat** is never hidden again (`isStatHidden`), a noted **tab** stays visible (`tabsView`), a noted **skill** stays readable but is `locked` (faded) while its gates are unmet (`skillTree.ts`), a noted **purchase** is shown greyed and cannot be bought (`BuyableView.gated`) while `Shop.isAvailable` is false. Buying still goes only through `isAvailable`.
 - A new revealable thing: pass its natural rule through `RevealTracker.reveals(kind, id, natural)` and add its id to the known keys (`REVEALABLE_STATS`, `TAB_IDS`; skills and purchases resolve by buyable id). The wallet invariant fails on a key that names nothing.
-- **Tab blink** (`ui/view/tabAttention.ts`): Skills (skill + re-sleeve points) and Automation blink while points earned exceed points seen; opening the tab marks them seen; a re-sleeve that lowers earned lowers seen; after a reload a tab blinks only for unspent points. UI memory, not saved.
+- **Tab blink** (`ui/view/tabAttention.ts`): Skills (skill + sleeve skill points) and Automation blink while points earned exceed points seen; opening the tab marks them seen; a re-sleeve that lowers earned lowers seen; after a reload a tab blinks only for unspent points. UI memory, not saved.
 
 ## Stats, bars, buttons and purchases
 
@@ -16,10 +16,10 @@ Read this before adding or changing any stat, bar, button, purchase, skill, tree
 
 ## Skills and skill trees
 
-- The Skills tab shows once a skill point exists. Inside it every sleeve skill tree (every branch) is always visible; no branch is hidden, but the texts of a branch with a reveal stat (Anonymity: heat) read ??? until it is revealed (`ui/view/branchMask.ts`). The re-sleeve trees show once a re-sleeve point has been earned.
-- A visible tree shows every node, icon and branch title. Only a skill's text reads `???` until it is readable: its `requires` gate is owned and every `parents` entry is readable (`ui/view/skillTree.ts`).
+- The Skills tab shows once a skill point exists. Inside it every sleeve skill tree (every branch) is always visible; no branch is hidden, but the texts of a branch with a reveal stat (Anonymity: heat) read ??? until it is revealed (`ui/view/branchMask.ts`). The sleeve skill trees show once a sleeve skill point has been earned.
+- A visible tree shows every node, icon and branch title. Only a skill's text reads `???` until it is readable: its `requires` gate is owned and every `parents` entry is readable (`ui/view/skillTree.ts`). In the sleeve skill tree (`parentsMustBeOwned`) every parent must be OWNED instead, so a skill reads ??? until the one before it is bought; Sleeve Up! (no parents) is readable as soon as the tree shows.
 - A masked skill is never highlighted, clickable or purchasable.
-- A parent is always in the same branch, and every parent-child pair is drawn as a line.
+- A parent is always in the same branch, or in a trunk branch (one parentless skill alone, Sleeve Up!); every parent-child pair is drawn as a line.
 - A skill needs a unique icon, never a borrowed one. An item and the purchase that unlocks it may share a picture; a skill never may.
 
 ## Heat, items and the Augment button
