@@ -2,13 +2,13 @@
  * Shared save/synth refund setup on the fixed test content.
  * Called by: v10Migration and synthRefund tests. Calls: createConfig, createInitialState, resleeveSkill.
  */
-import { createConfig, createInitialState } from '../core';
+import { createConfig, createInitialState, sleeveSkillIds as sleeveSkillIdsOf } from '../core';
 import { num, numberFactory } from '../numbers';
 import { automationLaneBuyables, laneSkillId } from './automationKit';
 import { config as treeConfig, resleeveSkill } from './resleeveTreeKit';
 
-/** Refund ids from configuration. Called by: refund tests. Calls: nothing. */
-export const sleeveSkillIds = treeConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id);
+/** Refund ids from configuration. Called by: refund tests. Calls: sleeveSkillIds (core). */
+export const sleeveSkillIds = sleeveSkillIdsOf(treeConfig.buyables);
 /** Fixed cap and bonus independent of real tuning. Called by: refund tests. Calls: createConfig, resleeveSkill. */
 export const refundConfig = createConfig(treeConfig, {
   buyables: [

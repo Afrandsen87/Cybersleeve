@@ -1,9 +1,9 @@
 /**
  * @module core/config
  * Config context: validates skill-tree parents and economy sleeve-skill requirements.
- * Called by: validateConfig. Calls: isPointCurrency.
+ * Called by: validateConfig. Calls: isPointCurrency, sleeveSkillIds.
  */
-import { isPointCurrency } from '../kernel/currencies';
+import { isPointCurrency, sleeveSkillIds } from '../kernel/currencies';
 import type { BuyableDefinition } from '../effects/buyableTypes';
 
 /**
@@ -15,7 +15,7 @@ import type { BuyableDefinition } from '../effects/buyableTypes';
 export function checkSkillGates(buyables: readonly BuyableDefinition[], errors: string[]): void {
   const byId = new Map(buyables.map((b) => [b.id, b]));
   const branchSizes = new Map<string, number>();
-  const sleeveSkills = buyables.filter((b) => b.currency === 'resleevePoints').length;
+  const sleeveSkills = sleeveSkillIds(buyables).length;
   for (const b of buyables)
     if (b.branch !== undefined && isPointCurrency(b.currency)) {
       branchSizes.set(b.branch, (branchSizes.get(b.branch) ?? 0) + 1);

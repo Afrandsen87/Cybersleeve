@@ -6,7 +6,7 @@
 import type { BigNum, NumberFactory } from '../../numbers';
 import { BuyableCaps } from '../effects/buyableCaps';
 import { traitsOf } from '../effects/effectTraits';
-import { currencyInfo, heldBalance, isPointCurrency, spendHeld } from '../kernel/currencies';
+import { currencyInfo, heldBalance, isPointCurrency, sleeveSkillIds, spendHeld } from '../kernel/currencies';
 import { Snapshot } from '../kernel/snapshot';
 import type { BuyableDefinition, BuyableId, Currency, GameState, PointCurrency } from '../types';
 
@@ -47,7 +47,7 @@ export class Shop {
     private readonly onPurchased: PurchaseListener = () => {},
   ) {
     for (const b of buyables) this.byId.set(b.id, b);
-    this.sleeveSkillIds = buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id);
+    this.sleeveSkillIds = sleeveSkillIds(buyables);
     this.caps = new BuyableCaps(buyables);
   }
 

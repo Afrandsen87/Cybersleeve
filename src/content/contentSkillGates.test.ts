@@ -3,6 +3,7 @@
  * second sleeve run) must sit behind the purchase or state that introduces that concept, so the player never reads about something that
  * does not exist for them yet. Invariants only, never tuning numbers.
  */
+import { isSleeveSkill } from '../core';
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import type { BuyableDefinition } from '../core';
@@ -52,7 +53,7 @@ const HEAT_KINDS = [
 const SLEEVE_LEVEL_KINDS = ['heatCooldownAmountFromSleeveLevel', 'levelBonusFromSleeveLevel', 'sleeveXpReduction'];
 
 /** The purchases outside the re-sleeve tree (that tree is hidden as a whole until re-sleeving is unlocked). */
-const everyday = gameConfig.buyables.filter((b) => b.currency !== 'resleevePoints');
+const everyday = gameConfig.buyables.filter((b) => !isSleeveSkill(b));
 
 describe('the lists of effect kinds name real effects', () => {
   it('every kind listed is used by some buyable (a typo would silently skip the checks)', () => {

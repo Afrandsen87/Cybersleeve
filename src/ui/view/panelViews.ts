@@ -6,7 +6,15 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the text table.
  */
-import type { TAB_IDS, CorporationQueries, GameConfig, SkillQueries, SleeveStats, GameStateView } from '../../core';
+import {
+  isSleeveSkill,
+  type TAB_IDS,
+  type CorporationQueries,
+  type GameConfig,
+  type SkillQueries,
+  type SleeveStats,
+  type GameStateView,
+} from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import { branchMaskedFn } from './branchMask';
@@ -131,7 +139,7 @@ export function skillsView(
   // until the first re-sleeve the player has not seen what the skills do: only their places in the tree show
   const resleeveLanes = buildSkillLanes({
     ...common,
-    skills: config.buyables.filter((b) => b.currency === 'resleevePoints'),
+    skills: config.buyables.filter(isSleeveSkill),
     parentsMustBeOwned: true,
     laneTitle: branchTitle,
     open: state.wallet.runs.length > 0,

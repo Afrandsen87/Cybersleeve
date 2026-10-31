@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { gameConfig } from '../../content/gameConfig';
 import { numberFactory } from '../../numbers';
-import { deserializeState, serializeState } from '..';
+import { deserializeState, serializeState, sleeveSkillIds } from '..';
 import { migrateSave } from './migrate';
 
 const dir = new URL('../../testing/fixtures/saves/', import.meta.url);
@@ -26,10 +26,7 @@ describe.each(CASES)('save text of %s', (fixture, golden) => {
   const saved = (): string =>
     serializeState(
       deserializeState(
-        migrateSave(
-          readFileSync(new URL(fixture, dir), 'utf8'),
-          gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-        ),
+        migrateSave(readFileSync(new URL(fixture, dir), 'utf8'), sleeveSkillIds(gameConfig.buyables)),
         gameConfig,
         numberFactory,
       )!,

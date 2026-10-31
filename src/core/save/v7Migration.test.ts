@@ -11,7 +11,7 @@ import { gameConfig } from '../../content/gameConfig';
 import { numberFactory } from '../../numbers';
 import { type FlatSave, asSave, flatSave } from '../../testing/saveKit';
 import { RARITY_REFINEMENT, RESLEEVE_UNLOCK, SLEEVE_LEVELS } from '../../content/ids';
-import { SAVE_VERSION, deserializeState, serializeState } from '..';
+import { SAVE_VERSION, deserializeState, isSleeveSkill, serializeState, sleeveSkillIds } from '..';
 import { migrateSave } from './migrate';
 
 const read = (name: string): string => readFileSync(new URL(`../../testing/fixtures/saves/${name}`, import.meta.url), 'utf8');
@@ -40,9 +40,7 @@ function inV8(rawSave: FlatSave): FlatSave {
     return kept;
   };
   const refunded = Object.fromEntries(
-    Object.entries(without(rawSave['purchased'])).filter(
-      ([id]) => !gameConfig.buyables.some((b) => b.id === id && b.currency === 'resleevePoints'),
-    ),
+    Object.entries(without(rawSave['purchased'])).filter(([id]) => !gameConfig.buyables.some((b) => b.id === id && isSleeveSkill(b))),
   );
   const raw: FlatSave = { ...rawSave, purchased: refunded, lastLifePurchases: without(rawSave['lastLifePurchases']) };
   const purchased = raw['purchased'] as Record<string, number>;
@@ -65,10 +63,7 @@ function inV8(rawSave: FlatSave): FlatSave {
 describe.each(FIXTURES)('v6 fixture %s', (name) => {
   const text = read(name);
   const raw = JSON.parse(text) as FlatSave;
-  const migrated = migrateSave(
-    text,
-    gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-  );
+  const migrated = migrateSave(text, sleeveSkillIds(gameConfig.buyables));
 
   it('migrates to the current version and loads', () => {
     expect(JSON.parse(migrated).version).toBe(SAVE_VERSION);
@@ -102,12 +97,7 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
 
   it('does not change its input and migrating the result again changes nothing', () => {
     expect(JSON.parse(text)).toEqual(raw);
-    expect(
-      migrateSave(
-        migrated,
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
-    ).toBe(migrated);
+    expect(migrateSave(migrated, sleeveSkillIds(gameConfig.buyables))).toBe(migrated);
   });
 
   it('a missing optional scalar takes the fresh-game value', () => {
@@ -132,18 +122,9 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
 
   it('ignores unknown keys and unknown ids', () => {
     const extra = { ...raw, mystery: 1, purchased: { ...raw['purchased'], 'no-such-buyable': 3 } };
-    expect(
-      flatWithoutNewFields(
-        serializeState(
-          load(
-            migrateSave(
-              JSON.stringify(extra),
-              gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-            ),
-          )!,
-        ),
-      ),
-    ).toEqual(inV8(raw));
+    expect(flatWithoutNewFields(serializeState(load(migrateSave(JSON.stringify(extra), sleeveSkillIds(gameConfig.buyables)))!))).toEqual(
+      inV8(raw),
+    );
   });
 
   it('repairs garbage in plain-number fields to the fresh value', () => {
@@ -155,29 +136,14 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
 
 describe('migrateSave on input that is not a v6 save', () => {
   it.each([['not json'], ['[]'], ['null'], ['{"version":5}'], ['{"version":"6"}'], ['{"version":999}']])('leaves %s as it is', (text) => {
-    expect(
-      migrateSave(
-        text,
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
-    ).toBe(text);
-    expect(
-      load(
-        migrateSave(
-          text,
-          gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-        ),
-      ),
-    ).toBeNull();
+    expect(migrateSave(text, sleeveSkillIds(gameConfig.buyables))).toBe(text);
+    expect(load(migrateSave(text, sleeveSkillIds(gameConfig.buyables)))).toBeNull();
   });
 
   it('turns the two key toggles into the keyed collection, keeping only the ones that are on', () => {
     const raw = JSON.parse(read(FIXTURES[0]!)) as FlatSave;
     const data = JSON.parse(
-      migrateSave(
-        JSON.stringify({ ...raw, zeroDaysOn: true, adminKeysOn: false }),
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
+      migrateSave(JSON.stringify({ ...raw, zeroDaysOn: true, adminKeysOn: false }), sleeveSkillIds(gameConfig.buyables)),
     );
     expect(data.sleeves.main.keyToggles).toEqual({ zeroDay: true });
   });

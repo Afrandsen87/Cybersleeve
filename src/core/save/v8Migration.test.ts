@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { gameConfig } from '../../content/gameConfig';
 import { RESLEEVE_UNLOCK, SLEEVE_LEVELS } from '../../content/ids';
 import { numberFactory } from '../../numbers';
-import { SAVE_VERSION, deserializeState } from '..';
+import { SAVE_VERSION, deserializeState, sleeveSkillIds } from '..';
 import { migrateSave, migrateV7 } from './migrate';
 
 const read = (name: string): string => readFileSync(new URL(`../../testing/fixtures/saves/${name}`, import.meta.url), 'utf8');
@@ -20,52 +20,19 @@ const purchasedOf = (text: string): Record<string, number> => JSON.parse(text).s
 describe('v7 to v8', () => {
   it('writes the current version', () => {
     expect(SAVE_VERSION).toBe(10);
-    expect(
-      JSON.parse(
-        migrateSave(
-          v7({}),
-          gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-        ),
-      ).version,
-    ).toBe(SAVE_VERSION);
+    expect(JSON.parse(migrateSave(v7({}), sleeveSkillIds(gameConfig.buyables))).version).toBe(SAVE_VERSION);
   });
 
   it('grants Unlock resleeving to a save that owns Sleeve levels, and keeps everything else', () => {
-    const out = JSON.parse(
-      migrateSave(
-        v7({ [SLEEVE_LEVELS]: 1, other: 2 }),
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
-    );
+    const out = JSON.parse(migrateSave(v7({ [SLEEVE_LEVELS]: 1, other: 2 }), sleeveSkillIds(gameConfig.buyables)));
     expect(out.sleeves.main.purchased).toEqual({ [SLEEVE_LEVELS]: 1, other: 2, [RESLEEVE_UNLOCK]: 1 });
     expect(out.sleeves.main.heat).toBe(3);
   });
 
   it('does not grant it to a save that does not own Sleeve levels', () => {
-    expect(
-      purchasedOf(
-        migrateSave(
-          v7({ other: 2 }),
-          gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-        ),
-      ),
-    ).toEqual({ other: 2 });
-    expect(
-      purchasedOf(
-        migrateSave(
-          v7({ [SLEEVE_LEVELS]: 0 }),
-          gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-        ),
-      ),
-    ).toEqual({ [SLEEVE_LEVELS]: 0 });
-    expect(
-      purchasedOf(
-        migrateSave(
-          v7({}),
-          gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-        ),
-      ),
-    ).toEqual({});
+    expect(purchasedOf(migrateSave(v7({ other: 2 }), sleeveSkillIds(gameConfig.buyables)))).toEqual({ other: 2 });
+    expect(purchasedOf(migrateSave(v7({ [SLEEVE_LEVELS]: 0 }), sleeveSkillIds(gameConfig.buyables)))).toEqual({ [SLEEVE_LEVELS]: 0 });
+    expect(purchasedOf(migrateSave(v7({}), sleeveSkillIds(gameConfig.buyables)))).toEqual({});
   });
 
   it('uses the ids of the real content', () => {
@@ -77,16 +44,8 @@ describe('v7 to v8', () => {
   });
 
   it('is applied once: a v8 save is left as it is', () => {
-    const once = migrateSave(
-      v7({ [SLEEVE_LEVELS]: 1 }),
-      gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-    );
-    expect(
-      migrateSave(
-        once,
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
-    ).toBe(once);
+    const once = migrateSave(v7({ [SLEEVE_LEVELS]: 1 }), sleeveSkillIds(gameConfig.buyables));
+    expect(migrateSave(once, sleeveSkillIds(gameConfig.buyables))).toBe(once);
   });
 
   it('does not change its input and tolerates a save without sleeves or with odd shapes', () => {
@@ -102,14 +61,7 @@ describe('v7 to v8', () => {
   it.each(['v7-early-before-resleeve.json', 'v7-after-three-resleeves.json'])('a real v7 save (%s) migrates and loads', (name) => {
     const text = read(name);
     const owned = (JSON.parse(text).sleeves.main.purchased[SLEEVE_LEVELS] ?? 0) > 0;
-    const state = deserializeState(
-      migrateSave(
-        text,
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
-      gameConfig,
-      numberFactory,
-    )!;
+    const state = deserializeState(migrateSave(text, sleeveSkillIds(gameConfig.buyables)), gameConfig, numberFactory)!;
     expect(state).not.toBeNull();
     expect(state.sleeve.purchased[RESLEEVE_UNLOCK] ?? 0).toBe(owned ? 1 : 0);
     expect(deserializeState(text, gameConfig, numberFactory)).toBeNull(); // v7 is not read as it is

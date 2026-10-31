@@ -10,6 +10,7 @@ import {
   migrateSave,
   needsProgressionBackfill,
   serializeState,
+  sleeveSkillIds,
   type GameConfig,
   type GameState,
   type GameStateView,
@@ -101,7 +102,7 @@ export class SaveGame {
     private readonly config: Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'items' | 'progression' | 'sleeve'>,
     private readonly factory: NumberFactory,
   ) {
-    this.sleeveSkillIds = config.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id);
+    this.sleeveSkillIds = sleeveSkillIds(config.buyables);
   }
 
   /**

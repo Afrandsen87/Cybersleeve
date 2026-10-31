@@ -3,6 +3,7 @@
  * check the structure the design asks for, not any effect tuning.
  */
 
+import { isSleeveSkill } from '../core';
 import { describe, expect, it } from 'vitest';
 import { num } from '../numbers';
 import {
@@ -22,7 +23,7 @@ import {
   gameConfig,
 } from './gameConfig';
 
-const skills = gameConfig.buyables.filter((b) => b.currency === 'resleevePoints');
+const skills = gameConfig.buyables.filter(isSleeveSkill);
 const byId = new Map(skills.map((b) => [b.id, b]));
 
 describe('the real sleeve skill tree', () => {

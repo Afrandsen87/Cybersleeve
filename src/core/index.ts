@@ -53,7 +53,7 @@ export { hardeningBonusPerLevel } from './effects/entries/sleeveEntries';
 export { LinkedPayouts } from './actions/linkedPayouts';
 export { CriticalSuccesses, criticalRuleFor } from './crits/critical';
 export { proficiencySteps, shiftWeights, shiftWeightsBySteps } from './items/rarityShift';
-export { isPointCurrency } from './kernel/currencies';
+export { isPointCurrency, isSleeveSkill, sleeveSkillIds } from './kernel/currencies';
 export type { RandomSource } from './kernel/sampling';
 export { createClampOverflowPolicy } from './kernel/overflow';
 export { Progression } from './actions/progression';

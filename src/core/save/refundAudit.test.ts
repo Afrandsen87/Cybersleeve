@@ -2,6 +2,7 @@
  * Context: save. A sleeve-skill refund preserves data used after re-buying retention and corporation skills.
  * Called by: vitest. Calls: refundAuditSetup, migrateSave, serializeState, deserializeState.
  */
+import { sleeveSkillIds } from '..';
 import { describe, expect, it } from 'vitest';
 import { numberFactory } from '../../numbers';
 import { refundAuditSetup } from '../../testing/saveRefundKit';
@@ -13,7 +14,7 @@ describe('refund save-reader audit', () => {
     const { config, state } = refundAuditSetup();
     const raw = JSON.parse(serializeState(state));
     raw.version = 9;
-    const ids = config.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id);
+    const ids = sleeveSkillIds(config.buyables);
     const loaded = deserializeState(migrateSave(JSON.stringify(raw), ids), config, numberFactory)!;
     for (const id of ids) expect(loaded.sleeve.purchased[id]).toBeUndefined();
     expect(loaded.wallet.corporation).toEqual(state.wallet.corporation);

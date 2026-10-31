@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
-import { validateConfig } from '../core';
+import { isSleeveSkill, validateConfig } from '../core';
 import { num } from '../numbers';
 import { markResleeved, openResleeving, resleeveWithProgress } from '../testing/sleeveLevelsKit';
 import { setCredits, setSleeveXp } from '../testing/testConfig';
@@ -109,7 +109,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     // Buy in config order, repeating until nothing more can be bought once (a gate may be listed after what it unlocks).
     // Skills are paid in skill points or sleeve skill points, not credits: they have their own tests below.
     markResleeved(g); // Skill transfer and Faster conditioning wait for the second sleeve run
-    const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints' && b.currency !== 'resleevePoints');
+    const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints' && !isSleeveSkill(b));
     for (let pass = 0; pass < bought.length; pass++) {
       for (const b of bought) if (g.canBuy(b.id)) expect(g.buy(b.id)).toBe('purchased');
     }
@@ -225,7 +225,7 @@ describe('real game content (src/content/gameConfig.ts)', () => {
       const owner =
         b.currency === 'skillPoints'
           ? skillViews(vm.skills.lanes)
-          : b.currency === 'resleevePoints'
+          : isSleeveSkill(b)
             ? skillViews(vm.skills.resleeve.lanes)
             : b.currency === 'automationPoints'
               ? skillViews(vm.automation.features.flatMap((f) => f.lanes))

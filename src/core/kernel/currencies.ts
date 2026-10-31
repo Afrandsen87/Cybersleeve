@@ -30,6 +30,8 @@ export interface CurrencyDescriptor {
   readonly carriedOverResleeve?: boolean;
   /** Purchases on an action's card paid in it are what Reflex Archive buys back. */
   readonly archivedByReflex?: boolean;
+  /** Buyables paid in it are the sleeve skills (the sleeve skill tree, refunded by the v10 save migration, counted by `requiresSleeveSkills`). */
+  readonly sleeveSkills?: boolean;
 }
 
 /** What a buyable is paid with. */
@@ -47,7 +49,7 @@ export const CURRENCIES: Readonly<Record<Currency, CurrencyDescriptor>> = {
   networkNodes: { held: 'network', peak: 'peakNetwork', wholeUnits: true, siphoned: true },
   skillPoints: { alwaysRevealed: true },
   // judged against the credits peak, like the other re-sleeve purchases
-  resleevePoints: { peak: 'peakCredits', carriedOverResleeve: true },
+  resleevePoints: { peak: 'peakCredits', carriedOverResleeve: true, sleeveSkills: true },
   automationPoints: { alwaysRevealed: true },
 };
 
@@ -60,6 +62,30 @@ export const DEFAULT_CURRENCY: Currency = 'credits';
 /** The descriptor of a currency (`undefined` means the default currency). */
 export function currencyInfo(currency: Currency | undefined): CurrencyDescriptor {
   return CURRENCIES[currency ?? DEFAULT_CURRENCY];
+}
+
+/**
+ * True when a buyable is a sleeve skill: it is paid in the currency whose descriptor says `sleeveSkills`. The ONE definition of the term;
+ * code and tests ask this, never the currency name.
+ *
+ * Called by: {@link sleeveSkillIds}, `ui/view/panelViews.ts`, content and save tests. Calls: {@link currencyInfo}.
+ *
+ * @param buyable anything with an optional currency
+ */
+export function isSleeveSkill(buyable: { readonly currency?: Currency }): boolean {
+  // an unknown currency (config validation runs on bad content too) is not a sleeve skill
+  return (CURRENCIES[buyable.currency ?? DEFAULT_CURRENCY] as CurrencyDescriptor | undefined)?.sleeveSkills === true;
+}
+
+/**
+ * The ids of the sleeve skills among some buyables, in their order.
+ *
+ * Called by: `economy/shop.ts` (`requiresSleeveSkills`), `config/skillGates.ts`, `app/persistence.ts` (the v10 refund), tests. Calls: {@link isSleeveSkill}.
+ *
+ * @param buyables the configured buyables
+ */
+export function sleeveSkillIds(buyables: readonly { readonly id: string; readonly currency?: Currency }[]): string[] {
+  return buyables.filter(isSleeveSkill).map((b) => b.id);
 }
 
 /**

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { gameConfig } from '../../content/gameConfig';
 import { MemoryStore, SAVE_KEY, SaveGame } from '../../app/persistence';
 import { numberFactory } from '../../numbers';
-import { SAVE_VERSION } from '..';
+import { SAVE_VERSION, sleeveSkillIds } from '..';
 import { migrateSave, migrateV8, needsProgressionBackfill } from './migrate';
 
 const PICK_TARGETS = 'skill-autoBurn-8';
@@ -30,23 +30,13 @@ const v8 = (extra: Record<string, unknown> = {}): string =>
 describe('v8 to v9', () => {
   it('writes the current version and adds the ledger', () => {
     expect(SAVE_VERSION).toBe(10);
-    const out = JSON.parse(
-      migrateSave(
-        v8(),
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
-    );
+    const out = JSON.parse(migrateSave(v8(), sleeveSkillIds(gameConfig.buyables)));
     expect(out.version).toBe(SAVE_VERSION);
     expect(out.wallet.revealed).toEqual([]);
   });
 
   it('drops Pick Targets and pre-ticks the resume lists from the off lists', () => {
-    const out = JSON.parse(
-      migrateSave(
-        v8(),
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
-    );
+    const out = JSON.parse(migrateSave(v8(), sleeveSkillIds(gameConfig.buyables)));
     expect(out.sleeves.main.purchased).toEqual({ other: 2 });
     expect(out.wallet.automation.autoBurn.resumeOverclocks).toEqual({ a: true });
     expect(out.wallet.automation.autoBurn.resumeAutoRuns).toEqual({ b: true });

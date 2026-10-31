@@ -11,7 +11,7 @@ import { seededGame } from '../../testing/gameKit';
 import { findInvariantViolations } from '../../testing/invariants';
 import { seededRandom } from '../../testing/random';
 import { testConfig } from '../../testing/testConfig';
-import { applyCorporationEffect, createConfig, deserializeState, serializeState } from '..';
+import { applyCorporationEffect, createConfig, deserializeState, serializeState, sleeveSkillIds } from '..';
 import { ZeroDays } from '../crits/zeroDays';
 import { migrateSave } from '../save/migrate';
 import { createInitialState, resetForResleeve } from '../save/state';
@@ -143,15 +143,7 @@ describe('seen items: re-sleeve and save', () => {
 
 describe('seen items: a real v7 save', () => {
   const v7 = readFileSync(new URL('../../testing/fixtures/saves/v7-early-before-resleeve.json', import.meta.url), 'utf8');
-  const loaded = () =>
-    deserializeState(
-      migrateSave(
-        v7,
-        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
-      ),
-      gameConfig,
-      numberFactory,
-    )!;
+  const loaded = () => deserializeState(migrateSave(v7, sleeveSkillIds(gameConfig.buyables)), gameConfig, numberFactory)!;
 
   it('has every held stack seen, and the held-implies-seen invariant holds', () => {
     const { wallet } = loaded();
