@@ -70,7 +70,10 @@ describe('the Auto Burn box in the Automation tab', () => {
   it('shows each switch once its skill is owned, and a click sets it', () => {
     const { game, render, shown } = mount(3);
     render();
-    expect(shown('.automation-switch').map((b) => b.textContent)).toEqual(['Hold at lower threshold', 'Switch on at upper threshold']);
+    expect(shown('.automation-switch').map((b) => b.textContent)).toEqual([
+      'Hold at lower threshold (10 heat)',
+      'Switch on at upper threshold (50 heat)',
+    ]);
     shown('.automation-switch')[0]!.click();
     expect(game.automation().autoBurn().rules().hold).toBe(true);
     render();

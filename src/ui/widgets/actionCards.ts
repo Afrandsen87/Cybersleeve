@@ -135,6 +135,7 @@ function renderSquare(square: SquareHandle, view: ActionSquareView, tips: TipReg
     button.classList.toggle('empty', cell.mode === 'empty');
     button.classList.toggle('owned', cell.mode === 'toggle');
     button.classList.toggle('off', cell.mode === 'toggle' && !cell.on);
+    button.classList.toggle('on', cell.mode === 'toggle' && cell.on);
     button.classList.toggle('ready', cell.mode === 'buy' && cell.ready);
     button.classList.toggle('purchasable', cell.mode === 'buy' && cell.clickable);
     button.classList.toggle('applied', cell.id === 'augment' && cell.on);
@@ -145,6 +146,7 @@ function renderSquare(square: SquareHandle, view: ActionSquareView, tips: TipReg
       square.halves.add.hidden = !split;
       square.halves.remove.hidden = !split;
       button.classList.toggle('split', split !== undefined);
+      for (const half of [square.halves.add, square.halves.remove]) half.classList.toggle('on', cell.on);
       if (split) {
         square.halves.add.disabled = !split.canAdd;
         square.halves.remove.disabled = !split.canRemove;

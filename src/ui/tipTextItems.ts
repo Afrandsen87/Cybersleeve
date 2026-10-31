@@ -116,7 +116,7 @@ export const itemTips: Pick<
     ].join('\n'),
   backChannel: ({ label, molesPerItem, boostPercent }) =>
     [label, `Give up one for ${molesPerItem} Moles`, `Each Mole is one point of heat that cools down ${boostPercent}% faster`].join('\n'),
-  synths: ({ count, perSecond }) =>
+  synths: ({ count, perSecond, ceiling }) =>
     [
       'Credits per Second = Sum of ((1 + Credits per Second Then) ^ min(1, Action Levels Now / Action Levels Then) - 1)',
       '',
@@ -125,5 +125,6 @@ export const itemTips: Pick<
       '',
       `Synthetic Sleeves = ${count}`,
       `Credits per Second = ${perSecond}`,
+      `Scales to = ${ceiling}`,
     ].join('\n'),
 };

@@ -142,13 +142,31 @@ export class SynthSleeves implements SynthQueries {
 
   /** Credits per second all synthetic sleeves earn together, not taxed by heat (they have paid their tax already). */
   creditsPerSecond(): BigNum {
+    return this.income((synth) => this.levelInput(synth));
+  }
+
+  /**
+   * What all synthetic sleeves earn together once the current sleeve has full action levels (every sleeve at progress 1): each one
+   * pays its recorded amount, and with Perfect Copies no less than the network earns now. The same per-sleeve formula as
+   * {@link SynthSleeves.creditsPerSecond}, only with the level input at infinity.
+   *
+   * Called by: `engine.ts` (shown in the synthetic sleeves tip). Calls: {@link SynthSleeves.income}.
+   *
+   * @returns credits per second (>= 0; 0 with no sleeves)
+   */
+  incomeCeiling(): BigNum {
+    return this.income(() => Number.POSITIVE_INFINITY);
+  }
+
+  /** The one summing rule behind {@link SynthSleeves.creditsPerSecond} and {@link SynthSleeves.incomeCeiling}, for a given level input. */
+  private income(levelOf: SynthLevelInput): BigNum {
     let total = this.factory.fromNumber(0);
     if (this.state.wallet.synths.length === 0) return total;
     const live = this.isPerfect() ? this.networkIncome() : null;
     for (const synth of this.state.wallet.synths) {
       const record = this.state.wallet.runs[synth.runIndex];
       if (!record) continue;
-      const own = synthCreditsPerSecond(record, this.levelInput(synth), this.factory);
+      const own = synthCreditsPerSecond(record, levelOf(synth), this.factory);
       total = total.add(live?.gt(own) ? live : own);
     }
     return total;

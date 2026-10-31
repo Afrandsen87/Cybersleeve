@@ -50,6 +50,8 @@ export interface ActionQueries {
   canStart(id: ActionId): boolean;
   /** What starting the action costs now, or `null` when free. */
   startCostOf(id: ActionId): BigNum | null;
+  /** The share of the balance the start cost takes now (0..1, with every scaling applied), or `null` when it has none. */
+  startShareOf(id: ActionId): number | null;
   /** Current duration of one run, in ms. */
   currentDurationMs(id: ActionId): number;
   /** Current speed multiplier of the action. */
@@ -126,6 +128,8 @@ export interface SleeveQueries {
   synthCount(sleeveId?: SleeveId): number;
   /** Credits per second all synthetic sleeves earn together (not taxed by heat). */
   synthCreditsPerSecond(sleeveId?: SleeveId): BigNum;
+  /** What all synthetic sleeves would earn together at full action levels (the "scales to" amount; not taxed by heat). */
+  synthIncomeCeiling(sleeveId?: SleeveId): BigNum;
   /** True when the player may re-sleeve right now. */
   canResleeve(sleeveId?: SleeveId): boolean;
   /** The sleeve levels the next re-sleeve needs and the player holds, or `null` when it needs none. */

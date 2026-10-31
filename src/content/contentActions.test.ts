@@ -187,7 +187,7 @@ describe('the Kill servers Overclock tip (real content)', () => {
     const tip = buildViewModel(g).actions.find((a) => a.id === KILL_SERVERS)!.overclock!.tip;
     expect(tip).toContain('Kill chain = 0 / 20 links');
     expect(tip).toContain('Each link adds 10% to the Reward Bonus and 10% to the share of the balance a run takes');
-    expect(tip).toContain('Heat stays in place while this action runs');
+    expect(tip).toContain('Prevents heat cooldown while active');
     expect(tip).toContain('Reward Bonus = 100% (100% x Strength)');
     expect(tip).not.toMatch(/\b(not|never|no)\b/i);
   });

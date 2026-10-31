@@ -27,15 +27,24 @@ import { actionCostItems } from './actionCosts';
 import { levelXpTipParts, sleeveXpTipParts } from './xpTipView';
 import type { ActionView, BuyableView, ViewSelection } from './viewTypes';
 
+/** Decimals of the live share in percent: enough that a 1% share cut by several levels (0.9^n) is still told apart. */
+const SHARE_DECIMALS = 3;
+
 /** What starting an action costs, for the card (the share of the balance is shown with today's amount). */
-function startCostText(def: ActionDefinition, current: BigNum | null, text: UiText): string | null {
+function startCostText(def: ActionDefinition, current: BigNum | null, share: number | null, text: UiText): string | null {
   const cost = def.startCost;
   if (!cost) return null;
   const unit = text.costUnits[cost.currency];
   const parts: string[] = [];
   if (cost.amount && !cost.amount.isZero()) parts.push(text.startCost.amount(formatBigNum(cost.amount), unit));
   if (cost.fractionOfBalance !== undefined) {
-    parts.push(text.startCost.share(formatPlain(cost.fractionOfBalance * 100), unit, current ? formatBigNum(current) : null));
+    parts.push(
+      text.startCost.share(
+        formatPlain((share ?? cost.fractionOfBalance) * 100, SHARE_DECIMALS),
+        unit,
+        current ? formatBigNum(current) : null,
+      ),
+    );
   }
   return parts.length > 0 ? text.startCost.join(parts) : text.startCost.none(unit);
 }
@@ -116,7 +125,7 @@ export function buildActionViews(
     const reason = lockedReason(def, unlocked, text);
     const speedText = text.format.speed(formatBigNum(factory.fromNumber(engine.currentSpeed(def.id))));
     const durationText = formatSeconds(duration, text);
-    const cost = startCostText(def, engine.startCostOf(def.id), text);
+    const cost = startCostText(def, engine.startCostOf(def.id), engine.startShareOf(def.id), text);
     const auto = engine.isAutoRun(def.id);
     const fast = fastBarView(duration, s.running, auto, text);
     const rewardText = formatBigNum(engine.payoutPerRun(def.id));

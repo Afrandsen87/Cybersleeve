@@ -123,6 +123,11 @@ export class ActionRunner {
     return this.startCosts.costOf(id);
   }
 
+  /** The live share of the balance the start cost takes (see {@link StartCosts.shareOf}). @returns 0..1, or `null` when none */
+  startShareOf(id: ActionId): number | null {
+    return this.startCosts.shareOf(id);
+  }
+
   /**
    * Advances every action by `deltaMs` of game time.
    * @param deltaMs elapsed game time in milliseconds

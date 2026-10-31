@@ -73,6 +73,7 @@ export { isPointCurrency };
  * @param engine the engine to read the numbers from
  * @param owned copies owned (a purchase not yet owned shows what one copy gives)
  * @param text the display text
+ * @param buyables every buyable (Hardened payload adds up the Forensic hardening that feeds it)
  * @returns the variables and the result, or `null` when the effect has no formula to fill in
  */
 function purchaseValues(
@@ -80,7 +81,24 @@ function purchaseValues(
   engine: LevelQueries & ShopQueries & StateQueries,
   owned: number,
   text: UiText,
+  buyables: readonly BuyableDefinition[],
 ): BuyableValues | null {
+  if (b.effect.kind === 'iceRatingFromActionLevel') {
+    const source = b.effect.sourceActionId;
+    const base = b.effect.perLevel * Math.max(1, owned);
+    let hardening: number | null = null;
+    for (const h of buyables) {
+      const copies = engine.ownedCount(h.id);
+      if (h.effect.kind !== 'hardenedPayloadFromCrits' || h.effect.levelActionId !== source || copies <= 0) continue;
+      const crits = engine.getState().sleeve.hardeningCrits[h.id] ?? 0;
+      hardening = (hardening ?? 0) + hardeningBonusPerLevel(crits, h.effect.perCrit) * copies;
+    }
+    return text.tips.hardenedPayloadValues({
+      base: formatPlain(base, 0),
+      hardening: hardening === null ? null : formatPlain(hardening, 0),
+      total: formatPlain(base + (hardening ?? 0), 0),
+    });
+  }
   if (b.effect.kind === 'hardenedPayloadFromCrits') {
     const crits = engine.getState().sleeve.hardeningCrits[b.id] ?? 0;
     return text.tips.hardeningValues({
@@ -166,7 +184,7 @@ export function buildBuyableViews(
           name: b.name,
           description: b.description,
           formula: b.formula ?? null,
-          values: purchaseValues(b, engine, owned, text),
+          values: purchaseValues(b, engine, owned, text, config.buyables),
           cost: costText,
           costUnit,
           owned,
