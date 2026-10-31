@@ -1,0 +1,33 @@
+.sleeve-widget,
+.corporation-widget,
+.network-widget,
+.upgrades-widget,
+.exploitation-widget,
+.inventory-widget {
+  display: grid;
+  align-content: start; /* extra height from stretching stays below the content */
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.corporation-empty[hidden] {
+  display: none;
+}
+.sleeve-widget h2,
+.corporation-widget h2,
+.network-widget h2,
+.upgrades-widget h2,
+.exploitation-widget h2,
+.inventory-widget h2 {
+  margin: 0;
+}
+.section-title {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

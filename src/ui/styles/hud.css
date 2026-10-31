@@ -1,0 +1,61 @@
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.credits {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+.network {
+  color: var(--muted);
+  font-size: 14px;
+}
+/* The tabs, on the credits line. */
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+.tabs[hidden],
+.tab[hidden] {
+  display: none;
+}
+/* A tab with something waiting in it blinks. */
+.tab.attention {
+  animation: tab-blink 1s ease-in-out infinite;
+}
+@keyframes tab-blink {
+  50% {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab.attention {
+    animation: none;
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+}
+.tab {
+  min-width: 120px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.tab.active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+.tab-panel {
+  display: grid;
+  gap: 14px;
+}
+.tab-panel[hidden] {
+  display: none;
+}

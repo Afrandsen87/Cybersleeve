@@ -1,0 +1,84 @@
+/* The Automation tab: a box with one section per feature. */
+.automation-widget {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.automation-widget h2 {
+  margin: 0;
+}
+.automation-feature {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.automation-feature.unlocked {
+  border-color: var(--cyan);
+}
+.automation-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.automation-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.automation-controls[hidden] {
+  display: none;
+}
+.automation-switch.on {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+.automation-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.automation-field input {
+  width: 6em;
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.automation-field[hidden],
+.automation-switch[hidden] {
+  display: none;
+}
+.automation-checklist {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 4px 12px;
+  font-size: 13px;
+}
+.automation-checklist[hidden] {
+  display: none;
+}
+.automation-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.automation-hint {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}

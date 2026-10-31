@@ -1,0 +1,53 @@
+.stats {
+  display: grid;
+  gap: 4px;
+}
+.stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.stat-label {
+  color: var(--muted);
+}
+.stat-value {
+  font-weight: 700;
+  color: var(--cyan);
+}
+@media (max-width: 900px) {
+.stat[data-tip] {
+  cursor: help;
+}
+.resleeve-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+/* In the Sleeve widget the row sits at the bottom whatever the height of the widget: a column whose last child takes the free space above it. */
+.sleeve-widget {
+  display: flex;
+  flex-direction: column;
+}
+.sleeve-widget > .resleeve-row {
+  margin-top: auto; /* the free height goes above the row */
+  padding-top: 2px; /* with the 10px gap of the widget, a gap of at least 12px */
+}
+.resleeve-row[hidden] {
+  display: none;
+}
+.resleeve {
+  flex: 1;
+  border-color: var(--magenta);
+  text-align: center;
+}
+.resleeve.buy {
+  border-color: var(--cyan, var(--magenta));
+}
+.resleeve.armed {
+  background: var(--magenta);
+  color: var(--bg);
+  font-weight: 700;
+}
+.resleeve-cancel[hidden] {
+  display: none;
+}
