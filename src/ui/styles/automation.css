@@ -54,11 +54,15 @@
 .automation-widget .skill-lane::after {
   display: none;
 }
+/* one card per daemon: the full panel width, not the Firmware tab's 300px tracks */
+.automation-widget .firmware-cards {
+  grid-template-columns: minmax(0, 1fr);
+}
 .automation-widget .t-sale {
   --tag: var(--branch-autosale);
 }
 .automation-widget .t-channel {
-  --tag: var(--cyan);
+  --tag: var(--branch-leverage);
 }
 .automation-widget .t-permit,
 .automation-widget .t-target {
