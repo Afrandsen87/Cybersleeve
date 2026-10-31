@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Automation tab – mockup</title>
+<style>
+  /* same language as mainscreen.html and skills.html */
+  :root {
+    --bg: #0b0f1a; --panel: #121829; --panel-2: #0e1324; --ink: #e6f1ff; --muted: #8da2c0; --line: #26304d; --line-2: #1b2340;
+    --info: #19e3ff; --run: #ff2bd6; --heat: #ff7a1a; --danger: #ff3b5c; --gain: #39ff88; --auto: #b266ff; --afford: #ffd23f;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --b-autoBurn: #b266ff; --b-autosale: #ffe14d; --b-dispersal: #4dd2ff; --b-leverage: #d98a3d;
+    /* rarity colours from inventory.css (rarity-0 .. rarity-4) */
+    --r-common: #19e3ff; --r-uncommon: #3dff7a; --r-rare: #4d8bff; --r-legendary: #ff2bd6; --r-crisis: #ff8a1f;
+  }
+  * { box-sizing: border-box; }
+  html { overflow-anchor: none; } /* the page does its own anchoring on the node under the cursor (renderAnchored) */
+  body { margin: 0; color: var(--ink); font: 14px/1.4 system-ui, sans-serif;
+    background: radial-gradient(1200px 500px at 50% -200px, #16204a 0%, transparent 70%), linear-gradient(var(--line-2) 1px, transparent 1px) 0 0 / 100% 24px, var(--bg); background-color: var(--bg); }
+  body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px); }
+  main { max-width: 1260px; margin: 0 auto; padding: 12px 16px 24px; display: grid; gap: 12px; }
+  button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .demo { display: flex; gap: 8px 20px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border: 1px dashed #3a4466; border-radius: 8px; font-size: 13px; color: var(--muted); }
+  .demo b { color: var(--ink); } .demo label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .demo select, .demo input[type=range] { accent-color: var(--auto); }
+  .demo select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; }
+
+  /* HUD */
+  .hud { display: grid; grid-template-columns: auto 1fr auto; gap: 22px; align-items: center; padding: 8px 14px; border-bottom: 1px solid color-mix(in srgb, var(--run) 50%, transparent); box-shadow: 0 8px 24px -16px var(--run); }
+  .credits { display: flex; align-items: baseline; gap: 10px; }
+  .coin { width: 26px; height: 26px; align-self: center; border-radius: 5px; background: var(--afford); color: #1a1300; font: 900 16px var(--mono); display: grid; place-items: center; box-shadow: 0 0 10px var(--afford); }
+  .big { font: 700 30px var(--mono); color: var(--info); text-shadow: 0 0 12px color-mix(in srgb, var(--info) 60%, transparent); }
+  .rate { font: 13px var(--mono); color: var(--gain); }
+  .tabs { display: flex; gap: 6px; }
+  .tab { position: relative; padding: 7px 14px; font: 700 12px var(--mono); letter-spacing: .1em; color: var(--muted); border-radius: 3px; background: transparent; }
+  .tab.active { color: var(--auto); border-color: var(--auto); box-shadow: inset 0 -2px 0 var(--auto), 0 0 10px -4px var(--auto); }
+  .badge { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; font-size: 10px; display: grid; place-items: center; color: #0b0f1a; background: var(--auto); box-shadow: 0 0 8px var(--auto); }
+  .badge[hidden] { display: none; }
+
+  /* legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; padding: 6px 12px; font: 11px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; background: var(--panel-2); }
+  .legend .lg { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+  .points { margin-left: auto; display: inline-flex; align-items: baseline; gap: 8px; padding: 2px 10px; border: 1px solid color-mix(in srgb, var(--auto) 60%, transparent); border-radius: 4px; background: color-mix(in srgb, var(--auto) 8%, transparent); }
+  .points .n { font: 700 22px var(--mono); color: var(--auto); text-shadow: 0 0 10px var(--auto); line-height: 1.1; }
+  .points .l { font: 700 10px var(--mono); letter-spacing: .12em; color: var(--muted); }
+  .points.zero .n { color: var(--muted); text-shadow: none; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; align-items: start; }
+  .layout.noins { grid-template-columns: minmax(0, 1fr); }
+  .layout.noins .inspector { display: none; }
+  .col { display: grid; gap: 12px; min-width: 0; }
+  /* docked mode: one column; the lane you hover or pin shrinks and the inspector opens in the space beside it */
+  .layout.dock { grid-template-columns: minmax(0, 1fr); }
+  .layout.dock > .inspector { display: none; }
+  .feat { display: grid; grid-template-columns: minmax(0, 1fr) 0px; gap: 0; align-items: stretch; transition: grid-template-columns .25s ease, gap .25s ease; }
+  .feat.open { grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; }
+  .slot { position: relative; min-width: 0; overflow: hidden; }
+  .feat > .panel { align-content: start; }
+  /* the inspector never makes the row taller: it fills the lane's height and scrolls if it must */
+  /* the docked pane shows everything, no scrollbar: it has one height for every firmware (--ins-h), and a shorter lane grows to match */
+  .slot > .inspector, .inspector.measure { width: 300px; display: flex; flex-direction: column; gap: 10px; }
+  .slot > .inspector { position: static; min-height: max(100%, var(--ins-h)); opacity: 0; transition: opacity .2s ease .05s; }
+  .feat.open .slot > .inspector { opacity: 1; }
+  .inspector.measure { position: absolute; left: -9999px; top: 0; visibility: hidden; }
+  .ins-buy { display: grid; gap: 8px; margin-top: auto; }
+  .ins-list .none { border: 0; padding: 0; color: #55617f; }
+  .ins-close { margin-left: auto; padding: 0 7px; font: 700 11px var(--mono); color: var(--muted); background: transparent; border-radius: 3px; }
+  .ins-close:hover { color: var(--ink); border-color: var(--ink); }
+
+  /* panel chrome (main-screen batch A) */
+  .panel { position: relative; background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px 12px; display: grid; gap: 10px;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .panel::before, .panel::after { content: ""; position: absolute; width: 10px; height: 10px; border-color: var(--accent, var(--info)); border-style: solid; opacity: .8; }
+  .panel::before { top: 0; left: 0; border-width: 2px 0 0 2px; } .panel::after { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
+  .ph { display: flex; align-items: center; gap: 10px; margin: 0; font: 700 11px var(--mono); letter-spacing: .14em; color: var(--accent, var(--info)); text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent); }
+  .ph::before { content: "//"; color: var(--muted); text-shadow: none; }
+  .ph .sub { color: var(--muted); font: 400 12px system-ui, sans-serif; letter-spacing: 0; text-shadow: none; }
+  .ph .online { margin-left: auto; font: 700 10px var(--mono); letter-spacing: .1em; padding: 1px 7px; border-radius: 3px; border: 1px solid currentColor; text-shadow: none; }
+  .ph .online.on { color: var(--gain); box-shadow: 0 0 6px -2px var(--gain); } .ph .online.off { color: #55617f; }
+  .pdesc { margin: -4px 0 0; color: var(--muted); font-size: 13px; }
+  .offline-note { font: 12px var(--mono); color: var(--muted); padding: 8px 10px; border: 1px dashed #3a4466; border-radius: 4px; }
+  .offline-note b { color: var(--accent); }
+
+  /* status line */
+  .status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font: 13px var(--mono); padding: 7px 12px; background: #0d1222; border: 1px solid var(--line); border-radius: 4px; }
+  .status .state { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: .06em; }
+  .status .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+  .status .k { color: var(--muted); }
+  .status .sep { color: #3a4466; }
+  .s-burn { color: var(--heat); } .s-idle { color: var(--info); } .s-off { color: var(--muted); } .s-on { color: var(--gain); }
+  input[type=number] { font: 13px var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; width: 4.5em; }
+
+  /* heat strip */
+  .strip-wrap { padding: 26px 6px 18px; }
+  .strip { position: relative; height: 24px; border-radius: 4px; background: #0d1222; border: 1px solid var(--line); }
+  .zone { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font: 700 10px var(--mono); letter-spacing: .14em; overflow: hidden; }
+  .z-cold { background: linear-gradient(90deg, color-mix(in srgb, var(--info) 22%, transparent), color-mix(in srgb, var(--info) 8%, transparent)); color: var(--info); }
+  .z-band { background: color-mix(in srgb, var(--auto) 14%, transparent); color: var(--auto); }
+  .z-red { background: linear-gradient(90deg, color-mix(in srgb, var(--danger) 10%, transparent), color-mix(in srgb, var(--danger) 30%, transparent)); color: var(--danger); }
+  .zone.live { text-shadow: 0 0 6px currentColor; } .zone:not(.live) { color: color-mix(in srgb, currentColor 55%, transparent); }
+  .notch { position: absolute; top: -6px; bottom: -6px; width: 2px; transform: translateX(-1px); }
+  .notch.floor { background: var(--info); box-shadow: 0 0 8px var(--info); } .notch.redline { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .notch-label { position: absolute; top: -26px; transform: translateX(-50%); font: 11px var(--mono); white-space: nowrap; display: inline-flex; gap: 5px; align-items: center; }
+  .notch-label.floor { color: var(--info); } .notch-label.redline { color: var(--danger); }
+  .notch-label input { width: 3.6em; padding: 0 3px; }
+  .heat-marker { position: absolute; top: -3px; bottom: -3px; width: 3px; transform: translateX(-1.5px); background: #fff; box-shadow: 0 0 8px #fff; border-radius: 2px; }
+  .heat-label { position: absolute; bottom: -19px; transform: translateX(-50%); font: 11px var(--mono); color: #fff; white-space: nowrap; }
+  /* fix 2: past the end, the marker pins to the edge and its label right-aligns inside the panel */
+  .heat-label.over { transform: none; right: 0; left: auto !important; color: var(--danger); }
+
+  /* protocol rows (Auto Burn's language, now shared by all three panels) */
+  .proto { display: grid; gap: 6px; font: 13px var(--mono); }
+  .rule { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 7px 10px;
+    border: 1px solid var(--line); border-left: 3px solid var(--tag); border-radius: 4px; background: #10162a; transition: box-shadow .15s, background .15s; }
+  .rule.firing { background: color-mix(in srgb, var(--tag) 10%, #10162a); box-shadow: inset 3px 0 12px -4px var(--tag), 0 0 10px -4px var(--tag); }
+  .rule.off .body { opacity: .5; }
+  .tag { font-weight: 700; letter-spacing: .1em; color: var(--tag); font-size: 12px; }
+  .body { display: grid; gap: 6px; min-width: 0; }
+  .line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .cond { color: var(--muted); } .arrow { color: var(--tag); } .act { color: var(--ink); font-weight: 600; } .num { color: var(--tag); font-weight: 700; }
+  .t-redline { --tag: var(--danger); } .t-throttle { --tag: var(--auto); } .t-failsafe { --tag: var(--heat); } .t-restart { --tag: var(--info); }
+  .t-channel { --tag: var(--b-leverage); } .t-sale { --tag: var(--b-autosale); } .t-permit { --tag: var(--b-dispersal); } .t-target { --tag: var(--info); }
+  .sub { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding-top: 6px; border-top: 1px dashed var(--line); }
+  .needs { font-size: 11px; color: var(--muted); } .needs b { color: var(--b-leverage); }
+  /* hover a node: the control it adds lights up */
+  .preview { outline: 1px dashed var(--accent, var(--info)); outline-offset: 2px; }
+  .fresh { animation: fresh 1.4s ease-out; }
+  @keyframes fresh { 0% { box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--accent); } 100% { box-shadow: none; } }
+
+  .led { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px; font: 700 11px var(--mono); letter-spacing: .08em; color: var(--muted); background: #0b0f1a; min-width: 60px; justify-content: center; }
+  .led::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #3a4466; }
+  .led.on { color: var(--info); border-color: var(--info); box-shadow: 0 0 8px -2px var(--info); } .led.on::before { background: var(--info); box-shadow: 0 0 6px var(--info); }
+
+  .chip { --c: var(--tag); display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 6px; border-radius: 4px; font: 12px var(--mono); color: var(--muted); border: 1px dashed #3a4466; background: transparent; }
+  .chip .ico { width: 16px; height: 16px; opacity: .5; display: inline-grid; } .chip .ico svg { width: 16px; height: 16px; }
+  .chip .ld { width: 7px; height: 7px; border-radius: 50%; background: #3a4466; }
+  .chip.on { color: var(--ink); border: 1px solid var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); box-shadow: 0 0 8px -3px var(--c); }
+  .chip.on .ico { opacity: 1; } .chip.on .ld { background: var(--c); box-shadow: 0 0 5px var(--c); }
+  .chip .kind, .chip .cnt { color: var(--muted); font-size: 10px; letter-spacing: .06em; }
+  .chip:disabled { opacity: .35; cursor: default; }
+  .chip[data-r] { --c: var(--rc); } .chip[data-r] .nm { color: var(--rc); }
+  .pill { --c: var(--rc); display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font: 700 11px var(--mono); letter-spacing: .06em; color: var(--c); border: 1px solid var(--c); box-shadow: 0 0 6px -3px var(--c); }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 5px currentColor; }
+  .slots { display: inline-flex; gap: 3px; vertical-align: middle; }
+  .slots i { width: 12px; height: 8px; border-radius: 1px; background: color-mix(in srgb, var(--info) 15%, #0b0f1a); border: 1px solid color-mix(in srgb, var(--info) 30%, transparent); }
+  .slots i.on { background: var(--info); box-shadow: 0 0 5px var(--info); }
+
+  /* firmware tree (skills.html's branch card) */
+  .branch { --lane: var(--accent); position: relative; padding: 8px 10px 12px 12px; border-left: 3px solid var(--lane); border-radius: 4px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--lane) 14%, transparent), color-mix(in srgb, var(--lane) 3%, transparent));
+    box-shadow: inset 3px 0 10px -6px var(--lane); display: grid; gap: 6px; overflow-x: auto; }
+  .bh { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font: 11px var(--mono); }
+  .bh .bn { font-weight: 700; letter-spacing: .14em; color: var(--lane); }
+  .bh .bp { color: var(--muted); }
+  .bh .bc { margin-left: auto; color: var(--ink); }
+  .seg { display: flex; gap: 2px; }
+  .seg i { width: 9px; height: 5px; border-radius: 1px; background: color-mix(in srgb, var(--lane) 18%, #0b0f1a); }
+  .seg i.on { background: var(--lane); box-shadow: 0 0 4px var(--lane); }
+  .tree { position: relative; flex: none; }
+  .tree svg.edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+  .edge { fill: none; stroke: var(--lane); stroke-width: 2; opacity: .22; }
+  .edge.lit { opacity: .9; filter: drop-shadow(0 0 3px var(--lane)); }
+  .edge.path { opacity: 1; stroke-width: 3; filter: drop-shadow(0 0 5px var(--lane)); }
+  .edge.flow { stroke-dasharray: 6 6; animation: flow .5s linear 3; opacity: 1; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  .node { position: absolute; width: var(--ns); height: var(--ns); padding: 0; border-radius: 8px; display: grid; place-items: center; background: #0d1222; transition: transform .1s, box-shadow .2s; }
+  .node svg { width: 28px; height: 28px; }
+  .node:hover { transform: scale(1.08); z-index: 2; }
+  .node.owned { background: color-mix(in srgb, var(--lane) 26%, #0d1222); border-color: var(--lane); box-shadow: 0 0 10px -1px var(--lane), inset 0 0 10px -4px var(--lane); }
+  .node.afford { border: 2px solid var(--afford); animation: afford 1.8s ease-in-out infinite; }
+  @keyframes afford { 50% { box-shadow: 0 0 14px -2px var(--afford); } }
+  .node.avail { border: 1px solid var(--lane); } .node.avail svg { opacity: .55; }
+  .node.locked { background: #090c16; border-color: #1c2440; } .node.locked svg { opacity: .2; filter: grayscale(1); }
+  .node.locked::after { content: "🔒"; position: absolute; right: -4px; bottom: -4px; font-size: 10px; filter: grayscale(1) brightness(.8); }
+  .cost { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); padding: 0 5px; border-radius: 6px; font: 700 9px var(--mono); background: #0b0f1a; border: 1px solid currentColor; }
+  .node.afford .cost { color: var(--afford); } .node.avail .cost { color: var(--muted); }
+  .node.sel { outline: 2px solid #fff; outline-offset: 3px; }
+  .node.next { outline: 1px dashed var(--lane); outline-offset: 4px; }
+  .node.onpath { box-shadow: 0 0 14px var(--lane); }
+  .node.install { animation: install .9s ease-out; }
+  .node.install::before { content: ""; position: absolute; inset: 0; border-radius: 7px; background: linear-gradient(0deg, var(--lane), transparent); animation: sweep .9s ease-out forwards; pointer-events: none; }
+  @keyframes install { 0% { transform: scale(.85); } 40% { transform: scale(1.18); box-shadow: 0 0 24px var(--lane); } 100% { transform: scale(1); } }
+  @keyframes sweep { from { clip-path: inset(100% 0 0 0); opacity: .9; } 70% { clip-path: inset(0 0 0 0); opacity: .7; } to { clip-path: inset(0 0 0 0); opacity: 0; } }
+  .tip { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: 240px; padding: 8px 10px; font: 12px system-ui, sans-serif; text-align: left;
+    background: #0d1222; border: 1px solid var(--lane); border-radius: 6px; display: none; z-index: 5; pointer-events: none; }
+  .tip b { display: block; color: var(--lane); margin-bottom: 2px; }
+  .layout.noins .node:hover .tip { display: block; }
+
+  /* inspector */
+  .inspector { --accent: var(--lane, var(--auto)); position: sticky; top: 12px; }
+  .ins-top { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+  .ins-ico { width: 64px; height: 64px; border-radius: 10px; display: grid; place-items: center; border: 1px solid var(--lane); background: color-mix(in srgb, var(--lane) 20%, #0d1222); box-shadow: 0 0 14px -4px var(--lane); }
+  .ins-ico svg { width: 48px; height: 48px; }
+  .ins-name { font-size: 17px; font-weight: 700; }
+  .ins-branch { font: 700 10px var(--mono); letter-spacing: .14em; color: var(--lane); }
+  .st { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; font: 700 10px var(--mono); letter-spacing: .1em; border: 1px solid currentColor; }
+  .st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 5px currentColor; }
+  .s-owned { color: var(--gain); } .s-afford { color: var(--afford); } .s-avail { color: var(--muted); } .s-locked { color: #55617f; }
+  .ins-effect { font-size: 13px; line-height: 1.5; padding: 8px 10px; border-left: 2px solid var(--lane); background: #0d1222; border-radius: 0 4px 4px 0; }
+  .ins-k { font: 700 10px var(--mono); letter-spacing: .14em; color: var(--muted); margin-bottom: 3px; }
+  .ins-list { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ins-list span { font: 11px var(--mono); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--line); }
+  .ins-list span.ok { border-color: color-mix(in srgb, var(--gain) 60%, transparent); color: var(--gain); }
+  .ins-adds { font: 12px var(--mono); color: var(--ink); }
+  .ins-cost { display: flex; justify-content: space-between; align-items: center; font: 12px var(--mono); }
+  .ins-cost b { font-size: 16px; color: var(--auto); }
+  .buy { width: 100%; padding: 10px; font: 700 13px var(--mono); letter-spacing: .14em; border-radius: 4px; }
+  .buy.ready { color: #0b0f1a; background: var(--afford); border-color: var(--afford); box-shadow: 0 0 14px -2px var(--afford); }
+  .buy:disabled { opacity: .5; cursor: default; }
+  .ins-why { font: 11px var(--mono); color: var(--muted); text-align: center; }
+
+  .notes { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+  .notes li { margin: 3px 0; } .notes b { color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <div class="demo">
+    <b>Mockup controls</b>
+    <label>State <select id="d-preset"><option value="early">Early: 3 Auto Burn firmware</option><option value="mid" selected>Mid: some of each</option><option value="late">Late: everything (your screenshot)</option></select></label>
+    <label><input id="d-bcd" type="checkbox"> Back Channel Deals installed (Firmware)</label>
+    <label>Heat <input id="d-heat" type="range" min="0" max="1500" value="34"> <b id="d-heat-v"></b></label>
+    <label>Inspector <select id="d-ins"><option value="dock" selected>Docked: opens beside the lane you hover or click</option><option value="pane">Always-on side pane</option><option value="off">Off: tooltips, click buys</option></select></label>
+  </div>
+
+  <header class="hud">
+    <div class="credits"><span class="coin">₵</span><span class="big">21.26No</span><span class="rate">+34.73T/s</span></div>
+    <span></span>
+    <nav class="tabs">
+      <button class="tab">CHARACTER</button>
+      <button class="tab">FIRMWARE</button>
+      <button class="tab active">AUTOMATION<span class="badge" id="tab-badge"></span></button>
+      <button class="tab">STATS</button>
+    </nav>
+  </header>
+
+  <div class="legend">
+    <span class="lg"><span class="sw" style="background:color-mix(in srgb,#b266ff 26%,#0d1222);border:1px solid #b266ff;box-shadow:0 0 6px #b266ff"></span>installed</span>
+    <span class="lg"><span class="sw" style="border:2px solid var(--afford);box-shadow:0 0 6px var(--afford)"></span>affordable now</span>
+    <span class="lg"><span class="sw" style="border:1px solid #b266ff"></span>available, need more points</span>
+    <span class="lg"><span class="sw" style="background:#090c16;border:1px solid #1c2440"></span>locked: install the firmware before it</span>
+    <span class="points" id="pts"><span class="n"></span><span class="l">AUTOMATION POINTS</span></span>
+  </div>
+
+  <div class="layout" id="layout">
+    <div class="col">
+      <div class="feat" data-f="autoBurn"><section class="panel" id="p-autoBurn" style="--accent: var(--b-autoBurn)"></section><div class="slot"></div></div>
+      <div class="feat" data-f="autosale"><section class="panel" id="p-autosale" style="--accent: var(--b-autosale)"></section><div class="slot"></div></div>
+      <div class="feat" data-f="dispersal"><section class="panel" id="p-dispersal" style="--accent: var(--b-dispersal)"></section><div class="slot"></div></div>
+    </div>
+    <aside class="panel inspector" id="inspector"></aside>
+  </div>
+
+  <div id="spacer"></div>
+  <div class="notes"><ul>
+    <li><b>A · Trees:</b> each daemon's firmware tree is the Firmware page's branch card: header with count and segments, the four node states (installed, affordable, available, locked) with cost badges, lit and hover-path lines, and the install sweep. Every icon is distinct: Kompromat nodes are a file in the rarity's colour with a coin (autosale) or a handset (Back Channel) badge; Dispersal nodes are a schematic in the rarity's colour, or a crosshair whose pips count the slot it adds.</li>
+    <li><b>Hover a node</b> and the control it added (or will add) gets a dashed outline; installing one makes the new control flash once. This ties each tree node to what it does on the panel.</li>
+    <li><b>Inspector (default: docked):</b> hidden until you hover or click a firmware node. Then that lane shrinks to the compact width and the inspector opens in the freed space beside it, always the same height whichever firmware it shows (sized to the longest one), with every section present and no scrollbar; a shorter lane grows to fit it. Hover previews; click pins it (✕, Esc or clicking the node again unpins). With a firmware pinned, leaving any node returns the pane to the pinned one at once, so nodes you pass over on the way to INSTALL never take it over. With nothing pinned, moving from the node into the inspector keeps the preview open. Hovering a node in another lane moves the pane there; the preview stays while you are in that lane and the pane returns to the pinned lane when you leave it. Nothing under the cursor moves: a row the pane leaves keeps its height while it sits above the cursor, and while lanes resize the page scrolls so the node under the cursor stays put. It is the Firmware page's pane with an extra <b>ADDS</b> line. The other two options above: an always-on side pane, or tooltips with click-to-buy (the Firmware plan's current choice for this tab).</li>
+    <li><b>B · Kompromat:</b> two protocol rows in Auto Burn's style, in the order the game runs them: BACK CHANNEL first, then AUTOSALE. Chips are rarity-coloured with an LED and show how many files you hold. Without Back Channel Deals the BACK CHANNEL row still shows (you bought it) but its chips are disabled and it says what's missing. Rarities you haven't bought don't show; the tree shows what's coming.</li>
+    <li><b>C · Dispersal:</b> a status line with a slot meter, a PERMITS row of rarity pills and a TARGETS row of action chips. When every slot is used, the unpicked chips go dim. In the Late state you'll see 6 slots for 5 actions: the last Dispersal Target does nothing (content oddity, left as is).</li>
+    <li><b>D · Chrome:</b> every daemon is a <code>.panel</code> with a <code>//</code> header in its branch colour and an ONLINE/OFFLINE tag. Before its root firmware is installed, a panel shows only its tree and a one-line note.</li>
+    <li><b>Auto Burn fixes carried into the plan:</b> (1) the status line says the toggle state once (no trailing "Inventory toggle OFF"); (2) heat uses the Sleeve heat formatter (here: 1.36K) and the overflow label right-aligns inside the panel. Drag Heat past 105 to see it.</li>
+    <li>Auto Burn rows are as you have them now (REDLINE, no captions). Effect texts are from content; the panel states are made up. Glyph icons are rough 16×16 sketches.</li>
+  </ul></div>
+</main>
+
+<script>
+// ---------- pixel icons: an 11x11 base (optionally tinted) with an optional 7x7 badge bottom-right ----------
+const PAL = { o: '#ff7a1a', y: '#ffd23f', w: '#ffffff', c: '#19e3ff', b: '#2f6bff', k: '#0b0f1a', g: '#8da2c0', r: '#ff3b5c', e: '#39ff88', p: '#b266ff', d: '#3a4466' };
+const RC = { common: '#19e3ff', uncommon: '#3dff7a', rare: '#4d8bff', legendary: '#ff2bd6', crisis: '#ff8a1f' };
+const BASE = {
+  flame: ['.....o.....', '....oo..o..', '...ooyo.oo.', '..ooyyooyo.', '.ooyyyyoyyo', '.oyyywyyyyo', '.oyywwwyyyo', '.oyywwwyyyo', '..oyywwyyo.', '...ooyyoo..', '.....oo....'],
+  chip: ['..c.c.c.c..', '..c.c.c.c..', 'cbbbbbbbbbc', '.bkkkkkkkb.', 'cbkccccckbc', '.bkcwwwckb.', 'cbkccccckbc', '.bkkkkkkkb.', 'cbbbbbbbbbc', '..c.c.c.c..', '..c.c.c.c..'],
+  loop: ['...ccccc...', '..cc...cc..', '.cc.....cc.', '.c.......c.', '.c......ccc', '.c.......c.', '.c.........', '.cc.....cc.', '..cc...cc..', '...ccccc...', '...........'],
+  gauge: ['...........', '...ggggg...', '..g.....r..', '.g.......r.', 'g.........r', 'g....w...rr', 'g.....w..r.', 'g......w...', 'gggggggggg.', '...........', '...........'],
+  sliders: ['...........', 'ggggggggggg', '...cc......', '...cc......', 'ggggggggggg', '...........', 'ggggggggggg', '.......rr..', '.......rr..', 'ggggggggggg', '...........'],
+  lock: ['...ggggg...', '..g.....g..', '..g.....g..', '..g.....g..', '.yyyyyyyyy.', '.yyyyyyyyy.', '.yyyykyyyy.', '.yyyykyyyy.', '.yyyyyyyyy.', '.yyyyyyyyy.', '...........'],
+  // X = the tint colour
+  file: ['.XXXXXX....', '.XwwwwXX...', '.XwwwwXwX..', '.XwwwwXXXX.', '.Xwggggwwx.', '.Xwwwwwwwx.', '.Xwggggggx.', '.Xwwwwwwwx.', '.Xwggggwwx.', '.Xwwwwwwwx.', '.XXXXXXXXX.'],
+  schematic: ['XXXXXXXXXXX', 'X.d.d.d.d.X', 'XdwwwwwwwdX', 'X.w.d.d.w.X', 'Xdw.XXX.wdX', 'X.w.XwX.w.X', 'Xdw.XXX.wdX', 'X.w.d.d.w.X', 'XdwwwwwwwdX', 'X.d.d.d.d.X', 'XXXXXXXXXXX'],
+  cross: ['.....c.....', '...ccccc...', '..c..c..c..', '.c...c...c.', '.c.......c.', 'cccc.w.cccc', '.c.......c.', '.c...c...c.', '..c..c..c..', '...ccccc...', '.....c.....'],
+};
+const BADGE = {
+  down: ['...c...', '...c...', '...c...', 'ccccccc', '.ccccc.', '..ccc..', '...c...'],
+  snow: ['c..c..c', '.c.c.c.', '..www..', 'cccwccc', '..www..', '.c.c.c.', 'c..c..c'],
+  play: ['.e.....', '.eee...', '.eeeee.', '.eeeeee', '.eeeee.', '.eee...', '.e.....'],
+  flame: ['...o...', '..oo.o.', '.ooyoo.', '.oyyyo.', '.oywyo.', '.oyyyo.', '..ooo..'],
+  coin: ['..yyy..', '.yyyyy.', 'yyykyyy', 'yykyyyy', 'yyykyyy', '.yyyyy.', '..yyy..'],
+  phone: ['ooo....', 'ooo....', '.o.....', '.oo....', '..oo.oo', '...oooo', '....ooo'],
+  spread: ['c..c..c', '.c.c.c.', '..ccc..', 'ccc.ccc', '..ccc..', '.c.c.c.', 'c..c..c'],
+};
+const PIPS = { 2: [[1, 1], [5, 5]], 3: [[1, 1], [3, 3], [5, 5]], 4: [[1, 1], [5, 1], [1, 5], [5, 5]], 5: [[1, 1], [5, 1], [3, 3], [1, 5], [5, 5]], 6: [[1, 1], [5, 1], [1, 3], [5, 3], [1, 5], [5, 5]] };
+function rects(rows, dx, dy, tint) {
+  let s = '';
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { const f = ch === 'X' || ch === 'x' ? tint : PAL[ch]; if (f) s += `<rect x="${x + dx}" y="${y + dy}" width="1" height="1" fill="${f}"/>`; }));
+  return s;
+}
+function icon({ base, badge, tint, pips }) {
+  const b = badge || pips;
+  let s = rects(BASE[base], b ? 1 : 2, b ? 1 : 2, tint);
+  if (badge) s += `<rect x="8" y="8" width="8" height="8" fill="#0b0f1a"/>` + rects(BADGE[badge], 9, 9);
+  if (pips) s += `<rect x="8" y="8" width="8" height="8" fill="#0b0f1a" stroke="#ffffff" stroke-width=".5"/>` + PIPS[pips].map(([x, y]) => `<rect x="${x + 9}" y="${y + 9}" width="1" height="1" fill="#fff"/>`).join('');
+  return `<svg viewBox="0 0 16 16" shape-rendering="crispEdges">${s}</svg>`;
+}
+
+// ---------- the three trees (names and effects from content) ----------
+// adds = id of the panel control the firmware brings (for hover and the inspector's ADDS line)
+const TREES = {
+  autoBurn: { name: 'AUTO BURN', title: 'Auto Burn', purpose: 'burn leads, stop and restart heat-making work', geo: { ns: 40, cx: 60, cy: 52, pad: 4, top: 6 }, nodes: [
+    ['B1', 'Burn Toggle', null, { base: 'flame' }, 'Burn leads become a toggle in the Inventory: one lead a second while there is heat.', 'ab-status', 'the status line'],
+    ['B2', 'Hold Down', 'B1', { base: 'flame', badge: 'down' }, 'Burn only enough leads to bring heat down to the Floor.', 'row-throttle', 'the heat strip and the THROTTLE row'],
+    ['B3', 'Redline Trigger', 'B2', { base: 'gauge', badge: 'flame' }, 'Heat reaching the Redline switches the Burn toggle on.', 'row-redline', 'the Redline notch and the REDLINE row'],
+    ['B4', 'Cool Overclocks', 'B3', { base: 'chip', badge: 'snow' }, 'Out of leads above the Floor, kill heat-making Overclocks.', 'row-failsafe', 'the FAILSAFE row'],
+    ['B5', 'Cool Auto-runs', 'B4', { base: 'loop', badge: 'snow' }, 'In that case also kill heat-making Auto-runs.', 'chip-offActions', 'the Auto-runs chip in FAILSAFE'],
+    ['B6', 'Resume Auto-runs', 'B5', { base: 'loop', badge: 'play' }, 'Below the Floor with leads, restart the Auto-runs you pick.', 'row-restart', 'the RESTART row'],
+    ['B7', 'Resume Overclocks', 'B6', { base: 'chip', badge: 'play' }, 'In that case also restart the Overclocks you pick.', 'sub-restartOc', 'the Overclock line in RESTART'],
+    ['B8', 'Tune Thresholds', 'B7', { base: 'sliders' }, 'Edit the Floor and the Redline.', 'ab-strip', 'editable Floor and Redline'],
+    ['B9', 'Lead Reserve', 'B8', { base: 'lock', badge: 'flame' }, 'Set a Reserve of leads that the rules never touch.', 'ab-reserve', 'the Reserve field'],
+  ] },
+  autosale: { name: 'KOMPROMAT AUTOSALE', title: 'Kompromat autosale', purpose: 'sell or trade files as they drop', geo: { ns: 40, cx: 60, cy: 52, pad: 4, top: 6 }, nodes: [
+    ['S1', 'Autosale: Common', null, { base: 'file', tint: RC.common, badge: 'coin' }, 'Sells common Kompromat files automatically at the normal price.', 'chip-sale-common', 'the AUTOSALE row with a Common chip'],
+    ['S2', 'Autosale: Uncommon', 'S1', { base: 'file', tint: RC.uncommon, badge: 'coin' }, 'Adds a switch to sell uncommon Kompromat files automatically at the normal price.', 'chip-sale-uncommon', 'an Uncommon chip in AUTOSALE'],
+    ['S3', 'Autosale: Rare', 'S2', { base: 'file', tint: RC.rare, badge: 'coin' }, 'Adds a switch to sell rare Kompromat files automatically at the normal price.', 'chip-sale-rare', 'a Rare chip in AUTOSALE'],
+    ['S4', 'Auto Back Channel: Common', 'S3', { base: 'file', tint: RC.common, badge: 'phone' }, 'Adds a switch to give up all common Kompromat files through Back Channel, before autosale.', 'chip-chan-common', 'the BACK CHANNEL row with a Common chip'],
+    ['S5', 'Auto Back Channel: Uncommon', 'S4', { base: 'file', tint: RC.uncommon, badge: 'phone' }, 'Adds a switch to give up all uncommon Kompromat files through Back Channel, before autosale.', 'chip-chan-uncommon', 'an Uncommon chip in BACK CHANNEL'],
+    ['S6', 'Auto Back Channel: Rare', 'S5', { base: 'file', tint: RC.rare, badge: 'phone' }, 'Adds a switch to give up all rare Kompromat files through Back Channel, before autosale.', 'chip-chan-rare', 'a Rare chip in BACK CHANNEL'],
+    ['S7', 'Autosale: Legendary', 'S3', { base: 'file', tint: RC.legendary, badge: 'coin' }, 'Adds a switch to sell legendary Kompromat files automatically at the normal price.', 'chip-sale-legendary', 'a Legendary chip in AUTOSALE'],
+    ['S8', 'Autosale: Crisis level', 'S7', { base: 'file', tint: RC.crisis, badge: 'coin' }, 'Adds a switch to sell crisis level Kompromat files automatically at the normal price.', 'chip-sale-crisis', 'a Crisis level chip in AUTOSALE'],
+  ] },
+  dispersal: { name: 'AUGMENT DISPERSAL', title: 'Augment dispersal', purpose: 'spread schematics over picked actions', geo: { ns: 40, cx: 60, cy: 52, pad: 4, top: 6 }, nodes: [
+    ['D1', 'Augment Dispersal', null, { base: 'schematic', tint: RC.common, badge: 'spread' }, 'Applies common Augment schematics evenly to selected actions. Adds one action selection slot.', 'ds-status', 'the panel, Common permit and 1 target slot'],
+    ['D2', 'Dispersal Target', 'D1', { base: 'cross', pips: 2 }, 'Adds one action selection slot for Augment dispersal.', 'row-target', 'target slot 2'],
+    ['D3', 'Dispersal: Uncommon', 'D2', { base: 'schematic', tint: RC.uncommon, badge: 'spread' }, 'Applies uncommon Augment schematics too.', 'pill-uncommon', 'the Uncommon permit'],
+    ['D4', 'Dispersal Target', 'D3', { base: 'cross', pips: 3 }, 'Adds one action selection slot for Augment dispersal.', 'row-target', 'target slot 3'],
+    ['D5', 'Dispersal Target', 'D4', { base: 'cross', pips: 4 }, 'Adds one action selection slot for Augment dispersal.', 'row-target', 'target slot 4'],
+    ['D6', 'Dispersal: Rare', 'D5', { base: 'schematic', tint: RC.rare, badge: 'spread' }, 'Applies rare Augment schematics too.', 'pill-rare', 'the Rare permit'],
+    ['D7', 'Dispersal Target', 'D6', { base: 'cross', pips: 5 }, 'Adds one action selection slot for Augment dispersal.', 'row-target', 'target slot 5'],
+    ['D8', 'Dispersal: Legendary', 'D7', { base: 'schematic', tint: RC.legendary, badge: 'spread' }, 'Applies legendary Augment schematics too.', 'pill-legendary', 'the Legendary permit'],
+    ['D9', 'Dispersal Target', 'D8', { base: 'cross', pips: 6 }, 'Adds one action selection slot for Augment dispersal.', 'row-target', 'target slot 6'],
+  ] },
+};
+const NODES = {};
+for (const [tid, t] of Object.entries(TREES)) for (const [id, name, parent, ico, desc, adds, addsText] of t.nodes) NODES[id] = { id, name, parent, ico, desc, adds, addsText, tree: tid, children: [] };
+for (const n of Object.values(NODES)) if (n.parent) NODES[n.parent].children.push(n.id);
+
+// ---------- mockup state ----------
+const PRESETS = {
+  early: { pts: 2, owned: ['B1', 'B2', 'B3'] },
+  mid: { pts: 1, owned: ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'S1', 'S2', 'S3', 'S4', 'D1', 'D2', 'D3'] },
+  late: { pts: 0, owned: Object.keys(NODES) },
+};
+const RAR = ['common', 'uncommon', 'rare', 'legendary', 'crisis'];
+const RNAME = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', legendary: 'Legendary', crisis: 'Crisis level' };
+const HELD = { common: 41, uncommon: 12, rare: 3, legendary: 1, crisis: 0 };
+const ACTIONS = ['Grow network', 'Practice Hacking', 'Push malware', 'Kill servers', 'Build Legend'];
+const S = {
+  pts: 1, owned: new Set(), sel: null, hover: null, installing: null, fresh: null, bcd: false, ins: 'dock',
+  heat: 34, leads: 385, toggle: true, floor: 20, redline: 70, reserve: 0,
+  sw: { upper: true, hold: true, offOverclocks: true, offActions: false, onActions: true, onOverclocks: false },
+  sale: { common: true, uncommon: true, rare: false, legendary: false, crisis: false },
+  chan: { common: true, uncommon: false, rare: false },
+  restartAuto: { 'Push malware': true, 'Build Legend': false }, restartOc: { 'Grow network': false, 'Push malware': false, 'Build Legend': true },
+  targets: new Set(['Grow network', 'Push malware']),
+};
+const has = (id) => S.owned.has(id);
+function applyPreset(p) { S.pts = PRESETS[p].pts; S.owned = new Set(PRESETS[p].owned); S.bcd = p === 'late'; $('d-bcd').checked = S.bcd; S.heat = p === 'late' ? 1359 : 34; $('d-heat').value = S.heat; S.sel = S.ins === 'pane' ? 'B4' : null; S.hover = null; }
+
+function state(id) {
+  if (has(id)) return 'owned';
+  const n = NODES[id];
+  if (n.parent && !has(n.parent)) return 'locked';
+  return S.pts >= 1 ? 'afford' : 'avail';
+}
+const pathOf = (id) => { const p = []; for (let n = NODES[id]; n; n = n.parent ? NODES[n.parent] : null) p.push(n.id); return p; };
+
+// ---------- tree layout: depth = column, leaves get consecutive rows ----------
+function layout(rootId) {
+  const pos = {}; let row = 0;
+  (function walk(id, depth) {
+    const kids = NODES[id].children;
+    if (!kids.length) pos[id] = { c: depth, r: row++ };
+    else { kids.forEach((k) => walk(k, depth + 1)); pos[id] = { c: depth, r: (pos[kids[0]].r + pos[kids[kids.length - 1]].r) / 2 }; }
+  })(rootId, 0);
+  return { pos, rows: row, cols: Math.max(...Object.values(pos).map((p) => p.c)) + 1 };
+}
+function treeHtml(tid) {
+  const t = TREES[tid], geo = t.geo, ids = t.nodes.map((n) => n[0]);
+  const L = layout(ids[0]);
+  const X = (p) => p.c * geo.cx + geo.pad, Y = (p) => p.r * geo.cy + geo.top;
+  const focus = S.hover || S.sel, path = new Set(NODES[focus]?.tree === tid ? pathOf(focus) : []);
+  let edges = '', nodes = '';
+  for (const id of ids) {
+    const n = NODES[id], p = L.pos[id];
+    if (n.parent) {
+      const a = L.pos[n.parent], x1 = X(a) + geo.ns, y1 = Y(a) + geo.ns / 2, x2 = X(p), y2 = Y(p) + geo.ns / 2, mx = x1 + (x2 - x1) / 2;
+      const cls = path.has(id) && path.has(n.parent) ? 'path' : has(n.parent) ? 'lit' : '';
+      edges += `<path class="edge ${cls}${S.installing === n.parent ? ' flow' : ''}" d="M${x1} ${y1} H${mx} V${y2} H${x2}"/>`;
+    }
+    const st = state(id);
+    const cls = [st, S.ins !== 'off' && id === S.sel ? 'sel' : '', path.has(id) && id !== focus ? 'onpath' : '', NODES[focus]?.children.includes(id) ? 'next' : '', S.installing === id ? 'install' : ''].join(' ');
+    nodes += `<button class="node ${cls}" data-n="${id}" style="left:${X(p)}px;top:${Y(p)}px" aria-label="${n.name}">${icon(n.ico)}${st === 'afford' || st === 'avail' ? '<span class="cost">1</span>' : ''}<span class="tip"><b>${n.name}</b>${n.desc}</span></button>`;
+  }
+  const w = (L.cols - 1) * geo.cx + geo.ns + geo.pad * 2, h = (L.rows - 1) * geo.cy + geo.ns + geo.top + 10;
+  const owned = ids.filter(has).length;
+  const seg = `<span class="seg">${ids.map((_, i) => `<i class="${i < owned ? 'on' : ''}"></i>`).join('')}</span>`;
+  return `<div class="branch"><div class="bh"><span class="bn">FIRMWARE</span><span class="bp">${t.purpose}</span><span class="bc">${owned}/${ids.length}</span>${seg}</div>
+    <div class="tree" style="width:${w}px;height:${h}px;--ns:${geo.ns}px"><svg class="edges" width="${w}" height="${h}">${edges}</svg>${nodes}</div></div>`;
+}
+
+// ---------- shared bits ----------
+const $ = (id) => document.getElementById(id);
+const fmtHeat = (h) => (h < 1000 ? (h < 10 ? h.toFixed(1) : String(Math.round(h))) : `${(h / 1000).toFixed(2)}K`); // stands in for the Sleeve heat formatter
+const led = (key, on) => `<button class="led ${on ? 'on' : ''}" data-t="${key}">${on ? 'ON' : 'OFF'}</button>`;
+const chipIco = (ico) => `<span class="ico">${icon(ico)}</span>`;
+function head(tid, online) {
+  const t = TREES[tid];
+  return `<h3 class="ph">${t.name}<span class="online ${online ? 'on' : 'off'}">${online ? 'ONLINE' : 'OFFLINE'}</span></h3>`;
+}
+const offline = (tid) => `<div class="offline-note">Install <b>${NODES[TREES[tid].nodes[0][0]].name}</b> below to bring this daemon online.</div>`;
+const desc = { autoBurn: 'A daemon that burns leads to keep your heat in check, and stops or restarts heat-making work.', autosale: 'Sells or trades Kompromat files of the rarities you switch on, as they arrive.', dispersal: 'Applies permitted Augment schematics evenly to the actions you select.' };
+
+// ---------- Auto Burn (as built, with fixes 1 and 2) ----------
+function renderAutoBurn() {
+  const el = $('p-autoBurn');
+  if (!has('B1')) { el.innerHTML = head('autoBurn', false) + offline('autoBurn') + treeHtml('autoBurn'); return; }
+  const reserve = has('B9') ? S.reserve : 0, avail = S.leads - reserve > 0;
+  const trig = has('B3') && S.sw.upper && S.heat >= S.redline, on = S.toggle || trig;
+  const fail = has('B4') && on && !avail && S.heat > S.floor;
+  const restart = has('B6') && S.heat < S.floor && avail && S.sw.onActions;
+  const st = !on ? ['s-off', 'STANDBY', 'Inventory toggle is off'] : S.heat <= 0 ? ['s-idle', 'IDLE', 'no heat'] : has('B2') && S.sw.hold && S.heat <= S.floor ? ['s-idle', 'HOLDING', `at Floor ${S.floor}`] : ['s-burn', 'BURNING', has('B2') && S.sw.hold ? `down to Floor ${S.floor}` : '1 lead / s'];
+  // fix 1: the toggle state is said once, in the reason, and nowhere else on the line
+  const status = `<div class="status" id="ab-status"><span class="state ${st[0]}"><span class="dot"></span>${st[1]}</span><span class="k">${st[2]}</span><span class="sep">│</span>
+    <span><span class="k">heat</span> ${fmtHeat(S.heat)}</span><span><span class="k">leads</span> ${S.leads}</span>
+    ${has('B9') ? `<label id="ab-reserve"><span class="k">Reserve</span> <input type="number" min="0" value="${S.reserve}"></label>` : ''}</div>`;
+  let strip = '';
+  if (has('B2')) {
+    const span = Math.max(S.redline * 1.5, S.floor + 1), pc = (v) => `${Math.min(100, (v / span) * 100)}%`, over = S.heat > span, edit = has('B8');
+    const notch = (k, label, v) => `<div class="notch ${k}" style="left:${pc(v)}"></div><div class="notch-label ${k}" style="left:${pc(v)}">${label} ${edit ? `<input type="number" value="${v}">` : `<b>${v}</b>`}</div>`;
+    const u = has('B3') ? S.redline : span;
+    strip = `<div class="strip-wrap" id="ab-strip"><div class="strip">
+      <div class="zone z-cold ${S.heat < S.floor ? 'live' : ''}" style="left:0;width:${pc(S.floor)}">COLD</div>
+      <div class="zone z-band ${S.heat >= S.floor && S.heat < u ? 'live' : ''}" style="left:${pc(S.floor)};width:calc(${pc(u)} - ${pc(S.floor)})">BAND</div>
+      ${has('B3') ? `<div class="zone z-red ${S.heat >= u ? 'live' : ''}" style="left:${pc(u)};right:0">RED</div>` : ''}
+      ${notch('floor', 'Floor', S.floor)}${has('B3') ? notch('redline', 'Redline', S.redline) : ''}
+      <div class="heat-marker" style="left:${pc(S.heat)}"></div>
+      <div class="heat-label ${over ? 'over' : ''}" style="left:${pc(S.heat)}">${over ? `heat ${fmtHeat(S.heat)} ▸` : `heat ${fmtHeat(S.heat)}`}</div></div></div>`;
+  }
+  const rows = [];
+  if (has('B3')) rows.push(`<div class="rule t-redline ${trig ? 'firing' : ''} ${S.sw.upper ? '' : 'off'}" id="row-redline"><div class="tag">REDLINE</div><div class="body"><div class="line"><span class="cond">WHEN heat ≥ <span class="num">${S.redline}</span></span><span class="arrow">→</span><span class="act">switch the Burn toggle on</span></div></div>${led('sw.upper', S.sw.upper)}</div>`);
+  if (has('B2')) rows.push(`<div class="rule t-throttle ${on && avail && S.heat > S.floor && !fail ? 'firing' : ''} ${S.sw.hold ? '' : 'off'}" id="row-throttle"><div class="tag">THROTTLE</div><div class="body"><div class="line"><span class="cond">WHILE burning</span><span class="arrow">→</span><span class="act">burn only down to heat <span class="num">${S.floor}</span></span><span class="cond">(saves leads)</span></div></div>${led('sw.hold', S.sw.hold)}</div>`);
+  if (has('B4')) {
+    const c = (k, label, ico, id) => `<button class="chip ${S.sw[k] ? 'on' : ''}" data-t="sw.${k}" ${id ? `id="${id}"` : ''}>${chipIco(ico)}${label}</button>`;
+    rows.push(`<div class="rule t-failsafe ${fail ? 'firing' : ''}" id="row-failsafe"><div class="tag">FAILSAFE</div><div class="body"><div class="line"><span class="cond">WHEN out of leads above Reserve AND heat &gt; <span class="num">${S.floor}</span></span><span class="arrow">→</span><span class="act">kill heat-making</span>
+      ${c('offOverclocks', 'Overclocks', { base: 'chip', badge: 'snow' })}${has('B5') ? c('offActions', 'Auto-runs', { base: 'loop', badge: 'snow' }, 'chip-offActions') : ''}</div></div><span></span></div>`);
+  }
+  if (has('B6')) {
+    const chips = (map, key, kind, ico) => Object.keys(map).map((a) => `<button class="chip ${map[a] ? 'on' : ''}" data-t="${key}.${a}">${chipIco(ico)}${a} <span class="kind">${kind}</span></button>`).join('');
+    rows.push(`<div class="rule t-restart ${restart ? 'firing' : ''}" id="row-restart"><div class="tag">RESTART</div><div class="body">
+      <div class="line"><span class="cond">WHEN heat &lt; <span class="num">${S.floor}</span> AND leads above Reserve</span><span class="arrow">→</span><span class="act">restart what you pick, and the Burn toggle</span></div>
+      <div class="sub ${S.sw.onActions ? '' : 'off'}"><div class="line">${chips(S.restartAuto, 'restartAuto', 'AUTO-RUN', { base: 'loop', badge: 'play' })}</div>${led('sw.onActions', S.sw.onActions)}</div>
+      ${has('B7') ? `<div class="sub ${S.sw.onOverclocks ? '' : 'off'}" id="sub-restartOc"><div class="line">${chips(S.restartOc, 'restartOc', 'OVERCLOCK', { base: 'chip', badge: 'play' })}</div>${led('sw.onOverclocks', S.sw.onOverclocks)}</div>` : ''}
+    </div><span></span></div>`);
+  }
+  el.innerHTML = head('autoBurn', true) + `<p class="pdesc">${desc.autoBurn}</p>` + status + strip + (rows.length ? `<div class="proto">${rows.join('')}</div>` : '') + treeHtml('autoBurn');
+}
+
+// ---------- Kompromat autosale ----------
+const SALE_NODE = { common: 'S1', uncommon: 'S2', rare: 'S3', legendary: 'S7', crisis: 'S8' };
+const CHAN_NODE = { common: 'S4', uncommon: 'S5', rare: 'S6' };
+function renderAutosale() {
+  const el = $('p-autosale');
+  if (!has('S1')) { el.innerHTML = head('autosale', false) + offline('autosale') + treeHtml('autosale'); return; }
+  const saleR = RAR.filter((r) => has(SALE_NODE[r])), chanR = Object.keys(CHAN_NODE).filter((r) => has(CHAN_NODE[r]));
+  const rchip = (group, r, disabled) => {
+    const on = S[group][r] && !disabled, ico = { base: 'file', tint: RC[r], badge: group === 'sale' ? 'coin' : 'phone' };
+    return `<button class="chip ${on ? 'on' : ''}" data-r="${r}" style="--rc:${RC[r]}" data-t="${group}.${r}" id="chip-${group}-${r}" ${disabled ? 'disabled' : ''}>${chipIco(ico)}<span class="ld"></span><span class="nm">${RNAME[r]}</span><span class="cnt">×${HELD[r]}</span></button>`;
+  };
+  const nSale = saleR.filter((r) => S.sale[r]).length, nChan = S.bcd ? chanR.filter((r) => S.chan[r]).length : 0;
+  const status = `<div class="status"><span class="state ${nSale + nChan ? 's-on' : 's-off'}"><span class="dot"></span>${nSale + nChan ? 'ACTIVE' : 'STANDBY'}</span>
+    <span class="k">${nSale} of ${saleR.length} rarities on autosale${chanR.length ? ` · ${nChan} to Back Channel` : ''}</span></div>`;
+  const rows = [];
+  if (chanR.length) rows.push(`<div class="rule t-channel ${S.bcd ? '' : 'off'}" id="row-channel"><div class="tag">BACK CHANNEL</div><div class="body">
+      <div class="line"><span class="cond">ON DROP</span><span class="arrow">→</span><span class="act">give up for Moles</span>${chanR.map((r) => rchip('chan', r, !S.bcd)).join('')}</div>
+      ${S.bcd ? '' : '<div class="needs">needs <b>Back Channel Deals</b> (Firmware · Leverage) before these switches do anything</div>'}</div><span></span></div>`);
+  rows.push(`<div class="rule t-sale" id="row-sale"><div class="tag">AUTOSALE</div><div class="body"><div class="line"><span class="cond">${chanR.length ? 'THEN' : 'ON DROP'}</span><span class="arrow">→</span><span class="act">sell at the normal price</span>${saleR.map((r) => rchip('sale', r, false)).join('')}</div></div><span></span></div>`);
+  el.innerHTML = head('autosale', true) + `<p class="pdesc">${desc.autosale}</p>` + status + `<div class="proto">${rows.join('')}</div>` + treeHtml('autosale');
+}
+
+// ---------- Augment dispersal ----------
+function renderDispersal() {
+  const el = $('p-dispersal');
+  if (!has('D1')) { el.innerHTML = head('dispersal', false) + offline('dispersal') + treeHtml('dispersal'); return; }
+  const slots = ['D1', 'D2', 'D4', 'D5', 'D7', 'D9'].filter(has).length;
+  const permits = [['common', 'D1'], ['uncommon', 'D3'], ['rare', 'D6'], ['legendary', 'D8']].filter(([, n]) => has(n)).map(([r]) => r);
+  const used = S.targets.size, full = used >= slots;
+  const status = `<div class="status" id="ds-status"><span class="state ${used ? 's-on' : 's-off'}"><span class="dot"></span>${used ? 'DISPERSING' : 'STANDBY'}</span>
+    <span class="k">${used ? `${permits.length} rarit${permits.length === 1 ? 'y' : 'ies'} over ${used} action${used === 1 ? '' : 's'}` : 'pick an action below'}</span><span class="sep">│</span>
+    <span><span class="k">targets</span> <span class="slots">${Array.from({ length: slots }, (_, i) => `<i class="${i < used ? 'on' : ''}"></i>`).join('')}</span> ${used}/${slots}</span></div>`;
+  const pills = permits.map((r) => `<span class="pill" id="pill-${r}" style="--rc:${RC[r]}">${RNAME[r]}</span>`).join('');
+  const chips = ACTIONS.map((a) => { const on = S.targets.has(a); return `<button class="chip ${on ? 'on' : ''}" data-tgt="${a}" ${!on && full ? 'disabled' : ''}><span class="ld"></span>${a}</button>`; }).join('');
+  const rows = `<div class="proto">
+    <div class="rule t-permit" id="row-permit"><div class="tag">PERMITS</div><div class="body"><div class="line"><span class="cond">schematics of</span>${pills}</div></div><span></span></div>
+    <div class="rule t-target ${used ? 'firing' : ''}" id="row-target"><div class="tag">TARGETS</div><div class="body"><div class="line"><span class="cond">spread evenly over</span><span class="arrow">→</span>${chips}</div>
+      ${full ? `<div class="needs">all ${slots} slots used: untick one to pick another</div>` : ''}</div><span></span></div></div>`;
+  el.innerHTML = head('dispersal', true) + `<p class="pdesc">${desc.dispersal}</p>` + status + rows + treeHtml('dispersal');
+}
+
+// ---------- inspector ----------
+// Every section is always present (an empty one says so), so the pane has the same blocks for every firmware.
+function inspectorHtml(id) {
+  const n = NODES[id], st = state(id), t = TREES[n.tree];
+  const label = { owned: 'INSTALLED', afford: 'AFFORDABLE NOW', avail: 'NEED MORE POINTS', locked: 'LOCKED' }[st];
+  const close = S.ins === 'dock' && S.sel ? '<button class="ins-close" data-close="1">✕</button>' : '';
+  const none = (text) => `<span class="none">${text}</span>`;
+  return `<h3 class="ph">INSPECTOR <span class="sub">${S.hover && S.hover !== S.sel ? 'preview' : 'pinned'}</span>${close}</h3>
+    <div class="ins-top"><div class="ins-ico">${icon(n.ico)}</div><div><div class="ins-branch">${t.name}</div><div class="ins-name">${n.name}</div><span class="st s-${st}">${label}</span></div></div>
+    <div class="ins-effect">${n.desc}</div>
+    <div><div class="ins-k">ADDS</div><div class="ins-adds">${n.addsText}</div></div>
+    <div><div class="ins-k">REQUIRES</div><div class="ins-list">${n.parent ? `<span class="${has(n.parent) ? 'ok' : ''}">${has(n.parent) ? '✓ ' : ''}${NODES[n.parent].name}</span>` : none('nothing: first firmware of this daemon')}</div></div>
+    <div><div class="ins-k">UNLOCKS NEXT</div><div class="ins-list">${n.children.length ? n.children.map((c) => `<span>${NODES[c].name}</span>`).join('') : none('nothing: end of this tree')}</div></div>
+    <div class="ins-buy"><div class="ins-cost"><span>COST</span><span><b>1</b> AUTOMATION POINT</span></div>
+      <button class="buy ${st === 'afford' ? 'ready' : ''}" data-buy="${id}" ${st === 'afford' ? '' : 'disabled'}>${st === 'owned' ? 'INSTALLED' : 'INSTALL'}</button>
+      <div class="ins-why">${st === 'owned' ? 'already running' : st === 'afford' ? `you have ${S.pts}` : st === 'avail' ? `you have ${S.pts}: earn more automation points` : `install ${NODES[n.parent].name} first`}</div></div>`;
+}
+function renderInspector() {
+  const id = S.hover || S.sel;
+  if (!id) return;
+  const el = $('inspector');
+  el.style.setProperty('--lane', `var(--b-${NODES[id].tree})`);
+  el.innerHTML = inspectorHtml(id);
+}
+// One height for the docked pane: the tallest any firmware needs, measured off-screen at the pane's width. In the game this would
+// be a fixed CSS height that fits the longest content (or the same measurement, done once when the tab is built).
+let insH = { key: '', h: 0 };
+function dockedHeight() {
+  const key = `${[...S.owned].join()}|${S.pts}`;
+  if (insH.key === key) return insH.h;
+  const m = document.createElement('aside');
+  m.className = 'panel inspector measure';
+  document.body.append(m);
+  let h = 0;
+  for (const id of Object.keys(NODES)) { m.innerHTML = inspectorHtml(id); h = Math.max(h, m.offsetHeight); }
+  m.remove();
+  insH = { key, h };
+  return h;
+}
+
+function render() {
+  renderAutoBurn(); renderAutosale(); renderDispersal();
+  const lay = $('layout'), ins = $('inspector');
+  lay.classList.toggle('noins', S.ins === 'off');
+  lay.classList.toggle('dock', S.ins === 'dock');
+  // docked: the inspector lives in the slot beside the lane of the node in focus (hover first, then the pinned one), and that
+  // lane's row opens. Height hold: when the pane moves away from a row, that row keeps the height it had while open, so rows
+  // below it (where the cursor is) don't jump up. The holds are released when the pane closes altogether.
+  const focusTree = NODES[S.hover || S.sel]?.tree;
+  if (S.ins === 'dock') ins.style.setProperty('--ins-h', `${dockedHeight()}px`);
+  const feats = [...document.querySelectorAll('.feat')], openIdx = feats.findIndex((f) => f.dataset.f === focusTree);
+  for (const [i, f] of feats.entries()) {
+    const open = S.ins === 'dock' && f.dataset.f === focusTree;
+    // only rows above the newly opened one are held: a row below can shrink without moving anything under the cursor
+    if (!open && f.classList.contains('open') && focusTree && i < openIdx) f.style.minHeight = `${f.offsetHeight}px`;
+    if (open || !focusTree || i > openIdx) f.style.minHeight = '';
+    f.classList.toggle('open', open);
+    if (open && ins.parentElement !== f.lastElementChild) f.lastElementChild.append(ins);
+  }
+  // nothing in focus: park the pane outside the rows so a closed row keeps its own height
+  if ((S.ins !== 'dock' || !focusTree) && ins.parentElement !== lay) lay.append(ins);
+  if (!focusTree) $('spacer').style.height = '';
+  if (S.ins !== 'off') renderInspector();
+  const p = $('pts'); p.querySelector('.n').textContent = S.pts; p.classList.toggle('zero', S.pts === 0);
+  $('tab-badge').textContent = S.pts; $('tab-badge').hidden = S.pts === 0;
+  $('d-heat-v').textContent = S.heat;
+  const focus = S.hover && NODES[S.hover];
+  if (focus) $(focus.adds)?.classList.add('preview');
+  if (S.fresh) { $(S.fresh)?.classList.add('fresh'); }
+}
+
+// ---------- events ----------
+function install(id) {
+  if (state(id) !== 'afford') return;
+  S.pts -= 1; S.owned.add(id); S.installing = id; S.sel = id; S.hover = null; S.fresh = NODES[id].adds;
+  render();
+  setTimeout(() => { if (S.installing === id) { S.installing = null; S.fresh = null; render(); } }, 1500);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.buy) return install(b.dataset.buy);
+  if (b.dataset.close) { S.sel = null; S.hover = null; return render(); }
+  if (b.dataset.n) {
+    if (S.ins === 'off') return install(b.dataset.n);
+    S.sel = S.ins === 'dock' && S.sel === b.dataset.n ? null : b.dataset.n; S.hover = S.sel ? null : S.hover; return renderAnchored(`.node[data-n="${b.dataset.n}"]`);
+  }
+  if (b.dataset.tgt) { const a = b.dataset.tgt; S.targets.has(a) ? S.targets.delete(a) : S.targets.add(a); return render(); }
+  if (b.dataset.t) { const [g, k] = b.dataset.t.split('.'); S[g][k] = !S[g][k]; render(); }
+});
+document.addEventListener('mouseover', (e) => {
+  const node = e.target.closest('.node'), h = node ? node.dataset.n : null;
+  // Leaving a node:
+  // - in the pinned lane: straight back to the pinned firmware, so nodes passed over on the way to INSTALL never take the pane over;
+  // - in any other lane (or with nothing pinned): the preview stays while the cursor is in that lane's row or the pane, and
+  //   returns to the pinned lane when the cursor leaves the row. Closing the row under the cursor would rewrap it and move it.
+  const row = e.target.closest('.feat.open'), inPinnedLane = S.sel && row?.dataset.f === NODES[S.sel].tree;
+  const keep = h === null && S.ins === 'dock' && row && !(inPinnedLane && !e.target.closest('.inspector'));
+  if (h !== S.hover && !keep) {
+    S.hover = h;
+    // anchor what is under the cursor: the node, else the row it is in
+    const f = e.target.closest('.feat')?.dataset.f;
+    renderAnchored(h ? `.node[data-n="${h}"]` : f ? `.feat[data-f="${f}"]` : null);
+  }
+});
+// Scroll anchoring on the node under the cursor: when a lane opens or closes, rows above it can change height (and the narrowed
+// lane rewraps during its .25s width transition). For that time, the page scrolls by however far the node moved, so the node
+// stays under the mouse. Together with the height hold in render() (rows above the cursor never shrink while the pane moves),
+// the page never has to scroll above its top.
+let anchorRun = 0;
+function renderAnchored(sel) {
+  const find = () => (sel ? document.querySelector(sel) : null);
+  const top = find()?.getBoundingClientRect().top;
+  render();
+  if (top === undefined) return;
+  const run = ++anchorRun, until = performance.now() + 350;
+  (function hold() {
+    if (run !== anchorRun) return;
+    const now = find()?.getBoundingClientRect().top;
+    if (now !== undefined && Math.abs(now - top) > 0.5) {
+      // scrolling down needs page below the viewport: grow the bottom spacer when there isn't enough
+      const d = now - top, room = document.documentElement.scrollHeight - innerHeight - scrollY, sp = $('spacer');
+      if (d > room) sp.style.height = `${sp.offsetHeight + d - room}px`;
+      window.scrollBy(0, d);
+    }
+    if (performance.now() < until) requestAnimationFrame(hold);
+  })();
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.sel) { S.sel = null; S.hover = null; render(); } });
+$('d-preset').addEventListener('change', (e) => { applyPreset(e.target.value); render(); });
+$('d-bcd').addEventListener('change', (e) => { S.bcd = e.target.checked; render(); });
+$('d-ins').addEventListener('change', (e) => { S.ins = e.target.value; S.sel = S.ins === 'pane' ? S.sel || 'B4' : S.sel; S.hover = null; render(); });
+$('d-heat').addEventListener('input', (e) => { S.heat = Number(e.target.value); render(); });
+applyPreset('mid');
+if (location.hash.startsWith('#pin=')) S.sel = location.hash.slice(5); // screenshot aid: open the docked inspector on a node
+render();
+</script>
+</body>
+</html>
