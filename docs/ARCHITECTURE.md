@@ -94,4 +94,4 @@ See `docs/contexts/_limitations.md`.
 
 - `src/ui/widgets/inventorySlots.ts`: named slot building and state rendering, extracted from the stable `inventoryWidget.ts` facade.
 - `src/ui/parts/stashText.ts` and `src/ui/stashText.ts`: StashText contract and default `uiText.stash` captions/gains.
-- `src/ui/inventoryKit.ts`: shared testConfig-based inventory fixtures for separate view, DOM and stash tests.
+- `src/testing/inventoryKit.ts`: shared testConfig-based inventory fixtures for separate view, DOM and stash tests.

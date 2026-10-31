@@ -73,7 +73,7 @@ export function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, 
     const tile = tileParts.get(upgrade);
     if (tile) {
       setText(tile.price, b.maxed ? tile.text.max : b.costText);
-      setText(tile.own, tile.text.owned(String(b.owned)));
+      setText(tile.own, tile.text.owned(b.ownedText));
       tile.own.hidden = !(b.repeatable && b.owned > 0);
       upgrade.classList.toggle('poor', b.available && !b.maxed && !b.affordable);
     }

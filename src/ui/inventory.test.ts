@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
 import { setCredits } from '../testing/testConfig';
-import { config, stock, see } from './inventoryKit';
+import { config, stock, see } from '../testing/inventoryKit';
 import { uiText } from './uiText';
 import { buildViewModel } from './viewModel';
 

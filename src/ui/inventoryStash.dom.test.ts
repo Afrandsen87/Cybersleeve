@@ -5,7 +5,7 @@
 import { expect, it, vi } from 'vitest';
 import { createGame } from '../app/createGame';
 import { mountTestUi } from '../testing/domMountKit';
-import { stock, see, stashConfig } from './inventoryKit';
+import { stock, see, stashConfig } from '../testing/inventoryKit';
 
 it('shows selected stack gains, updates them after selling, and clears dropped selection', () => {
   const game = createGame({ config: stashConfig });
@@ -44,10 +44,13 @@ it('kept items show no sell gain or legend and cannot select a sale stack', () =
 
 it('only replaces legend entries when their rarity-index sequence changes', () => {
   const game = createGame({ config: stashConfig });
-  stock(game, { file: { rare: 1 } });
   const root = document.createElement('div');
   const render = mountTestUi(root, game);
   const legend = root.querySelector<HTMLElement>('.rarity-legend')!;
+  expect(legend.hidden).toBe(true);
+  stock(game, { file: { rare: 1 } });
+  render();
+  expect(legend.hidden).toBe(false);
   expect(legend.textContent).toBe('Rare');
   expect(legend.firstElementChild!.className).toBe('rarity-1');
   const first = legend.firstElementChild;

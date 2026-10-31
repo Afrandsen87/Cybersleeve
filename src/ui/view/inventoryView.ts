@@ -64,6 +64,7 @@ export function inventoryView(
     (item.hasRarity === false ? items.rarities.slice(0, 1) : items.rarities).map((rarity): InventoryRowView => {
       const count = itemCount(state, item.id, rarity.id);
       const price = engine.sellValue(rarity.id); // the one owner of the sale price
+      const stackTotal = price.mul(factory.fromNumber(count));
       const label = item.hasRarity === false ? item.name : text.inventory.label(rarity.name, item.name);
       const channelMoles = channel?.itemId === item.id ? channel.molesByRarity[rarity.id] : undefined;
       const backChannel = channelMoles !== undefined;
@@ -86,7 +87,7 @@ export function inventoryView(
           return item.sellable === false ? null : text.stash.gain(formatBigNum(price));
         },
         get sellAllText() {
-          return item.sellable === false ? null : text.stash.gain(formatBigNum(price.mul(factory.fromNumber(count))));
+          return item.sellable === false ? null : text.stash.gain(formatBigNum(stackTotal));
         },
         symbol: initials(item.name),
         rarityIndex: item.hasRarity === false ? null : items.rarities.indexOf(rarity),
@@ -186,7 +187,7 @@ export function inventoryView(
                 drops,
                 sellValue: formatBigNum(price),
                 count: formatBigNum(factory.fromNumber(count)),
-                total: formatBigNum(price.mul(factory.fromNumber(count))),
+                total: formatBigNum(stackTotal),
                 unit: text.costUnits.credits,
               });
         },

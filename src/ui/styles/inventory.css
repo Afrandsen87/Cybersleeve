@@ -66,16 +66,16 @@
 .item-tile {
   --rarity: var(--muted);
 }
-.rarity-1 {
+.inventory-widget .rarity-1 {
   --rarity: #3dff7a;
 }
-.rarity-2 {
+.inventory-widget .rarity-2 {
   --rarity: #4d8bff;
 }
-.rarity-3 {
+.inventory-widget .rarity-3 {
   --rarity: #ff2bd6;
 }
-.rarity-4 {
+.inventory-widget .rarity-4 {
   --rarity: #ff8a1f;
 }
 .item-icon {
@@ -165,7 +165,7 @@
   border-color: var(--magenta);
   border-left-color: var(--rarity);
 }
-.rarity-0 {
+.inventory-widget .rarity-0 {
   --rarity: var(--info);
 }
 .rarity-legend {
@@ -209,4 +209,8 @@
 .inventory-action.sell-all {
   border-color: var(--gain);
   box-shadow: 0 0 8px -3px var(--gain);
+}
+
+.rarity-legend[hidden] {
+  display: none;
 }

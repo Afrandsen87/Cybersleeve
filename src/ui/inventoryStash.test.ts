@@ -4,7 +4,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createGame } from '../app/createGame';
 import { formatBigNum, num } from '../numbers';
-import { stock, see, stashConfig } from './inventoryKit';
+import { stock, see, stashConfig } from '../testing/inventoryKit';
 import { uiText } from './uiText';
 import { buildViewModel } from './viewModel';
 

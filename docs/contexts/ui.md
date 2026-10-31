@@ -25,7 +25,7 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 - Named two-column slots show the real pixel icon, item name, rarity caption (uppercase, rarity colour) or CONSUMABLE, and count; an empty stack dims. Existing select, augment, use and toggle interactions remain.
 - `view/inventoryView.ts` supplies lazy `sellOneText` / `sellAllText` from the same `engine.sellValue(rarity)` price as the tip, multiplying only with BigNum. Kept items return null; the widget never calculates a sale price.
 - The For sale legend lists only rarities with a shown sellable row, in rarity order. `widgets/inventoryWidget.ts` replaces its entries only when the rarity-index sequence changes. Sell gains clear and buttons disable when selection drops; Back channel is unchanged.
-- `widgets/inventorySlots.ts` owns slot construction/rendering. `parts/stashText.ts` defines StashText; `stashText.ts` supplies `uiText.stash` captions and gains through `uiTextParts.ts` / `uiTextTypes.ts`. Shared tests use `inventoryKit.ts` (testConfig-based stock/seen helpers).
+- `widgets/inventorySlots.ts` owns slot construction/rendering. `parts/stashText.ts` defines StashText; `stashText.ts` supplies `uiText.stash` captions and gains through `uiTextParts.ts` / `uiTextTypes.ts`. Shared tests use `testing/inventoryKit.ts` (testConfig-based stock/seen helpers).
 - Presentation only: no tuning, save or mechanic change; no new assumptions about sleeve, corporation or prestige counts.
 
 ## Reveal ledger and tab blink

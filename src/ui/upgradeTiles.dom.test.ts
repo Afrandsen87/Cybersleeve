@@ -21,7 +21,11 @@ it('renders price, MAX, repeatable counts and affordability only in tile mode', 
   expect(button.querySelector('.price')!.textContent).toBe(view.costText);
   expect(button.classList.contains('poor')).toBe(true);
   expect(button.querySelector<HTMLElement>('.own')!.hidden).toBe(true);
-  renderUpgrades(row.buttons, [{ ...view, available: true, affordable: true, clickable: true, owned: 2, repeatable: true }], tips);
+  renderUpgrades(
+    row.buttons,
+    [{ ...view, available: true, affordable: true, clickable: true, owned: 2, ownedText: '2', repeatable: true }],
+    tips,
+  );
   expect(button.classList.contains('purchasable')).toBe(true);
   expect(button.classList.contains('poor')).toBe(false);
   expect(button.querySelector('.own')!.textContent).toBe('×2');

@@ -1,5 +1,5 @@
 /** Currency row and stable partition tests using the shared test configuration. */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createGame } from '../app/createGame';
 import { createConfig, type BuyableDefinition } from '../core';
 import { testConfig } from '../testing/testConfig';
@@ -56,4 +56,16 @@ describe('boughtOneTimeFirst', () => {
   it('accepts empty input', () => {
     expect(boughtOneTimeFirst([])).toEqual([]);
   });
+});
+
+it.each([
+  [0, '0'],
+  [1, '1'],
+  [1e21, '1Sx'],
+] as const)('formats owned count %s for tiles', (count, expected) => {
+  const game = createGame({ config: testConfig });
+  vi.spyOn(game, 'ownedCount').mockReturnValue(count);
+  const view = buildViewModel(game).sleeve.buyables[0]!;
+  expect(view.ownedText).toBe(expected);
+  expect(view.ownedText).not.toContain('e+');
 });

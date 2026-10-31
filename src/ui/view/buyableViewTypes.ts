@@ -13,6 +13,8 @@ export interface BuyableView {
   readonly costUnit: string;
   /** Copies owned. */
   readonly owned: number;
+  /** Formatted whole-copy count for display. */
+  readonly ownedText: string;
   /** More than one copy can be bought. */
   readonly repeatable: boolean;
   /** No more copies can be bought. */

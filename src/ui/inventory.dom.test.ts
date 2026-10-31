@@ -5,7 +5,7 @@ import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
 import { setCredits } from '../testing/testConfig';
-import { config, stock, see } from './inventoryKit';
+import { config, stock, see } from '../testing/inventoryKit';
 import { buildViewModel } from './viewModel';
 import { mountTestUi } from '../testing/domMountKit';
 

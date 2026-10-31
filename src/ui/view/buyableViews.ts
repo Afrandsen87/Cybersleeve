@@ -18,7 +18,7 @@ import {
   resleeveGateId,
   traitsOf,
 } from '../../core';
-import { formatBigNum, formatPlain } from '../../numbers';
+import { formatBigNum, formatPlain, num } from '../../numbers';
 import type { BuyableValues, SleeveSectionId, UiText } from '../uiText';
 import type { RevealTracker } from './revealTracker';
 import { initials } from './viewFormat';
@@ -179,6 +179,7 @@ export function buildBuyableViews(
       costText,
       costUnit,
       owned,
+      ownedText: formatBigNum(num(owned)),
       repeatable,
       maxed,
       available: revealAll || shown,

@@ -4,7 +4,7 @@
  */
 import { createConfig, type BuyableDefinition } from '../core';
 import { num } from '../numbers';
-import { testConfig } from '../testing/testConfig';
+import { testConfig } from './testConfig';
 const harvest: BuyableDefinition = {
   id: 'harvest',
   name: 'Harvest',

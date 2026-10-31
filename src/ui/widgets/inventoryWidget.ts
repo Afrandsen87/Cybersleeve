@@ -86,6 +86,7 @@ export function buildInventoryWidget(
     live: new Map(view.rows.map((row) => [stackKey(row.itemId, row.rarityId), row])),
     selected: null,
   };
+  widget.legend.hidden = true;
   widget.sellOne.append(h('span', '', text.inventory.sellOne), widget.sellOneGain);
   widget.sellAll.append(h('span', '', text.inventory.sellAll), widget.sellAllGain);
   buildInventorySlots(widget, view, icons, actions, selection, keptGrid, sellGrid);
@@ -130,6 +131,7 @@ export function buildInventoryWidget(
 export function renderInventory(widget: InventoryWidget, view: InventoryView, tips: TipRegistry, selection: UiSelection): void {
   widget.root.hidden = !view.visible;
   if (widget.legendIndices.length !== view.legend.length || view.legend.some((entry, i) => entry.rarityIndex !== widget.legendIndices[i])) {
+    widget.legend.hidden = view.legend.length === 0;
     widget.legend.replaceChildren(...view.legend.map((entry) => h('span', `rarity-${entry.rarityIndex}`, entry.name)));
     widget.legendIndices = view.legend.map((entry) => entry.rarityIndex);
   }
