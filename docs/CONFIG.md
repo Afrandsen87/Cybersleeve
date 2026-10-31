@@ -19,10 +19,11 @@ Unit tests use their own fixed `src/testing/testConfig.ts`, so retuning the game
 |---|---|
 | Whole game 2x faster | `global.speedMultiplier: 2` |
 | More credits (run rewards and passive income; nothing else) | `global.creditMultiplier` |
-| Levels come sooner / later | `progression.actionLevels.firstLevelXp` / `growthFactor` |
-| Levels worth more / less speed | `speed.actionLevel.perLevel` (linear) or switch to `{ kind: 'exponential', base: 1.5 }` |
+| Levels come sooner / later | `progression.actionLevels.firstLevelXp` / `growthFactor` (10 / 1.2) |
+| Levels worth more / less speed | `speed.actionLevel.perLevel` (0.01, +1% per level; linear) or switch to `{ kind: 'exponential', base: 1.5 }` |
 | Everything cheaper / dearer | `global.costMultiplier` |
 | Start with credits | `progression.startingCredits` |
+| Re-sleeve sleeve-level gate | `resleeve.progressNeeded`: optional `{ sleeveLevels: 5, perResleeve: 1 }`; required total = sleeveLevels + earlier re-sleeves * perResleeve; integer base >= 1, step >= 0; omit for no gate |
 | One action levels differently | `actions[i].levels` / `actions[i].speedScaling` |
 
 ## `actions[]` – one entry per action

@@ -37,7 +37,7 @@ export const gameConfig: GameConfig = {
 
   /** Each re-sleeve gives one sleeve skill point; the Stats tab lists the last 10 sleeve-runs. */
   // Progress gate: a re-sleeve needs this run's totals to beat the last run's by at least these amounts (action levels and sleeve levels).
-  resleeve: { pointsPerResleeve: 1, runsShown: 10, lockoutMs: 5_000, progressNeeded: { actionLevels: 1, sleeveLevels: 1 } },
+  resleeve: { pointsPerResleeve: 1, runsShown: 10, lockoutMs: 5_000, progressNeeded: { sleeveLevels: 5, perResleeve: 1 } },
 
   /** Skill points: one each at total action levels 1 and 5, then one more per 10 total levels (10, 20, 30...). */
   skills: { earlyThresholds: [1, 5], every: 10 },
@@ -54,7 +54,7 @@ export const gameConfig: GameConfig = {
     /** Sleeve XP per batch. */
     sleeveXpPerGrant: 1,
     /** Default action level rule (levels start at 0): level 1 at 10 XP, then x2 per level. */
-    actionLevels: { firstLevelXp: 10, growthFactor: 2 },
+    actionLevels: { firstLevelXp: 10, growthFactor: 1.2 },
     /** Default sleeve level rule of every action (levels start at 0): level 1 at 10 sleeve XP, then x2 per level. */
     sleeveLevels: { firstLevelXp: 10, growthFactor: 2 },
     /** Credits at the start and after a re-sleeve. */
@@ -65,7 +65,7 @@ export const gameConfig: GameConfig = {
 
   speed: {
     /** Speed multiplier of an action level: linear 0.05 per level means +5% of the base speed per level (level 0 is worth exactly 1). */
-    actionLevel: { kind: 'linear', perLevel: 0.05 },
+    actionLevel: { kind: 'linear', perLevel: 0.01 },
     /** Speed multiplier of the sleeve level. */
     sleeveLevel: { kind: 'linear', perLevel: 0.05 },
   },

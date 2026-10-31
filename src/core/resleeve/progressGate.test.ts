@@ -1,77 +1,39 @@
 /**
- * The re-sleeve progress gate: a re-sleeve needs more action levels AND more sleeve levels than the last run had.
- *
- * Purpose: state the outcome, not the tuning: the first run needs only the step, an equal total is refused, one more passes, both totals
- * are needed, the Re-sleeve tab can list both requirements, no config rule means no gate, and the migration piece fills the new field.
- * Called by: vitest. Calls: `createGame`, `ProgressGate`, `migrateProgressionSave`, `validateConfig`, the test config.
+ * Resleeve context: boundary and validation tests, using testConfig independently of content tuning.
+ * Called by: vitest. Calls: ProgressGate, validateConfig, migrateProgressionSave, testing kits.
  */
 import { describe, expect, it } from 'vitest';
-import { createGame } from '../../app/createGame';
 import { num, numberFactory } from '../../numbers';
-import { flat } from '../../testing/flatState';
-import { setSleeveXp, testConfig } from '../../testing/testConfig';
+import { testConfig } from '../../testing/testConfig';
 import { createConfig, createInitialState, migrateProgressionSave, validateConfig } from '..';
+import { ProgressGate } from './progressGate';
 
-const gated = createConfig(testConfig, { resleeve: { ...testConfig.resleeve, progressNeeded: { actionLevels: 1, sleeveLevels: 1 } } });
-
-const setActionXp = (g: ReturnType<typeof createGame>, xp: number): void => {
-  flat<{ actions: Record<string, { xp: unknown }> }>(g).actions['a']!.xp = num(xp);
-};
-
-/** A gated game with action XP and sleeve XP on action `a` (testConfig: level 1 at 10 XP, level 2 at 111). */
-function game(actionXp: number, sleeveXp: number) {
-  const g = createGame({ config: gated });
-  setActionXp(g, actionXp);
-  setSleeveXp(g, num(sleeveXp));
-  return g;
-}
+const gated = createConfig(testConfig, { resleeve: { ...testConfig.resleeve, progressNeeded: { sleeveLevels: 5, perResleeve: 1 } } });
 
 describe('ProgressGate', () => {
-  it('first run: refused with no levels, allowed once both totals are at least the step', () => {
-    expect(game(0, 0).canResleeve()).toBe(false);
-    expect(game(10, 0).canResleeve()).toBe(false); // action level only
-    expect(game(0, 10).canResleeve()).toBe(false); // sleeve level only
-    expect(game(10, 10).canResleeve()).toBe(true);
+  it.each([0, 1, 2])('after %s earlier re-sleeves checks below, at and above the threshold', (earlier) => {
+    const state = createInitialState(testConfig, numberFactory);
+    for (let i = 0; i < earlier; i++) state.wallet.runs.push({ creditsPerSecond: num(0), actionLevelsTotal: 999, sleeveLevelsTotal: 999 });
+    const needed = 5 + earlier;
+    for (const held of [0, needed - 1, needed, needed + 1]) {
+      const gate = new ProgressGate(gated, { totalSleeveLevels: () => held });
+      expect(gate.requirements(state)).toEqual([{ kind: 'sleeveLevels', held, needed }]);
+      expect(gate.canResleeve(state)).toBe(held >= needed);
+    }
   });
 
-  it('lists both requirements, action levels first, with what is held and needed', () => {
-    const g = game(0, 0);
-    expect(g.resleeveRequirements().map((r) => r.kind)).toEqual(['actionLevels', 'sleeveLevels']);
-    expect(g.resleeveRequirements().map((r) => [r.held, r.needed])).toEqual([
-      [0, 1],
-      [0, 1],
-    ]);
-  });
-
-  it('after a re-sleeve the next needs one more of each than the last run reached', () => {
-    const g = game(10, 10);
-    const sleeveBefore = g.sleeveLevel('a');
-    expect(g.resleeve()).toBe(true);
-    const run = g.getState().wallet.runs[0]!;
-    expect(run.actionLevelsTotal).toBe(1);
-    expect(run.sleeveLevelsTotal).toBe(sleeveBefore);
-    expect(g.resleeveRequirements().map((r) => r.needed)).toEqual([2, sleeveBefore + 1]);
-    expect(g.canResleeve()).toBe(false);
-  });
-
-  it('equal totals to the last run are refused; one more of each passes; one of them alone does not', () => {
-    const equal = game(10, 10);
-    equal.resleeve();
-    setActionXp(equal, 10); // the same action total as the last run
-    expect(equal.canResleeve()).toBe(false);
-
-    const more = game(10, 10);
-    more.resleeve();
-    setActionXp(more, 111);
-    expect(more.canResleeve(), 'sleeve levels did not grow').toBe(false);
-    setSleeveXp(more, num(111));
-    expect(more.canResleeve()).toBe(true);
+  it('allows a zero step, independent of previous run totals', () => {
+    const config = createConfig(testConfig, { resleeve: { ...testConfig.resleeve, progressNeeded: { sleeveLevels: 5, perResleeve: 0 } } });
+    const state = createInitialState(testConfig, numberFactory);
+    state.wallet.runs.push({ creditsPerSecond: num(0), actionLevelsTotal: 999, sleeveLevelsTotal: 999 });
+    expect(new ProgressGate(config, { totalSleeveLevels: () => 5 }).canResleeve(state)).toBe(true);
   });
 
   it('without the config rule there is no gate and no requirement', () => {
-    const g = createGame({ config: testConfig });
-    expect(g.resleeveRequirements()).toEqual([]);
-    expect(g.canResleeve()).toBe(true);
+    const gate = new ProgressGate(testConfig, { totalSleeveLevels: () => 0 });
+    const state = createInitialState(testConfig, numberFactory);
+    expect(gate.requirements(state)).toEqual([]);
+    expect(gate.canResleeve(state)).toBe(true);
   });
 });
 
@@ -79,15 +41,23 @@ describe('progressNeeded validation', () => {
   const check = (needed: unknown) =>
     validateConfig(createConfig(testConfig, { resleeve: { ...testConfig.resleeve, progressNeeded: needed as never } })).join();
 
-  it('accepts whole numbers >= 1 and rejects 0, fractions, NaN and negatives', () => {
-    expect(check({ actionLevels: 1, sleeveLevels: 3 })).toBe('');
-    for (const bad of [
-      { actionLevels: 0, sleeveLevels: 1 },
-      { actionLevels: 1, sleeveLevels: 1.5 },
-      { actionLevels: Number.NaN, sleeveLevels: 1 },
-      { actionLevels: 1, sleeveLevels: -1 },
-    ])
-      expect(check(bad), JSON.stringify(bad)).toContain('progressNeeded');
+  it('accepts integer base >= 1 and step >= 0, including an omitted gate', () => {
+    expect(check(undefined)).toBe('');
+    expect(check({ sleeveLevels: 5, perResleeve: 1 })).toBe('');
+    expect(check({ sleeveLevels: 1, perResleeve: 0 })).toBe('');
+  });
+
+  it.each([
+    { sleeveLevels: 0, perResleeve: 1 },
+    { sleeveLevels: -1, perResleeve: 1 },
+    { sleeveLevels: 1.5, perResleeve: 1 },
+    { sleeveLevels: 5, perResleeve: -1 },
+    { sleeveLevels: 5, perResleeve: 0.5 },
+    { sleeveLevels: Number.NaN, perResleeve: 1 },
+    { sleeveLevels: 5, perResleeve: Number.POSITIVE_INFINITY },
+    { sleeveLevels: 5, perResleeve: Number.NaN },
+  ])('rejects invalid values %s', (needed) => {
+    expect(check(needed)).toContain('progressNeeded');
   });
 });
 

@@ -54,14 +54,14 @@ Every completed run gives 1 action XP. Several runs in one batch apply every eff
 
 ### 4. Levels, XP and speed
 
-**Level rule.** Levels start at **0** with 0 XP. Every level costs its own full amount, and the XP counted inside a level starts again at 0 at each level-up. Leaving level 0 costs **10 XP**; each further level costs **2 times** the one before, for action levels (`progression.actionLevels`) and sleeve levels (`progression.sleeveLevels`) alike.
+**Level rule.** Levels start at **0** with 0 XP. Every level costs its own full amount, and the XP counted inside a level starts again at 0 at each level-up. Leaving level 0 costs **10 XP**; each further action level costs **1.2 times** the one before (`progression.actionLevels`); sleeve levels still cost **2 times** the one before (`progression.sleeveLevels`).
 
-| Level reached | Costs on its own | Total XP |
+| Action level reached | Costs on its own | Total XP |
 |---|---|---|
 | 1 | 10 | 10 |
-| 2 | 100 | 110 |
-| 3 | 1 000 | 1 110 |
-| L | 10^L | 10 (10^L − 1) / 9 |
+| 2 | 12 | 22 |
+| 3 | 14.4 | 36.4 |
+| L | 10 * 1.2^(L - 1) | 10 (1.2^L - 1) / 0.2 |
 
 The stored XP is the running total; the screen shows the part inside the current level against the full cost of that level. Formula: a track with `xp` has gained `floor(log_g(xp (g − 1) / first + 1))` levels.
 
@@ -70,7 +70,8 @@ The stored XP is the running total; the screen shows the part inside the current
 **Speed.**
 ```
 speed        = actionLevelFactor × sleeveLevelFactor (that action's) × interfaceSpeed × global.speedMultiplier
-levelFactor  = 1 + level × 0.05            (+5% of the base speed per level)
+actionLevelFactor = 1 + level * 0.01       (+1% of base speed per action level)
+sleeveLevelFactor = 1 + level * 0.05       (+5% of base speed per sleeve level)
 duration     = baseDuration / speed        (never below engine.minRunDurationMs)
 interfaceSpeed = (base + boosts) × networkFactor × hackingMultiplier × skill factor
 hackingMultiplier = 1 + scale × ((1 + proficiency)^exponent − 1) / exponent      (concave, no ceiling), up to proficiency = knee
@@ -169,11 +170,11 @@ The prices are the same for every action for now. The sleeve-wide **Overclock up
 | `startingCredits` | Credits at the start and after re-sleeve |
 | `maxSleeveXpReduction` | The most that all sleeve-XP reduction buyables together can cut a sleeve level's XP requirement (fraction in [0, 1), default 0.99) |
 
-**Level rule** (`LevelRuleConfig`): every level costs its own full amount of XP, and the XP inside a level starts again at each level-up. Levels start at 0. Going from level 0 to 1 costs `firstLevelXp`; each further level costs `growthFactor` times the one before: leaving level n costs `firstLevelXp * growthFactor^n`. Defaults 10 and 10: 10, then 100, then 1000 more, ... so level 1 is reached at 10 XP in total, level 2 at 110, level 3 at 1110.
+**Level rule** (`LevelRuleConfig`): every level costs its own full amount of XP, and the XP inside a level starts again at each level-up. Levels start at 0. Going from level 0 to 1 costs `firstLevelXp`; each further level costs `growthFactor` times the one before: leaving level n costs `firstLevelXp * growthFactor^n`. Current content starts both tracks at 10 XP; action XP costs grow by 1.2 and sleeve XP costs by 2.
 
 ### `speed`
 `actionLevel` and `sleeveLevel` are `LevelScaling`:
-- `{ kind: 'linear', perLevel }` -> `1 + level * perLevel` (levels start at 0, so level 0 is worth exactly 1; the current game uses 0.05, i.e. +5% per level)
+- `{ kind: 'linear', perLevel }` -> `1 + level * perLevel` (levels start at 0, so level 0 is worth exactly 1; the current game uses 0.01 for action levels (+1%) and 0.05 for sleeve levels (+5%))
 - `{ kind: 'exponential', base }` -> `base ^ level`
 
 Speed = actionLevel factor x the action's own sleeveLevel factor x interface speed (`sleeve`) x `global.speedMultiplier`; run time = `baseDurationMs / speed`.

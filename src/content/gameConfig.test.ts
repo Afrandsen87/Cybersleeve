@@ -264,8 +264,6 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     g.tick(5_000);
     expect(buildViewModel(g).canResleeve, 'the lockout is over but no level is held yet').toBe(false);
     setSleeveXp(g, num('1e30'), gameConfig.actions[0]!.id);
-    expect(buildViewModel(g).canResleeve, 'sleeve levels alone are not enough: the progress gate also wants an action level').toBe(false);
-    (g.getState().sleeve.actions[gameConfig.actions[0]!.id] as { xp: unknown }).xp = num('1e30');
     expect(buildViewModel(g).canResleeve).toBe(true);
   });
 
