@@ -184,7 +184,6 @@ export function buildBuyableViews(
       toggleable,
       enabled,
       clickable: (toggleable && owned > 0) || (!maxed && affordable),
-      ready: repeatable && owned > 0 && !maxed && affordable,
       inSquare: SQUARE_EFFECTS.includes(b.effect.kind),
       get tip() {
         return text.tips.buyable({

@@ -183,7 +183,6 @@ function maskedView(view: BuyableView, hidden: string): BuyableView {
     costText: hidden,
     tip: hidden,
     clickable: false,
-    ready: false,
     affordable: false,
   });
   return copy as unknown as BuyableView;

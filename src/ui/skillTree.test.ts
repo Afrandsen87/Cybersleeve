@@ -27,7 +27,6 @@ const fakeView = (id: string, owned: boolean): BuyableView =>
     costText: '1',
     owned: owned ? 1 : 0,
     clickable: true,
-    ready: true,
     available: false,
     get tip() {
       tipReads.count += 1;
@@ -152,7 +151,6 @@ describe('skill tree masking: the text of a skill is hidden until it is readable
     expect([view.name, view.description, view.costText, view.tip]).toEqual(['???', '???', '???', '???']);
     expect(view.symbol).toBe('?');
     expect(view.clickable).toBe(false);
-    expect(view.ready).toBe(false);
     expect(view.id).toBe('g');
   });
 

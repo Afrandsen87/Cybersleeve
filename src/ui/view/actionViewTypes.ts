@@ -70,8 +70,6 @@ export interface SquareCellView {
   readonly on: boolean;
   /** The button reacts to a press. */
   readonly clickable: boolean;
-  /** A `buy` cell that can be bought right now (shown lit up). */
-  readonly ready: boolean;
   /** The buyable behind a `buy` cell or the Auto-run toggle; `null` for the others. */
   readonly buyableId: string | null;
   /** Present on an owned Focus cell that is split into add and remove halves. */

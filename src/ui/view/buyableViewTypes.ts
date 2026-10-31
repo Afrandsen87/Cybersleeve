@@ -31,8 +31,6 @@ export interface BuyableView {
   readonly clickable: boolean;
   /** Hover text: name, price or on/off state, and description. Built when read. */
   readonly tip: string;
-  /** A rebuyable that has been bought before and can be bought again right now (shown lit up). */
-  readonly ready: boolean;
   /** The purchase is shown in the square of its action's card (Auto-run, the Overclock and Focus unlocks), not in the card's row of purchases. */
   readonly inSquare: boolean;
 }

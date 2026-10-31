@@ -20,9 +20,9 @@ describe('the square on an action card (view model)', () => {
     const g = createGame({ config });
     const square = squareOf(g);
     expect(square.locked).toBe(true);
-    expect(square.cells[0]).toMatchObject({ id: 'autoRun', mode: 'buy', buyableId: 'auto', clickable: false, ready: false });
+    expect(square.cells[0]).toMatchObject({ id: 'autoRun', mode: 'buy', buyableId: 'auto', clickable: false });
     setCredits(g, num(100));
-    expect(squareOf(g).cells[0]).toMatchObject({ mode: 'buy', clickable: true, ready: true });
+    expect(squareOf(g).cells[0]).toMatchObject({ mode: 'buy', clickable: true });
     expect(squareOf(g).cells[0]!.tip).toContain('Cost = 10 credits');
   });
 
@@ -49,7 +49,7 @@ describe('the square on an action card (view model)', () => {
     setCredits(g, num(0));
     expect(squareOf(g).cells[1]).toMatchObject({ id: 'overclock', mode: 'buy', buyableId: 'oc-a', clickable: false });
     setCredits(g, num(100));
-    expect(squareOf(g).cells[1]).toMatchObject({ mode: 'buy', clickable: true, ready: true });
+    expect(squareOf(g).cells[1]).toMatchObject({ mode: 'buy', clickable: true });
     expect(squareOf(g).cells[1]!.tip).toContain('Cost = 1 credits');
     g.buy('oc-a');
     expect(squareOf(g).cells[1]).toMatchObject({ mode: 'toggle', on: false, clickable: true, buyableId: 'oc-a' });

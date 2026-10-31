@@ -121,20 +121,6 @@ describe('view model - sleeve sections, light-up and the newer texts', () => {
     expect(vm.sleeve.buyables.map((b) => b.id)).toEqual(['a', 'b']);
   });
 
-  it('a rebuyable lights up only after it was bought once and the next copy is affordable', () => {
-    const g = game({ buyables: [buy('re', { cost: num(10), costGrowth: 10, maxPurchases: Infinity }), buy('once', { cost: num(1) })] });
-    const ready = (id: string) => buildViewModel(g).sleeve.buyables.find((b) => b.id === id)!.ready;
-    setCredits(g, num(10));
-    expect(ready('re')).toBe(false); // affordable, but never bought
-    g.buy('re');
-    setCredits(g, num(99));
-    expect(ready('re')).toBe(false); // next copy costs 100
-    setCredits(g, num(100));
-    expect(ready('re')).toBe(true);
-    g.buy('once');
-    expect(ready('once')).toBe(false); // not a rebuyable
-  });
-
   it("shows the start cost of a share-of-balance action with today's amount", () => {
     const g = game({ actions: [testConfig.actions[0]!, percentKillAction] });
     const text = () => buildViewModel(g).actions[1]!.startCostText;
