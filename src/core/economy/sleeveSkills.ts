@@ -8,5 +8,13 @@ import type { BuyableDefinition, StateSliceView } from '../types';
  * @returns distinct positive ownership count
  */
 export function sleeveSkillsOwned(buyables: readonly BuyableDefinition[], state: StateSliceView<'purchased'>): number {
-  return sleeveSkillIds(buyables).filter((id) => (state.sleeve.purchased[id] ?? 0) > 0).length;
+  let ids = idsByBuyables.get(buyables);
+  if (ids === undefined) {
+    ids = sleeveSkillIds(buyables);
+    idsByBuyables.set(buyables, ids);
+  }
+  return ids.filter((id) => (state.sleeve.purchased[id] ?? 0) > 0).length;
 }
+
+/** The sleeve skill ids of one buyables array, found once (the array is the game's fixed content), so per-frame callers do not rescan every buyable. */
+const idsByBuyables = new WeakMap<readonly BuyableDefinition[], readonly string[]>();

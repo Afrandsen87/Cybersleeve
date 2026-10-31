@@ -84,13 +84,7 @@ export class ToggleStats implements ModeStatuses {
 
   /** Actions/effects/economy: calculation level. Called by: RunStats, DerivedStats. Calls: effectiveActionLevel; no mutation. */
   effectiveActionLevel(id: ActionId): number {
-    return effectiveActionLevel(
-      this.config.buyables,
-      this.state,
-      id,
-      (a) => this.progression.actionLevel(this.state, a),
-      (a) => this.progression.sleeveLevel(this.state, a),
-    );
+    return effectiveActionLevel(this.progression.actionLevel(this.state, id), this.levelBonus(id));
   }
 
   /** Levels added to an action's level for calculations by buyables; its XP progress is not affected. */

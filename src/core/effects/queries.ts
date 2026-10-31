@@ -45,7 +45,7 @@ export function resolveLevelBonus(
   state: StateSlice<'purchased'>,
   actionId: ActionId,
   sleeveLevelOf: (actionId: ActionId) => number,
-  skillsOwned = 0,
+  skillsOwned: number,
 ): number {
   let bonus = 0;
   for (const { effect, owned } of ownedEffects(buyables, state.sleeve.purchased, 'levelBonusFromSleeveLevel')) {

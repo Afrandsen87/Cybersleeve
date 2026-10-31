@@ -79,7 +79,7 @@ export function binomial(trials: number, chance: number, random: RandomSource): 
  * successes, shard drops). Exactly one {@link binomial} draw per call: no draw at all for no runs, no chance or a certain chance, so
  * one long tick and many short ones agree in distribution and the random source is consumed once per batch.
  * Called by: `items/drops.ts`, `actions/linkedPayouts.ts`, `actions/actionRunner.ts`, `corporation/corporationEffects.ts`,
- * `crits/zeroDays.ts`, `crits/critical.ts`. Calls: {@link binomial}.
+ * `crits/zeroDays.ts`, `crits/critical.ts`, `actions/runIce.ts`. Calls: {@link binomial}.
  *
  * @param runs number of runs in the batch (a whole number >= 0; non-finite or negative counts as 0)
  * @param chance probability that one run triggers the event (clamped into 0..1; NaN counts as 0)

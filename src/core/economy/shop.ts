@@ -25,6 +25,7 @@ export type PurchaseResult = 'purchased' | 'max-reached' | 'locked' | 'cannot-af
 export class Shop {
   private readonly byId = new Map<BuyableId, BuyableDefinition>();
   private readonly caps: BuyableCaps;
+  private readonly buyables: readonly BuyableDefinition[];
 
   /**
    * Creates the shop.
@@ -46,6 +47,7 @@ export class Shop {
     private readonly revealOrders: number = Infinity,
     private readonly onPurchased: PurchaseListener = () => {},
   ) {
+    this.buyables = buyables;
     for (const b of buyables) this.byId.set(b.id, b);
     this.caps = new BuyableCaps(buyables);
   }
@@ -116,7 +118,7 @@ export class Shop {
   isAvailable(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
     if (!b) return false;
-    if (b.requiresSleeveSkills !== undefined && sleeveSkillsOwned([...this.byId.values()], state) < b.requiresSleeveSkills) return false;
+    if (b.requiresSleeveSkills !== undefined && sleeveSkillsOwned(this.buyables, state) < b.requiresSleeveSkills) return false;
     return [...(b.requires ?? []), ...(b.parents ?? [])].every((r) => this.owned(state, r) > 0);
   }
 

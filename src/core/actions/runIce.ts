@@ -2,6 +2,7 @@
 import type { NumberFactory } from '../../numbers';
 import { ownedEffects } from '../effects/ownedOfKind';
 import { perRunEvents, type RandomSource } from '../kernel/sampling';
+import { payReward } from './rewards';
 import type { ActionId, BuyableDefinition, GameState } from '../types';
 
 /** Actions/effects: applies one binomial draw per owned run-ICE effect after pay, before heat.
@@ -25,6 +26,6 @@ export function earnRunIce(
     if (buyable.actionId !== id) continue;
     const chance = Math.min(1, effect.chance + effect.perCopy * (owned - 1));
     const hits = perRunEvents(runs, chance, random);
-    if (hits > 0) state.sleeve.iceRating = state.sleeve.iceRating.add(factory.fromNumber(hits));
+    if (hits > 0) payReward(state, 'iceRating', factory.fromNumber(1), factory.fromNumber(hits));
   }
 }
