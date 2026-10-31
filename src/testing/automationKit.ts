@@ -16,13 +16,22 @@ export const laneSkillId = (feature: AutomationFeature, step: number): string =>
 
 /** The effect of the `step`-th skill of a feature's test lane. */
 function laneEffect(feature: AutomationFeature, step: number): BuyableDefinition['effect'] {
-  if (step === 1) return { kind: 'unlocksAutomation', feature };
+  if (step === 1)
+    return {
+      kind: 'unlocksAutomation',
+      feature,
+      ...(feature === 'autosale' ? { allowsAutosale: 'common' } : {}),
+      ...(feature === 'dispersal' ? { allowsDispersal: 'common', dispersalSlots: 1 } : {}),
+    };
+  if (feature === 'dispersal') return step === 3 ? { kind: 'allowsDispersal', rarity: 'rare' } : { kind: 'dispersalSlots', count: 1 };
+  if (feature === 'autosale' && step === 2) return { kind: 'allowsAutosale', rarity: 'rare' };
+  if (feature === 'autosale' && step === 3) return { kind: 'allowsAutoBackchannel', rarity: 'common' };
   const autoBurnStep = AUTO_BURN_STEPS[step - 2];
   return feature === 'autoBurn' && autoBurnStep !== undefined ? { kind: 'autoBurnStep', step: autoBurnStep } : { kind: 'placeholder' };
 }
 
 /**
- * A lane of skills for every feature: step 1 unlocks the feature, each later step is a placeholder that needs the one before it. All
+ * A lane of skills for every feature: step 1 unlocks the feature, later steps grant permissions or selection slots and need the one before them. All
  * cost 1 automation point and sit in a branch named after the feature. The Auto Burn lane is always the full ten skills, with the
  * real steps (`autoBurnStep`, in the order of `AUTO_BURN_STEPS`) from step 2 on.
  *

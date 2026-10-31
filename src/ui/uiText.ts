@@ -66,11 +66,13 @@ export const uiText: UiText = {
       },
       dispersal: {
         name: 'Augment dispersal',
-        description: 'Applies the Augment schematics you hold to the actions by the shares you set.',
+        description: 'Applies permitted Augment schematics evenly to the actions you select.',
       },
     },
     autoBurn: autoBurnText,
-    dispersalShare: 'Share (%)',
+    dispersalCount: (selected, slots) => `Actions selected: ${selected} / ${slots}`,
+    dispersalRarities: (rarities) => `Disperses: ${rarities.join(', ')}`,
+    autoBackchannel: (rarity) => `Auto Back Channel: ${rarity}`,
   },
   skills: {
     points: (points) => `Skill points: ${points}`,
@@ -181,8 +183,7 @@ export const uiText: UiText = {
     idle: 'Re-sleeve',
     armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a sleeve skill point.',
     cancel: 'Cancel',
-    needLevels: (kind, held, needed) =>
-      `Needs ${needed} ${kind === 'actionLevels' ? 'action' : 'sleeve'} levels in total across all actions to re-sleeve. You have ${held}.`,
+    needLevels: (_kind, held, needed) => `Needs ${needed} sleeve levels in total across all actions to re-sleeve. You have ${held}.`,
   },
   notices: {
     otherTab: 'This game was opened in another tab, which now owns the save. Reload this page to play here instead.',

@@ -22,6 +22,6 @@ import type { CorporationKindEffect } from './corporation';
  *   reward per run and nothing else: not its XP, not the runs counted towards sleeve XP, not its heat or completion effects.
  * - Sleeve effects (`interfaceSpeed`, `accessLevel`, `networkGrowth`, `networkGrowthFromActionLevel`, `interfaceSpeedPerLnNodes`, `sleeveXpReduction`) change the
  *   game as a whole; the buyable may still belong to an action, which only decides on which card it is shown.
- * - `levelBonusFromSleeveLevel` links two actions: it adds one action's sleeve level to another action's level for speed.
+ * - `levelBonusFromSleeveLevel` links two actions: it adds one action's sleeve level to another action's effective level for derived calculations.
  */
 export type BuyableEffect = ActionEffect | SleeveEffect | HeatEffect | ItemEffect | ResleeveKindEffect | CorporationKindEffect;

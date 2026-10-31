@@ -23,6 +23,7 @@ const load = (text: string) => deserializeState(text, gameConfig, numberFactory)
  */
 const flatWithoutNewFields = (text: string) => {
   const { peakNetworkIncome, hardeningCrits, seenItems, autoBurn, ...rest } = flatSave(text);
+  (rest['automation'] as Record<string, unknown>)['dispersal'] = {}; // the old percentage map is no longer written (dispersal targets replaced it): the fixtures still carry it empty
   expect(hardeningCrits).toEqual({});
   expect(peakNetworkIncome).toBe('0');
   expect(autoBurn).toEqual({ on: false, seconds: 0, overclocksOff: {}, autoRunsOff: {} }); // Auto Burn's per-life part is new: it starts fresh

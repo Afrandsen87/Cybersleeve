@@ -20,6 +20,7 @@ import { ITEM_ENTRIES } from './entries/itemEntries';
 import { SLEEVE_ENTRIES } from './entries/sleeveEntries';
 import { ECONOMY_ENTRIES } from './entries/economyEntries';
 import { AUTOMATION_ENTRIES } from './entries/automationEntries';
+import { HEAT_SKILL_ENTRIES } from './entries/heatSkillEntries';
 import { HEAT_COOL_ENTRIES } from './entries/heatCoolEntries';
 import { corporateCarried, none, sleeveWide, sleeveWideCarried } from './effectHelpers';
 import type { EffectDefinition } from './effectTypes';
@@ -37,6 +38,7 @@ export const EFFECTS: { readonly [K in BuyableEffect['kind']]: EffectDefinition<
   ...ECONOMY_ENTRIES,
   ...AUTOMATION_ENTRIES,
   ...HEAT_COOL_ENTRIES,
+  ...HEAT_SKILL_ENTRIES,
   synthSleeves: { traits: sleeveWide, validate: none },
   unlockSleeveLevels: { traits: sleeveWideCarried, validate: none },
   unlockResleeve: { traits: sleeveWideCarried, validate: none },

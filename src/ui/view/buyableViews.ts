@@ -108,7 +108,7 @@ function purchaseValues(
     });
   }
   if (b.effect.kind !== 'networkGrowthFromActionLevel') return null;
-  const level = engine.actionLevel(b.effect.sourceActionId);
+  const level = engine.effectiveActionLevel(b.effect.sourceActionId);
   const copies = Math.max(1, owned);
   return text.tips.networkGrowthValues({ level: String(level), percent: formatPlain(level * b.effect.percentPerLevel * copies, 4) });
 }

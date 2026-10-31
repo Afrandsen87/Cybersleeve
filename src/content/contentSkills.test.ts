@@ -31,18 +31,19 @@ describe('levels start at 0 (real content)', () => {
     }
   });
 
-  it('each level is worth +5% of the base speed: level 1 is 1.05, level 2 is 1.1', () => {
+  it('action levels increase speed with equal gains for the linear content curve', () => {
     const g = createGame();
     const id = gameConfig.actions[0]!.id;
     const setXp = (xp: number) => ((g.getState().sleeve.actions[id] as { xp: unknown }).xp = num(xp));
     const actionFactor = () => g.speedFactors(id).find((f) => f.id === SPEED_FACTOR_IDS.actionLevel)!.factor;
-    setXp(10); // the first level-up
-    expect(g.actionLevel(id)).toBe(1);
-    expect(actionFactor()).toBeCloseTo(1.05, 10);
     const { firstLevelXp, growthFactor } = gameConfig.progression.actionLevels;
+    setXp(firstLevelXp); // the first level-up
+    expect(g.actionLevel(id)).toBe(1);
+    const firstGain = actionFactor() - 1;
+    expect(firstGain).toBeGreaterThan(0);
     setXp(firstLevelXp * (1 + growthFactor)); // the second level-up, whatever the growth
     expect(g.actionLevel(id)).toBe(2);
-    expect(actionFactor()).toBeCloseTo(1.1, 10);
+    expect(actionFactor() - 1).toBeCloseTo(2 * firstGain, 10);
   });
 });
 

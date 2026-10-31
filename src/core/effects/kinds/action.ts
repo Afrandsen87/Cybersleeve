@@ -9,6 +9,10 @@ import type { ActionId, ChainRule } from '../../actions/actionTypes';
 
 /** Effects that change one action (auto-run, Overclock, Focus, rewards, XP, criticals) or link two actions. */
 export type ActionEffect =
+  /** Effects/actions/economy: sleeve skills add effective target levels without changing progression. */
+  | { readonly kind: 'levelBonusFromSleeveSkills'; readonly targetActionId: ActionId }
+  /** Actions/effects: sleeve-wide; completed runs of `targetActionId` may earn one base ICE; copies raise the chance. */
+  | { readonly kind: 'runIceChance'; readonly targetActionId: ActionId; readonly chance: number; readonly perCopy: number }
   | { readonly kind: 'autoRun' }
   /** Unlocks the Overclock toggle of the buyable's action (the action must have an `overclock` rule). Applies once, whatever the number of copies. */
   | { readonly kind: 'overclockUnlock' }
@@ -31,7 +35,7 @@ export type ActionEffect =
   | { readonly kind: 'rewardMultiplier'; readonly factor: number }
   /**
    * Lowers the share of the balance the buyable's action takes as its start cost (`StartCost.fractionOfBalance`) by `perLevel` (0.01 =
-   * 1 percent) per plain action level, compounding: the share is multiplied by `(1 - perLevel)^level`. The first level is worth the most,
+   * 1 percent) per effective action level, compounding: the share is multiplied by `(1 - perLevel)^level`. The first level is worth the most,
    * every further one is `perLevel` of the new value, so it never ends and never reaches 0. While owned, a node cost that rounds
    * down to 0 is raised to 1 node, so the action stays startable. Applies once, whatever the number of copies.
    */
@@ -69,7 +73,7 @@ export type ActionEffect =
       readonly chance: number;
     }
   /**
-   * Multiplies the reward of `targetActionId` by `1 + coefficient * ln(1 + level / scale)`, where `level` is the plain action level of
+   * Multiplies the reward of `targetActionId` by `1 + coefficient * ln(1 + level / scale)`, where `level` is the effective action level of
    * `sourceActionId`: a concave curve, quick at first, ever flatter. Applies once, whatever the number of copies. Sleeve-wide.
    */
   | {
@@ -85,7 +89,7 @@ export type ActionEffect =
    * never lowers the chance under the action's own. Applies once, whatever the number of copies; the lowest factor wins.
    */
   | { readonly kind: 'overclockHeatChanceFactor'; readonly targetActionId: ActionId; readonly factor: number }
-  /** Adds the sleeve level of `sourceActionId` to the level of `targetActionId` when computing speed (not its XP progress). */
+  /** Adds the sleeve level of `sourceActionId` to the level of `targetActionId` for calculations (not its XP progress). */
   | { readonly kind: 'levelBonusFromSleeveLevel'; readonly sourceActionId: ActionId; readonly targetActionId: ActionId }
   /**
    * Lowers the XP needed for every sleeve level of every OTHER action by `min(maxReduction, perLevel * sleeve level of

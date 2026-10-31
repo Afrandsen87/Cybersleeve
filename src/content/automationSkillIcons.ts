@@ -11,7 +11,7 @@
  */
 import { AUTO_BURN_ART_GRIDS, AUTO_BURN_ART_ICONS } from './autoBurnSkillIcons';
 
-import { AUTOMATION_LINE_LENGTH, automationSkillId, BRANCH_AUTOSALE, BRANCH_DISPERSAL } from './ids';
+import { AUTOMATION_LINE_LENGTH, AUTOMATION_SKILLS, automationSkillId, BRANCH_AUTOSALE, BRANCH_DISPERSAL } from './ids';
 
 /** The emblem rows (rows 1 to 10 of the icon) of each lane, and the colour of its filled progress cells. */
 const EMBLEMS: Readonly<Record<string, { readonly rows: readonly string[]; readonly fill: string }>> = {
@@ -71,7 +71,9 @@ export const AUTOMATION_ART_GRIDS: Readonly<Record<string, readonly string[]>> =
   ...AUTO_BURN_ART_GRIDS,
   ...Object.fromEntries(
     Object.keys(EMBLEMS).flatMap((branch) =>
-      Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => [gridName(branch, i + 1), buildGrid(branch, i + 1)] as const),
+      Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1)
+        .filter((slot) => AUTOMATION_SKILLS.includes(automationSkillId(branch, slot)))
+        .map((slot) => [gridName(branch, slot), buildGrid(branch, slot)] as const),
     ),
   ),
 };
@@ -81,7 +83,9 @@ export const AUTOMATION_ART_ICONS: Readonly<Record<string, string>> = {
   ...AUTO_BURN_ART_ICONS,
   ...Object.fromEntries(
     Object.keys(EMBLEMS).flatMap((branch) =>
-      Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => [automationSkillId(branch, i + 1), gridName(branch, i + 1)] as const),
+      Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1)
+        .filter((slot) => AUTOMATION_SKILLS.includes(automationSkillId(branch, slot)))
+        .map((slot) => [automationSkillId(branch, slot), gridName(branch, slot)] as const),
     ),
   ),
 };

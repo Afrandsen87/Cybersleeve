@@ -65,13 +65,14 @@ export const sleeveTips: Pick<TipTexts, 'access' | 'interfaceSpeed' | 'hackingPr
       '',
       `Hacking Multiplier = ${hackingMultiplier}`,
     ].join('\n'),
-  heat: ({ heat, perPointPercent, reductionPercent, taxPercent, stopsAt, taxCapPercent, amount, cycleSeconds, moles }) =>
+  heat: ({ heat, perPointPercent, reductionPercent, taxPercent, stopsAt, taxCapPercent, taxScale, amount, cycleSeconds, moles }) =>
     [
-      'Heat Tax = Heat x Tax per Point x (1 - Heat Reduction)',
+      `Heat Tax = Heat x Tax per Point x (1 - Heat Reduction)${taxScale == null ? '' : ' x Cloaking'}`,
       '',
       `Heat = ${heat}`,
       `Tax per Point = ${perPointPercent}%`,
       `Heat Reduction = ${reductionPercent}% (from ICE Rating)`,
+      ...(taxScale == null ? [] : [`Cloaking = ${taxScale}`]),
       '',
       `Heat Tax = ${taxPercent}% of all credits earned from nodes`,
       ...(taxCapPercent === null ? [] : [`The Heat Tax takes at most ${taxCapPercent}%`]),

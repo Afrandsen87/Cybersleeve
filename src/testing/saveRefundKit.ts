@@ -56,7 +56,7 @@ export function refundAuditSetup() {
     [laneSkillId('autoBurn', 2)]: 1,
   };
   state.wallet.automation.autosale['common'] = true;
-  state.wallet.automation.dispersal['a'] = 25;
+  state.wallet.automation.dispersalTargets = ['a'];
   state.wallet.automation.autoBurn.switches.hold = true;
   state.sleeve.autoBurn.on = true;
   state.wallet.corporation.stocks = 3;

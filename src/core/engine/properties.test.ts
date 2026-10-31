@@ -48,6 +48,15 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
   ],
   buyables: [
     ...testConfig.buyables,
+    buyable({ id: 'networked', effect: { kind: 'levelBonusFromSleeveSkills', targetActionId: 'net' } }),
+    buyable({
+      id: 'run-ice',
+      actionId: 'net',
+      maxPurchases: Infinity,
+      costGrowth: 3,
+      effect: { kind: 'runIceChance', targetActionId: 'a', chance: 0.05, perCopy: 0.01 },
+    }),
+    buyable({ id: 'cloaking', effect: { kind: 'heatReductionPerSleeveSkill', perSkill: 0.03 } }),
     ...automationLaneBuyables(),
     buyable({ id: 'unlock', effect: { kind: 'accessLevel', amount: 1 } }),
     buyable({
@@ -191,7 +200,8 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
       auto.autoBurn().setThresholds(randomInt(random, 60) / 2, randomInt(random, 120) / 2);
       auto.autoBurn().setReserve(randomInt(random, 20) - 3);
     } else if (r < 0.7) auto.setAutosale(pick(random, config.items.rarities).id, random() < 0.7);
-    else if (r < 0.8) auto.setDispersal(pick(random, config.actions).id, randomInt(random, 120));
+    else if (r < 0.75) auto.setAutoBackchannel(pick(random, config.items.rarities).id, random() < 0.7);
+    else if (r < 0.8) auto.setDispersalTarget(pick(random, config.actions).id, random() < 0.7);
     else {
       // some stock for the automation to work on
       const item = pick(random, config.items.definitions);

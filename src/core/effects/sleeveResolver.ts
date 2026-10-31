@@ -10,7 +10,7 @@ import { type CurveBeyond, concaveBonus } from '../kernel/concaveBonus';
 import { bigOrders, concaveShare } from '../kernel/curves';
 import { definitionOf, type SleeveAccumulator } from './effectRegistry';
 import { INFINITY, saturate } from '../kernel/infinity';
-import type { ActionId, BuyableDefinition, SleeveConfig, StateSlice } from '../types';
+import type { ActionId, BuyableDefinition, SleeveConfig, StateSliceView } from '../types';
 import type { FactorTerm, SleeveStats } from './sleeveStatsTypes';
 
 /**
@@ -46,14 +46,15 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
  * @param state current state (reads `purchased`, `heat`, `network`, `hackingProficiency`, `iceRating`, `legend`)
  * @param sleeve base values of the stats
  * @param factory number factory
- * @param actionLevelOf plain action level of an action (read by effects that scale with one; defaults to level 0 for all)
+ * @param actionLevelOf effective action level of an action (read by effects that scale with one; defaults to level 0 for all)
  * @param sleeveLevelOf sleeve level of an action (read by effects that scale with one; defaults to level 0 for all)
  * @param augmentRaritiesHeld how many distinct rarities have an augment applied on any action (defaults to 0)
+ * @param sleeveSkillsOwned distinct owned sleeve skills, injected from economy (defaults to 0)
  * @returns the current stats
  */
 export function resolveSleeveStats(
   buyables: readonly BuyableDefinition[],
-  state: StateSlice<
+  state: StateSliceView<
     | 'purchased'
     | 'heat'
     | 'hackingProficiency'
@@ -70,6 +71,7 @@ export function resolveSleeveStats(
   actionLevelOf: (actionId: ActionId) => number = () => 0,
   sleeveLevelOf: (actionId: ActionId) => number = () => 0,
   augmentRaritiesHeld: () => number = () => 0,
+  sleeveSkillsOwned: () => number = () => 0,
 ): SleeveStats {
   const acc: SleeveAccumulator = {
     accessLevel: sleeve.baseAccessLevel,
@@ -88,6 +90,7 @@ export function resolveSleeveStats(
     idleHeatCooldownActions: [],
     moleAggregation: null,
     heatTaxCap: 1,
+    heatTaxScale: 1,
     criticalChance: 0,
     paysActions: [],
     criticalExtraChance: 0,
@@ -105,7 +108,16 @@ export function resolveSleeveStats(
     if (owned <= 0) continue;
     const payoutBefore = acc.nodePayoutFactor;
     const iceBefore = acc.iceRatingFactor;
-    definitionOf(b).sleeve?.(acc, b.effect, { id: b.id, owned, state, factory, actionLevelOf, sleeveLevelOf, augmentRaritiesHeld });
+    definitionOf(b).sleeve?.(acc, b.effect, {
+      id: b.id,
+      owned,
+      state,
+      factory,
+      actionLevelOf,
+      sleeveLevelOf,
+      augmentRaritiesHeld,
+      sleeveSkillsOwned,
+    });
     // A buyable's term is how much it moved the running product, so every effect kind reports itself without extra code.
     if (acc.nodePayoutFactor !== payoutBefore)
       nodePayoutTerms.push({ buyableId: b.id, factor: saturate(acc.nodePayoutFactor / payoutBefore) });
@@ -161,6 +173,7 @@ export function resolveSleeveStats(
     idleHeatCooldownActions: acc.idleHeatCooldownActions,
     moleAggregation: acc.moleAggregation,
     heatTaxCap: acc.heatTaxCap,
+    heatTaxScale: acc.heatTaxScale,
     criticalChance: acc.criticalChance,
     paysActions: acc.paysActions,
     criticalExtraChance: acc.criticalExtraChance,

@@ -149,10 +149,10 @@ export interface ResleeveConfig {
    */
   readonly lockoutMs?: number;
   /**
-   * The progress gate: a re-sleeve needs this run's total action levels to be at least the last run's plus `actionLevels`, and the total
-   * sleeve levels at least the last run's plus `sleeveLevels` (both whole numbers >= 1; with no earlier run the baseline is 0). Leave it out for a game whose re-sleeve needs no progress (tests).
+   * Resleeve context: total sleeve levels must reach `sleeveLevels + perResleeve * earlier re-sleeves`.
+   * Both are integers: sleeveLevels >= 1, perResleeve >= 0. Omit for no progress gate.
    */
-  readonly progressNeeded?: { readonly actionLevels: number; readonly sleeveLevels: number };
+  readonly progressNeeded?: { readonly sleeveLevels: number; readonly perResleeve: number };
 }
 
 /** When skill points are earned from the total of all action levels. */

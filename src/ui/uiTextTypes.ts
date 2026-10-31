@@ -85,8 +85,12 @@ export interface UiText {
     readonly features: Readonly<Record<AutomationFeature, { readonly name: string; readonly description: string }>>;
     /** Auto Burn: where the toggle is, the label of each switch, and the labels of the thresholds and the reserve. */
     readonly autoBurn: AutoBurnText;
-    /** The label of the share an action gets from Augment dispersal, in percent. */
-    readonly dispersalShare: string;
+    /** Automation context: selected action count and owned capacity. */
+    dispersalCount(selected: number, slots: number): string;
+    /** Automation context: permitted schematic rarities the player already knows. */
+    dispersalRarities(rarities: readonly string[]): string;
+    /** Automation context: the label of an owned rarity switch. */
+    autoBackchannel(rarity: string): string;
   };
   /** The Skills box and the sleeve skills group. */
   readonly skills: {
@@ -176,7 +180,7 @@ export interface UiText {
     readonly armed: string;
     readonly cancel: string;
     /** The tip of the disabled Re-sleeve button: how many sleeve levels (all actions together) are held and how many the next re-sleeve needs. */
-    needLevels(kind: 'actionLevels' | 'sleeveLevels', held: string, needed: string): string;
+    needLevels(kind: 'sleeveLevels', held: string, needed: string): string;
   };
   /** Messages shown over the game. */
   readonly notices: { readonly otherTab: string; readonly taken: string };

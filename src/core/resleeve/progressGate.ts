@@ -1,15 +1,8 @@
 /**
  * @module core
- *
- * The re-sleeve progress gate: a re-sleeve is allowed only when this run has gone further than the last one.
- *
- * @remarks
- * Next to {@link ResleeveGate} (the Unlock purchase and its lockout); `allOf` in `resleeve.ts` requires both. This run's total action
- * levels must be at least the last run's `actionLevelsTotal` plus `resleeve.progressNeeded.actionLevels`, and its total sleeve levels at
- * least the last run's `sleeveLevelsTotal` plus `progressNeeded.sleeveLevels`. With no earlier run the baseline is 0. Nothing extra is
- * saved: the baseline is the newest {@link SleeveRunRecord}.
- *
- * Called by: `app/createGame.ts`. Calls: `Progression.totalActionLevels`, `Progression.totalSleeveLevels`.
+ * Resleeve context: gates re-sleeving on total sleeve levels, increasing the threshold per recorded life.
+ * Uses existing run records; the gate changes no state.
+ * Called by: app/createGame.ts. Calls: Progression.totalSleeveLevels.
  */
 import type { Progression } from '../actions/progression';
 import type { GameConfig, GameState, SleeveRunRecord } from '../types';
@@ -42,34 +35,36 @@ export function migrateProgressionSave(state: GameState, currentSleeveLevels: nu
 }
 
 /**
- * Allows re-sleeving only when both totals have beaten the last run's by the configured amounts.
+ * Allows re-sleeving when sleeve levels reach the base plus the step per earlier re-sleeve.
  *
  * Called by: `createGame.ts` (combined with the Unlock gate), `engine.ts` (`canResleeve`, `resleeveRequirements`).
- * Calls: `Progression.totalActionLevels`, `Progression.totalSleeveLevels`. Changes nothing.
+ * Calls: `Progression.totalSleeveLevels`. Changes nothing.
  */
 export class ProgressGate implements ResleevePolicy {
   /**
    * @param config reads `resleeve.progressNeeded`
-   * @param progression gives the two totals
+   * @param progression gives total sleeve levels
    */
   constructor(
     private readonly config: Pick<GameConfig, 'resleeve'>,
-    private readonly progression: Pick<Progression, 'totalActionLevels' | 'totalSleeveLevels'>,
+    private readonly progression: Pick<Progression, 'totalSleeveLevels'>,
   ) {}
 
-  /** True when both totals have reached what the next re-sleeve needs. */
+  /** True when sleeve levels reach the threshold. Called by: engine. Calls: requirements. */
   canResleeve(state: GameState): boolean {
     return this.requirements(state).every((r) => r.held >= r.needed);
   }
 
-  /** The two requirements (action levels, then sleeve levels): what is held in this run and what the last run's totals plus the step make needed. */
+  /** Returns held and required sleeve levels without mutation. Called by: engine, canResleeve. Calls: totalSleeveLevels. */
   requirements(state: GameState): readonly ResleeveRequirement[] {
-    const last = state.wallet.runs[state.wallet.runs.length - 1];
     const step = this.config.resleeve.progressNeeded;
     if (step === undefined) return [];
     return [
-      { kind: 'actionLevels', held: this.progression.totalActionLevels(state), needed: (last?.actionLevelsTotal ?? 0) + step.actionLevels },
-      { kind: 'sleeveLevels', held: this.progression.totalSleeveLevels(state), needed: (last?.sleeveLevelsTotal ?? 0) + step.sleeveLevels },
+      {
+        kind: 'sleeveLevels',
+        held: this.progression.totalSleeveLevels(state),
+        needed: step.sleeveLevels + state.wallet.runs.length * step.perResleeve,
+      },
     ];
   }
 }

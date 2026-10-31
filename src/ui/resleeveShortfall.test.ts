@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 /**
- * The Re-sleeve button states what it is waiting for: action levels and sleeve levels, in total, beyond the last run.
+ * The Re-sleeve button states what it is waiting for: sleeve levels held and needed, with a threshold per earlier re-sleeve.
  *
  * Purpose: the shortfall tip follows the reveal rule (nothing about sleeve levels before the unlock is owned), disappears when the levels are
  * enough, and reappears for the next re-sleeve whose threshold is higher.
@@ -37,7 +37,7 @@ function mount() {
   document.body.append(root);
   const config = createConfig(testConfig, {
     buyables: [...testConfig.buyables, levels, unlock],
-    resleeve: { ...testConfig.resleeve, lockoutMs: 0, progressNeeded: { actionLevels: 1, sleeveLevels: 1 } },
+    resleeve: { ...testConfig.resleeve, lockoutMs: 0, progressNeeded: { sleeveLevels: 5, perResleeve: 1 } },
   });
   const game = createGame({ config });
   const render = mountTestUi(root, game);
@@ -65,43 +65,41 @@ describe('the Re-sleeve button when progress is short', () => {
     expect(hoverText(button())).not.toContain('levels in total');
   });
 
-  it('once the unlock is owned, a disabled button whose tip names both totals needed and held', () => {
+  it('once the unlock is owned, a disabled button whose tip names only sleeve levels needed and held', () => {
     const { game, render, button, open } = mount();
     open();
     render();
     expect(button().disabled).toBe(true);
-    expect(buildViewModel(game).resleeveShortfall.map((r) => [r.kind, r.held, r.needed])).toEqual([
-      ['actionLevels', 0, 1],
-      ['sleeveLevels', 0, 1],
-    ]);
-    expect(hoverText(button())).toContain('action levels');
+    expect(buildViewModel(game).resleeveShortfall.map((r) => [r.kind, r.held, r.needed])).toEqual([['sleeveLevels', 0, 5]]);
+    expect(hoverText(button())).not.toContain('action levels');
+    expect(hoverText(button())).toContain('Needs 5 sleeve levels');
     expect(hoverText(button())).toContain('sleeve levels');
     expect(hoverText(button())).toContain('You have 0');
   });
 
-  it('lists only what is still missing: sleeve levels alone leave the action levels on the tip', () => {
+  it('requires no action levels once sleeve levels suffice', () => {
     const { game, render, button, open } = mount();
     open();
-    setSleeveXp(game, num(1e6));
+    setSleeveXp(game, num(111110));
     render();
-    expect(button().disabled).toBe(true);
-    expect(buildViewModel(game).resleeveShortfall.map((r) => r.kind)).toEqual(['actionLevels']);
+    expect(button().disabled).toBe(false);
+    expect(buildViewModel(game).resleeveShortfall).toEqual([]);
   });
 
-  it('enables the button and drops the tip when both totals are enough', () => {
+  it('enables the button and drops the tip when sleeve levels are enough', () => {
     const { game, render, button, open, setActionXp } = mount();
     open();
-    setSleeveXp(game, num(1e6));
+    setSleeveXp(game, num(111110));
     setActionXp(1e6);
     render();
     expect(button().disabled).toBe(false);
     expect(buildViewModel(game).resleeveShortfall).toEqual([]);
   });
 
-  it('after a re-sleeve the next one needs more than the last run reached, and the button says so again', () => {
+  it('after a re-sleeve the next one needs one more sleeve level, and the button says so again', () => {
     const { game, render, button, open, setActionXp } = mount();
     open();
-    setSleeveXp(game, num(1e6));
+    setSleeveXp(game, num(111110));
     setActionXp(1e6);
     render();
     button().click();
@@ -109,7 +107,6 @@ describe('the Re-sleeve button when progress is short', () => {
     expect(game.getState().wallet.runs).toHaveLength(1);
     render();
     expect(button().disabled).toBe(true);
-    const last = game.getState().wallet.runs[0]!;
-    expect(buildViewModel(game).resleeveShortfall.map((r) => r.needed)).toEqual([last.actionLevelsTotal + 1, last.sleeveLevelsTotal + 1]);
+    expect(buildViewModel(game).resleeveShortfall.map((r) => r.needed)).toEqual([6]);
   });
 });

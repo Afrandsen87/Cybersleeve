@@ -5,8 +5,8 @@
  */
 import type { GameState } from '../types';
 
-/** What a {@link ResleeveRequirement} counts: the total of all actions' action levels or of their sleeve levels. */
-export type ResleeveRequirementKind = 'actionLevels' | 'sleeveLevels';
+/** What a {@link ResleeveRequirement} counts: the total of all actions' sleeve levels. */
+export type ResleeveRequirementKind = 'sleeveLevels';
 
 /** A requirement the Re-sleeve button can state: how much of something is held and how much the next re-sleeve needs. */
 export interface ResleeveRequirement {

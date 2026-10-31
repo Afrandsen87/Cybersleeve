@@ -46,6 +46,8 @@ export const NODE_UPLINK = 'node-uplink';
 export const NODE_PAYOUT = 'node-payout';
 /** Id of the sleeve buyable that multiplies ICE Rating. */
 export const ICE_RATING_BOOST = 'ice-rating-boost';
+/** Id of the carried sleeve-skill heat-tax improvement. */
+export const CLOAKING_PROTOCOLS = 'cloaking-protocols';
 /** Id of the one-time sleeve buyable that unlocks sleeve levels (sleeve XP starts accruing) and shows the Re-sleeve button. */
 export const SLEEVE_LEVELS = 'sleeve-levels';
 /** Id of the one-time sleeve buyable ('Unlock resleeving') that allows re-sleeving; needs Sleeve levels first. */
@@ -159,7 +161,7 @@ export const BRANCH_AUTO_BURN = 'autoBurn' as const;
 export const BRANCH_AUTOSALE = 'autosale' as const;
 /** Branch id of the Augment Dispersal lane in the Automation tab; also the feature's id. */
 export const BRANCH_DISPERSAL = 'dispersal' as const;
-/** Number of skills in each automation lane (placeholders for now). */
+/** Maximum stable slot number in an automation lane. */
 export const AUTOMATION_LINE_LENGTH = 10;
 /** Id of the `step`-th skill (1-based) of an automation lane. */
 export const automationSkillId = (branch: string, step: number): string => `skill-${branch}-${step}`;
@@ -168,7 +170,12 @@ export const AUTO_BURN_EMPTY_SLOTS: readonly number[] = [8];
 /** Every automation skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first; the empty Auto Burn slots are left out. */
 export const AUTOMATION_SKILLS: readonly string[] = [BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL].flatMap((branch) =>
   Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1)
-    .filter((slot) => branch !== BRANCH_AUTO_BURN || !AUTO_BURN_EMPTY_SLOTS.includes(slot))
+    .filter(
+      (slot) =>
+        (branch !== BRANCH_AUTO_BURN || !AUTO_BURN_EMPTY_SLOTS.includes(slot)) &&
+        (branch !== BRANCH_AUTOSALE || slot <= 8) &&
+        (branch !== BRANCH_DISPERSAL || slot < AUTOMATION_LINE_LENGTH),
+    )
     .map((slot) => automationSkillId(branch, slot)),
 );
 /** Id of the Kill servers auto-run buyable. */
@@ -219,3 +226,8 @@ export const ZERO_DAY_EXPLOITS = 'zero-day-exploits';
 export const PERSISTENCE = 'persistence';
 /** Id of the Push malware buyable whose critical runs bank guaranteed critical successes for Grow network. */
 export const RANSOMWARE = 'ransomware';
+
+/** Network exploitation effective-level purchase. */
+export const NETWORKED_SLEEVE = 'networked-sleeve';
+/** Grow network base ICE purchase. */
+export const NETWORK_SAFETY_PROTOCOLS = 'network-safety-protocols';
