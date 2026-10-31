@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gameConfig } from './gameConfig';
-import { ENTITY_ICONS } from './icons';
+import { ENTITY_ICONS, ICON_GRIDS } from './icons';
 
 /** Currencies that skills are bought with (skills, automation skills, sleeve skills). */
 const SKILL_CURRENCIES = new Set<string>(['skillPoints', 'automationPoints', 'resleevePoints']);
@@ -9,6 +9,14 @@ const skills = gameConfig.buyables.filter((b) => SKILL_CURRENCIES.has(b.currency
 const skillIds = new Set(skills.map((s) => s.id));
 
 describe('skill icons', () => {
+  it('gives every automation skill a distinct sixteen-square grid', () => {
+    const grids = skills.filter((skill) => skill.currency === 'automationPoints').map((skill) => ICON_GRIDS[ENTITY_ICONS[skill.id]!]!);
+    expect(new Set(grids.map((grid) => grid.join(''))).size).toBe(grids.length);
+    for (const grid of grids) {
+      expect(grid).toHaveLength(16);
+      expect(grid.every((row) => row.length === 16)).toBe(true);
+    }
+  });
   it('cover a non-trivial set of skills', () => {
     expect(skills.length).toBeGreaterThan(40);
   });
