@@ -52,7 +52,7 @@ An action has a base duration, a reward of some kind, and its own XP, level and 
 | Practice Hacking | 2 | 5 s | +0.01 Hacking Proficiency |
 | Push malware | 3 | 6 s | +0.0001 credits per second added to the base payout of every node; each run has a 10% chance to make 1 heat (one binomial draw per batch of runs) |
 | Kill servers | 4 | 2 min | +1 ICE Rating. Costs **1% of the nodes** (rounded down to whole nodes, so you need at least 100) each time a run starts, also for each auto-run restart. Decommission protocol lowers the share (and keeps it from vanishing), Credit Siphon pays credits for the nodes destroyed, and its Overclock builds a Kill chain (see 3 and 7) |
-| Build Legend | 5 | 5 min | +1 Legend; removes 25% of the nodes (rounded down per run); +5 heat per second while it runs |
+| Build Legend | 5 | 5 min | +1 Legend; +5 heat per second while it runs; costs no nodes (decided 2026-11-01 by the user: it used to remove 25% of the nodes per run) |
 
 Every completed run gives 1 action XP. Several runs in one batch apply every effect that many times. Runs are computed in closed form, so any speed is exact.
 

@@ -6,7 +6,7 @@ import type { HeatStripLayout } from './heatStrip';
 export interface SleeveSection {
   readonly id: SleeveSectionId;
   readonly title: string;
-  /** Bought one-time first, then the rest, each in base-price order. */
+  /** In base-price order; buying never moves a purchase. */
   readonly buyables: readonly BuyableView[];
 }
 
@@ -79,7 +79,7 @@ export interface SleeveView {
   readonly resleeveTitle: string;
   /** The sleeve-wide purchases, in configuration order. */
   readonly buyables: readonly BuyableView[];
-  /** The same purchases grouped for display in currency rows, bought one-time first then base price. Empty groups are left out. */
+  /** The same purchases grouped for display in currency rows, in base-price order. Empty groups are left out. */
   readonly sections: readonly SleeveSection[];
 }
 
