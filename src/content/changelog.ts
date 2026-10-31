@@ -19,6 +19,10 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-10-31 23:54',
+    changes: ['Put the Inventory panels side by side'],
+  },
+  {
     version: '2026-10-31 23:52',
     changes: ['Add a Wipe save button beside Changelog with a confirmation'],
   },
