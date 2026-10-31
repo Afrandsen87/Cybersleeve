@@ -20,8 +20,11 @@ export interface SkillTreeOptions {
 /** Persistent tree handles. Called by: panel widgets. Calls: nothing. */
 export interface SkillTreeWidget {
   readonly element: HTMLElement;
-  render(lanes: readonly SkillLaneView[]): void;
+  /** Writes the lanes; returns true when a node's state or owned count changed since the last call (always true on the first). */
+  render(lanes: readonly SkillLaneView[]): boolean;
   select(id: string | null): void;
+  /** Drops the hover path highlight without telling `onHover` (the tab was left mid-hover). */
+  clearHover(): void;
 }
 /** Branch header handles. Called by: tree mounting/rendering. Calls: nothing. */
 interface Header {
@@ -52,6 +55,7 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
   const labels = new Map<string, HTMLElement>();
   const headers = new Map<string, Header>();
   const previousOwned = new Map<string, number>();
+  const previousState = new Map<string, string>();
   const edges: TreeEdge[] = [];
   let nodes = initial.flatMap((lane) => lane.nodes);
   let maskedIds = new Set(nodes.filter((node) => node.masked).map((node) => node.view.id));
@@ -172,10 +176,14 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
     select(id) {
       for (const [key, button] of buttons) setClass(button, 'sel', key === id && !maskedIds.has(key));
     },
+    clearHover() {
+      highlightPath(nodes, null, buttons, edges);
+    },
     render(lanes) {
       nodes = lanes.flatMap((lane) => lane.nodes);
       maskedIds = new Set(nodes.filter((node) => node.masked).map((node) => node.view.id));
       const installedNow = new Set<string>();
+      let changed = false;
       for (const lane of lanes) {
         const header = headers.get(lane.id);
         if (!header) continue;
@@ -196,7 +204,9 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
           button.classList.add('install');
           installedNow.add(id);
         }
+        if (before !== node.view.owned || previousState.get(id) !== node.state) changed = true;
         previousOwned.set(id, node.view.owned);
+        previousState.set(id, node.state);
         for (const state of ['installed', 'encrypted', 'locked', 'affordable', 'available']) setClass(button, state, node.state === state);
         setClass(button, 'masked', node.state === 'encrypted');
         setClass(button, 'owned', node.state === 'installed');
@@ -223,6 +233,7 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
         setClass(edge.path, 'lit', owned.has(edge.parentId));
         if (installedNow.has(edge.parentId)) edge.path.classList.add('flow');
       }
+      return changed;
     },
   };
 }

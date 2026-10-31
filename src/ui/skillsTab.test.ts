@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { num } from '../numbers';
-import { mountTestUi } from '../testing/domMountKit';
+import { mountTestUi, openTab } from '../testing/domMountKit';
 import { config, loose, pointGame } from '../testing/skillsTabKit';
 import { skillViews } from '../testing/skillViews';
 import { buildViewModel } from './viewModel';
@@ -65,7 +65,7 @@ describe('skills in the view model', () => {
 
   it('a skill tip names the skill, what it does and the cost in skill points', () => {
     const tip = skillViews(buildViewModel(createGame({ config })).skills.lanes)[0]!.tip;
-    expect(tip).toBe('Skill s1\nDoes something.\n\nCost = 1 firmware points');
+    expect(tip).toBe('Skill s1\nDoes something.\n\nCost = 1 firmware point');
   });
 
   it('a skill that cannot be paid is not clickable', () => {
@@ -145,6 +145,7 @@ describe('the screen', () => {
 
   it('shows a button for every skill with the points, and buying one updates the tab and the points', () => {
     const { root, game, render } = mount();
+    openTab(root, 'skills');
     const buttons = [...root.querySelectorAll<HTMLButtonElement>('.skills-widget .upgrade')];
     expect(buttons.map((b) => b.querySelector('.node-symbol')?.textContent)).toEqual(['S1', 'S2', 'BC']);
     expect(root.querySelector('.firmware-points .n')!.textContent).toBe('1');

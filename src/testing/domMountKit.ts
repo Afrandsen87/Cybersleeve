@@ -28,3 +28,16 @@ export const idleSpeed: SpeedControl = { enabled: false, factor: 1, toggle: () =
 export function mountTestUi(root: HTMLElement, game: GameEngine, options?: MountOptions): ReturnType<typeof mountUi> {
   return mountUi(root, game, idleSpeed, () => {}, options);
 }
+
+/**
+ * Clicks a tab in the top bar, as the player does; the interface redraws with that tab shown. Panels that skip drawing while hidden
+ * (the Firmware tab) need this before a test reads them.
+ *
+ * Called by: UI tests. Calls: the tab button's click handler.
+ *
+ * @param root the element the interface was mounted into
+ * @param id the tab id (`TAB_IDS`), e.g. `'skills'` for the Firmware tab
+ */
+export function openTab(root: HTMLElement, id: string): void {
+  root.querySelector<HTMLButtonElement>(`.tab[data-tab="${id}"]`)!.click();
+}

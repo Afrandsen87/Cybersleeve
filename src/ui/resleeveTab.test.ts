@@ -7,7 +7,7 @@ import { networkAction, testConfig } from '../testing/testConfig';
 import { buildViewModel, statRow } from './viewModel';
 import { skillViews } from '../testing/skillViews';
 import { flat } from '../testing/flatState';
-import { mountTestUi } from '../testing/domMountKit';
+import { mountTestUi, openTab } from '../testing/domMountKit';
 
 const resleeveSkill = (id: string, effect: BuyableDefinition['effect'], parents?: string[]): BuyableDefinition => ({
   id,
@@ -111,10 +111,10 @@ describe('the sleeve skills in the view model', () => {
     expect(find('syn').available).toBe(true);
   });
 
-  it('costs are in sleeve firmware points', () => {
+  it('costs are in sleeve firmware points, singular for a price of one', () => {
     const view = skillViews(buildViewModel(resleeved(1)).skills.resleeve.lanes).find((b) => b.id === 'eu')!;
-    expect(view.costUnit).toBe('sleeve firmware points');
-    expect(view.tip).toContain('Cost = 1 sleeve firmware points');
+    expect(view.costUnit).toBe('sleeve firmware point');
+    expect(view.tip).toContain('Cost = 1 sleeve firmware point');
   });
 });
 
@@ -205,6 +205,7 @@ describe('the screen', () => {
 
   it('hides the re-sleeve group before the first re-sleeve', () => {
     const { root } = mount(createGame({ config }));
+    openTab(root, 'skills');
     expect(root.querySelector<HTMLElement>('.resleeve-skills')!.hidden).toBe(true);
   });
 

@@ -5,7 +5,7 @@ import { type BuyableDefinition, createConfig } from '../core';
 import { num } from '../numbers';
 import { testConfig } from '../testing/testConfig';
 import { flat } from '../testing/flatState';
-import { mountTestUi } from '../testing/domMountKit';
+import { mountTestUi, openTab } from '../testing/domMountKit';
 
 const skill = (id: string, extra: Partial<BuyableDefinition> = {}): BuyableDefinition => ({
   id,
@@ -40,6 +40,7 @@ const mount = () => {
   document.body.append(root);
   const game = createGame({ config });
   const render = mountTestUi(root, game);
+  openTab(root, 'skills');
   const tree = () => root.querySelector<HTMLElement>('.skills-widget:not(.resleeve-skills)')!;
   const node = (symbol: string) =>
     [...tree().querySelectorAll<HTMLButtonElement>('.skill-node')].find((b) => b.querySelector('.node-symbol')?.textContent === symbol)!;

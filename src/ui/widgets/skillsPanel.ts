@@ -46,6 +46,8 @@ function poolPanel(title: string, label: string, persistent: boolean, ctx: UiCon
 export function mountSkillsPanel(ctx: UiContext, initial: SkillsView): SkillsPanel {
   let view = initial;
   let hover: string | null = null;
+  let shownBefore = false; // false until the first render while the tab is shown, and again after it was hidden
+  let inspectedKey = '';
   const inspector = mountFirmwareInspector(ctx);
   const main = poolPanel(initial.title, ctx.text.firmware.pointsLabel, false, ctx);
   const sleeve = poolPanel(initial.resleeve.title, ctx.text.firmware.sleevePointsLabel, true, ctx);
@@ -109,15 +111,29 @@ export function mountSkillsPanel(ctx: UiContext, initial: SkillsView): SkillsPan
     root,
     render(next) {
       view = next;
+      // A hidden tab draws nothing; a hover in progress when the tab was left is dropped, so it never comes back stale.
+      if (root.hidden) {
+        if (hover !== null || shownBefore) {
+          hover = null;
+          skillsTree.clearHover();
+          resleeveTree.clearHover();
+        }
+        shownBefore = false;
+        return;
+      }
       setHidden(legend, !view.legendVisible);
       setText(main.number, view.pointsValueText);
       setClass(main.points, 'zero', view.points === 0);
-      skillsTree.render(view.lanes);
+      const mainChanged = skillsTree.render(view.lanes);
       setHidden(sleeve.panel, !view.resleeve.visible);
       setText(sleeve.number, view.resleeve.pointsValueText);
       setClass(sleeve.points, 'zero', view.resleeve.points === 0);
-      resleeveTree.render(view.resleeve.lanes);
-      inspect();
+      const sleeveChanged = resleeveTree.render(view.resleeve.lanes);
+      // The inspector reads only node states, owned counts and the points, so it is rebuilt when one of them moved (or the tab just opened).
+      const key = `${view.pointsValueText}|${view.resleeve.pointsValueText}|${view.resleeve.visible}`;
+      if (mainChanged || sleeveChanged || key !== inspectedKey || !shownBefore) inspect();
+      inspectedKey = key;
+      shownBefore = true;
     },
   };
 }
