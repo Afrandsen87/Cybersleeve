@@ -6,10 +6,10 @@
  * @remarks
  * Called by: `ui/dom.ts`. Calls: `domKit.ts`, `skillTree.ts`, `AutomationControls`.
  */
-import type { AutoBurnSwitch, AutomationControls, AutomationFeature } from '../../core';
+import type { AutomationControls, AutomationFeature } from '../../core';
 import type { AutomationView } from '../viewModel';
-import { type UiContext, h, setText } from './domKit';
-import { type ResumeChecklistWidget, mountResumeChecklist } from './resumeChecklist';
+import { type UiContext, h, setText, syncInput } from './domKit';
+import { type AutoBurnPanel, mountAutoBurnPanel } from './autoBurnPanel';
 import { type SkillTreeWidget, mountSkillTree } from './skillTree';
 
 /** One feature's box in the Automation tab. */
@@ -27,15 +27,7 @@ export interface AutomationWidget {
   readonly points: HTMLElement;
   /** Each feature's box, its unlock button, the controls that show once it is unlocked, and its skill lane. */
   readonly features: ReadonlyMap<AutomationFeature, AutomationFeatureHandle>;
-  /** Auto Burn's switches by name, shown once the skill that adds each is owned. */
-  readonly autoBurnSwitches: ReadonlyMap<AutoBurnSwitch, HTMLButtonElement>;
-  /** Auto Burn's threshold inputs and reserve input, each with the row that holds it (hidden until its skill is owned). */
-  readonly autoBurnLower: { readonly row: HTMLElement; readonly input: HTMLInputElement };
-  readonly autoBurnUpper: { readonly row: HTMLElement; readonly input: HTMLInputElement };
-  readonly autoBurnReserve: { readonly row: HTMLElement; readonly input: HTMLInputElement };
-  /** The checklists under the two resume switches. */
-  readonly resumeOverclocks: ResumeChecklistWidget;
-  readonly resumeAutoRuns: ResumeChecklistWidget;
+  readonly autoBurn: AutoBurnPanel;
   readonly rarities: ReadonlyMap<string, HTMLButtonElement>;
   readonly shares: ReadonlyMap<string, HTMLInputElement>;
 }
@@ -82,46 +74,13 @@ export function buildAutomationWidget(
   root.append(h('h2', undefined, view.title), points);
   const features = new Map<AutomationFeature, AutomationFeatureHandle>();
   const burn = controls.autoBurn();
-  const autoBurnSwitches = new Map<AutoBurnSwitch, HTMLButtonElement>();
-  for (const s of view.autoBurn.switches) {
-    const b = h('button', 'automation-switch', s.label) as HTMLButtonElement;
-    b.addEventListener('click', () => {
-      burn.setSwitch(s.name, !burn.rules()[s.name]);
-      refresh();
-    });
-    autoBurnSwitches.set(s.name, b);
-  }
-  const resumeOverclocks = mountResumeChecklist((id, ticked) => {
-    burn.setResumeOverclock(id, ticked);
-    refresh();
-  });
-  const resumeAutoRuns = mountResumeChecklist((id, ticked) => {
-    burn.setResumeAutoRun(id, ticked);
-    refresh();
-  });
-  /** Each switch's button, with the checklist of a resume switch right under it. */
-  const switchRows = [...autoBurnSwitches].flatMap(([name, button]) =>
-    name === 'onActions' ? [button, resumeAutoRuns.element] : name === 'onOverclocks' ? [button, resumeOverclocks.element] : [button],
-  );
-  // both thresholds are set together (the pair must stay 0 <= lower < upper), so each field sends the other's current value with its own
-  const lower = numberField(view.autoBurn.thresholds.lowerLabel, 0, null, (v) => {
-    burn.setThresholds(v, burn.rules().upperAt);
-    refresh();
-  });
-  const upper = numberField(view.autoBurn.thresholds.upperLabel, 0, null, (v) => {
-    burn.setThresholds(burn.rules().lower, v);
-    refresh();
-  });
-  const reserve = numberField(view.autoBurn.reserve.label, 0, null, (v) => {
-    burn.setReserve(v);
-    refresh();
-  });
+  const autoBurn = mountAutoBurnPanel(ctx, view.autoBurn, burn, refresh);
   const rarities = new Map<string, HTMLButtonElement>();
   const shares = new Map<string, HTMLInputElement>();
   for (const f of view.features) {
     const box = h('section', `automation-feature automation-${f.id}`);
     const body = h('div', 'automation-controls');
-    if (f.id === 'autoBurn') body.append(h('p', 'automation-hint', view.autoBurn.hint), ...switchRows, lower.row, upper.row, reserve.row);
+    if (f.id === 'autoBurn') body.append(autoBurn.element);
     else if (f.id === 'autosale') {
       for (const r of view.rarities) {
         const b = h('button', 'automation-switch', r.name) as HTMLButtonElement;
@@ -151,20 +110,10 @@ export function buildAutomationWidget(
     root,
     points,
     features,
-    autoBurnSwitches,
-    autoBurnLower: lower,
-    autoBurnUpper: upper,
-    autoBurnReserve: reserve,
-    resumeOverclocks,
-    resumeAutoRuns,
+    autoBurn,
     rarities,
     shares,
   };
-}
-
-/** Sets an input's value from the game unless the player is typing in it (their text is not overwritten). */
-function syncInput(input: HTMLInputElement, value: number): void {
-  if (input.ownerDocument.activeElement !== input) input.value = String(value);
 }
 
 /** Writes the Automation view into its widget: the points, which features are unlocked, and the current settings. */
@@ -177,22 +126,7 @@ export function renderAutomation(widget: AutomationWidget, view: AutomationView)
     handle.box.classList.toggle('unlocked', f.unlocked);
     handle.tree.render(f.lanes);
   }
-  for (const s of view.autoBurn.switches) {
-    const b = widget.autoBurnSwitches.get(s.name);
-    if (!b) continue;
-    if (b.textContent !== s.label) b.textContent = s.label; // the Hold and Switch-on labels follow the thresholds
-    b.hidden = !s.visible; // nothing is shown before its skill is owned
-    b.classList.toggle('on', s.on);
-  }
-  widget.resumeOverclocks.render(view.autoBurn.resumeOverclocks);
-  widget.resumeAutoRuns.render(view.autoBurn.resumeAutoRuns);
-  const { thresholds, reserve } = view.autoBurn;
-  widget.autoBurnLower.row.hidden = !thresholds.visible;
-  widget.autoBurnUpper.row.hidden = !thresholds.visible;
-  widget.autoBurnReserve.row.hidden = !reserve.visible;
-  syncInput(widget.autoBurnLower.input, thresholds.lower);
-  syncInput(widget.autoBurnUpper.input, thresholds.upper);
-  syncInput(widget.autoBurnReserve.input, reserve.value);
+  widget.autoBurn.render(view.autoBurn);
   for (const r of view.rarities) widget.rarities.get(r.id)?.classList.toggle('on', r.on);
   for (const a of view.actions) {
     const input = widget.shares.get(a.id);

@@ -1,22 +1,15 @@
 /**
  * @module ui
  *
- * The Automation tab's view: the feature lanes, the Auto Burn switches with their live values, and the resume checklists.
+ * The Automation tab's view: the feature lanes, the owner-sourced Auto Burn panel, and autosale/dispersal controls.
  *
  * @remarks
- * Called by: `ui/viewModel.ts`. Calls: `GameQueries.automation`, `buildSkillLanes`, `resumeChecklists`.
+ * Called by: `ui/viewModel.ts`. Calls: `GameQueries.automation`, `buildSkillLanes`, `autoBurnView`.
  */
-import {
-  AUTOMATION_FEATURES,
-  AUTO_BURN_SWITCHES,
-  type ActionQueries,
-  type GameConfig,
-  type AutoBurnSwitch,
-  type SkillQueries,
-} from '../../core';
+import { AUTOMATION_FEATURES, type ActionQueries, type GameConfig, type SkillQueries } from '../../core';
 import { formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
-import { resumeChecklists } from './autoBurnChecklist';
+import { autoBurnView } from './autoBurnView';
 import type { RevealTracker } from './revealTracker';
 import { buildSkillLanes } from './skillTree';
 import type { AutomationView, BuyableView, SkillLaneView } from './viewTypes';
@@ -69,45 +62,9 @@ export function automationView(
       unlocked: automation.isUnlocked(id),
       lanes: laneOf(id),
     })),
-    autoBurn: {
-      hint: text.automation.autoBurn.hint,
-      switches: AUTO_BURN_SWITCHES.map((name) => ({
-        name,
-        label: autoBurnSwitchLabel(name, burn.rules(), text),
-        on: burn.rules()[name],
-        visible: burn.stepOwned(name),
-      })),
-      thresholds: {
-        visible: burn.stepOwned('thresholds'),
-        lower: burn.rules().lower,
-        upper: burn.rules().upperAt,
-        lowerLabel: text.automation.autoBurn.lower,
-        upperLabel: text.automation.autoBurn.upper,
-      },
-      reserve: { visible: burn.stepOwned('reserve'), value: burn.rules().reserve, label: text.automation.autoBurn.reserve },
-      ...resumeChecklists(burn, engine, config, viewById),
-    },
+    autoBurn: autoBurnView(burn, engine, config, viewById, text),
     rarities: config.items.rarities.map((r) => ({ id: r.id, name: r.name, on: automation.isAutosaleOn(r.id) })),
     actions: config.actions.map((a) => ({ id: a.id, name: a.name, percent: automation.dispersal(a.id) })),
     shareLabel: text.automation.dispersalShare,
   };
-}
-
-/**
- * The label of an Auto Burn switch. The Hold and Switch-on switches show the heat threshold in force (from the rules, so the
- * player's own thresholds once the skill makes them editable); the others have fixed text.
- *
- * Called by: {@link automationView}.
- * Calls: `formatPlain`, the `autoBurn` text.
- *
- * @param name the switch
- * @param rules the Auto Burn rules in force
- * @param text the display text
- * @returns the label to show
- */
-function autoBurnSwitchLabel(name: AutoBurnSwitch, rules: { lower: number; upperAt: number }, text: UiText): string {
-  const t = text.automation.autoBurn;
-  if (name === 'hold') return t.holdAt(formatPlain(rules.lower));
-  if (name === 'upper') return t.upperAt(formatPlain(rules.upperAt));
-  return t.switches[name];
 }

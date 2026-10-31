@@ -5,6 +5,7 @@
  * All timings come from `gameConfig.runtime`.
  */
 import './ui/style.css';
+import './ui/autoBurn.css';
 import { createGame } from './app/createGame';
 import { debugControlsEnabled } from './app/debugControls';
 import { createBrowserScheduler, GameLoop } from './app/loop';

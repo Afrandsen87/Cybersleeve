@@ -6,7 +6,9 @@
  * @remarks
  * Part of the view types; `viewTypes.ts` re-exports them, so import from there.
  */
-import type { AutoBurnSwitch, AutomationFeature, TAB_IDS } from '../../core';
+import type { AutoBurnView } from './autoBurnViewTypes';
+
+import type { AutomationFeature, TAB_IDS } from '../../core';
 import type { SkillLaneView } from './skillTreeTypes';
 
 /** One tab at the top. */
@@ -42,30 +44,7 @@ export interface AutomationView {
   readonly points: number;
   readonly pointsText: string;
   readonly features: readonly AutomationFeatureView[];
-  /**
-   * Auto Burn: only what the owned skills of its lane add is shown (`visible`): the switches, the two thresholds and the reserve. The Burn
-   * lead toggle itself is in the Inventory; `hint` says so.
-   */
-  readonly autoBurn: {
-    readonly hint: string;
-    readonly switches: readonly {
-      readonly name: AutoBurnSwitch;
-      readonly label: string;
-      readonly on: boolean;
-      readonly visible: boolean;
-    }[];
-    readonly thresholds: {
-      readonly visible: boolean;
-      readonly lower: number;
-      readonly upper: number;
-      readonly lowerLabel: string;
-      readonly upperLabel: string;
-    };
-    readonly reserve: { readonly visible: boolean; readonly value: number; readonly label: string };
-    /** The resume checklists under the two resume switches: the owned heat-making Overclocks and Auto-runs (shown with their switch). */
-    readonly resumeOverclocks: ResumeChecklistView;
-    readonly resumeAutoRuns: ResumeChecklistView;
-  };
+  readonly autoBurn: AutoBurnView;
   /** Autosale: every rarity with its switch. */
   readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean }[];
   /** Augment dispersal: every action with its share in percent. */
