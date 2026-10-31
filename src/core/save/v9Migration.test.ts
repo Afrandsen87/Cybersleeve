@@ -70,4 +70,17 @@ describe('v8 to v9', () => {
     expect(save.save(state)).toBe(true);
     expect(save.load()!.wallet.runs.map((r) => r.actionLevelsTotal)).toEqual(state.wallet.runs.map((r) => r.actionLevelsTotal));
   });
+
+  it('importing a v8 save stores the backfilled state, so the next load does not lose the backfill', () => {
+    const golden = JSON.parse(
+      readFileSync(new URL('../../testing/fixtures/saves/v9-after-three-resleeves.golden.json', import.meta.url), 'utf8'),
+    ) as object;
+    const store = new MemoryStore();
+    const save = new SaveGame(store, gameConfig, numberFactory);
+    expect(save.importText(JSON.stringify({ ...golden, version: 8 }))).toBe(true);
+    expect(JSON.parse(store.getItem(SAVE_KEY)!).version).toBe(SAVE_VERSION);
+    expect(needsProgressionBackfill(store.getItem(SAVE_KEY)!)).toBe(false);
+    const runs = save.load()!.wallet.runs;
+    expect(runs[runs.length - 1]!.sleeveLevelsTotal).toBe(save.load()!.wallet.runs[runs.length - 1]!.sleeveLevelsTotal);
+  });
 });

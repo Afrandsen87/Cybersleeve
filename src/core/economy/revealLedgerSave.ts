@@ -4,7 +4,7 @@
  * Context: economy. The save part of the reveal ledger (`wallet.revealed`) and its migration piece.
  *
  * @remarks
- * Called by: `save/saveParts.ts`, and (once the next save version is cut) `save/migrate.ts` through {@link addRevealedLedger}.
+ * Called by: `save/saveParts.ts`, and `save/migrate.ts` through {@link addRevealedLedger}.
  * A save without the field loads with an empty ledger, so adding it needs no version change on its own; an empty ledger is left out of the text.
  */
 import { isRecord } from '../kernel/readValues';
@@ -37,9 +37,9 @@ export const revealedSavePart: SavePart<Pick<GameConfig, 'buyables'>> = {
 
 /**
  * Migration piece for the next save version: gives a parsed save a `wallet.revealed = []` when it has none. Pure; returns a new object and
- * leaves an existing ledger alone. NOT yet wired into `migrate.ts` (the version is bumped by the orchestrator).
+ * leaves an existing ledger alone. Wired into `migrate.ts` (`migrateV8`).
  *
- * Called by: nothing yet (`save/migrate.ts` once wired). Calls: `isRecord`.
+ * Called by: `save/migrate.ts` (`migrateV8`). Calls: `isRecord`.
  *
  * @param save a parsed save (untrusted)
  * @returns the save with a wallet that has a `revealed` array (a save that is not an object, or has no wallet object, is returned as it is)

@@ -25,7 +25,7 @@ import type { ResleevePolicy, ResleeveRequirement } from './resleeve';
  * baseline). Rarity refinement moved from credits to skill points, so a purchase made at the old price is dropped (the point it would
  * cost comes back automatically: points are derived from levels, not stored).
  *
- * Called by: the save loader's migration step (wired by the orchestrator). Calls: nothing. Changes `state` in place.
+ * Called by: `app/persistence.ts` (`SaveGame.read`, for a save from before v9). Calls: nothing. Changes `state` in place.
  *
  * @param state the loaded state (mutated: `wallet.runs`, `sleeve.purchased`)
  * @param currentSleeveLevels the total of all actions' sleeve levels now (from `Progression.totalSleeveLevels`)

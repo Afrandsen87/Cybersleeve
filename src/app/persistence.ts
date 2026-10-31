@@ -162,8 +162,10 @@ export class SaveGame {
   importText(text: string): boolean {
     try {
       const trimmed = text.trim();
-      if (this.read(trimmed) === null) return false;
-      this.store.setItem(SAVE_KEY, migrateSave(trimmed));
+      const state = this.read(trimmed);
+      if (state === null) return false;
+      // an older save is stored as the loaded (backfilled) state: its text alone would be marked v9 without the backfill
+      this.store.setItem(SAVE_KEY, needsProgressionBackfill(trimmed) ? serializeState(state) : migrateSave(trimmed));
       return true;
     } catch {
       return false;

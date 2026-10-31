@@ -20,7 +20,10 @@ import type { GameConfig } from '../types';
  * @returns a whole number >= 0
  */
 export function earnedSkillPoints(actionLevels: readonly number[], rule: GameConfig['skills']): number {
-  const total = actionLevels.reduce((sum, level) => sum + (Number.isFinite(level) && level > 0 ? level : 0), 0);
+  const total = Math.min(
+    actionLevels.reduce((sum, level) => sum + (Number.isFinite(level) && level > 0 ? level : 0), 0),
+    Number.MAX_SAFE_INTEGER, // a sum that overflows to Infinity must not make the points infinite
+  );
   if (!(total >= 1)) return 0;
   const early = rule.earlyThresholds.filter((t) => t <= total).length;
   return early + Math.floor(total / rule.every);

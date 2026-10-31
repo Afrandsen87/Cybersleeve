@@ -28,6 +28,7 @@ describe('earnedSkillPoints', () => {
   it('ignores negative and non-finite levels', () => {
     expect(earnedSkillPoints([-5, Number.NaN, Number.POSITIVE_INFINITY], rule)).toBe(0);
     expect(earnedSkillPoints([-5, 5], rule)).toBe(2);
+    expect(Number.isFinite(earnedSkillPoints([1.7e308, 1.7e308], rule))).toBe(true); // the sum overflows to Infinity
   });
 
   it('follows the rule it is given', () => {

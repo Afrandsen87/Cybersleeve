@@ -233,7 +233,6 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.shop.toggle(this.state, id);
   }
 
-  /** Buys one copy of a buyable. Auto-run takes effect on the next tick. */
   /**
    * Writes keys the screen showed into the reveal ledger (`wallet.revealed`), see `economy/revealLedger.ts`. The only writer; the view build
    * only collects the keys, so no query mutates.
@@ -244,6 +243,7 @@ export class GameEngine implements GameQueries, GameCommands {
     noteRevealed(this.state, this.config, keys);
   }
 
+  /** Buys one copy of a buyable. Auto-run takes effect on the next tick. */
   buy(id: BuyableId): PurchaseResult {
     return this.shop.buy(this.state, id);
   }

@@ -4,7 +4,7 @@
  * Auto Burn: the save migration for the removal of the Pick Targets skill and the arrival of the resume checklists.
  *
  * @remarks
- * Context: automation. NOT wired into `save/migrate.ts` yet: the caller that bumps the save version runs {@link migrateAutoBurnResume} on the
+ * Context: automation. Wired into `save/migrate.ts` (v8 to v9): `migrateV8` runs {@link migrateAutoBurnResume} on the
  * saved wallet and sleeve of each sleeve. It is pure and defensive (untrusted input).
  */
 import { isRecord } from '../kernel/readValues';
@@ -26,7 +26,7 @@ function trueIds(from: unknown): Record<string, true> {
  * whatever the life had recorded as switched off (`overclocksOff` / `autoRunsOff`) so the old "switch back on what was switched off" behaviour
  * carries over. Lists that already exist are kept and merged. Does not change its input.
  *
- * Called by: the save migration of the version that bumps for it (not wired yet). Calls: nothing.
+ * Called by: `save/migrate.ts` (`migrateV8`). Calls: nothing.
  *
  * @param raw the saved wallet and sleeve of one sleeve
  * @returns the migrated wallet and sleeve
