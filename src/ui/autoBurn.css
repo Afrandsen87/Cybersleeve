@@ -358,9 +358,6 @@
   letter-spacing: 0.06em;
 }
 
-.ab [hidden] {
-  display: none;
-}
 .ab .s-burning {
   color: var(--orange);
 }
@@ -398,4 +395,10 @@
     grid-column: 2;
     justify-self: end;
   }
+}
+
+/* Last on purpose: hidden parts stay hidden even where a rule above sets display (nothing is shown before its skill is owned). */
+.ab [hidden],
+.ab .status label[hidden] {
+  display: none;
 }
