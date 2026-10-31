@@ -148,7 +148,8 @@
   stroke-opacity: 1;
   filter: drop-shadow(0 0 3px var(--lane));
 }
-.skill-node {
+/* Scoped under the grid so it outranks `.upgrade { position: relative }` in upgrades.css, which loads later. */
+.lane-grid > .skill-node {
   position: absolute;
   width: var(--tile);
   height: var(--tile);
