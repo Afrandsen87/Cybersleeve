@@ -40,7 +40,7 @@ Unit tests use their own fixed `src/testing/testConfig.ts`, so retuning the game
 
 - Effective action level is the real level plus all owned level bonuses. `levelBonusFromSleeveLevel` and `levelBonusFromSleeveSkills {targetActionId}` affect all derived calculations, leaving XP/progression unchanged. The latter validates its target and receives the distinct skill count from its caller.
 - Networked Sleeve (`buyables/practiceHacking.ts`): Network Exploitation group, 10,000 networkNodes, requiresSleeveSkills 2, maxPurchases 1; targets Practice Hacking.
-- Network Safety Protocols (`buyables/growNetwork.ts`): 3,500 networkNodes, costGrowth 50, maxPurchases Infinity, requiresSleeveSkills 1 and Grow network Overclock; `runIceChance {chance:0.05, perCopy:0.01}`. Chance = min(1, chance + perCopy × (copies − 1)); finite chance in [0,1], finite perCopy >= 0. Each success earns 1 base ICE.
+- Network Safety Protocols (`buyables/practiceHacking.ts`, Network Exploitation group, sleeve-wide): 3,500 networkNodes, costGrowth 50, maxPurchases Infinity, requiresSleeveSkills 1 and Grow network Overclock; `runIceChance {targetActionId: Grow network, chance:0.05, perCopy:0.01}`. Chance = min(1, chance + perCopy × (copies − 1)); finite chance in [0,1], finite perCopy >= 0. Each success earns 1 base ICE.
 - Cloaking Protocols (`buyables/sleeve.ts`): 5e11 credits, maxPurchases 1, requiresSleeveSkills 1 and Grow network Overclock; `heatReductionPerSleeveSkill {perSkill:0.03}`. Finite perSkill in [0,1); heatTaxScale = (1 − perSkill)^distinctSkills. Ownership survives re-sleeve through its carried effect trait; currency carry rules are unchanged.
 
 ## `corporation` – the corporation's actions (optional)

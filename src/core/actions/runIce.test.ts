@@ -50,7 +50,9 @@ describe('run ICE', () => {
       [0.1, NaN],
     ]) {
       const config = createConfig(effectiveLevelConfig(), {
-        buyables: [buy({ id: 'bad', actionId: 'a', effect: { kind: 'runIceChance', chance: chance!, perCopy: perCopy! } })],
+        buyables: [
+          buy({ id: 'bad', actionId: 'a', effect: { kind: 'runIceChance', targetActionId: 'a', chance: chance!, perCopy: perCopy! } }),
+        ],
       });
       expect(validateConfig(config).length).toBeGreaterThan(0);
     }

@@ -10,6 +10,8 @@ import {
   GROW_NETWORK,
   AUTO_RUN,
   SKILL_TRANSFER,
+  overclockUnlockId,
+  NETWORK_SAFETY_PROTOCOLS,
   NETWORKED_SLEEVE,
   STUDY_METHODS,
   KOMPROMAT_HARVEST,
@@ -47,6 +49,21 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
         rarityWeights: { common: 90, uncommon: 10, rare: 0, legendary: 0, crisis: 0 },
       },
     },
+  },
+
+  {
+    id: NETWORK_SAFETY_PROTOCOLS,
+    name: 'Network Safety Protocols',
+    symbol: 'NPs',
+    description:
+      'Each completed run has a 5% chance to add 1 base ICE Rating. Each further copy adds 1 percentage point, up to 100%. Each copy costs 50x more.',
+    currency: 'networkNodes',
+    cost: num(3500),
+    requiresSleeveSkills: 1,
+    requires: [overclockUnlockId(GROW_NETWORK)], // ICE is known once this heat-making Overclock is owned.
+    costGrowth: 50,
+    maxPurchases: Infinity,
+    effect: { kind: 'runIceChance', targetActionId: GROW_NETWORK, chance: 0.05, perCopy: 0.01 },
   },
 
   {

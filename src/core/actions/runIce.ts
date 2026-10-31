@@ -22,8 +22,8 @@ export function earnRunIce(
   factory: NumberFactory,
   random: RandomSource,
 ): void {
-  for (const { buyable, effect, owned } of ownedEffects(buyables, state.sleeve.purchased, 'runIceChance')) {
-    if (buyable.actionId !== id) continue;
+  for (const { effect, owned } of ownedEffects(buyables, state.sleeve.purchased, 'runIceChance')) {
+    if (effect.targetActionId !== id) continue;
     const chance = Math.min(1, effect.chance + effect.perCopy * (owned - 1));
     const hits = perRunEvents(runs, chance, random);
     if (hits > 0) payReward(state, 'iceRating', factory.fromNumber(1), factory.fromNumber(hits));

@@ -11,8 +11,8 @@ import type { ActionId, ChainRule } from '../../actions/actionTypes';
 export type ActionEffect =
   /** Effects/actions/economy: sleeve skills add effective target levels without changing progression. */
   | { readonly kind: 'levelBonusFromSleeveSkills'; readonly targetActionId: ActionId }
-  /** Actions/effects: completed runs may earn one base ICE; copies raise chance. */
-  | { readonly kind: 'runIceChance'; readonly chance: number; readonly perCopy: number }
+  /** Actions/effects: sleeve-wide; completed runs of `targetActionId` may earn one base ICE; copies raise the chance. */
+  | { readonly kind: 'runIceChance'; readonly targetActionId: ActionId; readonly chance: number; readonly perCopy: number }
   | { readonly kind: 'autoRun' }
   /** Unlocks the Overclock toggle of the buyable's action (the action must have an `overclock` rule). Applies once, whatever the number of copies. */
   | { readonly kind: 'overclockUnlock' }

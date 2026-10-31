@@ -54,7 +54,7 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
       actionId: 'net',
       maxPurchases: Infinity,
       costGrowth: 3,
-      effect: { kind: 'runIceChance', chance: 0.05, perCopy: 0.01 },
+      effect: { kind: 'runIceChance', targetActionId: 'a', chance: 0.05, perCopy: 0.01 },
     }),
     buyable({ id: 'cloaking', effect: { kind: 'heatReductionPerSleeveSkill', perSkill: 0.03 } }),
     ...automationLaneBuyables(),

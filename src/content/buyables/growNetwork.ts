@@ -9,8 +9,6 @@ import {
   GROW_NETWORK,
   NETWORK_AUTO_RUN,
   NETWORK_OUTPUT,
-  NETWORK_SAFETY_PROTOCOLS,
-  overclockUnlockId,
   SELF_REPLICATION,
   NETWORK_SYNERGY,
   AUGMENT_SCHEMATIC,
@@ -22,21 +20,6 @@ import { autoRunCost, overclockUnlock, focusUnlock } from './helpers';
 
 /** The buyables of Grow network. */
 export const growNetworkBuyables: BuyableDefinition[] = [
-  {
-    id: NETWORK_SAFETY_PROTOCOLS,
-    name: 'Network Safety Protocols',
-    symbol: 'NPs',
-    description:
-      'Each completed run has a 5% chance to add 1 base ICE Rating. Each further copy adds 1 percentage point, up to 100%. Each copy costs 50x more.',
-    actionId: GROW_NETWORK,
-    currency: 'networkNodes',
-    cost: num(3500),
-    requiresSleeveSkills: 1,
-    requires: [overclockUnlockId(GROW_NETWORK)], // ICE is known once this heat-making Overclock is owned.
-    costGrowth: 50,
-    maxPurchases: Infinity,
-    effect: { kind: 'runIceChance', chance: 0.05, perCopy: 0.01 },
-  },
   {
     id: NETWORK_AUTO_RUN,
     name: 'Auto-run',

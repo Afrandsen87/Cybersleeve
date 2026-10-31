@@ -289,7 +289,7 @@ describe('effective levels and run ICE preserve closed-form batching', () => {
     expectSame(once, stepped, ['a', 'net']);
   });
   it('seeded run ICE agrees across batch partitions, with no unrelated random effects', () => {
-    const safety = buy({ id: 'safety', actionId: 'a', effect: { kind: 'runIceChance', chance: 0.25, perCopy: 0.1 } });
+    const safety = buy({ id: 'safety', actionId: 'a', effect: { kind: 'runIceChance', targetActionId: 'a', chance: 0.25, perCopy: 0.1 } });
     const config = createConfig(cyberneticsConfig([safety]), { engine: { maxSliceMs: 1e6, maxSlicesPerTick: 1 } });
     const once = cyberneticsGame(config, 42);
     const stepped = cyberneticsGame(config, 42);

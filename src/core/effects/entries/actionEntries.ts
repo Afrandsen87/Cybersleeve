@@ -3,7 +3,6 @@ import { factorAtLeastOne, none, perAction, sleeveWide } from '../effectHelpers'
 import type { EffectDefinition } from '../effectTypes';
 
 type Kind =
-  | 'runIceChance'
   | 'autoRun'
   | 'overclockUnlock'
   | 'overclockChain'
@@ -19,13 +18,6 @@ type Kind =
 
 /** The entries for the action-level effects: auto-run, Overclock, Focus, start cost, reward levers and linked payouts, keyed by kind. */
 export const ACTION_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<BuyableEffect, { kind: K }>> } = {
-  runIceChance: {
-    traits: perAction,
-    validate: (e, { where, errors }) => {
-      if (!(Number.isFinite(e.chance) && e.chance >= 0 && e.chance <= 1)) errors.push(where + ': run ICE chance must be in [0, 1]');
-      if (!(Number.isFinite(e.perCopy) && e.perCopy >= 0)) errors.push(where + ': run ICE perCopy must be >= 0');
-    },
-  },
   autoRun: {
     traits: { needsAction: true, toggleable: true },
     validate: none,

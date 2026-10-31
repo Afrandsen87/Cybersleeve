@@ -26,7 +26,12 @@ export function effectiveLevelConfig() {
         effect: { kind: 'rewardMultiplierFromActionLevel', sourceActionId: 'a', targetActionId: 'net', coefficient: 2, scale: 1 },
       }),
       buy({ id: 'cost', actionId: 'a', effect: { kind: 'startCostReduction', perLevel: 0.1 } }),
-      buy({ id: 'safety', actionId: 'a', maxPurchases: Infinity, effect: { kind: 'runIceChance', chance: 0.05, perCopy: 0.01 } }),
+      buy({
+        id: 'safety',
+        actionId: 'a',
+        maxPurchases: Infinity,
+        effect: { kind: 'runIceChance', targetActionId: 'a', chance: 0.05, perCopy: 0.01 },
+      }),
     ],
     network: { creditsPerNodePerSecond: 0 },
   });
