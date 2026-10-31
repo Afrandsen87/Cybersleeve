@@ -91,8 +91,6 @@ export const actionsConfig: GameConfig['actions'] = [
     requiredAccessLevel: 5,
     /** Heat added for every second the action runs. */
     heatPerSecond: 5,
-    /** Each completed run removes a quarter of the network. */
-    completionEffects: [{ kind: 'removeNodesFraction', fraction: 0.25 }],
     /** Action XP per completed run. */
     xpPerRun: num(1),
   },

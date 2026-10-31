@@ -90,7 +90,7 @@ The autosale branch uses the existing first-parent placeNodes layout: slot 3 has
 
 ## Upgrades panel (B1, 2026-10-31)
 
-One Upgrades panel replaces the two purchase widgets. Cached `sectionLayout` groups by currency (SLEEVE for credits, NETWORK for nodes), excluding action, point, corporate and re-sleeve gate purchases. `view/upgradeRows.ts` stably moves bought one-time purchases first; each partition retains base-price order. Maxed repeatables keep their place. Empty and wholly unrevealed rows show no label.
+One Upgrades panel replaces the two purchase widgets. Cached `sectionLayout` groups by currency (SLEEVE for credits, NETWORK for nodes), excluding action, point, corporate and re-sleeve gate purchases. Each row stays in base-price order: buying a purchase never moves it (decided 2026-11-01 by the user; it used to move bought one-time purchases to the front). Empty and wholly unrevealed rows show no label.
 
 `widgets/upgradeButtons.ts` opts into tile mode through `uiText.upgradeTiles` (`parts/upgradeText.ts`, `upgradeText.ts`). Tiles retain pixel icons above a price strip, show MAX from the owner maxed flag, and show an owned badge only for repeatables with copies. Gold means affordable; teal means MAX. Existing action and skill callers retain square buttons. `sleeveWidgets.ts` compares cached row IDs element by element and appends existing buttons only when order changes; equal order allocates no order array. Tests: `upgradeRows.test.ts`, `upgradeTiles.dom.test.ts`; shared engine and mount setup: `testing/testConfig.ts`, `testing/domMountKit.ts`. No game, save, tuning or layer assumptions change.
 

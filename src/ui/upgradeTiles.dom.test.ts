@@ -57,22 +57,17 @@ it('hides the row label until at least one purchase is revealed', () => {
   expect(row.hidden).toBe(false);
 });
 
-it('moves bought one-time buttons without rebuilding and leaves unchanged order untouched', () => {
+it('keeps a bought one-time button where it was, without moving any button', () => {
   const game = createGame({ config: testConfig });
   const root = document.createElement('div');
   const render = mountTestUi(root, game);
   const row = root.querySelector<HTMLElement>('.upgrades-widget .upgrades')!;
   const before = [...row.children];
   const append = vi.spyOn(row, 'append');
-  render();
-  expect(append).not.toHaveBeenCalled();
   setCredits(game, num(2000));
   game.buy('access');
   render();
-  expect([...row.children]).toEqual([before[1], before[0]]);
-  expect(append).toHaveBeenCalledTimes(2);
-  append.mockClear();
-  render();
+  expect(game.ownedCount('access')).toBe(1);
+  expect([...row.children]).toEqual(before);
   expect(append).not.toHaveBeenCalled();
-  expect(row.firstElementChild).toBe(before[1]);
 });
