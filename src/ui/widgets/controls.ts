@@ -6,6 +6,7 @@
  * @remarks
  * Called by: `ui/dom.ts`. Calls: `ConfirmGate`, `GameCommands`.
  */
+import type { ResleeveRequirement } from '../../core';
 import { formatBigNum, num } from '../../numbers';
 import { ConfirmGate } from '../confirmGate';
 import { type ChangelogEntry, buildChangelogModal } from './changelogModal';
@@ -22,7 +23,7 @@ export interface ResleeveButtonState {
   /** The purchase (Unlock resleeving) to show on the button while it is not yet owned; `null` when the button is the Re-sleeve action. */
   readonly buy: ResleeveBuyView | null;
   /** Sleeve levels held and needed while the next re-sleeve is short of them; `null` otherwise. Drives the button's tip. */
-  readonly shortfall: { readonly held: number; readonly needed: number } | null;
+  readonly shortfall: readonly ResleeveRequirement[];
 }
 
 /** The re-sleeve button with its cancel button. */
@@ -74,7 +75,10 @@ export function buildResleeveRow(ctx: UiContext): ResleeveRow {
       } else {
         button.disabled = !canResleeve;
         setText(button, armed ? text.resleeve.armed : text.resleeve.idle);
-        const tip = shortfall ? text.resleeve.needLevels(formatBigNum(num(shortfall.held)), formatBigNum(num(shortfall.needed))) : null;
+        const tip =
+          shortfall.length > 0
+            ? shortfall.map((r) => text.resleeve.needLevels(r.kind, formatBigNum(num(r.held)), formatBigNum(num(r.needed)))).join('\n')
+            : null;
         tips.set(button, tip === null ? null : () => tip);
       }
       button.classList.toggle('armed', armed);

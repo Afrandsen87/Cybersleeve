@@ -37,6 +37,8 @@ export interface SleeveRunRecord {
   readonly creditsPerSecond: BigNum;
   /** The total of all action levels the sleeve had reached at that moment (a whole number >= 0). */
   readonly actionLevelsTotal: number;
+  /** The total of all sleeve levels the sleeve held at that moment (a whole number >= 0; the progress gate's baseline). */
+  readonly sleeveLevelsTotal: number;
   /** The action level each action had reached at that moment (absent in records written before levels were kept). */
   readonly actionLevels?: Readonly<Record<ActionId, number>>;
 }

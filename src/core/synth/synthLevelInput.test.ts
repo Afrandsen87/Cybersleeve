@@ -15,8 +15,8 @@ import { SynthSleeves } from './synthSleeves';
 function setup(liveLevels: number, levelInput?: (synth: { runIndex: number }) => number) {
   const state = createInitialState(testConfig, numberFactory);
   state.wallet.runs = [
-    { creditsPerSecond: num(10), actionLevelsTotal: 100 },
-    { creditsPerSecond: num(20), actionLevelsTotal: 200 },
+    { creditsPerSecond: num(10), actionLevelsTotal: 100, sleeveLevelsTotal: 0 },
+    { creditsPerSecond: num(20), actionLevelsTotal: 200, sleeveLevelsTotal: 0 },
   ];
   state.wallet.synths = [{ runIndex: 0 }, { runIndex: 1 }];
   const progression = { totalActionLevelsWithProgress: () => liveLevels } as unknown as Progression;

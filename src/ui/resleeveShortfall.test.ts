@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 /**
- * The Re-sleeve button states what it is waiting for: sleeve levels, in total, for the next re-sleeve.
+ * The Re-sleeve button states what it is waiting for: action levels and sleeve levels, in total, beyond the last run.
  *
  * Purpose: the shortfall tip follows the reveal rule (nothing about sleeve levels before the unlock is owned), disappears when the levels are
  * enough, and reappears for the next re-sleeve whose threshold is higher.
@@ -32,12 +32,12 @@ const unlock = {
   effect: { kind: 'unlockResleeve' },
 } as const;
 
-function mount(base: number, perResleeve: number) {
+function mount() {
   const root = document.createElement('div');
   document.body.append(root);
   const config = createConfig(testConfig, {
     buyables: [...testConfig.buyables, levels, unlock],
-    resleeve: { ...testConfig.resleeve, lockoutMs: 0, sleeveLevelsNeeded: { base, perResleeve } },
+    resleeve: { ...testConfig.resleeve, lockoutMs: 0, progressNeeded: { actionLevels: 1, sleeveLevels: 1 } },
   });
   const game = createGame({ config });
   const render = mountTestUi(root, game);
@@ -48,50 +48,68 @@ function mount(base: number, perResleeve: number) {
     render();
     button().click(); // the button is the purchase of Unlock resleeving
   };
-  return { game, render, button, open };
+  const setActionXp = (xp: number) => {
+    (game.getState().sleeve.actions['a'] as { xp: unknown }).xp = num(xp);
+  };
+  return { game, render, button, open, setActionXp };
 }
 
 beforeEach(() => {
   document.body.innerHTML = '';
 });
 
-describe('the Re-sleeve button when levels are short', () => {
-  it('says nothing about sleeve levels before the unlock is owned', () => {
-    const { game, button } = mount(1_000, 1);
-    expect(buildViewModel(game).resleeveShortfall).toBeNull();
-    expect(hoverText(button())).not.toContain('sleeve levels');
+describe('the Re-sleeve button when progress is short', () => {
+  it('says nothing about levels before the unlock is owned', () => {
+    const { game, button } = mount();
+    expect(buildViewModel(game).resleeveShortfall).toEqual([]);
+    expect(hoverText(button())).not.toContain('levels in total');
   });
 
-  it('once the unlock is owned, a disabled button whose tip gives the total needed and the total held', () => {
-    const { game, render, button, open } = mount(1_000, 1);
+  it('once the unlock is owned, a disabled button whose tip names both totals needed and held', () => {
+    const { game, render, button, open } = mount();
     open();
     render();
     expect(button().disabled).toBe(true);
-    expect(buildViewModel(game).resleeveShortfall).toEqual({ held: 0, needed: 1_000 });
-    expect(hoverText(button())).toContain('1K');
+    expect(buildViewModel(game).resleeveShortfall.map((r) => [r.kind, r.held, r.needed])).toEqual([
+      ['actionLevels', 0, 1],
+      ['sleeveLevels', 0, 1],
+    ]);
+    expect(hoverText(button())).toContain('action levels');
+    expect(hoverText(button())).toContain('sleeve levels');
     expect(hoverText(button())).toContain('You have 0');
   });
 
-  it('enables the button and drops the tip when the levels are enough', () => {
-    const { game, render, button, open } = mount(1, 1);
+  it('lists only what is still missing: sleeve levels alone leave the action levels on the tip', () => {
+    const { game, render, button, open } = mount();
     open();
     setSleeveXp(game, num(1e6));
     render();
-    expect(button().disabled).toBe(false);
-    expect(buildViewModel(game).resleeveShortfall).toBeNull();
+    expect(button().disabled).toBe(true);
+    expect(buildViewModel(game).resleeveShortfall.map((r) => r.kind)).toEqual(['actionLevels']);
   });
 
-  it('after a re-sleeve the next one needs more, and the button says so again', () => {
-    const { game, render, button, open } = mount(1, 1e9);
+  it('enables the button and drops the tip when both totals are enough', () => {
+    const { game, render, button, open, setActionXp } = mount();
     open();
     setSleeveXp(game, num(1e6));
+    setActionXp(1e6);
+    render();
+    expect(button().disabled).toBe(false);
+    expect(buildViewModel(game).resleeveShortfall).toEqual([]);
+  });
+
+  it('after a re-sleeve the next one needs more than the last run reached, and the button says so again', () => {
+    const { game, render, button, open, setActionXp } = mount();
+    open();
+    setSleeveXp(game, num(1e6));
+    setActionXp(1e6);
     render();
     button().click();
     button().click();
     expect(game.getState().wallet.runs).toHaveLength(1);
     render();
     expect(button().disabled).toBe(true);
-    expect(buildViewModel(game).resleeveShortfall?.needed).toBe(1_000_000_001);
-    expect(hoverText(button())).toContain('sleeve levels');
+    const last = game.getState().wallet.runs[0]!;
+    expect(buildViewModel(game).resleeveShortfall.map((r) => r.needed)).toEqual([last.actionLevelsTotal + 1, last.sleeveLevelsTotal + 1]);
   });
 });

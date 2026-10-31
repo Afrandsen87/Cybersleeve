@@ -7,6 +7,8 @@ import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import {
   BRANCH_LEVERAGE,
+  PRACTICE_HACKING,
+  RARITY_REFINEMENT,
   KOMPROMAT,
   KOMPROMAT_HARVEST,
   PUSH_MALWARE,
@@ -106,6 +108,24 @@ export const leverageSkills: BuyableDefinition[] = [
     requires: [KOMPROMAT_HARVEST],
     cost: num(1),
     effect: { kind: 'rarityWeightBonus', itemId: KOMPROMAT, rarityId: 'crisis', amount: 0.1 },
+  },
+
+  {
+    id: RARITY_REFINEMENT,
+    name: 'Rarity refinement',
+    symbol: 'RR',
+    description:
+      'Increases the rarity of Kompromat drops based on Hacking Proficiency: for every doubling of your Hacking Proficiency (plus 1), 5% of each rarity moves up to the next rarity.',
+    currency: 'skillPoints',
+    branch: BRANCH_LEVERAGE,
+    parents: [SKILL_BLACK_LEDGER],
+    requires: [KOMPROMAT_HARVEST],
+    cost: num(1),
+    // The effect is per action (it shifts the drops of Practice Hacking's Kompromat harvest), so the skill names it although it is a skill.
+    actionId: PRACTICE_HACKING,
+    // steps = log_stepBase(1 + proficiency), continuous (works from low proficiency); each step moves fractionPerStep of every rarity's
+    // weight on to the next rarity, all worked out up front and moved at once
+    effect: { kind: 'rarityShiftFromProficiency', fractionPerStep: 0.05, stepBase: 2 },
   },
 
   {

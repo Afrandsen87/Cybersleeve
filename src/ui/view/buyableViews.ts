@@ -172,7 +172,7 @@ export function buildBuyableViews(
       name: b.name,
       description: b.description,
       symbol: b.symbol ?? initials(b.name),
-      actionId: b.actionId,
+      actionId: isPointCurrency(b.currency) ? undefined : b.actionId, // a skill that names an action (for its effect) is not on that action's card
       costText,
       costUnit,
       owned,

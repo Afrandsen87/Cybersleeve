@@ -22,7 +22,7 @@ import type { Wallet } from '../types';
 export function readRuns(v: unknown, factory: NumberFactory, infinity: number): Wallet['runs'] {
   if (!Array.isArray(v)) return [];
   return v.map((entry): Wallet['runs'][number] => {
-    if (!isRecord(entry)) return { creditsPerSecond: factory.fromNumber(0), actionLevelsTotal: 0 };
+    if (!isRecord(entry)) return { creditsPerSecond: factory.fromNumber(0), actionLevelsTotal: 0, sleeveLevelsTotal: 0 };
     let creditsPerSecond: BigNum;
     try {
       creditsPerSecond = readAmount(entry['creditsPerSecond'], factory);
@@ -35,6 +35,7 @@ export function readRuns(v: unknown, factory: NumberFactory, infinity: number): 
     return {
       creditsPerSecond,
       actionLevelsTotal: readCount(entry['actionLevelsTotal']),
+      sleeveLevelsTotal: readCount(entry['sleeveLevelsTotal']), // absent in older saves: 0 (see `migrateProgressionSave`)
       ...(isRecord(saved) ? { actionLevels } : {}),
     };
   });
@@ -52,6 +53,7 @@ export const runsSavePart: SavePart<unknown> = {
       runs: state.wallet.runs.map((r) => ({
         creditsPerSecond: r.creditsPerSecond.toString(),
         actionLevelsTotal: r.actionLevelsTotal,
+        ...(r.sleeveLevelsTotal > 0 ? { sleeveLevelsTotal: r.sleeveLevelsTotal } : {}), // absent reads as 0
         ...(r.actionLevels ? { actionLevels: { ...r.actionLevels } } : {}),
       })),
     },

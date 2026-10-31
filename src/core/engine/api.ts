@@ -132,8 +132,8 @@ export interface SleeveQueries {
   synthIncomeCeiling(sleeveId?: SleeveId): BigNum;
   /** True when the player may re-sleeve right now. */
   canResleeve(sleeveId?: SleeveId): boolean;
-  /** The sleeve levels the next re-sleeve needs and the player holds, or `null` when it needs none. */
-  resleeveRequirement(sleeveId?: SleeveId): ResleeveRequirement | null;
+  /** What the next re-sleeve needs (action levels and sleeve levels: held and needed); empty when it needs nothing. */
+  resleeveRequirements(sleeveId?: SleeveId): readonly ResleeveRequirement[];
   /** True while heat cannot cool or be reduced at all (an action is running with an Overclock that stops heat cooling). */
   heatCoolingBlocked(sleeveId?: SleeveId): boolean;
 }

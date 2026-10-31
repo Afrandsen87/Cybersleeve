@@ -81,10 +81,13 @@ export interface IceRatingTipParts {
   /** ICE Rating now. */
   readonly total: string;
   readonly orders: string;
-  readonly perOrderPercent: string;
+  /** Orders of magnitude at which the reduction is complete, e.g. `"100"`. */
+  readonly ordersForFull: string;
+  /** The curve's exponent, e.g. `"0.5"`. */
+  readonly exponent: string;
   readonly reductionPercent: string;
-  /** Where the reduction reaches 100%, e.g. `"1e200"`, or `null` when it never does. */
-  readonly fullAt: string | null;
+  /** Where the reduction reaches 100%, e.g. `"1e100"`. */
+  readonly fullAt: string;
 }
 
 /** Pre-formatted pieces of the Legend explanation. */

@@ -5,28 +5,34 @@ import { testConfig } from '../../testing/testConfig';
 import { earnedSkillPoints } from '..';
 import { skill, withSkills, mutable, grantPoint, skillGame } from '../../testing/skillsKit';
 
+const rule = { earlyThresholds: [1, 5], every: 10 };
+
 describe('earnedSkillPoints', () => {
   it.each([
     [[], 0],
     [[0], 0],
-    [[0, 0, 0], 0],
-    [[1], 1], // the first action level-up gives the first point
-    [[9], 1],
-    [[4, 5], 1], // a total of 9
-    [[10], 2],
-    [[5, 5], 2],
-    [[99], 2],
-    [[100], 3],
-    [[60, 40], 3],
-    [[999], 3],
-    [[1000], 4],
-    [[1e9], 10],
+    [[1], 1], // the first action level-up
+    [[4], 1],
+    [[2, 3], 2], // a total of 5
+    [[9], 2],
+    [[10], 3],
+    [[6, 4], 3],
+    [[19], 3],
+    [[20], 4],
+    [[30], 5],
+    [[1e9], 2 + 1e8],
   ])('levels %j give %d points', (levels, points) => {
-    expect(earnedSkillPoints(levels)).toBe(points);
+    expect(earnedSkillPoints(levels, rule)).toBe(points);
   });
 
   it('ignores negative and non-finite levels', () => {
-    expect(earnedSkillPoints([-5, Number.NaN, Number.POSITIVE_INFINITY])).toBe(0);
+    expect(earnedSkillPoints([-5, Number.NaN, Number.POSITIVE_INFINITY], rule)).toBe(0);
+    expect(earnedSkillPoints([-5, 5], rule)).toBe(2);
+  });
+
+  it('follows the rule it is given', () => {
+    expect(earnedSkillPoints([3], { earlyThresholds: [], every: 3 })).toBe(1);
+    expect(earnedSkillPoints([2], { earlyThresholds: [], every: 3 })).toBe(0);
   });
 });
 
@@ -67,7 +73,7 @@ describe('skill points as a currency', () => {
     expect(g.skillPoints()).toBe(0);
     mutable(g).actions['a']!.xp = num(10); // action level 1 (testConfig: level 1 at 10 XP)
     expect(g.actionLevel('a')).toBe(1);
-    expect(g.skillPoints()).toBe(0); // a total of 1: still the first order of magnitude
+    expect(g.skillPoints()).toBe(0); // the one point of a total of 1 is already spent
     mutable(g).actions['a']!.xp = num('1.1e11'); // a high level, total well past 10
     expect(g.actionLevel('a')).toBeGreaterThanOrEqual(10);
     expect(g.skillPoints()).toBeGreaterThanOrEqual(1);
@@ -82,10 +88,11 @@ describe('skill points as a currency', () => {
     // Level 5 on each of two actions is a total of 10
     for (const id of ['a', 'b']) mutable(g).actions[id]!.xp = num(11_110); // level 4
     expect(g.actionLevel('a') + g.actionLevel('b')).toBe(8);
-    expect(g.skillPoints()).toBe(1);
+    expect(g.skillPoints()).toBe(2); // a total of 8: the points at 1 and 5
     mutable(g).actions['b']!.xp = num(111_110); // level 5: total 9
-    mutable(g).actions['a']!.xp = num(111_110); // level 5: total 10
     expect(g.skillPoints()).toBe(2);
+    mutable(g).actions['a']!.xp = num(111_110); // level 5: total 10
+    expect(g.skillPoints()).toBe(3);
     // sleeve levels do not add points
     const h = createGame({ config });
     mutable(h).actions['a']!.sleeveXp = num('1e12');

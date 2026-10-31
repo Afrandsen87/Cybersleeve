@@ -12,7 +12,6 @@ import {
   BRANCH_SYNTHETICS,
   RESLEEVE_SKILLS,
   SKILL_INCORPORATION,
-  SKILL_PERFECT_COPIES,
   SKILL_REFLEX_ARCHIVE,
   SKILL_RESIDUAL_FIREWALL,
   SKILL_RESIDUAL_PROFICIENCY,
@@ -38,17 +37,19 @@ describe('the real re-sleeve skill tree', () => {
     for (const b of skills) for (const p of b.parents ?? []) expect(byId.get(p)?.branch, `${b.id} parent`).toBe(b.branch);
   });
 
-  it('never costs less than its parent, and Perfect Copies, the end of the synthetics lane, costs 5', () => {
-    for (const b of skills) for (const p of b.parents ?? []) expect(b.cost.gte(byId.get(p)!.cost), `${b.id} vs ${p}`).toBe(true);
-    expect(byId.get(SKILL_PERFECT_COPIES)!.cost.eq(num(5))).toBe(true);
+  it('costs one re-sleeve point for every skill, so depth in the tree is the only price', () => {
+    for (const b of skills) {
+      expect(b.cost.eq(num(1)), b.id).toBe(true);
+      expect(b.costGrowth, b.id).toBeUndefined();
+    }
   });
 
-  it('puts Residual Proficiency at the 6th re-sleeve point of the cheapest route, so it is not an early skill', () => {
+  it('puts Residual Firewall further down the cheapest route than Residual Proficiency, which is not a root', () => {
     const cheapestRoute = (id: string): number => {
       const b = byId.get(id)!;
       return Number(b.cost.toNumber()) + (b.parents ?? []).reduce((sum, p) => sum + cheapestRoute(p), 0);
     };
-    expect(cheapestRoute(SKILL_RESIDUAL_PROFICIENCY)).toBe(6);
-    expect(cheapestRoute(SKILL_RESIDUAL_FIREWALL)).toBe(10);
+    expect(cheapestRoute(SKILL_RESIDUAL_PROFICIENCY)).toBeGreaterThan(1);
+    expect(cheapestRoute(SKILL_RESIDUAL_FIREWALL)).toBeGreaterThan(cheapestRoute(SKILL_RESIDUAL_PROFICIENCY));
   });
 });
