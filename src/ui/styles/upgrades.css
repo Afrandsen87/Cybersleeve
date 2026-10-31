@@ -139,7 +139,8 @@
   color: var(--info);
   text-shadow: 0 0 3px var(--bg);
 }
-.upgrade.tile.purchasable:not(:disabled):not(.skill-node) {
+/* Extra tile specificity overrides owned glows without changing square buttons. */
+.upgrade.tile.purchasable:not(:disabled):not(.maxed):not(.skill-node) {
   border-color: var(--afford);
   color: var(--afford);
   box-shadow: 0 0 10px -3px var(--afford);
@@ -150,6 +151,10 @@
 .upgrade.tile.poor::before {
   opacity: 0.4;
   filter: grayscale(0.7);
+}
+.upgrade.tile.maxed {
+  border-color: var(--teal);
+  box-shadow: none;
 }
 .upgrade.tile.maxed .price {
   color: var(--teal);
