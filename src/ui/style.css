@@ -1089,16 +1089,16 @@ button:not(:disabled):hover {
  * Action-card toggle cells (Auto-run, Overclock, Focus and its two halves), once bought: golden border and a full-colour icon, unlit
  * while off and lit in gold while on (the glow always matches the border).
  */
-.square > .upgrade.maxed,
+.square-grid > .upgrade.maxed,
 .square > .cell-half:not(.on) {
   border-color: var(--gold);
   color: var(--gold);
   text-decoration: none;
 }
-.square > .upgrade.maxed.has-icon::before {
+.square-grid > .upgrade.maxed.has-icon::before {
   filter: none;
 }
-.square > .upgrade.maxed.on,
+.square-grid > .upgrade.maxed.on,
 .square > .cell-half.on {
   background: #2a2208;
   border-color: var(--gold);
