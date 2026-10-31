@@ -1,11 +1,19 @@
 import type { TabAttention } from './tabAttention';
 
-/** Display data of one stack of items (one item in one rarity). */
+/** Display data of one stack. Called by: inventoryView, inventorySlots. Calls: nothing. */
 export interface InventoryRowView {
   readonly itemId: string;
   readonly rarityId: string;
   /** E.g. `"Common Kompromat file"`; just the item's name for an item without rarity. */
   readonly label: string;
+  /** Item-only title. */
+  readonly name: string;
+  /** Rarity or consumable caption. */
+  readonly caption: string;
+  /** Lazy formatted single-item gain; null for kept items. */
+  readonly sellOneText: string | null;
+  /** Lazy formatted stack gain; null for kept items. */
+  readonly sellAllText: string | null;
   /** Short text shown on the tile when the item has no icon (the initials of the item's name). */
   readonly symbol: string;
   /** Position of the rarity in the list of rarities (0 = most common), for colouring the tile; `null` for an item without rarity. */
@@ -53,11 +61,13 @@ export interface ViewSelection {
 /** Nothing selected. */
 export const NO_SELECTION: ViewSelection = { augmentRarityId: null };
 
-/** Display data of the Inventory widget. */
+/** Inventory display data. Called by: inventoryView, inventoryWidget. Calls: nothing. */
 export interface InventoryView {
+  /** Rarities with shown sellable rows, in content order. */
+  readonly legend: readonly { readonly rarityIndex: number; readonly name: string }[];
   readonly title: string;
   /** The widget is shown once something can drop or is held. */
   readonly visible: boolean;
-  /** One row per item and rarity in the configuration, most common first (one row for an item without rarity); rows with a count of 0 are hidden by the screen. */
+  /** One row per item and rarity, most common first (one row without rarity); unseen rows are hidden and seen empty rows stay dimmed. */
   readonly rows: readonly InventoryRowView[];
 }

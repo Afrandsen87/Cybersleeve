@@ -27,6 +27,7 @@ Read this before adding or changing any stat, bar, button, purchase, skill, tree
 - Heat (with ICE Rating) exists once an open action makes heat, or an Overclock unlock that makes heat is owned or shown in the action's square (`ui/view/squareRules.ts` owns "shown"; heat-making is `overclockMakesHeat` in `core/heat/heatMakers.ts`: `heatPerMinute > 0` or the action makes heat itself).
 - Auto Burn (Automation tab): each switch, threshold input and the reserve input stays hidden until the lane skill that adds it is owned (`AutoBurnControls.stepOwned`); the Burn lead tile is a click that uses a lead until the lane's first skill makes it a toggle.
 - The Inventory, an item group and each rarity row show only once that item and rarity has been seen (`Wallet.seenItems`) or is held. A drop upgrade alone shows nothing.
+- The Inventory rarity legend includes only rarities with a shown sellable row; kept-only rows reveal no sale tier.
 - The Augment cell on an action's square is empty until an owned buyable drops the schematic item (`ui/view/dropSource.ts`).
 
 ## Reveal checklist (every new or changed stat, skill, tree, buyable, tooltip or text)

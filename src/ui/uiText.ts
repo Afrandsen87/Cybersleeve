@@ -1,7 +1,9 @@
 import { autoBurnText } from './autoBurnText';
 import { formatPlain } from '../numbers';
 
+import { stashText } from './stashText';
 import { hudText } from './hudText';
+import { upgradeText } from './upgradeText';
 import { tipText } from './tipText';
 
 export * from './uiTextParts';
@@ -12,6 +14,7 @@ export type { UiText };
 
 /** The default (placeholder) text of the game. */
 export const uiText: UiText = {
+  stash: stashText,
   perSecond: (amount) => `${amount}/s`,
   format: {
     speed: (value) => `x${value}`,
@@ -25,8 +28,7 @@ export const uiText: UiText = {
     sleeve: 'Sleeve',
     network: 'Network',
     inventory: 'Inventory',
-    upgrades: 'Sleeve Improvements',
-    exploitation: 'Network Exploitation',
+    upgrades: 'Upgrades',
     skills: 'Skills',
     resleeveSkills: 'Sleeve skills',
     stats: 'Stats',
@@ -105,7 +107,7 @@ export const uiText: UiText = {
     sellAll: 'Sell all',
     backChannel: 'Back channel',
   },
-  sections: { rebuyable: 'Rebuyable', oneTime: 'One-time', nodes: 'Paid in nodes' },
+  sections: { sleeve: 'SLEEVE', network: 'NETWORK' },
   statLabels: {
     access: 'Access Level',
     interfaceSpeed: 'Interface speed',
@@ -181,6 +183,7 @@ export const uiText: UiText = {
   },
   tips: tipText,
   mainScreen: hudText,
+  upgradeTiles: upgradeText,
   resleeve: {
     idle: 'Re-sleeve',
     armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a sleeve skill point.',

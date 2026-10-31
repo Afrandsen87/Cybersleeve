@@ -20,6 +20,14 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 - **Style folder:** `ui/style.css` is the base; area files live in `ui/styles/` (list in `docs/ARCHITECTURE.md`).
 - **Widgets only draw view fields:** `widgets/hud.ts` (credits, rate, tabs), `widgets/tabBar.ts` (badge from `TabView.count`, colour by `data-tab` in CSS), `widgets/heatGauge.ts` (fill by `transform`, tax zone from `strip.taxStartPercent`), `widgets/statWidget.ts` (group headers, hidden bars, `StatRowView.tone` as `data-tone`). `networkView` sets the tone (income gain, a taxed +0 danger, nodes info). The re-sleeve box title is `SleeveView.resleeveTitle`.
 
+## Inventory stash (2026-10-31)
+
+- Named two-column slots show the real pixel icon, item name, rarity caption (uppercase, rarity colour) or CONSUMABLE, and count; an empty stack dims. Existing select, augment, use and toggle interactions remain.
+- `view/inventoryView.ts` supplies lazy `sellOneText` / `sellAllText` from the same `engine.sellValue(rarity)` price as the tip, multiplying only with BigNum. Kept items return null; the widget never calculates a sale price.
+- The For sale legend lists only rarities with a shown sellable row, in rarity order. `widgets/inventoryWidget.ts` replaces its entries only when the rarity-index sequence changes. Sell gains clear and buttons disable when selection drops; Back channel is unchanged.
+- `widgets/inventorySlots.ts` owns slot construction/rendering. `parts/stashText.ts` defines StashText; `stashText.ts` supplies `uiText.stash` captions and gains through `uiTextParts.ts` / `uiTextTypes.ts`. Shared tests use `testing/inventoryKit.ts` (testConfig-based stock/seen helpers).
+- Presentation only: no tuning, save or mechanic change; no new assumptions about sleeve, corporation or prestige counts.
+
 ## Reveal ledger and tab blink
 
 **Reveal ledger** (`wallet.revealed`, `economy/revealLedger.ts`): a set of typed keys `stat:<id>`, `tab:<id>`, `skill:<id>`, `buyable:<id>` for everything the player has ever been shown. Only grows; survives a re-sleeve (`CARRIED_OVER_WALLET_FIELDS`). Queries never write it: each view build uses one `RevealTracker` (`ui/view/revealTracker.ts`) that says "shown" when the key is noted or the natural rule says so now, and collects keys that are new into `ViewModel.newlyRevealed`; `ui/dom.ts` then calls the engine command `noteRevealed(keys)` only when that list is not empty. Unknown and repeated keys are ignored (ids are resolved against the content, not a branch). Tabs: `tabsView` takes the tracker and a `TabAttention` (held by `ui/dom.ts` in `UiSelection`); `BuyableView.gated` marks a remembered purchase whose requirements are unmet (class `gated`, greyed).
@@ -67,3 +75,11 @@ The autosale branch uses the existing first-parent placeNodes layout: slot 3 has
 ## Auto Burn panel
 
 `ui/view/autoBurnView.ts` builds the owner-sourced panel data (`autoBurnViewTypes.ts`); `autoBurnStrip.ts` owns finite strip geometry (zones, the live zone, the red zone hidden until Redline Trigger). `ui/widgets/autoBurnPanel.ts` mounts persistent status, notch and protocol DOM from the parts in `autoBurnParts.ts` (LEDs, chip lists, notches, number inputs); chip lists rebuild only when target IDs change. Restart chips for an Auto-run or Overclock the sleeve does not own are `locked` (red border, no click, tooltip via `ctx.tips`). `ui/autoBurnText.ts` supplies the panel wording through `uiText.ts`, and `ui/autoBurn.css` scopes the mockup styles. `content/autoBurnSkillIcons.ts` supplies distinct protocol art, spread by `automationSkillIcons.ts`; placeholder lanes keep progress bars. `widgets/domKit.ts` exports `syncInput` so both automation widgets preserve focused input text. `autoBurnStrip.test.ts`, `autoBurnView.test.ts` and `autoBurnUi.test.ts` cover geometry, reveal/owner values and command wiring using `testing/autoBurnKit.ts` (based on `testConfig.ts`).
+
+## Upgrades panel (B1, 2026-10-31)
+
+One Upgrades panel replaces the two purchase widgets. Cached `sectionLayout` groups by currency (SLEEVE for credits, NETWORK for nodes), excluding action, point, corporate and re-sleeve gate purchases. `view/upgradeRows.ts` stably moves bought one-time purchases first; each partition retains base-price order. Maxed repeatables keep their place. Empty and wholly unrevealed rows show no label.
+
+`widgets/upgradeButtons.ts` opts into tile mode through `uiText.upgradeTiles` (`parts/upgradeText.ts`, `upgradeText.ts`). Tiles retain pixel icons above a price strip, show MAX from the owner maxed flag, and show an owned badge only for repeatables with copies. Gold means affordable; teal means MAX. Existing action and skill callers retain square buttons. `sleeveWidgets.ts` compares cached row IDs element by element and appends existing buttons only when order changes; equal order allocates no order array. Tests: `upgradeRows.test.ts`, `upgradeTiles.dom.test.ts`; shared engine and mount setup: `testing/testConfig.ts`, `testing/domMountKit.ts`. No game, save, tuning or layer assumptions change.
+
+The existing large view-model suite is split into `viewModel.test.ts` (unlock, sleeve and reveal views) and `viewModelDetails.test.ts` (general formatting, node values and critical highlights), retaining shared `testing/gameKit.ts` setup.

@@ -135,10 +135,10 @@ body::after {
   gap: 14px;
   align-items: stretch; /* the right-hand column is as tall as the Sleeve widget */
 }
-/* Network, Sleeve Improvements and Network Exploitation share the width in thirds; Inventory spans all below them. */
+/* Network and Upgrades share the width in halves; Inventory spans all below them. */
 .dashboard-right {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: 1fr auto; /* the widgets in the first row absorb any spare height; Inventory keeps its own */
   gap: 14px;
   align-items: stretch; /* widgets in a row are equally tall, so no gaps open between them */

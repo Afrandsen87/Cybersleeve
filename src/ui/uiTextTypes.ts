@@ -11,7 +11,9 @@ import type { AutoBurnText } from './autoBurnText';
 import type { AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
 import type { TipTexts } from './tipTextTypes';
 import type { ActionText } from './parts/actionText';
+import type { StashText } from './parts/stashText';
 import type { MainScreenText } from './parts/hudText';
+import type { UpgradeTileText } from './parts/upgradeText';
 
 import type { SleeveSectionId, StatId } from './uiTextParts';
 
@@ -19,6 +21,8 @@ export * from './uiTextParts';
 
 /** All display text of the interface. */
 export interface UiText {
+  /** Inventory slot captions and gains. */
+  readonly stash: StashText;
   /** An amount per second, e.g. `"0.015/s"`. */
   perSecond(amount: string): string;
   /** Small display forms of numbers that other texts are built from. */
@@ -36,13 +40,12 @@ export interface UiText {
   };
   /** The balance line, e.g. `"12 credits"`. */
   credits(amount: string): string;
-  /** Widget titles. `upgrades` heads the widget with the sleeve-wide purchases paid in credits, `exploitation` the one with those paid in nodes. */
+  /** Widget titles; upgrades heads both currency rows. */
   readonly titles: {
     readonly sleeve: string;
     readonly network: string;
     readonly inventory: string;
     readonly upgrades: string;
-    readonly exploitation: string;
     readonly skills: string;
     readonly resleeveSkills: string;
     readonly stats: string;
@@ -148,6 +151,8 @@ export interface UiText {
   readonly tips: TipTexts;
   /** The top bar, the Sleeve stat groups, the heat gauge and the panel status lights. */
   readonly mainScreen: MainScreenText;
+  /** Wording for opt-in purchase tiles. */
+  readonly upgradeTiles: UpgradeTileText;
 
   readonly resleeve: {
     readonly idle: string;

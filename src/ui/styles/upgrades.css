@@ -89,3 +89,78 @@
   border-color: var(--teal);
   box-shadow: 0 0 8px var(--teal);
 }
+
+/* Price-strip tiles are opt-in; action cards and skill buttons retain their existing look. */
+.shop-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  margin-top: 8px;
+}
+.row-label {
+  font: 700 10px var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 14px;
+}
+.upgrade.tile {
+  width: 52px;
+  height: 58px;
+  display: block;
+  padding: 0 0 20px;
+  line-height: 36px;
+  overflow: hidden;
+  border-radius: 6px;
+  border-color: var(--line);
+  background: var(--panel-2);
+  box-shadow: none;
+}
+.upgrade.tile.has-icon::before {
+  inset: 5px 9px 23px;
+}
+.upgrade.tile .price {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 2px 0;
+  border-top: 1px solid var(--line);
+  font: 700 10px var(--mono);
+  color: var(--muted);
+  background: var(--bg);
+}
+.upgrade.tile .own {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font: 700 9px var(--mono);
+  color: var(--info);
+  text-shadow: 0 0 3px var(--bg);
+}
+/* Extra tile specificity overrides owned glows without changing square buttons. */
+.upgrade.tile.purchasable:not(:disabled):not(.maxed):not(.skill-node) {
+  border-color: var(--afford);
+  color: var(--afford);
+  box-shadow: 0 0 10px -3px var(--afford);
+}
+.upgrade.tile.purchasable .price {
+  color: var(--afford);
+}
+.upgrade.tile.poor::before {
+  opacity: 0.4;
+  filter: grayscale(0.7);
+}
+.upgrade.tile.maxed {
+  border-color: var(--teal);
+  box-shadow: none;
+}
+.upgrade.tile.maxed .price {
+  color: var(--teal);
+}
+/* Author display rules must preserve the reveal ledger's hidden state. */
+.shop-row[hidden],
+.upgrade.tile[hidden] {
+  display: none;
+}

@@ -2,11 +2,11 @@ import type { SleeveSectionId, StatId } from '../uiText';
 import type { BuyableView } from './buyableViewTypes';
 import type { HeatStripLayout } from './heatStrip';
 
-/** A titled group of Sleeve purchases. */
+/** A currency row of sleeve-wide purchases. Called by: sleeveView, sleeveWidgets. Calls: nothing. */
 export interface SleeveSection {
   readonly id: SleeveSectionId;
   readonly title: string;
-  /** Sorted by base price, lowest first. */
+  /** Bought one-time first, then the rest, each in base-price order. */
   readonly buyables: readonly BuyableView[];
 }
 
@@ -79,7 +79,7 @@ export interface SleeveView {
   readonly resleeveTitle: string;
   /** The sleeve-wide purchases, in configuration order. */
   readonly buyables: readonly BuyableView[];
-  /** The same purchases grouped for display (rebuyable, one-time, paid in nodes), each sorted by base price. Empty groups are left out. */
+  /** The same purchases grouped for display in currency rows, bought one-time first then base price. Empty groups are left out. */
   readonly sections: readonly SleeveSection[];
 }
 

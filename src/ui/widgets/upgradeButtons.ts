@@ -8,20 +8,42 @@
  */
 import type { IconSource } from '../pixelIcon';
 import type { TipRegistry } from '../tooltip';
-import type { BuyableView, SleeveSection } from '../viewModel';
-import { applyIcon, h } from './domKit';
+import type { BuyableView } from '../viewModel';
+import type { UpgradeTileText } from '../uiText';
+import { applyIcon, h, setText } from './domKit';
 
-/** Builds a row of square purchase buttons; clicking one calls `buy(id)`. */
+/** The wording and the price strip and badge of each opt-in tile, so a render reads no DOM. */
+const tileParts = new WeakMap<
+  HTMLButtonElement,
+  { readonly text: UpgradeTileText; readonly price: HTMLElement; readonly own: HTMLElement }
+>();
+
+/** Builds persistent purchase buttons; optional tile wording adds price strips and badges.
+ * Called by: sleeveWidgets, actionCards, skillsPanel, corporationPanel. Calls: applyIcon, h, buy on click.
+ * @param views initial purchases (not modified)
+ * @param buy click handler receiving a purchase id
+ * @param icons pixel icon source
+ * @param tile opt-in tile wording; omitted preserves square buttons
+ * @returns row element and persistent buttons keyed by id
+ */
 export function upgradeRow(
   views: readonly BuyableView[],
   buy: (id: string) => unknown,
   icons: IconSource,
+  tile?: UpgradeTileText,
 ): { element: HTMLElement; buttons: Map<string, HTMLButtonElement> } {
   const element = h('div', 'upgrades');
   const buttons = new Map<string, HTMLButtonElement>();
   for (const b of views) {
     const upgrade = h('button', 'upgrade', b.symbol) as HTMLButtonElement;
     applyIcon(upgrade, icons.urlFor(b.id));
+    if (tile) {
+      upgrade.classList.add('tile');
+      const price = h('span', 'price');
+      const own = h('span', 'own');
+      upgrade.append(price, own);
+      tileParts.set(upgrade, { text: tile, price, own });
+    }
     upgrade.setAttribute('aria-label', b.name);
     upgrade.addEventListener('click', () => buy(b.id));
     element.append(upgrade);
@@ -30,22 +52,12 @@ export function upgradeRow(
   return { element, buttons };
 }
 
-/** Adds one row of purchase buttons (with its title, unless the widget's own heading already says it) to a widget and registers its buttons. */
-export function addSection(
-  widget: HTMLElement,
-  section: SleeveSection,
-  buy: (id: string) => unknown,
-  into: Map<string, HTMLButtonElement>,
-  withTitle: boolean,
-  icons: IconSource,
-): void {
-  const row = upgradeRow(section.buyables, buy, icons);
-  if (withTitle) widget.append(h('h3', 'section-title', section.title));
-  widget.append(row.element);
-  for (const [id, button] of row.buttons) into.set(id, button);
-}
-
-/** Updates square purchase buttons (visibility, enabled state, hover tooltip text) from their view data. */
+/** Updates button visibility, states, lazy tips and opt-in tile labels from owner-sourced views.
+ * Called by: sleeveWidgets, actionCards, skillsPanel, corporationPanel. Calls: setText, TipRegistry.set.
+ * @param buttons persistent buttons keyed by purchase id
+ * @param views current purchase data (not modified)
+ * @param tips lazy hover registry
+ */
 export function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, views: readonly BuyableView[], tips: TipRegistry): void {
   for (const b of views) {
     const upgrade = buttons.get(b.id);
@@ -58,6 +70,13 @@ export function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, 
     upgrade.classList.toggle('maxed', b.maxed);
     upgrade.classList.toggle('gated', b.gated);
     upgrade.classList.toggle('purchasable', b.available && !b.maxed && b.affordable);
+    const tile = tileParts.get(upgrade);
+    if (tile) {
+      setText(tile.price, b.maxed ? tile.text.max : b.costText);
+      setText(tile.own, tile.text.owned(b.ownedText));
+      tile.own.hidden = !(b.repeatable && b.owned > 0);
+      upgrade.classList.toggle('poor', b.available && !b.maxed && !b.affordable);
+    }
     tips.set(upgrade, () => b.tip);
   }
 }
