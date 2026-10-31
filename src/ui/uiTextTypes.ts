@@ -203,6 +203,9 @@ export interface UiText {
     readonly exported: string;
     readonly exportFailed: string;
     readonly importPrompt: string;
+    readonly wipe: string;
+    readonly wipeTip: string;
+    readonly wipeConfirm: string;
     readonly imported: string;
     readonly importInvalid: string;
   };

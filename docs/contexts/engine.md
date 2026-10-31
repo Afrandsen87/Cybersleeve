@@ -17,7 +17,7 @@ Code: `src/core/engine/` (see `docs/contexts/_folders.md`). Text below is moved 
 - The game keeps running while the window is unfocused: the loop measures real elapsed time and simulates the whole gap. Gaps over 10 minutes are capped; offline progress is not implemented.
 - **Tick size does not matter:** a long tick is cut into slices of at most 1 s (at most 64), so one long tick and many short ones give the same result including feedback such as interface speed rising with every run.
 - One tab plays: a second tab or window is told the game is taken before it loads the save.
-- The save is written every 10 s, when the page is hidden and when it closes. The last good save is kept as a fallback; the player can copy the save as text and paste one back (Export save / Import save).
+- The save is written every 10 s, when the page is hidden and when it closes. The last good save is kept as a fallback; the player can copy the save as text and paste one back (Export save / Import save). A Wipe save button beside the Changelog button deletes the game and the save after a confirm dialog (same handler as the test aid Reset save).
 
 ## Architecture (from docs/ARCHITECTURE.md)
 
