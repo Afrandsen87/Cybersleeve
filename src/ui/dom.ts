@@ -79,7 +79,13 @@ export function mountUi(
 ): () => void {
   const text = options.text ?? defaultText;
   const icons = options.icons ?? noIcons;
-  const selection: UiSelection = { augmentRarityId: null, revealAll: false, tabAttention: new TabAttention(), activeTab: 'character' };
+  const selection: UiSelection = {
+    firmwareSelected: null,
+    augmentRarityId: null,
+    revealAll: false,
+    tabAttention: new TabAttention(),
+    activeTab: 'character',
+  };
   const initial = buildViewModel(engine, undefined, text, selection);
   root.innerHTML = '';
   const tips = new TipRegistry();

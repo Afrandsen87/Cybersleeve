@@ -35,13 +35,13 @@ describe('a masked skill is never purchasable', () => {
     expect(node.view.affordable).toBe(false);
   });
 
-  it('its button is disabled and does not carry the purchasable highlight', () => {
+  it('its button can be inspected but does not carry the purchasable highlight', () => {
     document.body.innerHTML = '';
     const root = document.createElement('div');
     document.body.append(root);
     mountTestUi(root, createGame({ config }));
     const button = [...root.querySelectorAll<HTMLButtonElement>('.skill-node')].find((b) => b.classList.contains('masked'))!;
-    expect(button.disabled).toBe(true);
+    expect(button.disabled).toBe(false);
     expect(button.classList.contains('purchasable')).toBe(false);
   });
 });

@@ -156,14 +156,15 @@ export function skillsView(
     title: text.titles.skills,
     points: engine.skillPoints(),
     pointsText: text.skills.points(formatPlain(engine.skillPoints())),
-    note: text.skills.note,
-    noteVisible: anyMasked(lanes) || (resleeveVisible && anyMasked(resleeveLanes)),
+    pointsValueText: formatPlain(engine.skillPoints()),
+    legendVisible: anyMasked(lanes) || (resleeveVisible && anyMasked(resleeveLanes)),
     lanes,
     resleeve: {
       title: text.titles.resleeveSkills,
       visible: resleeveVisible,
       points: engine.resleevePoints(),
       pointsText: text.skills.resleevePoints(formatPlain(engine.resleevePoints())),
+      pointsValueText: formatPlain(engine.resleevePoints()),
       lanes: resleeveLanes,
     },
   };

@@ -81,6 +81,10 @@ Skill Transfer adds Practice Hacking's sleeve level to Grow network's effective 
 
 *Moved to [docs/contexts/skills.md](docs/contexts/skills.md).*
 
+The Firmware tab shows its main branches as side-by-side cards, each with a purpose, installed/total count and segmented progress. Gold firmware-point and magenta sleeve-firmware-point readouts show the points available. Nodes distinguish installed, affordable, available, locked and encrypted firmware; a legend explains these states while any displayed firmware is encrypted. Encrypted nodes count in branch totals because their places are already visible, but disclose no names, descriptions or costs; an entirely encrypted branch hides its purpose.
+
+Hover previews firmware and lights its parent paths; clicking pins the selection in the inspector. **INSTALL buys the selected firmware; clicking a node on this tab only selects it.** The inspector shows the full effect, requirements, what unlocks next, cost and any reason installation is unavailable. Automation still buys on node click. Sleeve Firmware retains its joined tree, with a labelled Sleeve Up! trunk and a persistent frame: installed Sleeve Firmware is kept across re-sleeves. Its existing reveal gates still apply.
+
 ### 8b. Automation
 
 *Moved to [docs/contexts/automation.md](docs/contexts/automation.md).* Kompromat autosale is unlocked per rarity; its fork adds auto Back Channel before autosale. Augment dispersal applies permitted rarities evenly to selected unlocked actions; its chain grants up to six selections. Removed placeholders refund their automation points on load.

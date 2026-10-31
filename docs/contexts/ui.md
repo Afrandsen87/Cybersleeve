@@ -4,6 +4,17 @@ Rendering, view models, text, tooltips, layout.
 
 Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+## Firmware tab presentation (2026-10-31)
+
+- `view/firmwareNodeState.ts` owns `nodeState`: installed > encrypted > locked > affordable > available, shared with Automation. The widget maps that view state to a class rather than deriving affordability or gating.
+- `view/firmwareInspector.ts` owns `buildInspectorView` and `defaultSelection`: first affordable node, otherwise the first branch's root. It reads existing node views and formatted balances; it never computes prices, effects or affordability. Encrypted nodes expose only `???`, their state and the generic reveal hint, with no icon, cost or relation-name leaks.
+- `view/firmwareBranches.ts` owns `branchSummary`: installed nodes over all nodes, including encrypted places already shown by the tree reveal exception. Purpose is hidden while every node is encrypted. Purpose lines are approved mockup placeholders in `ui/firmwareText.ts`, exposed as `uiText.firmware`.
+- `widgets/skillsPanel.ts` coordinates the two-column layout, current pool readouts, encrypted-state legend and inspector. `UiSelection.firmwareSelected` pins a node in UI memory only; widget-local hover previews return to that selection or the default on tree exit. A Firmware node click selects; `widgets/firmwareInspector.ts` calls `ctx.activate` once and `ctx.refresh` on INSTALL. Automation keeps node-click activation.
+- `view/skillTreePaths.ts` owns loop-safe all-parent `pathToRoot` and `childrenOf`. `widgets/skillTreeEdges.ts` owns SVG geometry and node/edge hover classes, updated per hover rather than per frame. `widgets/skillTree.ts` detects ownership increases between renders and adds CSS install/flow classes, removed on animation completion; first render never animates an existing installation.
+- `styles/firmware.css` owns cards, inspector and legend; `styles/skills.css` retains shared node-state visuals, geometry and branch colours. Main cards use 38 px nodes, 54 px columns and 50 px rows, supplied once by widget geometry to CSS and SVG. Automation retains its spacing. `styles/panels.css` supplies shared `.panel` chrome; reduced motion disables pulse, static and install feedback.
+- Reveal checklist: readouts follow the existing tab/pool visibility; legend appears only while a displayed node is encrypted; branch purposes wait for a readable node; encrypted inspection reveals no content. Sleeve Firmware remains subject to the existing first-re-sleeve and parent gates. Persistence wording was verified against `CARRIED_OVER_BUYABLE_CURRENCIES` and the currency descriptor's `carriedOverResleeve` flag.
+- Impact and layer readiness: UI only, with the current sleeve's point pools and existing currency words; no mechanics, save fields, tuning, global singleton, copy iteration or assumption about additional corporations/prestige layers is added.
+
 ## Main screen view (2026-10-31)
 
 - **Panel precision:** panel stat values keep `PANEL_DIGITS` (4) significant figures through `formatSignificant` (`numbers/format.ts`; from 1000 it hands over to the `formatBigNum` suffixes). Tooltips keep full precision.

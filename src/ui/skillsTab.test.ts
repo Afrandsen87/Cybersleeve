@@ -146,14 +146,16 @@ describe('the screen', () => {
   it('shows a button for every skill with the points, and buying one updates the tab and the points', () => {
     const { root, game, render } = mount();
     const buttons = [...root.querySelectorAll<HTMLButtonElement>('.skills-widget .upgrade')];
-    expect(buttons.map((b) => b.textContent)).toEqual(['S1', 'S2', 'BC']);
-    expect(root.querySelector('.skills-points')!.textContent).toBe('Firmware points: 1');
+    expect(buttons.map((b) => b.querySelector('.node-symbol')?.textContent)).toEqual(['S1', 'S2', 'BC']);
+    expect(root.querySelector('.firmware-points .n')!.textContent).toBe('1');
     buttons[0]!.click();
+    expect(game.ownedCount('s1')).toBe(0);
+    root.querySelector<HTMLButtonElement>('.firmware-install')!.click();
     expect(game.ownedCount('s1')).toBe(1);
     render(); // the game loop redraws the screen a moment after a click
-    expect(root.querySelector('.skills-points')!.textContent).toBe('Firmware points: 0');
+    expect(root.querySelector('.firmware-points .n')!.textContent).toBe('0');
     expect([...root.querySelectorAll('.tab-label')][1]!.textContent).toBe('Firmware');
-    expect(buttons[1]!.disabled).toBe(true);
+    expect(buttons[1]!.disabled).toBe(false);
     expect(buttons[0]!.classList.contains('owned')).toBe(true);
   });
 

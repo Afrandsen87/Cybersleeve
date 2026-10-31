@@ -15,6 +15,8 @@ import type { UiText } from '../uiText';
 
 /** What the player has selected on the screen (see `ViewSelection`); the widgets that let the player choose write it. */
 export interface UiSelection {
+  /** Pinned Firmware inspector node; UI memory only, never saved. */
+  firmwareSelected: string | null;
   /** The rarity of Augment schematic selected in the Inventory, or `null`. */
   augmentRarityId: string | null;
   /** Test aid: show everything the rules of the game hide (the "Show all" button). */
@@ -89,6 +91,25 @@ export function applyIcon(el: HTMLElement, url: string | null): void {
 /** Sets an element's text only when it changed, so an unchanged frame touches nothing in the DOM. */
 export function setText(el: HTMLElement, text: string): void {
   if (el.textContent !== text) el.textContent = text;
+}
+
+/** Changes a class only when its presence changes, avoiding idle-frame DOM mutations.
+ * Called by: Firmware widgets. Calls: DOMTokenList.toggle.
+ * @param element DOM node, including SVG edges
+ * @param name CSS class
+ * @param enabled desired presence
+ */
+export function setClass(element: Element, name: string, enabled: boolean): void {
+  if (element.classList.contains(name) !== enabled) element.classList.toggle(name, enabled);
+}
+
+/** Changes visibility only when needed.
+ * Called by: Firmware widgets. Calls: HTMLElement.hidden.
+ * @param element persistent DOM node
+ * @param hidden desired visibility flag
+ */
+export function setHidden(element: HTMLElement, hidden: boolean): void {
+  if (element.hidden !== hidden) element.hidden = hidden;
 }
 
 /** Updates a number input unless its owner is typing, without emitting events.

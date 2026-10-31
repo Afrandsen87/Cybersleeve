@@ -4,6 +4,16 @@ Players see skills as **Firmware** and sleeve skills as **Sleeve Firmware**; cod
 
 Skill trees and skill points.
 
+## Current Firmware tab (2026-10-31)
+
+The UI context owns this redesign; skill mechanics are unchanged. Main branches are side-by-side cards with the branch name, purpose placeholder, installed/total and segmented bar. Total includes encrypted nodes: the reveal rules explicitly allow every node's place and branch title to be visible. An entirely encrypted branch hides its purpose so subjects such as heat do not leak. A legend of installed, affordable, available, locked and encrypted replaces the old note while any displayed node is encrypted. Gold and magenta readouts use the existing main and sleeve point pools.
+
+Clicking a node on the Firmware tab pins selection; INSTALL buys through the existing activation command. Hover previews another node and leaving returns to pinned/default selection. Automation keeps click-to-buy. Sleeve Firmware retains the joined tree and existing reveal gates, gains branch headers and a Sleeve Up! trunk label, and is marked persistent: its buyables survive re-sleeving through `CARRIED_OVER_BUYABLE_CURRENCIES`, derived from the currency descriptor.
+
+Owners: `ui/view/firmwareNodeState.ts` (shared state precedence), `skillTreePaths.ts` (all-parent traversal, loop-safe), `firmwareBranches.ts` (`branchSummary`), `firmwareInspector.ts` (`buildInspectorView`, `defaultSelection`), `ui/widgets/firmwareInspector.ts` (INSTALL), `skillsPanel.ts` (selection/readouts/layout), `skillTreeEdges.ts` (edges and hover path classes), `skillTree.ts` (shared nodes and install feedback), `ui/firmwareText.ts` (`uiText.firmware`) and `ui/styles/firmware.css`. Inspector content is built only from existing views; encrypted selection discloses no name, description, icon, cost or relation names. Install animation reacts only to owned-count increases after the first render, with no per-frame work. Shared test kits remain the fixture owners for these UI-only tests.
+
+Cards suit the current tree size; wider or more numerous branches should prompt a revisit (collapsing, zoom or downward growth). No skill's effects, price, gate, save meaning or tuning changes, and no new assumption about sleeve/corporation/prestige counts is made.
+
 Code: `src/core/skills/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
 - **Remembered skills:** a skill that has been readable is noted as `skill:<id>` in the reveal ledger (`docs/REVEAL_RULES.md`) and stays readable after a re-sleeve; while its gates are unmet again it is shown faded (`locked`) and cannot be bought. The Skills tab blinks while skill + sleeve skill points earned exceed those seen; the Automation tab likewise for automation points.

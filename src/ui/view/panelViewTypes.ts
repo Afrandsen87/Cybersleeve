@@ -74,6 +74,8 @@ export interface ResleeveSkillsView {
   /** Sleeve skill points that can still be spent. */
   readonly points: number;
   readonly pointsText: string;
+  /** Bare formatted points for the panel readout and inspector. */
+  readonly pointsValueText: string;
   /** The tree: one lane, grown sideways from the skills that need nothing. */
   readonly lanes: readonly SkillLaneView[];
 }
@@ -103,10 +105,10 @@ export interface SkillsView {
   /** Skill points that can still be spent. */
   readonly points: number;
   readonly pointsText: string;
-  /** The note at the top of the tab: skills that read ??? unlock as the player plays on. */
-  readonly note: string;
-  /** True while any skill that is on screen is masked (once all of them read, the note has nothing to say). */
-  readonly noteVisible: boolean;
+  /** Bare formatted points for the panel readout and inspector. */
+  readonly pointsValueText: string;
+  /** True while any skill that is on screen is encrypted. */
+  readonly legendVisible: boolean;
   /** The skill tree: one lane per branch, in configuration order. */
   readonly lanes: readonly SkillLaneView[];
   /** The group of skills bought with sleeve skill points. */

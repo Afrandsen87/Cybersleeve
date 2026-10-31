@@ -7,6 +7,7 @@
  * Split out of `uiText.ts`, which holds the default words and re-exports this type, so import it from there.
  */
 import type { AutoBurnText } from './autoBurnText';
+import type { FirmwareText } from './firmwareText';
 
 import type { AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
 import type { TipTexts } from './tipTextTypes';
@@ -21,6 +22,8 @@ export * from './uiTextParts';
 
 /** All display text of the interface. */
 export interface UiText {
+  /** Firmware-tab inspector, branch and legend wording. */
+  readonly firmware: FirmwareText;
   /** Inventory slot captions and gains. */
   readonly stash: StashText;
   /** An amount per second, e.g. `"0.015/s"`. */
@@ -107,8 +110,6 @@ export interface UiText {
     readonly branches: Readonly<Record<string, string>>;
     /** The title of the lane that holds the skills without a branch. */
     readonly generalBranch: string;
-    /** The note at the top of the Skills tab, shown while some skill is still masked. */
-    readonly note: string;
   };
   /** The Stats tab: the list of the latest finished sleeve-runs. */
   readonly runs: {

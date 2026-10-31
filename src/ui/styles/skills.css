@@ -1,39 +1,3 @@
-/* The note at the top of the Skills tab. */
-.skills-note {
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-.skills-note[hidden] {
-  display: none;
-}
-
-/* The Skills tab: a box holding the skills. */
-.skills-widget {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px;
-}
-.skills-widget h2 {
-  margin: 0;
-}
-.skills-points {
-  font-size: 14px;
-  color: var(--cyan);
-}
-.skills-widget[hidden] {
-  display: none;
-}
-
-/*
- * The skill trees grow sideways: one lane per branch, the roots on the left, each skill to the right of the ones it needs. A lane
- * is coloured by its branch (`--lane`, set from the branch tokens below) with a neon gradient under it that fades to the right.
- * A skill is placed by --col / --row in steps of --step; the lines between skills are an SVG in the same grid units.
- */
 .skill-tree {
   /* --step and --tile (the grid cell and the button, in px) are set by widgets/skillTree.ts, which also places the ends of the lines */
   display: grid;
@@ -113,17 +77,17 @@
   display: block;
   position: relative;
   gap: 0;
-  width: calc(var(--cols) * var(--step));
+  width: calc(var(--cols) * var(--step-x));
   min-width: 100%;
-  height: calc(var(--rows) * var(--step));
+  height: calc(var(--rows) * var(--step-y));
   overflow: visible;
 }
 .skill-tree-joined > .skill-lane {
   position: absolute;
-  top: calc(var(--first-row) * var(--step));
+  top: calc(var(--first-row) * var(--step-y));
   width: 100%;
   min-width: 0;
-  height: calc(var(--band-rows) * var(--step));
+  height: calc(var(--band-rows) * var(--step-y));
   padding: 0;
   border-radius: 0;
   border-left: 0;
@@ -132,7 +96,7 @@
 }
 .skill-tree-joined .lane-grid {
   position: absolute;
-  top: calc(-1 * var(--first-row) * var(--step));
+  top: calc(-1 * var(--first-row) * var(--step-y));
   pointer-events: none;
 }
 .skill-tree-joined .skill-node {
@@ -142,7 +106,7 @@
 .skill-tree-joined .lane-title {
   position: absolute;
   top: 0;
-  left: calc(var(--step) + 4px);
+  left: calc(var(--step-x) + 4px);
   font-size: 10px;
   line-height: 14px;
   letter-spacing: 0.04em;
@@ -157,12 +121,12 @@
 }
 .skill-tree-joined > .lane-edges {
   z-index: 1;
-  width: calc(var(--cols) * var(--step));
+  width: calc(var(--cols) * var(--step-x));
 }
 .lane-grid {
   position: relative;
-  width: calc(var(--cols) * var(--step));
-  height: calc(var(--rows) * var(--step));
+  width: calc(var(--cols) * var(--step-x));
+  height: calc(var(--rows) * var(--step-y));
 }
 .lane-edges {
   position: absolute;
@@ -188,31 +152,9 @@
   position: absolute;
   width: var(--tile);
   height: var(--tile);
-  left: calc(var(--col) * var(--step) + (var(--step) - var(--tile)) / 2);
-  top: calc(var(--row) * var(--step) + (var(--step) - var(--tile)) / 2);
+  left: calc(var(--col) * var(--step-x) + (var(--step-x) - var(--tile)) / 2);
+  top: calc(var(--row) * var(--step-y) + (var(--step-y) - var(--tile)) / 2);
 }
-.skill-lane .upgrade.purchasable {
-  border-color: var(--lane);
-  color: var(--lane);
-}
-.skill-lane .upgrade.owned,
-.skill-lane .upgrade.owned.single {
-  border-color: var(--lane);
-  color: var(--lane);
-  box-shadow: 0 0 10px var(--lane);
-}
-.upgrade.locked {
-  opacity: 0.35;
-}
-/* A masked skill keeps its place and its lane colour, but nothing glows: it is not lit yet. */
-.skill-lane .skill-node.masked,
-.skill-lane .skill-node.masked.purchasable {
-  opacity: 0.35;
-  color: var(--muted);
-  border-color: var(--line);
-  box-shadow: none;
-}
-
 /* The Stats tab: the latest finished sleeve-runs. */
 .stats-widget {
   display: grid;
@@ -248,4 +190,146 @@
 }
 .runs-empty[hidden] {
   display: none;
+}
+
+/* Shared states also apply to Automation's tree, retaining its original spacing. */
+.skill-lane .skill-node {
+  width: var(--tile);
+  height: var(--tile);
+  line-height: normal;
+  border-radius: 8px;
+  background: var(--panel-2);
+  transition:
+    transform 0.1s,
+    box-shadow 0.2s;
+}
+.skill-lane .skill-node.installed {
+  border-color: var(--lane);
+  color: var(--lane);
+  background: color-mix(in srgb, var(--lane) 30%, var(--panel-2));
+  box-shadow:
+    0 0 10px -1px var(--lane),
+    inset 0 0 10px -4px var(--lane);
+}
+.skill-lane .skill-node.affordable {
+  border: 2px solid var(--afford);
+  color: var(--afford);
+  animation: firmware-afford 1.8s ease-in-out infinite;
+}
+.skill-lane .skill-node.available {
+  border: 1px solid var(--lane);
+  color: var(--lane);
+}
+.skill-lane .skill-node.available::before {
+  opacity: 0.55;
+}
+.skill-lane .skill-node.locked {
+  border-color: var(--line-2);
+  background: var(--bg);
+  color: var(--muted);
+}
+.skill-node.locked::after {
+  content: "🔒";
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  font-size: 10px;
+  filter: grayscale(1) brightness(0.8);
+}
+.skill-lane .skill-node.encrypted {
+  border: 1px dashed var(--line);
+  background: repeating-linear-gradient(0deg, var(--bg) 0 2px, var(--panel) 2px 3px);
+  background-size: 100% 6px;
+  color: var(--muted);
+  box-shadow: none;
+  font: 700 12px var(--mono);
+  animation: firmware-static 0.6s steps(3) infinite;
+}
+.skill-node .node-cost {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background: var(--bg);
+  color: var(--muted);
+  font: 700 9px var(--mono);
+}
+.skill-node.affordable .node-cost {
+  color: var(--afford);
+}
+.skill-lane .skill-node.sel {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.skill-lane .skill-node.next {
+  outline: 1px dashed var(--lane);
+  outline-offset: 4px;
+}
+.skill-lane .skill-node.onpath {
+  box-shadow: 0 0 14px var(--lane);
+}
+.lane-edge.onpath {
+  stroke-opacity: 1;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 5px var(--lane));
+}
+.lane-edge.flow {
+  stroke-dasharray: 6 6;
+  animation: firmware-flow 0.9s linear;
+}
+.skill-lane .skill-node.install {
+  animation: firmware-install 0.9s ease-out;
+}
+.skill-node.install::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  background: linear-gradient(0deg, var(--lane), transparent);
+  animation: firmware-sweep 0.9s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes firmware-afford {
+  50% {
+    box-shadow: 0 0 14px -2px var(--afford);
+  }
+}
+@keyframes firmware-static {
+  to {
+    background-position: 0 6px;
+  }
+}
+@keyframes firmware-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@keyframes firmware-install {
+  0% {
+    transform: scale(0.85);
+  }
+  40% {
+    transform: scale(1.18);
+    box-shadow: 0 0 24px var(--lane);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes firmware-sweep {
+  from {
+    clip-path: inset(100% 0 0);
+    opacity: 0.9;
+  }
+  70% {
+    clip-path: inset(0);
+    opacity: 0.7;
+  }
+  to {
+    clip-path: inset(0);
+    opacity: 0;
+  }
 }

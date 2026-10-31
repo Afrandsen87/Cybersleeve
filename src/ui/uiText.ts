@@ -1,4 +1,5 @@
 import { autoBurnText } from './autoBurnText';
+import { firmwareText } from './firmwareText';
 import { formatPlain } from '../numbers';
 
 import { stashText } from './stashText';
@@ -14,6 +15,7 @@ export type { UiText };
 
 /** The default (placeholder) text of the game. */
 export const uiText: UiText = {
+  firmware: firmwareText,
   stash: stashText,
   perSecond: (amount) => `${amount}/s`,
   format: {
@@ -92,7 +94,6 @@ export const uiText: UiText = {
       corporation: 'Corporation',
     },
     generalBranch: 'General',
-    note: 'Firmware that reads ??? unlocks as you play further.',
   },
   runs: {
     empty: 'No finished sleeve-runs yet. Re-sleeve to write the first one down.',

@@ -7,9 +7,12 @@
  * Called by: `skillTree.ts` (builds them), `viewTypes.ts` (re-exports them), `ui/widgets/skillTree.ts` (draws them).
  */
 import type { BuyableView } from './buyableViewTypes';
+import type { FirmwareNodeState } from './firmwareNodeState';
 
 /** One skill in a tree, with its place on the grid. The tree grows sideways: `col` is the depth, `row` the position within the lane. */
 export interface SkillNodeView {
+  /** Shared presentation state, decided by the view. */
+  readonly state: FirmwareNodeState;
   /** What the node's button shows. When `masked`, the name, text, price and tip read as hidden. */
   readonly view: BuyableView;
   /** Depth in the lane: 0 for a root, one more than its deepest parent in the lane otherwise. Left to right on screen. */

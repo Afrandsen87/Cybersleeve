@@ -176,26 +176,31 @@ describe('the screen', () => {
     click(root, 'Firmware');
     const widget = root.querySelector<HTMLElement>('.resleeve-skills')!;
     expect(widget.hidden).toBe(false);
-    expect(widget.querySelector('.skills-points')!.textContent).toBe('Sleeve firmware points: 1');
+    expect(widget.querySelector('.firmware-points .n')!.textContent).toBe('1');
     const places = [...widget.querySelectorAll<HTMLElement>('.skill-node')].map((b) => [
-      b.textContent,
+      b.querySelector('.node-symbol')?.textContent,
       b.style.getPropertyValue('--col'),
       b.style.getPropertyValue('--row'),
     ]);
     expect(places).toEqual([
       ['EU', '0', '0.5'],
-      ['?', '1', '0'],
-      ['?', '1', '1'],
+      ['???', '1', '0'],
+      ['???', '1', '1'],
     ]);
-    const button = (symbol: string) => [...widget.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === symbol)!;
-    const masked = [...widget.querySelectorAll<HTMLButtonElement>('button')].filter((b) => b.textContent === '?');
+    const button = (symbol: string) =>
+      [...widget.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.querySelector('.node-symbol')?.textContent === symbol)!;
+    const masked = [...widget.querySelectorAll<HTMLButtonElement>('button')].filter(
+      (b) => b.querySelector('.node-symbol')?.textContent === '???',
+    );
     expect(masked).toHaveLength(2);
-    expect(masked.every((b) => b.disabled)).toBe(true);
+    expect(masked.every((b) => !b.disabled)).toBe(true);
     button('EU').click();
+    expect(game.ownedCount('eu')).toBe(0);
+    root.querySelector<HTMLButtonElement>('.firmware-install')!.click();
     render();
     expect(game.ownedCount('eu')).toBe(1);
     expect(button('SYN').classList.contains('locked')).toBe(false);
-    expect(widget.querySelector('.skills-points')!.textContent).toBe('Sleeve firmware points: 0');
+    expect(widget.querySelector('.firmware-points .n')!.textContent).toBe('0');
   });
 
   it('hides the re-sleeve group before the first re-sleeve', () => {

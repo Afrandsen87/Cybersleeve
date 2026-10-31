@@ -2,6 +2,8 @@
 
 All progression numbers live in **`src/content/gameConfig.ts`** (type `GameConfig`, defined in `src/core/types.ts`). Change a value there and the whole game follows; no code changes needed. `createGame` validates the configuration (`validateConfig`) and refuses to start with a list of problems if a value is invalid.
 
+The Firmware tab redesign adds no tuning. Card-node geometry (38 px tiles, 54 px columns, 50 px rows) is UI display policy passed through the shared tree widget's CSS variables and SVG geometry; Automation keeps its existing spacing. Branch-purpose placeholders and state/inspector captions live in `ui/firmwareText.ts`, exposed as `uiText.firmware`. Point balances, costs and affordability still come from their existing owners.
+
 For experiments (tests, tuning sessions) derive a variant instead of editing the file:
 
 ```ts
