@@ -37,6 +37,8 @@ export interface AutomationWidget {
   readonly resumeOverclocks: ResumeChecklistWidget;
   readonly resumeAutoRuns: ResumeChecklistWidget;
   readonly rarities: ReadonlyMap<string, HTMLButtonElement>;
+  /** Automation context: Back Channel buttons, hidden individually by skill ownership. */
+  readonly backchannelRarities: ReadonlyMap<string, HTMLButtonElement>;
   readonly shares: ReadonlyMap<string, HTMLInputElement>;
 }
 
@@ -117,6 +119,7 @@ export function buildAutomationWidget(
     refresh();
   });
   const rarities = new Map<string, HTMLButtonElement>();
+  const backchannelRarities = new Map<string, HTMLButtonElement>();
   const shares = new Map<string, HTMLInputElement>();
   for (const f of view.features) {
     const box = h('section', `automation-feature automation-${f.id}`);
@@ -132,6 +135,18 @@ export function buildAutomationWidget(
         rarities.set(r.id, b);
         body.append(b);
       }
+      const channelRow = h('div', 'automation-backchannel');
+      for (const r of view.backchannelRarities) {
+        const b = h('button', 'automation-switch', r.name) as HTMLButtonElement;
+        b.hidden = !r.visible;
+        b.addEventListener('click', () => {
+          controls.setAutoBackchannel(r.id, !controls.isAutoBackchannelOn(r.id));
+          refresh();
+        });
+        backchannelRarities.set(r.id, b);
+        channelRow.append(b);
+      }
+      body.append(channelRow);
     } else {
       for (const a of view.actions) {
         const field = numberField(`${a.name}: ${view.shareLabel}`, 0, 100, (v) => {
@@ -158,6 +173,7 @@ export function buildAutomationWidget(
     resumeOverclocks,
     resumeAutoRuns,
     rarities,
+    backchannelRarities,
     shares,
   };
 }
@@ -193,7 +209,17 @@ export function renderAutomation(widget: AutomationWidget, view: AutomationView)
   syncInput(widget.autoBurnLower.input, thresholds.lower);
   syncInput(widget.autoBurnUpper.input, thresholds.upper);
   syncInput(widget.autoBurnReserve.input, reserve.value);
-  for (const r of view.rarities) widget.rarities.get(r.id)?.classList.toggle('on', r.on);
+  for (const [rows, buttons] of [
+    [view.rarities, widget.rarities],
+    [view.backchannelRarities, widget.backchannelRarities],
+  ] as const) {
+    for (const r of rows) {
+      const b = buttons.get(r.id);
+      if (!b) continue;
+      b.hidden = !r.visible;
+      b.classList.toggle('on', r.on);
+    }
+  }
   for (const a of view.actions) {
     const input = widget.shares.get(a.id);
     if (input) syncInput(input, a.percent);

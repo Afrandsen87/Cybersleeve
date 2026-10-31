@@ -40,11 +40,13 @@ describe('Daemon Persistence', () => {
       resleeveTimes(g, 1);
       expect(tryBuy(g, 'daemon')).toBe('purchased');
     }
-    for (let i = 0; i < 3; i++) expect(tryBuy(g, 'core')).toBe('purchased');
+    for (let i = 0; i < 6; i++) expect(tryBuy(g, 'core')).toBe('purchased');
     expect(g.automation().unlock('autoBurn')).toBe(true);
     expect(tryBuy(g, laneSkillId('autoBurn', 2))).toBe('purchased');
     expect(g.automation().autoBurn().setSwitch('hold', true)).toBe(true);
     g.toggleBurnLead();
+    for (const slot of [1, 2, 3]) expect(tryBuy(g, laneSkillId('autosale', slot))).toBe('purchased');
+    g.automation().setAutoBackchannel('common', true);
     expect(tryBuy(g, 'boost')).toBe('purchased');
     return g;
   }
@@ -55,19 +57,21 @@ describe('Daemon Persistence', () => {
     expect(g.automation().pointsEarned()).toBe(0);
     expect(g.automation().isUnlocked('autoBurn')).toBe(false);
     expect(g.automation().autoBurn().rules().hold).toBe(false);
+    expect(g.automation().isAutoBackchannelOn('common')).toBe(false);
   });
 
   it('keeps the automation core, the automation skills and the settings, so the points stay balanced, and wipes the rest', () => {
     const g = automated(true);
     const earned = g.automation().pointsEarned();
     const available = g.automation().pointsAvailable();
-    expect(earned).toBe(3);
+    expect(earned).toBe(6);
     expect(available).toBe(1);
     g.resleeve();
     expect(g.automation().pointsEarned(), 'no extra points, and none lost').toBe(earned);
     expect(g.automation().pointsAvailable()).toBe(available);
     expect(g.automation().isUnlocked('autoBurn')).toBe(true);
     expect(g.automation().autoBurn().rules().hold, 'the settings are carried').toBe(true);
+    expect(g.automation().isAutoBackchannelOn('common')).toBe(true);
     expect(g.burnLeadToggle()?.on, 'the toggle belongs to the life and starts off').toBe(false);
     expect(g.ownedCount(laneSkillId('autoBurn', 1))).toBe(1);
     expect(g.ownedCount('boost'), 'other purchases still reset').toBe(0);
@@ -77,9 +81,9 @@ describe('Daemon Persistence', () => {
   it('does not let the carried copies be bought again for free: the next copy keeps its raised price', () => {
     const g = automated(true);
     g.resleeve();
-    expect(g.ownedCount('core')).toBe(3);
+    expect(g.ownedCount('core')).toBe(6);
     expect(tryBuy(g, 'core')).toBe('purchased');
-    expect(g.automation().pointsEarned()).toBe(4);
+    expect(g.automation().pointsEarned()).toBe(7);
   });
 });
 

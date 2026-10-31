@@ -48,3 +48,7 @@ Loading is defensive: the inventory keeps only known items and rarities with who
 
 *Group: Decided 2026-10-26 (by the user, after the full review)*
 - **Saves:** the last successfully loaded save is kept as `cybersleeve.save.previous` and used when the main save is unreadable; the player can export the save as text and import it (`app/saveTransfer.ts`). Importing stops autosaving and reloads.
+
+## P3: Kompromat automation (2026-10-31)
+
+wallet.automation.autoBackchannel is an additive rarity-to-boolean map, absent means all off and empty maps are omitted when writing. Both autosale and autoBackchannel load only known, skill-allowed rarities via the shared allowedRarities query. Removed autosale slots 9/10 are discarded by readPurchases and their derived point cost is refunded. The whole wallet automation settings block is carried by Daemon Persistence; no version or migration change.

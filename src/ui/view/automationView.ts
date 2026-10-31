@@ -27,13 +27,13 @@ import type { AutomationView, BuyableView, SkillLaneView } from './viewTypes';
  * Called by: {@link buildViewModel}. Calls: `GameQueries.automation`, {@link buildSkillLanes}.
  *
  * Each feature carries its own skill lane (the buyables paid in automation points whose branch is the feature's id), laid out like a
- * skill tree and never masked: the whole lane is shown from the start.
+ * skill tree: every node is shown from the start, while text follows its manual-concept reveal gates.
  *
  * @param engine the engine to read from
  * @param config game configuration
  * @param viewById the view of every buyable, by id
  * @param text the display text
- * @param revealAll test aid: no skill is masked (none is anyway)
+ * @param revealAll test aid: no skill text is masked
  * @param tracker the reveal ledger reader
  */
 export function automationView(
@@ -87,7 +87,18 @@ export function automationView(
       reserve: { visible: burn.stepOwned('reserve'), value: burn.rules().reserve, label: text.automation.autoBurn.reserve },
       ...resumeChecklists(burn, engine, config, viewById),
     },
-    rarities: config.items.rarities.map((r) => ({ id: r.id, name: r.name, on: automation.isAutosaleOn(r.id) })),
+    rarities: config.items.rarities.map((r) => ({
+      id: r.id,
+      name: r.name,
+      on: automation.isAutosaleOn(r.id),
+      visible: automation.allowedRarities('autosale').includes(r.id),
+    })),
+    backchannelRarities: config.items.rarities.map((r) => ({
+      id: r.id,
+      name: text.automation.autoBackchannel(r.name),
+      on: automation.isAutoBackchannelOn(r.id),
+      visible: automation.allowedRarities('autoBackchannel').includes(r.id),
+    })),
     actions: config.actions.map((a) => ({ id: a.id, name: a.name, percent: automation.dispersal(a.id) })),
     shareLabel: text.automation.dispersalShare,
   };

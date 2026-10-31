@@ -82,13 +82,19 @@ const gridName = (branch: string, step: number): string => `auto-${branch}-${ste
 /** One grid per automation skill, by name. */
 export const AUTOMATION_ART_GRIDS: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
   Object.keys(EMBLEMS).flatMap((branch) =>
-    Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => [gridName(branch, i + 1), buildGrid(branch, i + 1)] as const),
+    Array.from(
+      { length: branch === BRANCH_AUTOSALE ? 8 : AUTOMATION_LINE_LENGTH },
+      (_, i) => [gridName(branch, i + 1), buildGrid(branch, i + 1)] as const,
+    ),
   ),
 );
 
 /** Which grid of {@link AUTOMATION_ART_GRIDS} each automation skill shows, by skill id. */
 export const AUTOMATION_ART_ICONS: Readonly<Record<string, string>> = Object.fromEntries(
   Object.keys(EMBLEMS).flatMap((branch) =>
-    Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => [automationSkillId(branch, i + 1), gridName(branch, i + 1)] as const),
+    Array.from(
+      { length: branch === BRANCH_AUTOSALE ? 8 : AUTOMATION_LINE_LENGTH },
+      (_, i) => [automationSkillId(branch, i + 1), gridName(branch, i + 1)] as const,
+    ),
   ),
 );

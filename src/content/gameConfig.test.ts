@@ -114,7 +114,9 @@ describe('real game content (src/content/gameConfig.ts)', () => {
     const second = gameConfig.buyables.find((b) => isSleeveSkill(b) && g.canBuy(b.id));
     expect(second).toBeDefined();
     expect(g.buy(second!.id)).toBe('purchased'); // Skill transfer and Faster conditioning wait for the second sleeve run
-    const bought = gameConfig.buyables.filter((b) => b.currency !== 'skillPoints' && !isSleeveSkill(b));
+    const bought = gameConfig.buyables.filter(
+      (b) => b.currency !== 'skillPoints' && b.currency !== 'automationPoints' && !isSleeveSkill(b),
+    );
     for (let pass = 0; pass < bought.length; pass++) {
       for (const b of bought) if (g.canBuy(b.id)) expect(g.buy(b.id)).toBe('purchased');
     }

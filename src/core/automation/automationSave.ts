@@ -3,6 +3,7 @@
  *
  * The automation settings' part of a save (wallet `automation`, and Auto Burn's per-life part, sleeve `autoBurn`).
  */
+import { allowedRarities } from './rarityPermissions';
 import { heatMakingAutoRuns, overclockMakesHeat } from '../heat/heatMakers';
 import { isRecord, readCount } from '../kernel/readValues';
 import type { SavePart } from '../kernel/savePart';
@@ -14,15 +15,16 @@ import { AUTO_BURN_SWITCHES } from './autoBurnTypes';
 /**
  * Reads the automation settings (a feature is unlocked when its skill is owned, so this part runs after the purchases are read): the Burn lead
  * toggle is on only when Auto Burn is unlocked, the thresholds must be finite with 0 <= lower < upper, the reserve a whole number >= 0, switches
- * are kept only for skills that are owned, and autosale and dispersal keep only known rarities and actions (shares
- * clamped to 1..100). Anything missing loads fresh.
+ * are kept only for skills that are owned. Automation context: autosale and auto backchannel keep only known, skill-allowed rarities; dispersal keeps known actions (shares
+ * clamped to 1..100). Anything missing loads fresh. The new Back Channel map defaults off; no saved field changes meaning.
+ * Purchases have already discarded unknown ids (including removed slots 9/10); derived points refund those costs.
  *
  * A save written before the Auto Burn lane had real skills (`autoBurnOn: true`, `autoBurnCeiling`) loads with the Burn lead toggle on, the
  * Hold switch on when its skill is owned (the old meaning was "hold heat at the ceiling") and the old ceiling as the lower threshold.
  * The records of what Auto Burn switched off, and the resume checklists (`resumeOverclocks`, `resumeAutoRuns`), keep only heat-making Overclocks and Auto-runs of heat-making actions. The resume lists and `upperArmed` are saved
  * only when not empty / false (missing loads true: a life starts below the upper threshold).
  *
- * Called by: `save/saveParts.ts`. Calls: `isFeatureUnlocked`, `overclockMakesHeat`, `heatMakingAutoRuns`.
+ * Called by: `save/saveParts.ts`. Calls: `allowedRarities`, `isFeatureUnlocked`, `overclockMakesHeat`, `heatMakingAutoRuns`.
  */
 export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>> = {
   name: 'automation',
@@ -45,6 +47,7 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
               : {}),
           },
           autosale: { ...automation.autosale },
+          ...(Object.keys(automation.autoBackchannel).length ? { autoBackchannel: { ...automation.autoBackchannel } } : {}),
           dispersal: { ...automation.dispersal },
         },
       },
@@ -98,7 +101,10 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
     keep(savedBurn['resumeAutoRuns'], auto.autoBurn.resumeAutoRuns, (id) => heatAutoRuns.has(id));
     const savedSale = isRecord(raw['autosale']) ? raw['autosale'] : {};
     const savedShares = isRecord(raw['dispersal']) ? raw['dispersal'] : {};
-    if (unlocked('autosale')) for (const r of config.items.rarities) if (savedSale[r.id] === true) auto.autosale[r.id] = true;
+    for (const id of allowedRarities(config, state.sleeve.purchased, 'autosale')) if (savedSale[id] === true) auto.autosale[id] = true;
+    const savedChannel = isRecord(raw['autoBackchannel']) ? raw['autoBackchannel'] : {};
+    for (const id of allowedRarities(config, state.sleeve.purchased, 'autoBackchannel'))
+      if (savedChannel[id] === true) auto.autoBackchannel[id] = true;
     if (unlocked('dispersal')) {
       let room = 100;
       for (const a of config.actions) {

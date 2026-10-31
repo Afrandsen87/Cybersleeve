@@ -2,13 +2,14 @@
  * @module content
  *
  * The three automation lanes (Auto Burn, Compromat Autosale, Augment Dispersal), bought with automation points and drawn inside each
- * automation's box in the Automation tab. Each lane is a chain of `AUTOMATION_LINE_LENGTH` skills. The FIRST skill of a lane is the
+ * automation's box in the Automation tab. A lane uses stable slots up to `AUTOMATION_LINE_LENGTH`; autosale forks within one branch. The FIRST skill of a lane is the
  * unlock (`unlocksAutomation`). The Auto Burn lane is designed: its other eight skills each add one step of Auto Burn (`autoBurnStep`); slot 8 is skipped (the removed Pick Targets) so saved skill ids stay stable.
- * The other two lanes are PLACEHOLDERS (no effect yet); replace a lane's generated entries with real ones, one file per lane, when designed.
+ * The autosale tree lives in autosaleLane.ts; only Augment Dispersal remains a placeholder chain.
  */
 import type { AutoBurnStep, AutomationFeature, BuyableDefinition } from '../../../core';
+import { autosaleSkills } from './autosaleLane';
 import { num } from '../../../numbers';
-import { AUTOMATION_LINE_LENGTH, BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL, automationSkillId } from '../../ids';
+import { AUTOMATION_LINE_LENGTH, BRANCH_AUTO_BURN, BRANCH_DISPERSAL, automationSkillId } from '../../ids';
 
 /**
  * A chain of skills: step 1 is the root and unlocks the automation, each later step is a placeholder with the one before it as its only parent.
@@ -121,6 +122,6 @@ function autoBurnLine(): BuyableDefinition[] {
 /** The automation lanes of the skill tree, lane by lane. */
 export const automationSkills: BuyableDefinition[] = [
   ...autoBurnLine(),
-  ...placeholderLine(BRANCH_AUTOSALE, 'Autosale', 'S'),
+  ...autosaleSkills,
   ...placeholderLine(BRANCH_DISPERSAL, 'Dispersal', 'D'),
 ];

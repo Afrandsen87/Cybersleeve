@@ -3,112 +3,22 @@
  *
  * Automation: features the player unlocks with automation points and that then play part of the game for them.
  */
+import { allowedRarities, type RarityAutomation } from './rarityPermissions';
+import type { BackChannel } from '../items/backChannel';
 import type { Augments } from '../items/augments';
 import type { AutoBurn, AutoBurnControls } from './autoBurn';
-import { type AutoBurnSettings, createAutoBurnSettings } from './autoBurnTypes';
 import type { Inventory } from '../items/inventory';
-import type { ActionId, BuyableDefinition, BuyableId, GameConfig, GameState, RarityId } from '../types';
+import type { ActionId, BuyableId, GameConfig, GameState, RarityId } from '../types';
 
-/** Something that can be automated. Each costs one automation point to unlock. */
-export type AutomationFeature = 'autoBurn' | 'autosale' | 'dispersal';
-
-/** Every feature, in the order the Automation tab lists them. */
-export const AUTOMATION_FEATURES: readonly AutomationFeature[] = ['autoBurn', 'autosale', 'dispersal'];
-
-/**
- * The automation points earned in total: `perCopy` of every owned `automationPoints` buyable. Spent or not.
- *
- * Called by: `createGame.ts` (what the Shop pays automation skills from), {@link Automation.pointsEarned}, `serialization.ts`, `testing/invariants.ts`.
- *
- * @param buyables all buyable definitions
- * @param purchased copies owned, by id
- */
-export function automationPointsEarned(buyables: readonly BuyableDefinition[], purchased: Readonly<Record<BuyableId, number>>): number {
-  let points = 0;
-  for (const b of buyables) if (b.effect.kind === 'automationPoints') points += b.effect.perCopy * (purchased[b.id] ?? 0);
-  return Math.min(points, Number.MAX_SAFE_INTEGER);
-}
-
-/**
- * The skill that unlocks an automation feature: the buyable with the effect `unlocksAutomation` for it (the root of its lane).
- *
- * Called by: {@link isFeatureUnlocked}, {@link Automation.unlock}, `serialization.ts` (the migration of old saves).
- *
- * @returns the id, or `undefined` when the content has no such skill
- */
-export function unlockingBuyable(buyables: readonly BuyableDefinition[], feature: AutomationFeature): BuyableId | undefined {
-  return buyables.find((b) => b.effect.kind === 'unlocksAutomation' && b.effect.feature === feature)?.id;
-}
-
-/**
- * True when the skill that unlocks the feature is owned.
- *
- * Called by: {@link Automation.isUnlocked}, `serialization.ts`, `testing/invariants.ts`.
- */
-export function isFeatureUnlocked(
-  buyables: readonly BuyableDefinition[],
-  purchased: Readonly<Record<BuyableId, number>>,
-  feature: AutomationFeature,
-): boolean {
-  const id = unlockingBuyable(buyables, feature);
-  return id !== undefined && (purchased[id] ?? 0) > 0;
-}
-
-/** What {@link Automation} needs from the shop: the automation points still to spend, and buying a skill. */
-export interface AutomationShop {
-  /** Automation points still to spend: earned minus the price of the owned automation skills. */
-  pointsAvailable(): number;
-  /** Buys one copy of the buyable; true when it was bought. */
-  buy(id: BuyableId): boolean;
-}
-
-/**
- * What the player has set up in the Automation tab. Part of the saved state; reset by re-sleeving.
- * Whether a feature is unlocked is not stored: it is owning the skill that unlocks it (see {@link isFeatureUnlocked}).
- */
-export interface AutomationState {
-  /** What the player set for Auto Burn: thresholds, reserve and switches (the Burn lead toggle itself is per sleeve: `sleeve.autoBurn`). */
-  autoBurn: AutoBurnSettings;
-  /** Rarities whose sellable items are sold automatically (absent or false: not sold). */
-  autosale: Record<RarityId, boolean>;
-  /** Share (percent, 0..100) of the Augment schematics each action gets (absent: 0). All shares together are at most 100. */
-  dispersal: Record<ActionId, number>;
-}
-
-/**
- * A fresh automation state: nothing unlocked, Auto Burn with every switch off and the configured thresholds.
- *
- * Called by: `state.ts`, `serialization.ts`. Calls: `createAutoBurnSettings`.
- *
- * @param config reads `automation.autoBurnCeiling` and `automation.autoBurnUpper`
- */
-export function createAutomationState(config: Pick<GameConfig, 'automation'>): AutomationState {
-  return { autoBurn: createAutoBurnSettings(config), autosale: {}, dispersal: {} };
-}
-
-/** What the screen and the commands use (satisfied by {@link Automation}). */
-export interface AutomationControls {
-  /** True when the game has automation at all (a configuration `automation` section). */
-  available(): boolean;
-  /** Automation points earned in total (spent or not): 0 until a point is bought. */
-  pointsEarned(): number;
-  /** Automation points still to spend: earned minus the price of the automation skills owned. */
-  pointsAvailable(): number;
-  /** True when the feature has been unlocked. */
-  isUnlocked(feature: AutomationFeature): boolean;
-  /** Buys the first skill of the feature's lane (one point); false when there is none to spend, it is unlocked already, or the game has no automation. */
-  unlock(feature: AutomationFeature): boolean;
-  /** Auto Burn: its toggle, switches, thresholds and reserve. */
-  autoBurn(): AutoBurnControls;
-  /** Autosale: whether the rarity is sold automatically. */
-  isAutosaleOn(rarityId: RarityId): boolean;
-  /** Switches the autosale of a rarity; only works once unlocked and for a known rarity. @returns true when it is now on */
-  setAutosale(rarityId: RarityId, on: boolean): boolean;
-  /** Augment dispersal: the share (percent) the action gets. */
-  dispersal(actionId: ActionId): number;
-  /** Sets an action's share (clamped to 0..100); only works once unlocked and for a known action. @returns true when it was set */
-  setDispersal(actionId: ActionId, percent: number): boolean;
-}
+export * from './automationTypes';
+import {
+  automationPointsEarned,
+  isFeatureUnlocked,
+  unlockingBuyable,
+  type AutomationFeature,
+  type AutomationControls,
+  type AutomationShop,
+} from './automationTypes';
 
 /**
  * The automation features, the points that pay for them and the skill lanes that unlock them.
@@ -134,6 +44,8 @@ export class Automation implements AutomationControls {
    * @param autoBurnUnit Auto Burn: the toggle, its switches and the leads it uses
    * @param augments applies the schematics for dispersal
    * @param shop the automation points still to spend, and buying the unlocking skill
+   * @param backChannel automation context: the same batch owner used by the manual command
+   * @param channel the manual channel query; null until its skill is owned
    */
   constructor(
     private readonly config: Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>,
@@ -142,6 +54,8 @@ export class Automation implements AutomationControls {
     private readonly autoBurnUnit: AutoBurn,
     private readonly augments: Augments,
     private readonly shop: AutomationShop,
+    private readonly backChannel: Pick<BackChannel, 'giveUp'>,
+    private readonly channel: { backChannel(): { itemId: string } | null },
   ) {}
 
   /** See {@link AutomationControls.available}. */
@@ -186,14 +100,32 @@ export class Automation implements AutomationControls {
     this.autoBurnUnit.playerSwitchedAutoRun(id);
   }
 
+  /** Automation context: delegates rarity permissions. Called by: controls, sell, backchannel. Calls: allowedRarities. */
+  allowedRarities(feature: RarityAutomation): readonly RarityId[] {
+    return allowedRarities(this.config, this.state.sleeve.purchased, feature);
+  }
+
+  /** Automation context: locked switches always read off. Called by: UI, step. Calls: allowedRarities. */
+  isAutoBackchannelOn(rarityId: RarityId): boolean {
+    return this.allowedRarities('autoBackchannel').includes(rarityId) && this.state.wallet.automation.autoBackchannel[rarityId] === true;
+  }
+
+  /** Automation context: sets only permitted switches. Called by: UI. Calls: allowedRarities. */
+  setAutoBackchannel(rarityId: RarityId, on: boolean): boolean {
+    if (!this.allowedRarities('autoBackchannel').includes(rarityId)) return false;
+    if (on) this.state.wallet.automation.autoBackchannel[rarityId] = true;
+    else delete this.state.wallet.automation.autoBackchannel[rarityId];
+    return on;
+  }
+
   /** See {@link AutomationControls.isAutosaleOn}. */
   isAutosaleOn(rarityId: RarityId): boolean {
-    return this.state.wallet.automation.autosale[rarityId] === true;
+    return this.allowedRarities('autosale').includes(rarityId) && this.state.wallet.automation.autosale[rarityId] === true;
   }
 
   /** See {@link AutomationControls.setAutosale}. Mutates `state.automation.autosale`. */
   setAutosale(rarityId: RarityId, on: boolean): boolean {
-    if (!this.isUnlocked('autosale') || !this.config.items.rarities.some((r) => r.id === rarityId)) return this.isAutosaleOn(rarityId);
+    if (!this.allowedRarities('autosale').includes(rarityId)) return false;
     if (on) this.state.wallet.automation.autosale[rarityId] = true;
     else delete this.state.wallet.automation.autosale[rarityId];
     return on;
@@ -217,13 +149,19 @@ export class Automation implements AutomationControls {
 
   /**
    * Runs every unlocked and switched-on feature once. Called by the engine after each slice of game time.
-   * Order: Auto Burn (heat), then autosale, then dispersal.
+   * Automation context order: Auto Burn (heat), auto backchannel, autosale, then dispersal.
+   * Calls: BackChannel.giveUp (manual eligibility and closed-form stack payout), AutoBurn.step, sell, disperse.
    *
    * @param deltaMs the length of the slice in milliseconds (Auto Burn counts seconds)
    */
   step(deltaMs: number): void {
     if (!this.available()) return;
     this.autoBurnUnit.step(deltaMs);
+    const channel = this.channel.backChannel();
+    if (channel)
+      for (const rarity of this.allowedRarities('autoBackchannel')) {
+        if (this.isAutoBackchannelOn(rarity)) this.backChannel.giveUp(channel.itemId, rarity, 'all');
+      }
     if (this.isUnlocked('autosale')) this.sell();
     if (this.isUnlocked('dispersal')) this.disperse();
   }

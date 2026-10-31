@@ -200,6 +200,7 @@ function randomStep(g: GameEngine, config: GameConfig, random: Random): void {
       auto.autoBurn().setThresholds(randomInt(random, 60) / 2, randomInt(random, 120) / 2);
       auto.autoBurn().setReserve(randomInt(random, 20) - 3);
     } else if (r < 0.7) auto.setAutosale(pick(random, config.items.rarities).id, random() < 0.7);
+    else if (r < 0.75) auto.setAutoBackchannel(pick(random, config.items.rarities).id, random() < 0.7);
     else if (r < 0.8) auto.setDispersal(pick(random, config.actions).id, randomInt(random, 120));
     else {
       // some stock for the automation to work on

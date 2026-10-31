@@ -70,3 +70,7 @@ Ids must be unique, and items need at least one rarity. Selling pays `Inventory.
 *Group: Decided 2026-10-27 (by the user, new Anonymity skills)*
 - **Silver Tongue** (the "lead hoarder" idea, renamed to something charismatic): reuses the existing `itemDropChanceMultiplier` effect (x1.5 on the Burn lead, so 0.5% becomes 0.75%).
 - **Kompromat sale price follows peak income.** *Decided 2026-10-30 (by the user):* selling for a flat price became worthless once income outgrew it, so each rarity sells for `max(sellValue floor, sellSeconds x the current life's peak network income)`. The peak is read from `sleeve.peakNetworkIncome` (Inventory already owns the state slice, so no economy import); it resets with the life.
+
+## P3: Kompromat automation (2026-10-31)
+
+Automation calls the existing BackChannel.giveUp with all for each enabled, skill-allowed rarity, using the manual channel query. The existing owner controls rarity eligibility and Moles payout; it needs no count-form extension or random draws. Auto Back Channel precedes autosale.

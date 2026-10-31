@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import { createConfig, type GameConfig } from '../core';
 import { num } from '../numbers';
-import { automationLaneBuyables } from '../testing/automationKit';
+import { automationLaneBuyables, laneSkillId } from '../testing/automationKit';
 import { setCredits, testConfig } from '../testing/testConfig';
 import { buildViewModel } from './viewModel';
 import { mountTestUi } from '../testing/domMountKit';
@@ -120,12 +120,13 @@ describe('the Automation tab on the screen', () => {
     expect(panel(root).querySelector('.skills-points')!.textContent).toBe('Automation points: 0');
   });
 
-  it('autosale has a switch per rarity, and dispersal a share per action', () => {
-    const { root, game } = mount(2);
+  it('autosale has a switch per allowed rarity, and dispersal a share per action', () => {
+    const { root, game } = mount(3);
     game.automation().unlock('autosale');
     game.automation().unlock('dispersal');
+    game.buy(laneSkillId('autosale', 2));
     tab(root, /Automation/).click();
-    const rarities = [...panel(root).querySelectorAll<HTMLButtonElement>('.automation-autosale .automation-switch')];
+    const rarities = [...panel(root).querySelectorAll<HTMLButtonElement>('.automation-autosale .automation-controls > .automation-switch')];
     expect(rarities.map((b) => b.textContent)).toEqual(['Common', 'Rare']);
     rarities[1]!.click();
     expect(game.automation().isAutosaleOn('rare')).toBe(true);

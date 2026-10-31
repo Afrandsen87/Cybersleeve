@@ -84,6 +84,7 @@ export const uiText: UiText = {
       reserve: 'Burn leads to always keep',
     },
     dispersalShare: 'Share (%)',
+    autoBackchannel: (rarity) => `Auto Back Channel: ${rarity}`,
   },
   skills: {
     points: (points) => `Skill points: ${points}`,

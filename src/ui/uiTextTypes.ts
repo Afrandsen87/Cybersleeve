@@ -94,6 +94,8 @@ export interface UiText {
     };
     /** The label of the share an action gets from Augment dispersal, in percent. */
     readonly dispersalShare: string;
+    /** Automation context: the label of an owned rarity switch. */
+    autoBackchannel(rarity: string): string;
   };
   /** The Skills box and the sleeve skills group. */
   readonly skills: {

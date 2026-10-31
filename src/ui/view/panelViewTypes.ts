@@ -67,7 +67,9 @@ export interface AutomationView {
     readonly resumeAutoRuns: ResumeChecklistView;
   };
   /** Autosale: every rarity with its switch. */
-  readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean }[];
+  readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean; readonly visible: boolean }[];
+  /** Automation context: Back Channel controls hidden until their rarity skill is owned. */
+  readonly backchannelRarities: readonly { readonly id: string; readonly name: string; readonly on: boolean; readonly visible: boolean }[];
   /** Augment dispersal: every action with its share in percent. */
   readonly actions: readonly { readonly id: string; readonly name: string; readonly percent: number }[];
   /** The label of the share inputs. */

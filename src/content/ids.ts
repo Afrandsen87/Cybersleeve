@@ -170,7 +170,7 @@ export const AUTO_BURN_EMPTY_SLOTS: readonly number[] = [8];
 /** Every automation skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first; the empty Auto Burn slots are left out. */
 export const AUTOMATION_SKILLS: readonly string[] = [BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL].flatMap((branch) =>
   Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1)
-    .filter((slot) => branch !== BRANCH_AUTO_BURN || !AUTO_BURN_EMPTY_SLOTS.includes(slot))
+    .filter((slot) => (branch !== BRANCH_AUTO_BURN || !AUTO_BURN_EMPTY_SLOTS.includes(slot)) && (branch !== BRANCH_AUTOSALE || slot <= 8))
     .map((slot) => automationSkillId(branch, slot)),
 );
 /** Id of the Kill servers auto-run buyable. */

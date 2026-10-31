@@ -16,7 +16,9 @@ export const laneSkillId = (feature: AutomationFeature, step: number): string =>
 
 /** The effect of the `step`-th skill of a feature's test lane. */
 function laneEffect(feature: AutomationFeature, step: number): BuyableDefinition['effect'] {
-  if (step === 1) return { kind: 'unlocksAutomation', feature };
+  if (step === 1) return { kind: 'unlocksAutomation', feature, ...(feature === 'autosale' ? { allowsAutosale: 'common' } : {}) };
+  if (feature === 'autosale' && step === 2) return { kind: 'allowsAutosale', rarity: 'rare' };
+  if (feature === 'autosale' && step === 3) return { kind: 'allowsAutoBackchannel', rarity: 'common' };
   const autoBurnStep = AUTO_BURN_STEPS[step - 2];
   return feature === 'autoBurn' && autoBurnStep !== undefined ? { kind: 'autoBurnStep', step: autoBurnStep } : { kind: 'placeholder' };
 }

@@ -106,3 +106,7 @@ Unit tests use their own fixed `src/testing/testConfig.ts`, so retuning the game
 
 ## Not configurable yet (by design, for later)
 Re-sleeve requirement (`ResleevePolicy`), what resets on re-sleeve, number formatting, offline progress.
+
+## P3: Kompromat automation (2026-10-31)
+
+Automation rarity skills live in content/buyables/skillBranches/autosaleLane.ts. Slots 1?3 sell common/uncommon/rare; 4?6 automate Back Channel common/uncommon/rare; 7?8 sell legendary/crisis. Every node costs one automation point, and 9/10 are removed. Effects allowsAutosale and allowsAutoBackchannel name a configured rarity id; unlocksAutomation optionally names allowsAutosale for the common root. No new timing, odds or payout constants.

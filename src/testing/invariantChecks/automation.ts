@@ -12,6 +12,7 @@ import {
   overclockMakesHeat,
   ownsAutoBurnStep,
 } from '../../core';
+import { allowedRarities } from '../../core/automation/rarityPermissions';
 import type { InvariantCheck } from './shared';
 
 /**
@@ -22,6 +23,11 @@ import type { InvariantCheck } from './shared';
  */
 export const checkAutomation: InvariantCheck = (state, config, problems) => {
   const auto = state.wallet.automation;
+  for (const feature of ['autosale', 'autoBackchannel'] as const) {
+    const allowed = allowedRarities(config, state.sleeve.purchased, feature);
+    for (const [id, on] of Object.entries(auto[feature]))
+      if (on && !allowed.includes(id)) problems.push(`${feature} has locked rarity ${id} on`);
+  }
   const earned = automationPointsEarned(config.buyables, state.sleeve.purchased);
   const spent = config.buyables.reduce(
     (n, b) => (b.currency === 'automationPoints' ? n + b.cost.toNumber() * (state.sleeve.purchased[b.id] ?? 0) : n),

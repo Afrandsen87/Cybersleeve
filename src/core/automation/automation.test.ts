@@ -126,8 +126,12 @@ describe('Kompromat autosale', () => {
     expect(g.getState().wallet.credits.eq(num(3 * 10))).toBe(true);
   });
 
-  it('one unlock covers every rarity, and a switched-off rarity is kept', () => {
-    const g = saleGame();
+  it('rare needs its own skill, and a switched-off rarity is kept', () => {
+    const g = game(2);
+    g.automation().unlock('autosale');
+    g.buy(laneSkillId('autosale', 2));
+    loose(g).inventory['file'] = { common: 3, rare: 2 };
+    setCredits(g, num(0));
     g.automation().setAutosale('common', true);
     g.automation().setAutosale('rare', true);
     g.automation().setAutosale('common', false);
@@ -237,10 +241,11 @@ describe('Augment dispersal', () => {
 
 describe('automation is saved and keeps every invariant', () => {
   const setup = () => {
-    const g = game(4);
+    const g = game(5);
     g.automation().unlock('autoBurn');
     g.buy(laneSkillId('autoBurn', 2));
     g.automation().unlock('autosale');
+    g.buy(laneSkillId('autosale', 2));
     g.automation().unlock('dispersal');
     g.automation().autoBurn().setSwitch('hold', true);
     g.toggleBurnLead();

@@ -175,13 +175,14 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     random,
     diagnostics,
   );
+  const backChannel = new BackChannel(state, stats, inventory);
   return new GameEngine(config, state, {
     progression,
     shop,
     stats,
     runner,
     inventory,
-    backChannel: new BackChannel(state, stats, inventory),
+    backChannel,
     burnLeads,
     zeroDays,
     adminKeys,
@@ -191,10 +192,19 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
     drops,
     augments,
     corporation,
-    automation: new Automation(config, state, inventory, autoBurn, augments, {
-      pointsAvailable: () => shop.pointsAvailable(state, 'automationPoints'),
-      buy: (id) => shop.buy(state, id) === 'purchased',
-    }),
+    automation: new Automation(
+      config,
+      state,
+      inventory,
+      autoBurn,
+      augments,
+      {
+        pointsAvailable: () => shop.pointsAvailable(state, 'automationPoints'),
+        buy: (id) => shop.buy(state, id) === 'purchased',
+      },
+      backChannel,
+      stats,
+    ),
     reflexArchive: new ReflexArchive(config.buyables, state, shop),
     network: new NetworkSystem(state, stats, factory, synths),
     synths,

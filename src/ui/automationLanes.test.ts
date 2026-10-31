@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
+import { rarityGame, rarityState } from '../testing/rarityAutomationKit';
 import { createGame } from '../app/createGame';
 import { createConfig } from '../core';
 import { num } from '../numbers';
@@ -79,5 +80,43 @@ describe('the skill lane inside each automation box', () => {
     expect(game.ownedCount(laneSkillId('dispersal', 1))).toBe(1);
     expect(game.automation().isUnlocked('dispersal')).toBe(true);
     expect(game.automation().isUnlocked('autoBurn')).toBe(false);
+  });
+});
+
+/** Automation context: one existing branch lays out as a trunk with two first-parent lanes. */
+describe('Kompromat fork and permission controls', () => {
+  it('places the two children of slot 3 on separate rows with the trunk between them', () => {
+    const g = rarityGame();
+    const lane = buildViewModel(g).automation.features.find((f) => f.id === 'autosale')!.lanes[0]!;
+    const node = (slot: number) => lane.nodes.find((n) => n.view.id === `skill-autosale-${slot}`)!;
+    expect(lane.rows).toBe(2);
+    expect(node(4).row).toBeLessThan(node(7).row);
+    expect(node(3).row).toBe((node(4).row + node(7).row) / 2);
+    expect(node(4).col).toBe(node(7).col);
+    expect(node(4).parents).toEqual([node(3).view.id]);
+    expect(node(7).parents).toEqual([node(3).view.id]);
+  });
+  it('hides each switch until its own skill is owned, and updates existing buttons', () => {
+    const g = rarityGame();
+    const root = document.createElement('div');
+    document.body.append(root);
+    const render = mountTestUi(root, g);
+    const buttons = () => [...root.querySelectorAll<HTMLButtonElement>('.automation-autosale .automation-switch')];
+    expect(buttons().every((b) => b.hidden)).toBe(true);
+    const purchased = rarityState(g).sleeve.purchased;
+    purchased['skill-autosale-1'] = 1;
+    render();
+    expect(
+      buttons()
+        .filter((b) => !b.hidden)
+        .map((b) => b.textContent),
+    ).toEqual(['common']);
+    purchased['skill-autosale-4'] = 1;
+    render();
+    expect(
+      buttons()
+        .filter((b) => !b.hidden)
+        .map((b) => b.textContent),
+    ).toEqual(['common', 'Auto Back Channel: common']);
   });
 });

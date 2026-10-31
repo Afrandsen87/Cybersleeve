@@ -80,7 +80,7 @@ Skill Transfer adds Practice Hacking's sleeve level to Grow network's effective 
 
 ### 8b. Automation
 
-*Moved to [docs/contexts/automation.md](docs/contexts/automation.md).*
+*Moved to [docs/contexts/automation.md](docs/contexts/automation.md).* Kompromat autosale is unlocked per rarity; its fork adds auto Back Channel for common, uncommon and rare before autosale. Removed placeholders 9/10 refund their automation points on load.
 
 ## 9. Infinity and big numbers
 

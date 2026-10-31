@@ -54,9 +54,13 @@ export type SleeveEffect =
   /** Multiplies the interface speed by `factor` per copy (after the hacking multiplier). */
   | { readonly kind: 'interfaceSpeedMultiplier'; readonly factor: number }
   /** Owning this skill (the root of an automation lane) unlocks the automation `feature`: its settings and its work. Sleeve-wide. */
-  | { readonly kind: 'unlocksAutomation'; readonly feature: AutomationFeature }
+  | { readonly kind: 'unlocksAutomation'; readonly feature: AutomationFeature; readonly allowsAutosale?: string }
   /** Owning this skill (a later skill of the Auto Burn lane) grants one step of Auto Burn: a switch, the choice of categories, editable thresholds or the reserve. Sleeve-wide. */
   | { readonly kind: 'autoBurnStep'; readonly step: AutoBurnStep }
+  /** Automation context: permits autosale for this rarity. Called by: Automation.allowedRarities. */
+  | { readonly kind: 'allowsAutosale'; readonly rarity: string }
+  /** Automation context: permits auto backchannel for this rarity. Called by: Automation.allowedRarities. */
+  | { readonly kind: 'allowsAutoBackchannel'; readonly rarity: string }
   /** Does nothing (yet): a node of a tree whose effect is not designed. */
   | { readonly kind: 'placeholder' }
   /** Hacking Proficiency counts `factor` times as much per copy wherever it is used (hacking multiplier, drop ratio shifts). */

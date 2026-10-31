@@ -60,3 +60,7 @@ Current buyables (the newest additions are listed in DESIGN.md section 7). **Ove
 ## P2 registry additions
 
 levelBonusFromSleeveSkills {targetActionId} is sleeve-wide, validates its target and adds the injected distinct sleeve-skill count per copy in resolveLevelBonus. Effects never imports economy. runIceChance {chance, perCopy} needs an action, validates finite chance in [0,1] and finite perCopy >= 0, and is read by actions/runIce.ts. heatReductionPerSleeveSkill {perSkill} validates [0,1), contributes heatTaxScale through the injected count and uses sleeveWideCarried. Each has exactly one registry entry. Effective level is owned by actions/effectiveLevel.ts; sleeve actionLevelOf callbacks include bonuses.
+
+## P3: Kompromat automation (2026-10-31)
+
+Automation adds allowsAutosale {rarity} and allowsAutoBackchannel {rarity}, one union member and one automationEntries registry entry each. unlocksAutomation optionally carries allowsAutosale (the root grants common). Every rarity reference validates against the configured rarity ids.
