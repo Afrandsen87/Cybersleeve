@@ -20,18 +20,9 @@ describe('Auto Burn panel reveal', () => {
     expect(v.strip.redline.editable).toBe(step >= 8);
     expect(v.reserve.visible).toBe(step >= 9);
   });
-  it('captions each row with the content names of its owned skills', () => {
-    const skillName = (step: string): string =>
-      burnConfig.buyables.find((b) => b.effect.kind === 'autoBurnStep' && b.effect.step === step)?.name ?? '?';
-    const early = buildViewModel(burnGame(4, 5, 100)).automation.autoBurn;
-    expect(early.rows[2]!.caption).toBe(skillName('offOverclocks'));
-    const full = buildViewModel(burnGame(9, 5, 100)).automation.autoBurn;
-    expect(full.rows.map((r) => r.caption)).toEqual([
-      skillName('upper'),
-      skillName('hold'),
-      [skillName('offOverclocks'), skillName('offActions')].join(uiText.automation.autoBurn.captionJoin),
-      [skillName('onActions'), skillName('onOverclocks')].join(uiText.automation.autoBurn.captionJoin),
-    ]);
+  it('heads each row with its tag from the interface text, in row order', () => {
+    const v = buildViewModel(burnGame(9, 5, 100)).automation.autoBurn;
+    expect(v.rows.map((r) => r.tag)).toEqual(uiText.automation.autoBurn.tags);
   });
   it('formats the fixed notch numbers like the condition text', () => {
     const game = burnGame(8, 10, 20);

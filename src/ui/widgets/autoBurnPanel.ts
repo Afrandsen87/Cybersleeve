@@ -19,7 +19,7 @@ export interface AutoBurnPanel {
 }
 
 /**
- * One protocol row (TRIGGER, THROTTLE, FAILSAFE or RESTART) with its LED, chips and, for RESTART, the two resume groups.
+ * One protocol row (REDLINE, THROTTLE, FAILSAFE or RESTART) with its LED, chips and, for RESTART, the two resume groups.
  *
  * Called by: {@link mountAutoBurnPanel}. Calls: `led`, `chipList`, `setText`.
  *
@@ -37,8 +37,6 @@ function protocol(
 ): { element: HTMLElement; render(v: BurnRowView): void } {
   const element = h('div', `rule t-${initial.id}`);
   const tag = h('div', 'tag', initial.tag);
-  const caption = h('small', undefined, initial.caption);
-  tag.append(caption);
   const body = h('div', 'body');
   const condition = h('span', 'cond');
   const action = h('span', 'act');
@@ -66,7 +64,6 @@ function protocol(
       setText(condition, v.condition);
       setText(arrow, v.arrow);
       setText(action, v.action);
-      setText(caption, v.caption);
       if (v.switch) toggle?.render(v.switch);
       chips.render({ chips: v.chips });
       for (const group of groups) {

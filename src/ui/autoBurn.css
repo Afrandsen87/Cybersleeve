@@ -228,13 +228,6 @@
 .ab .rule.firing .tag {
   text-shadow: 0 0 8px var(--tag);
 }
-.ab .tag small {
-  display: block;
-  font-weight: 400;
-  letter-spacing: 0;
-  color: var(--muted);
-  font-size: 10px;
-}
 .ab .body {
   display: grid;
   gap: 6px;

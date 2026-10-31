@@ -1,7 +1,7 @@
 /**
  * @module ui
  *
- * The Auto Burn panel's interface text. Skill names are not here: the row captions read them from the skill content.
+ * The Auto Burn panel's interface text.
  *
  * @remarks
  * Called by: `uiText.ts` (as `automation.autoBurn`), `autoBurnView.ts`. Calls: nothing.
@@ -20,8 +20,6 @@ export interface AutoBurnText {
   readonly zones: readonly string[];
   readonly activities: Readonly<Record<AutoBurnActivity, { readonly word: string; readonly reason: string }>>;
   readonly tags: readonly string[];
-  /** Between the names of two skills that share a row caption. */
-  readonly captionJoin: string;
   /** Between a row's condition and its action. */
   readonly arrow: string;
   /** After the heat label while heat lies beyond the strip's end. */
@@ -59,8 +57,7 @@ export const autoBurnText: AutoBurnText = {
     holding: { word: 'HOLDING', reason: 'at the Floor' },
     burning: { word: 'BURNING', reason: 'burning leads to cool heat' },
   },
-  tags: ['TRIGGER', 'THROTTLE', 'FAILSAFE', 'RESTART'],
-  captionJoin: ' · ',
+  tags: ['REDLINE', 'THROTTLE', 'FAILSAFE', 'RESTART'],
   arrow: '→',
   overflowMark: ' +',
   overclocks: 'Overclocks',

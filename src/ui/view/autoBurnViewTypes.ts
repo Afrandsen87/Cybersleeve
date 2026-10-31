@@ -37,7 +37,6 @@ export interface BurnRowView {
   readonly id: string;
   readonly visible: boolean;
   readonly tag: string;
-  readonly caption: string;
   readonly condition: string;
   /** The arrow between condition and action; empty when the row has no action text. */
   readonly arrow: string;

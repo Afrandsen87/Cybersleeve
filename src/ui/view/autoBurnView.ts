@@ -7,33 +7,12 @@
  * @remarks
  * Called by: `automationView.ts`. Calls: `AutoBurnControls`, `resumeChecklists`, `heatStripLayout`, `formatPlain`.
  */
-import type { ActionQueries, AutoBurnControls, AutoBurnStep, AutoBurnSwitch, GameConfig } from '../../core';
+import type { ActionQueries, AutoBurnControls, AutoBurnSwitch, GameConfig } from '../../core';
 import { formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import { resumeChecklists } from './autoBurnChecklist';
 import { heatStripLayout } from './autoBurnStrip';
 import type { AutoBurnView, BurnChipView, BurnRowView, BurnSwitchView, BuyableView } from './viewTypes';
-
-/** The skills behind each protocol row, in lane order; the row's caption names the owned ones. */
-const ROW_STEPS = {
-  trigger: ['upper'],
-  throttle: ['hold'],
-  failsafe: ['offOverclocks', 'offActions'],
-  restart: ['onActions', 'onOverclocks'],
-} as const satisfies Record<string, readonly AutoBurnStep[]>;
-
-/**
- * The name of the skill that grants an Auto Burn step, from the skill content.
- *
- * Called by: {@link autoBurnView}. Calls: nothing.
- *
- * @param config the buyables
- * @param step the step
- * @returns the skill's name, or '' when no skill grants it
- */
-function stepSkillName(config: Pick<GameConfig, 'buyables'>, step: AutoBurnStep): string {
-  return config.buyables.find((b) => b.effect.kind === 'autoBurnStep' && b.effect.step === step)?.name ?? '';
-}
 
 /**
  * The Auto Burn panel. Pure: reads the owners and mutates nothing.
@@ -95,10 +74,6 @@ export function autoBurnView(
     id,
     visible: visible[i] ?? false,
     tag: t.tags[i] ?? '',
-    caption: ROW_STEPS[id]
-      .filter((step) => owned(step))
-      .map((step) => stepSkillName(config, step))
-      .join(t.captionJoin),
     condition: conditions[i] ?? '',
     arrow: t.actions[i] ? t.arrow : '',
     action: t.actions[i] ?? '',
