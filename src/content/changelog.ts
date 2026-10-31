@@ -19,6 +19,26 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-11-01 Firmware, Automation and a new look',
+    changes: [
+      'Skills are now called Firmware, and sleeve skills are called Sleeve Firmware. The Firmware tab has a new design, and tree nodes no longer drift away from their lines.',
+      'The main screen is restyled: a new top bar and panels, action cards that look like process windows, and clearer owned and active borders. The heat gauge left the top bar; the heat strip labels its Fully taxed zone, and the income rate stays once shown.',
+      'The Automation tab is redesigned. Panels show the firmware trees at full width, and you pick automation firmware in a docked inspector and install it there. Every automation firmware has its own protocol icon, the daemon is named in the inspector, and Auto Burn keeps its heat readable inside its panel.',
+      'Auto Burn is rebuilt. Every switch is independent, there are resume checklists and pickers, and the trigger is now called REDLINE. Burn leads became an Inventory toggle with Auto Burn firmware, with lead thresholds, a reserve and heat switches. The Pick Targets skill is gone.',
+      'New automation: Kompromat autosale and auto Back Channel, both gated by rarity, and Augment dispersal, which spreads augments evenly over the actions you choose. Dispersal firmware unlocks rarities and selection slots, and the percentage shares are gone.',
+      'The Re-sleeve box is redesigned with locked, charging, ready and armed states.',
+      'Re-sleeving now needs five sleeve levels plus one for each earlier re-sleeve, and no longer needs a minimum of progress beyond that. Action levels give 1% speed each, and their XP cost grows more gently so level effects matter.',
+      'New Sleeve Up! firmware is the root of every Sleeve Firmware path, and the sleeve skills now join one tree. Sleeve skills cost at most 1 point each, can be refunded, and keep your synthetic sleeves. Sleeve firmware reads ??? until the one before it is bought.',
+      'New Networked Sleeve, plus Network safety and cloaking protocols. Safety Protocols moved to Network Exploitation. Skill Transfer now raises the effective action level.',
+      'Things you have seen stay on show after a re-sleeve: stats, tabs, skills and purchases. Item tiles stay for items your save holds, and only rarities you have found are listed.',
+      'The Sleeve and Network upgrade panels merged into rows. Upgrade tiles have their own borders when affordable or maxed, and Build Legend lost its node cost. The inventory shows named slots, and Sell buttons show the sell value.',
+      'Prices of one read as 1 credit, 1 firmware point and so on. Run costs sit on their own line. Tips show live values, XP bars have tooltips, and toggle buttons are clearer: gold border when off, gold glow when on. Action cards no longer glow pink on a crit.',
+      'Balance: the ICE Rating curve is softer and ICE Rating cuts heat twice as fast. Push malware Overclock only doubles the heat chance and now carries 40%. Kompromat is priced by your peak income, and synth income smooths out as levels rise. Rarity refinement works from low proficiency, and Forensic hardening is added to Kill servers. A new Sleeve levels upgrade costs 100M credits.',
+      'Fixes: augments stay off actions without Auto-run, and buying Auto-run leaves it off. Auto Burn heat, lead and trigger edge cases are fixed. Imported old saves keep their sleeve-level backfill, and skill points stop at overflow.',
+      'Your save is upgraded to the new version automatically the next time you load the game.',
+    ],
+  },
+  {
     version: '2026-10-30 Re-sleeve requirements',
     changes: [
       'Re-sleeving now needs sleeve levels: your sleeve levels across all actions must add up to 1 for your first re-sleeve, 2 for the second, and one more for each re-sleeve after that. The Re-sleeve button tip shows how many you have and how many you need.',
