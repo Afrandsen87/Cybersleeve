@@ -272,11 +272,6 @@ body {
 .upgrade.gated {
   opacity: 0.45;
 }
-.upgrade.ready:not(:disabled) {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
-}
 .stats {
   display: grid;
   gap: 4px;
@@ -546,8 +541,8 @@ button:not(:disabled):hover {
   border-color: var(--teal);
   color: var(--teal);
 }
-/* A one-off purchase that has been bought (it cannot be bought again): dark golden border instead of the repeatable teal. */
-.upgrade.owned.single {
+/* A purchase with no more copies to buy (a one-off that was bought, or a repeatable at its cap): golden border instead of the repeatable teal. */
+.upgrade.maxed {
   border-color: var(--gold);
   color: var(--gold);
 }
@@ -971,8 +966,8 @@ button:not(:disabled):hover {
   height: auto;
   margin: 0;
 }
-/* An icon dims with its button: unaffordable or switched off. Owned and ready buttons show it at full colour. */
-.upgrade.has-icon:disabled:not(.single.owned)::before,
+/* An icon dims with its button: unaffordable or switched off. Affordable and maxed buttons show it at full colour. */
+.upgrade.has-icon:disabled:not(.maxed)::before,
 .upgrade.has-icon.off::before {
   filter: grayscale(0.8) brightness(0.55);
 }
@@ -1062,11 +1057,6 @@ button:not(:disabled):hover {
 .square-unlock.has-icon::before {
   inset: 14px;
 }
-.square-unlock.ready:not(:disabled) {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
-}
 /* Focus with several slots per action: an add and a remove half lie over the Focus cell (bottom left of the square) and the cell itself only shows. */
 .square {
   position: relative;
@@ -1096,20 +1086,23 @@ button:not(:disabled):hover {
   pointer-events: none;
 }
 /*
- * Action-card toggle cells (Auto-run, Overclock, Focus and its two halves): an untoggled one keeps the teal owned look instead of
- * the muted line-through, a toggled one also glows magenta like a switched-on item tile.
+ * Action-card toggle cells (Auto-run, Overclock, Focus and its two halves), once bought: golden border and a full-colour icon, unlit
+ * while off and lit in gold while on (the glow always matches the border).
  */
-.square > .upgrade.owned.off,
+.square > .upgrade.maxed,
 .square > .cell-half:not(.on) {
-  border-color: var(--teal);
-  color: var(--teal);
+  border-color: var(--gold);
+  color: var(--gold);
   text-decoration: none;
 }
-.square > .upgrade.owned.on,
+.square > .upgrade.maxed.has-icon::before {
+  filter: none;
+}
+.square > .upgrade.maxed.on,
 .square > .cell-half.on {
-  background: #3a1440;
-  border-color: var(--magenta, #ff2bd6);
-  box-shadow: 0 0 8px var(--magenta, #ff2bd6);
+  background: #2a2208;
+  border-color: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
 }
 /* A feature this action does not have yet: an empty placeholder. */
 .cell.empty {
@@ -1120,11 +1113,20 @@ button:not(:disabled):hover {
 .cell.applied:not(:disabled) {
   border-color: var(--teal);
 }
-/* A buyable that can be bought right now: bright blue border. Last in the file so it wins over the cyan ready rules. */
-.upgrade.purchasable:not(:disabled),
+/*
+ * A buyable that can be bought right now glows in the colour of its border: bright blue the first time, teal for another copy. Last in
+ * the file so it wins over the lane and owned rules. Skill nodes keep their lane colours.
+ */
+.upgrade.purchasable:not(:disabled):not(.owned):not(.skill-node),
 .square-unlock.purchasable:not(:disabled),
 .cell.purchasable:not(:disabled) {
   border-color: var(--bright-blue);
+  color: var(--bright-blue);
+  box-shadow: 0 0 8px var(--bright-blue);
+}
+.upgrade.owned.purchasable:not(:disabled):not(.maxed):not(.skill-node) {
+  border-color: var(--teal);
+  box-shadow: 0 0 8px var(--teal);
 }
 
 /* The Automation tab: a box with one section per feature. */

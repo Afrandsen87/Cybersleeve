@@ -103,8 +103,8 @@ export const gameConfig: GameConfig = {
     baseIceRating: 1,
     /** The heat effect is fully removed at 100 orders of magnitude of ICE Rating (1e100). */
     iceRatingOrdersForFullReduction: 100,
-    /** Reduction = (orders / 100) ^ 0.5: a square root, so the first orders of ICE Rating count the most (1e4 already removes 20%). */
-    iceRatingReductionExponent: 0.5,
+    /** Reduction = (orders / 100) ^ 0.75: a gentle curve, a little steeper at the start (1e4 removes about 9%, 1e20 about 30%) and still rising where ICE Rating really gets to. */
+    iceRatingReductionExponent: 0.75,
     /** Each point of Legend makes heat cool 10% faster. */
     legendHeatSpeedup: 0.1,
     /** Legend falls by 1 every 10 minutes. */

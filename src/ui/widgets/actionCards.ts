@@ -123,7 +123,6 @@ function renderSquare(square: SquareHandle, view: ActionSquareView, tips: TipReg
   square.grid.hidden = view.locked;
   if (view.locked && auto) {
     square.unlock.disabled = !auto.clickable;
-    square.unlock.classList.toggle('ready', auto.ready);
     square.unlock.classList.toggle('purchasable', auto.clickable);
     tips.set(square.unlock, () => auto.tip);
     return;
@@ -136,7 +135,7 @@ function renderSquare(square: SquareHandle, view: ActionSquareView, tips: TipReg
     button.classList.toggle('owned', cell.mode === 'toggle');
     button.classList.toggle('off', cell.mode === 'toggle' && !cell.on);
     button.classList.toggle('on', cell.mode === 'toggle' && cell.on);
-    button.classList.toggle('ready', cell.mode === 'buy' && cell.ready);
+    button.classList.toggle('maxed', cell.mode === 'toggle');
     button.classList.toggle('purchasable', cell.mode === 'buy' && cell.clickable);
     button.classList.toggle('applied', cell.id === 'augment' && cell.on);
     tips.set(button, cell.mode === 'empty' ? null : () => cell.tip);

@@ -42,10 +42,23 @@ const overclockUnlockOf = (a: ActionDefinition, ctx: RevealContext): BuyableDefi
   overclockOnOffer(ctx.config, a.id, ctx.ownsAuto) ??
   ctx.config.buyables.find((b) => b.actionId === a.id && b.effect.kind === 'overclockUnlock' && ctx.owned(b.id) > 0);
 
-/** Heat is made or on offer: an open action that makes heat, or an Overclock unlock (owned, or shown in the square) whose overclock makes heat. */
+/** An owned buyable drops the Burn lead item: a lead only makes sense for heat, so owning the drop reveals heat. */
+const ownsBurnLeadDrop = (ctx: RevealContext): boolean => {
+  const leadId = ctx.config.items.burnLead?.itemId;
+  return (
+    leadId !== undefined &&
+    ctx.config.buyables.some((b) => b.effect.kind === 'itemDrop' && b.effect.drop.itemId === leadId && ctx.owned(b.id) > 0)
+  );
+};
+
+/**
+ * Heat is made or on offer: an open action that makes heat, an Overclock unlock (owned, or shown in the square) whose overclock makes
+ * heat, or an owned Burn lead drop.
+ */
 const heatExists = (ctx: RevealContext): boolean =>
   ctx.config.actions.some((a) => isOpen(a, ctx) && actionMakesHeat(a)) ||
-  ctx.config.actions.some((a) => overclockMakesHeat(a) && overclockUnlockOf(a, ctx) !== undefined);
+  ctx.config.actions.some((a) => overclockMakesHeat(a) && overclockUnlockOf(a, ctx) !== undefined) ||
+  ownsBurnLeadDrop(ctx);
 
 /** ICE Rating is boosted or earned: an owned buyable that boosts it, or an open action that earns it. */
 const iceExists = (ctx: RevealContext): boolean =>

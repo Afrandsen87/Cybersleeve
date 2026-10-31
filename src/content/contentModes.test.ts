@@ -196,7 +196,6 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     const card = buildViewModel(createGame()).actions.find((a) => a.id === GROW_NETWORK)!;
     expect(card.buyables.map((b) => b.id)).toContain(BURN_LEADS);
     const g = rich();
-    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
     expect(g.buy(BURN_LEADS)).toBe('purchased');
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);
@@ -204,9 +203,20 @@ describe('Overclock, Focus and Burn leads (real content)', () => {
     expect(held).toBeGreaterThanOrEqual(1);
   });
 
+  it('Burn leads need no other purchase, and owning them reveals heat and ICE Rating', () => {
+    expect(gameConfig.buyables.find((b) => b.id === BURN_LEADS)!.requires ?? []).toEqual([]);
+    const g = rich();
+    const shown = (): string[] =>
+      buildViewModel(g)
+        .sleeve.stats.filter((s) => !s.hidden)
+        .map((s) => s.id);
+    expect(shown()).not.toContain('heat');
+    expect(g.buy(BURN_LEADS)).toBe('purchased');
+    expect(shown()).toEqual(expect.arrayContaining(['heat', 'iceRating']));
+  });
+
   it('using a Burn lead takes part of the heat away and uses the lead up, end to end', () => {
     const g = rich();
-    (g.getState().sleeve.purchased as Record<string, number>)[overclockUnlockId(PUSH_MALWARE)] = 1; // the reveal gate of Burn leads
     g.buy(BURN_LEADS);
     g.startAction(GROW_NETWORK);
     g.tick(g.currentDurationMs(GROW_NETWORK) + 1);

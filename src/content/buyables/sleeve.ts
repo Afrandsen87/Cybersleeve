@@ -144,10 +144,9 @@ export const sleeveBuyables: BuyableDefinition[] = [
 
   {
     id: SLEEVE_LEVELS,
-    name: 'Sleeve levels',
-    symbol: 'SL',
-    description:
-      'Your sleeve starts to learn: every action now earns sleeve XP, and each sleeve level gives a lasting bonus. Also shows the Re-sleeve button. Kept when you re-sleeve.',
+    name: 'Sleeve Theory',
+    symbol: 'SY',
+    description: 'Begin to unlock the full potential of your sleeve.',
     cost: num(100e6),
     effect: { kind: 'unlockSleeveLevels' },
   },
