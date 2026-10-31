@@ -14,7 +14,7 @@ describe('tab counts', () => {
   it('uses plain labels and null counts before points exist', () => {
     const tabs = buildViewModel(game()).tabs;
     expect(tabs.map((tab) => tab.count)).toEqual([null, null, null, null, null]);
-    expect(tabs.map((tab) => tab.label)).toEqual(['Character', 'Skills', 'Automation', 'Stats', 'Corporation']);
+    expect(tabs.map((tab) => tab.label)).toEqual(['Character', 'Firmware', 'Automation', 'Stats', 'Corporation']);
   });
 
   it('counts both skill and re-sleeve points separately from the label', () => {
@@ -22,7 +22,7 @@ describe('tab counts', () => {
     g.resleeve();
     flat<{ actions: Record<string, { xp: unknown }> }>(g).actions['a']!.xp = num(10);
     const tab = buildViewModel(g).tabs.find((entry) => entry.id === 'skills')!;
-    expect(tab).toMatchObject({ label: 'Skills', count: 2, attention: true });
+    expect(tab).toMatchObject({ label: 'Firmware', count: 2, attention: true });
     expect(buildViewModel(g, undefined, undefined, { activeTab: 'skills', augmentRarityId: null }).tabs[1]!.attention).toBe(false);
   });
 });

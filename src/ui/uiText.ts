@@ -29,8 +29,8 @@ export const uiText: UiText = {
     network: 'Network',
     inventory: 'Inventory',
     upgrades: 'Upgrades',
-    skills: 'Skills',
-    resleeveSkills: 'Sleeve skills',
+    skills: 'Firmware',
+    resleeveSkills: 'Sleeve Firmware',
     stats: 'Stats',
     automation: 'Automation',
     corporation: 'Corporation',
@@ -41,7 +41,7 @@ export const uiText: UiText = {
   },
   tabs: {
     character: 'Character',
-    skills: 'Skills',
+    skills: 'Firmware',
     automation: 'Automation',
     stats: 'Stats',
     corporation: 'Corporation',
@@ -78,8 +78,8 @@ export const uiText: UiText = {
     autoBackchannel: (rarity) => `Auto Back Channel: ${rarity}`,
   },
   skills: {
-    points: (points) => `Skill points: ${points}`,
-    resleevePoints: (points) => `Sleeve skill points: ${points}`,
+    points: (points) => `Firmware points: ${points}`,
+    resleevePoints: (points) => `Sleeve firmware points: ${points}`,
     hidden: '???',
     branches: {
       sleeveUp: '',
@@ -92,7 +92,7 @@ export const uiText: UiText = {
       corporation: 'Corporation',
     },
     generalBranch: 'General',
-    note: 'Skills that read ??? will be unlocked as you play further.',
+    note: 'Firmware that reads ??? unlocks as you play further.',
   },
   runs: {
     empty: 'No finished sleeve-runs yet. Re-sleeve to write the first one down.',
@@ -142,8 +142,8 @@ export const uiText: UiText = {
   costUnits: {
     credits: 'credits',
     networkNodes: 'nodes',
-    skillPoints: 'skill points',
-    resleevePoints: 'sleeve skill points',
+    skillPoints: 'firmware points',
+    resleevePoints: 'sleeve firmware points',
     automationPoints: 'automation points',
   },
   lock: {
@@ -186,7 +186,7 @@ export const uiText: UiText = {
   upgradeTiles: upgradeText,
   resleeve: {
     idle: 'Re-sleeve',
-    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a sleeve skill point.',
+    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a sleeve firmware point.',
     cancel: 'Cancel',
     needLevels: (_kind, held, needed) => `Needs ${needed} sleeve levels in total across all actions to re-sleeve. You have ${held}.`,
   },

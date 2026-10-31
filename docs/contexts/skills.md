@@ -1,5 +1,7 @@
 # Context: skills
 
+Players see skills as **Firmware** and sleeve skills as **Sleeve Firmware**; code, saves and developer docs say skill.
+
 Skill trees and skill points.
 
 Code: `src/core/skills/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.

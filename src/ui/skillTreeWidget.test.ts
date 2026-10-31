@@ -136,7 +136,7 @@ describe('the skill tree on the screen', () => {
     const { root, render, game } = mount();
     const note = root.querySelector<HTMLElement>('.skills-panel > .skills-note')!;
     expect(root.querySelector('.skills-panel')!.firstElementChild).toBe(note);
-    expect(note.textContent).toBe('Skills that read ??? will be unlocked as you play further.');
+    expect(note.textContent).toBe('Firmware that reads ??? unlocks as you play further.');
     expect(note.hidden).toBe(false);
     loose(game).purchased['dual'] = 1; // the gated branch reads now: nothing is masked
     render();

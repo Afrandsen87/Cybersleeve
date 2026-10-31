@@ -48,10 +48,10 @@ describe('Moles and the back channel in the view model', () => {
 
   it('the interface speed tip lists the skill factor once a skill gives one', () => {
     const g = pointGame();
-    expect(statRow(buildViewModel(g).sleeve.stats, 'interfaceSpeed').tip).not.toContain('Skills');
+    expect(statRow(buildViewModel(g).sleeve.stats, 'interfaceSpeed').tip).not.toContain('Firmware');
     g.buy('s1');
     const tip = statRow(buildViewModel(g).sleeve.stats, 'interfaceSpeed').tip!;
-    expect(tip).toContain('x Skills');
-    expect(tip).toContain('Skills = 1.05');
+    expect(tip).toContain('x Firmware');
+    expect(tip).toContain('Firmware = 1.05');
   });
 });

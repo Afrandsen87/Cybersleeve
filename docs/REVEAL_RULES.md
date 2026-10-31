@@ -1,5 +1,7 @@
 # Reveal rules
 
+The developer term "skill" in this document is shown to players as Firmware.
+
 Read this before adding or changing any stat, bar, button, purchase, skill, tree, tooltip or text. The rule: **nothing is shown before it matters.**
 
 ## The reveal ledger (what was shown stays shown)

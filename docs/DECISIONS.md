@@ -103,3 +103,7 @@ Every decision entry now lives in the doc of the context it decides (section "De
 - **Decided 2026-10-31 (by the user): Upgrades panel rows by currency and bought one-time first.** The one-time/rebuyable split is gone: every node-paid upgrade is a network upgrade. One Upgrades panel has SLEEVE and NETWORK rows. A bought one-time purchase moves to the front, preserving base-price order among bought one-time purchases, and shows MAX. A maxed rebuyable keeps its place. Price-strip tiles are opt-in so action cards and skills retain their current appearance. Presentation only; no mechanics, saves or tuning change.
 
 - **Decided 2026-10-31 (by the user): Inventory as a stash; Sell buttons show what they earn.** Named slots expose the item and rarity at a glance; the player sees the payout before selling. Values come from `Inventory.sellValue` through lazy view fields, never the widget. The legend shows only rarities with shown sellable rows. Presentation only.
+
+Decided 2026-10-31 (by the user):
+
+- **Skills are shown as Firmware (player-facing only):** players see Firmware, Sleeve Firmware, firmware points and sleeve firmware points; ownership is installed and buying is install. Code identifiers, save fields, saved keys, `TAB_IDS` `skills`, reveal keys `skill:<id>` and `requiresSleeveSkills` stay unchanged: renaming them needs a save version bump and migration for no player gain. Skill shard, Skill transfer and the SKILL stat group keep their names for now because they describe action competence, not the tree; the user decides later.
