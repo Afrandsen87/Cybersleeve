@@ -2,6 +2,13 @@
 
 Read this before adding or changing any stat, bar, button, purchase, skill, tree, tooltip or text. The rule: **nothing is shown before it matters.**
 
+## The reveal ledger (what was shown stays shown)
+
+- **Reveal ledger** (`wallet.revealed`, `economy/revealLedger.ts`): a set of typed keys `stat:<id>`, `tab:<id>`, `skill:<id>`, `buyable:<id>` for everything the player has ever been shown. Only grows; survives a re-sleeve (`CARRIED_OVER_WALLET_FIELDS`). Queries never write it: each view build uses one `RevealTracker` (`ui/view/revealTracker.ts`) that says "shown" when the key is noted or the natural rule says so now, and collects keys that are new into `ViewModel.newlyRevealed`; `ui/dom.ts` then calls the engine command `noteRevealed(keys)` only when that list is not empty. Unknown and repeated keys are ignored (ids are resolved against the content, not a branch).
+- A noted **stat** is never hidden again (`isStatHidden`), a noted **tab** stays visible (`tabsView`), a noted **skill** stays readable but is `locked` (faded) while its gates are unmet (`skillTree.ts`), a noted **purchase** is shown greyed and cannot be bought (`BuyableView.gated`) while `Shop.isAvailable` is false. Buying still goes only through `isAvailable`.
+- A new revealable thing: pass its natural rule through `RevealTracker.reveals(kind, id, natural)` and add its id to the known keys (`REVEALABLE_STATS`, `TAB_IDS`; skills and purchases resolve by buyable id). The wallet invariant fails on a key that names nothing.
+- **Tab blink** (`ui/view/tabAttention.ts`): Skills (skill + re-sleeve points) and Automation blink while points earned exceed points seen; opening the tab marks them seen; a re-sleeve that lowers earned lowers seen; after a reload a tab blinks only for unspent points. UI memory, not saved.
+
 ## Stats, bars, buttons and purchases
 
 - A stat, bar, button or purchase stays hidden until something makes or changes it (`ui/view/statReveal.ts`, `ui/view/sleeveGate.ts`).

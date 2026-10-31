@@ -79,8 +79,18 @@ export function tabsView(
   const corporationShown = shown('corporation', corporationNatural);
   const tabsShown = shown('character', skillsNatural || automationNatural || statsShown || corporationNatural);
   const skillPoints = engine.skillPoints() + engine.resleevePoints();
-  const skillBlink = attention.blinks('skills', engine.skillPointsEarned() + engine.resleevePointsEarned(), skillPoints, activeTab === 'skills');
-  const automationBlink = attention.blinks('automation', automation.pointsEarned(), automation.pointsAvailable(), activeTab === 'automation');
+  const skillBlink = attention.blinks(
+    'skills',
+    engine.skillPointsEarned() + engine.resleevePointsEarned(),
+    skillPoints,
+    activeTab === 'skills',
+  );
+  const automationBlink = attention.blinks(
+    'automation',
+    automation.pointsEarned(),
+    automation.pointsAvailable(),
+    activeTab === 'automation',
+  );
   return [
     { id: 'character', label: text.tabs.character, visible: tabsShown, attention: false },
     { id: 'skills', label: text.tabs.skills(skillPoints), visible: skillsShown, attention: skillBlink },

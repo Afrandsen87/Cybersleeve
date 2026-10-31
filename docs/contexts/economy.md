@@ -10,6 +10,8 @@ Code: `src/core/economy/` (see `docs/contexts/_folders.md`). Text below is moved
 - **P14:** the heat tax on node income is applied in ONE place, `Economy.taxedCreditsPerNode`; `passiveCreditsPerSecond` is the node count times it, and `IncomeStats.taxedCreditsPerNode` (Credit Siphon) calls it.
 - **`IncomeStats`** (`economy/incomeStats.ts`) answers keep factor, per-node and per-second income and the growth rate for `DerivedStats`.
 
+- **Reveal ledger** (`economy/revealLedger.ts`, `revealLedgerSave.ts`): see `docs/REVEAL_RULES.md`. `noteRevealed` is the only writer of `wallet.revealed`; `Shop.isRevealed` stays the natural purchase rule and `isAvailable` the only buying gate. `Shop.resleevePointsEarned` supports the Skills tab blink.
+
 ## Design (from DESIGN.md)
 
 ### 6. Network and passive income

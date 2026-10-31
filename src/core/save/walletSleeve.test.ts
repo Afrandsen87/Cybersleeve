@@ -100,7 +100,9 @@ describe('the v7 save shape', () => {
     expect(Object.keys(data).sort()).toEqual(['sleeves', 'version', 'wallet']);
     expect(Object.keys(data.sleeves)).toEqual(['main']);
     expect(Object.keys(data.wallet.corporations)).toEqual(['main']);
-    expect(Object.keys(data.wallet).sort()).toEqual([...WALLET_KEYS.filter((k) => k !== 'corporation' && k !== 'revealed'), 'corporations'].sort());
+    expect(Object.keys(data.wallet).sort()).toEqual(
+      [...WALLET_KEYS.filter((k) => k !== 'corporation' && k !== 'revealed'), 'corporations'].sort(),
+    );
     expect(Object.keys(data.sleeves.main).sort()).toEqual(SLEEVE_KEYS);
   });
 
