@@ -12,12 +12,33 @@ describe('Auto Burn panel reveal', () => {
     expect(v.strip.visible).toBe(step >= 2);
     expect(v.strip.floor.visible).toBe(step >= 2);
     expect(v.strip.redline.visible).toBe(step >= 3);
+    expect(v.strip.layout.zones[2]!.visible).toBe(step >= 3);
     expect(v.rows.map((r) => r.visible)).toEqual([step >= 3, step >= 2, step >= 4, step >= 6]);
     expect(v.rows[2]!.chips.map((c) => c.id)).toEqual(step >= 5 ? ['offOverclocks', 'offActions'] : ['offOverclocks']);
     expect(v.rows[3]!.subrows.map((s) => s.visible)).toEqual([step >= 6, step >= 7]);
     expect(v.strip.floor.editable).toBe(step >= 8);
     expect(v.strip.redline.editable).toBe(step >= 8);
     expect(v.reserve.visible).toBe(step >= 9);
+  });
+  it('captions each row with the content names of its owned skills', () => {
+    const skillName = (step: string): string =>
+      burnConfig.buyables.find((b) => b.effect.kind === 'autoBurnStep' && b.effect.step === step)?.name ?? '?';
+    const early = buildViewModel(burnGame(4, 5, 100)).automation.autoBurn;
+    expect(early.rows[2]!.caption).toBe(skillName('offOverclocks'));
+    const full = buildViewModel(burnGame(9, 5, 100)).automation.autoBurn;
+    expect(full.rows.map((r) => r.caption)).toEqual([
+      skillName('upper'),
+      skillName('hold'),
+      [skillName('offOverclocks'), skillName('offActions')].join(uiText.automation.autoBurn.captionJoin),
+      [skillName('onActions'), skillName('onOverclocks')].join(uiText.automation.autoBurn.captionJoin),
+    ]);
+  });
+  it('formats the fixed notch numbers like the condition text', () => {
+    const game = burnGame(8, 10, 20);
+    game.automation().autoBurn().setThresholds(1234567, 98765432);
+    const v = buildViewModel(game).automation.autoBurn;
+    expect(v.rows[1]!.condition).toContain(v.strip.floor.text);
+    expect(v.rows[0]!.condition).toContain(v.strip.redline.text);
   });
   it('shows live Floor and Redline condition values and fixes them until Tune Thresholds', () => {
     const game = burnGame(8, 10, 20);

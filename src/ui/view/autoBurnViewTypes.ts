@@ -1,5 +1,7 @@
-/** @module ui
- * Panel contracts. Called by: view and widget. Calls: none.
+/**
+ * @module ui
+ *
+ * The shapes of the Auto Burn panel's view: plain data built by `autoBurnView.ts` and drawn by `widgets/autoBurnPanel.ts`.
  */
 import type { AutoBurnActivity, AutoBurnSwitch } from '../../core';
 import type { HeatStripLayout } from './autoBurnStrip';
@@ -33,6 +35,8 @@ export interface BurnRowView {
   readonly tag: string;
   readonly caption: string;
   readonly condition: string;
+  /** The arrow between condition and action; empty when the row has no action text. */
+  readonly arrow: string;
   readonly action: string;
   readonly firing: boolean;
   readonly switch?: BurnSwitchView;
@@ -42,7 +46,10 @@ export interface BurnRowView {
 /** Fixed or editable notch. Called by: view, panel. Calls: none. */
 export interface BurnNotchView {
   readonly visible: boolean;
+  /** The threshold, for the input once it is editable. */
   readonly value: number;
+  /** The threshold formatted for display (the same formatter as the row conditions). */
+  readonly text: string;
   readonly label: string;
   readonly editable: boolean;
 }
@@ -63,6 +70,7 @@ export interface AutoBurnView {
     readonly zones: readonly string[];
     readonly floor: BurnNotchView;
     readonly redline: BurnNotchView;
+    /** The heat label under the marker, with the overflow mark when heat lies beyond the strip. */
     readonly heat: string;
   };
   readonly rows: readonly BurnRowView[];

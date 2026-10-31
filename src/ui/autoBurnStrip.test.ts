@@ -1,19 +1,34 @@
-/** Strip display invariants. Called by: Vitest. Calls: heatStripLayout. */
+/** The Auto Burn heat strip's layout: ordered contiguous zones, the hidden Redline, the live zone, overflow and finite percents. */
 import { describe, expect, it } from 'vitest';
-import { heatStripLayout, STRIP_SPAN_OF_REDLINE } from './view/autoBurnStrip';
+import { heatStripLayout } from './view/autoBurnStrip';
 
 describe('Auto Burn strip', () => {
-  it('uses 1.5 times Redline and contiguous zones', () => {
+  it('orders Floor before Redline inside the strip, with contiguous zones and the marker between them', () => {
     const v = heatStripLayout(20, 70, 35);
-    expect(STRIP_SPAN_OF_REDLINE).toBe(1.5);
-    expect(v.floor).toBeCloseTo((20 / 105) * 100);
-    expect(v.redline).toBeCloseTo((70 / 105) * 100);
-    expect(v.zones).toEqual([
-      { start: 0, end: v.floor },
-      { start: v.floor, end: v.redline },
-      { start: v.redline, end: 100 },
+    expect(0).toBeLessThan(v.floor);
+    expect(v.floor).toBeLessThan(v.marker);
+    expect(v.marker).toBeLessThan(v.redline);
+    expect(v.redline).toBeLessThan(100);
+    expect(v.zones.map((z) => [z.start, z.end])).toEqual([
+      [0, v.floor],
+      [v.floor, v.redline],
+      [v.redline, 100],
     ]);
-    expect(v.marker).toBeCloseTo((35 / 105) * 100);
+    expect(v.overflow).toBe(false);
+  });
+  it('without the Redline the band runs to the end and the red zone is hidden', () => {
+    const v = heatStripLayout(20, 70, 90, false);
+    expect(v.zones[1]).toMatchObject({ end: 100, visible: true, live: true });
+    expect(v.zones[2]).toMatchObject({ visible: false, live: false });
+  });
+  it.each([
+    [5, 0],
+    [20, 1],
+    [69, 1],
+    [70, 2],
+    [1e300, 2],
+  ])('marks only the zone heat %s is in (zone %s) as live', (heat, zone) => {
+    expect(heatStripLayout(20, 70, heat).zones.map((z) => z.live)).toEqual([0, 1, 2].map((i) => i === zone));
   });
   it('pins huge heat and signals overflow', () => {
     expect(heatStripLayout(49, 50, 1e308)).toMatchObject({ marker: 100, overflow: true });

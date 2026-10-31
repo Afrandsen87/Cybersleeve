@@ -98,12 +98,28 @@ describe('edge heat values', () => {
     expect(s.firing.trigger).toBe(true);
   });
 
-  it('NaN and negative heat read as 0 and do not throw', () => {
+  it('NaN and negative heat show as 0 and idle, and do not throw', () => {
     for (const heat of [Number.NaN, -5]) {
-      const s = autoBurnStatus(burnRules({ upper: true, onActions: true }), snap({ heat }));
-      expect(s).toMatchObject({ heat: 0, activity: 'idle' });
-      expect(s.firing).toEqual({ trigger: false, throttle: false, failsafe: false, restart: true });
+      expect(autoBurnStatus(burnRules({ upper: true, onActions: true }), snap({ heat }))).toMatchObject({ heat: 0, activity: 'idle' });
     }
+  });
+
+  it('the firing flags agree with the conditions the step uses, NaN heat included', () => {
+    const rules = burnRules({ upper: true, hold: true, offActions: true, onActions: true });
+    for (const heat of [Number.NaN, -5, 0, 5, 30, 1e300]) {
+      for (const held of [0, 5]) {
+        const s = snap({ heat, held });
+        const { firing } = autoBurnStatus(rules, s);
+        expect(firing.failsafe).toBe(shouldSwitchOff(rules, s));
+        expect(firing.restart).toBe(shouldSwitchOn(rules, s));
+      }
+    }
+    expect(autoBurnStatus(rules, snap({ heat: Number.NaN })).firing).toEqual({
+      trigger: false,
+      throttle: false,
+      failsafe: false,
+      restart: false,
+    });
   });
 });
 

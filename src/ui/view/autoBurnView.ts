@@ -1,15 +1,44 @@
-/** @module ui
- * Owner-sourced Auto Burn presentation. Called by: automationView. Calls: AutoBurnControls, resumeChecklists, heatStripLayout.
+/**
+ * @module ui
+ *
+ * The Auto Burn panel's view: the status line, the heat strip and the protocol rows, built only from the Auto Burn owners (`rules()`,
+ * `status()`, `stepOwned()`), so no condition is re-derived here. Each part is shown with the skill that makes it (docs/REVEAL_RULES.md).
+ *
+ * @remarks
+ * Called by: `automationView.ts`. Calls: `AutoBurnControls`, `resumeChecklists`, `heatStripLayout`, `formatPlain`.
  */
-import type { ActionQueries, AutoBurnControls, AutoBurnSwitch, GameConfig } from '../../core';
+import type { ActionQueries, AutoBurnControls, AutoBurnStep, AutoBurnSwitch, GameConfig } from '../../core';
 import { formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import { resumeChecklists } from './autoBurnChecklist';
 import { heatStripLayout } from './autoBurnStrip';
 import type { AutoBurnView, BurnChipView, BurnRowView, BurnSwitchView, BuyableView } from './viewTypes';
 
-/** Builds display data without deriving automation conditions or mutating state.
- * Called by: automationView. Calls: rules, status, stepOwned, resumeChecklists, formatPlain.
+/** The skills behind each protocol row, in lane order; the row's caption names the owned ones. */
+const ROW_STEPS = {
+  trigger: ['upper'],
+  throttle: ['hold'],
+  failsafe: ['offOverclocks', 'offActions'],
+  restart: ['onActions', 'onOverclocks'],
+} as const satisfies Record<string, readonly AutoBurnStep[]>;
+
+/**
+ * The name of the skill that grants an Auto Burn step, from the skill content.
+ *
+ * Called by: {@link autoBurnView}. Calls: nothing.
+ *
+ * @param config the buyables
+ * @param step the step
+ * @returns the skill's name, or '' when no skill grants it
+ */
+function stepSkillName(config: Pick<GameConfig, 'buyables'>, step: AutoBurnStep): string {
+  return config.buyables.find((b) => b.effect.kind === 'autoBurnStep' && b.effect.step === step)?.name ?? '';
+}
+
+/**
+ * The Auto Burn panel. Pure: reads the owners and mutates nothing.
+ *
+ * Called by: `automationView`. Calls: `AutoBurnControls.rules`, `.status`, `.stepOwned`, `resumeChecklists`, `heatStripLayout`, `formatPlain`.
  * @param burn automation owner
  * @param engine Overclock ownership queries
  * @param config configured actions and purchases
@@ -48,8 +77,12 @@ export function autoBurnView(
     id,
     visible: visible[i] ?? false,
     tag: t.tags[i] ?? '',
-    caption: t.captions[id === 'failsafe' && owned('offActions') ? 4 : id === 'restart' && owned('onOverclocks') ? 5 : i] ?? '',
+    caption: ROW_STEPS[id]
+      .filter((step) => owned(step))
+      .map((step) => stepSkillName(config, step))
+      .join(t.captionJoin),
     condition: conditions[i] ?? '',
+    arrow: t.actions[i] ? t.arrow : '',
     action: t.actions[i] ?? '',
     firing: status.firing[id],
     ...(id === 'trigger' ? { switch: led('upper') } : id === 'throttle' ? { switch: led('hold') } : {}),
@@ -74,6 +107,7 @@ export function autoBurnView(
           ]
         : [],
   }));
+  const layout = heatStripLayout(rules.lower, rules.upperAt, status.heat, owned('upper'));
   return {
     status: {
       visible: rules.toggle,
@@ -85,11 +119,11 @@ export function autoBurnView(
     },
     strip: {
       visible: owned('hold'),
-      layout: heatStripLayout(rules.lower, rules.upperAt, status.heat),
+      layout,
       zones: t.zones,
-      floor: { visible: owned('hold'), value: rules.lower, label: t.floor, editable: owned('thresholds') },
-      redline: { visible: owned('upper'), value: rules.upperAt, label: t.redline, editable: owned('thresholds') },
-      heat: formatPlain(status.heat),
+      floor: { visible: owned('hold'), value: rules.lower, text: floor, label: t.floor, editable: owned('thresholds') },
+      redline: { visible: owned('upper'), value: rules.upperAt, text: redline, label: t.redline, editable: owned('thresholds') },
+      heat: `${formatPlain(status.heat)}${layout.overflow ? t.overflowMark : ''}`,
     },
     rows,
     reserve: { visible: reserve, value: rules.reserve, label: t.reserve },

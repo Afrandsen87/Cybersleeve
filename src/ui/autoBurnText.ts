@@ -1,8 +1,13 @@
-/** @module ui
- * Panel wording. Called by: uiText, autoBurnView. Calls: none.
+/**
+ * @module ui
+ *
+ * The Auto Burn panel's interface text. Skill names are not here: the row captions read them from the skill content.
+ *
+ * @remarks
+ * Called by: `uiText.ts` (as `automation.autoBurn`), `autoBurnView.ts`. Calls: nothing.
  */
 import type { AutoBurnActivity } from '../core';
-/** Localized panel text. Called by: UiText. Calls: none. */
+/** The Auto Burn panel's words and templates (the templates take values already formatted by the view). */
 export interface AutoBurnText {
   readonly floor: string;
   readonly redline: string;
@@ -15,7 +20,12 @@ export interface AutoBurnText {
   readonly zones: readonly string[];
   readonly activities: Readonly<Record<AutoBurnActivity, { readonly word: string; readonly reason: string }>>;
   readonly tags: readonly string[];
-  readonly captions: readonly string[];
+  /** Between the names of two skills that share a row caption. */
+  readonly captionJoin: string;
+  /** Between a row's condition and its action. */
+  readonly arrow: string;
+  /** After the heat label while heat lies beyond the strip's end. */
+  readonly overflowMark: string;
   readonly overclocks: string;
   readonly autoRuns: string;
   readonly autoRunKind: string;
@@ -28,7 +38,7 @@ export interface AutoBurnText {
   restart(floor: string, reserve: boolean): string;
   readonly actions: readonly string[];
 }
-/** Default words and owner-value templates. Called by: uiText. Calls: none. */
+/** The panel's text. Called by: `uiText.ts`. Calls: nothing. */
 export const autoBurnText: AutoBurnText = {
   floor: 'Floor',
   redline: 'Redline',
@@ -48,14 +58,9 @@ export const autoBurnText: AutoBurnText = {
     burning: { word: 'BURNING', reason: 'burning leads to cool heat' },
   },
   tags: ['TRIGGER', 'THROTTLE', 'FAILSAFE', 'RESTART'],
-  captions: [
-    'Redline Trigger',
-    'Hold Down',
-    'Cool Overclocks',
-    'Resume Auto-runs',
-    'Cool Overclocks · Auto-runs',
-    'Resume Auto-runs · Overclocks',
-  ],
+  captionJoin: ' · ',
+  arrow: '→',
+  overflowMark: ' +',
   overclocks: 'Overclocks',
   autoRuns: 'Auto-runs',
   autoRunKind: 'AUTO-RUN',

@@ -95,7 +95,8 @@ function activityOf(rules: AutoBurnRules, s: AutoBurnSnapshot, available: number
 }
 
 /**
- * Auto Burn's status now: its activity, which rules fire, and the lead counts. Pure; NaN or negative heat reads as 0 and never throws.
+ * Auto Burn's status now: its activity, which rules fire, and the lead counts. Pure and never throws. The firing flags read the raw heat,
+ * exactly as `AutoBurn.step` does (so NaN heat fires nothing, as in the step); the activity and the shown heat read NaN or negative heat as 0.
  *
  * Called by: `AutoBurn.status`. Calls: {@link availableLeads}, {@link shouldSwitchOff}, {@link shouldSwitchOn}, `heatNeedsCooling`, `heatHoldTarget`.
  *
@@ -104,16 +105,15 @@ function activityOf(rules: AutoBurnRules, s: AutoBurnSnapshot, available: number
  */
 export function autoBurnStatus(rules: AutoBurnRules, snapshot: AutoBurnSnapshot): AutoBurnStatus {
   const heat = Number.isNaN(snapshot.heat) ? 0 : Math.max(0, snapshot.heat);
-  const s = { ...snapshot, heat };
-  const available = availableLeads(rules, s);
-  const activity = activityOf(rules, s, available);
+  const available = availableLeads(rules, snapshot);
+  const activity = activityOf(rules, { ...snapshot, heat }, available);
   return {
     activity,
     firing: {
-      trigger: rules.upper && heat >= rules.upperAt,
+      trigger: rules.upper && snapshot.heat >= rules.upperAt,
       throttle: rules.hold && activity === 'burning',
-      failsafe: shouldSwitchOff(rules, s) && (rules.offOverclocks || rules.offActions),
-      restart: shouldSwitchOn(rules, s) && (rules.onActions || rules.onOverclocks),
+      failsafe: shouldSwitchOff(rules, snapshot) && (rules.offOverclocks || rules.offActions),
+      restart: shouldSwitchOn(rules, snapshot) && (rules.onActions || rules.onOverclocks),
     },
     held: snapshot.held,
     available,
