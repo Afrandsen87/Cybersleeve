@@ -13,6 +13,7 @@ export interface MainScreenText {
   readonly online: string;
   readonly linked: string;
   readonly groupTitles: Readonly<Record<'access' | 'skill' | 'defense' | 'risk', string>>;
+  /** The label of the zone where the tax takes every credit (not where the tax starts: it starts with the first point of heat). */
   readonly zoneText: string;
   readonly resleeveTitle: string;
   /** Formats the heat readout. Called by: heat gauge/HUD. Calls: none. */

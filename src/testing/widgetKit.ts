@@ -23,7 +23,7 @@ export function gaugeView(strip: Partial<HeatGaugeView['strip']> = {}): HeatGaug
   return {
     strip: { fillPercent: 50, taxStartPercent: 70, markerPercents: [], overflow: false, ...strip },
     valueText: 'HEAT 5',
-    zoneText: 'TAX ZONE',
+    zoneText: 'FULLY TAXED ZONE',
     legendText: 'all credits taxed ≥ 10',
   };
 }

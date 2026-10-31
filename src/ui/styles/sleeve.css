@@ -97,6 +97,24 @@
   right: 0;
   background: repeating-linear-gradient(135deg, rgba(255, 59, 92, 0.28) 0 5px, transparent 5px 10px);
   border-left: 2px solid var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+/* The zone's own label: centred in the stripes, cut with an ellipsis rather than spilling out of the zone. */
+.hg-zone-label {
+  min-width: 0;
+  padding: 0 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 700 8px var(--mono);
+  letter-spacing: -0.02em;
+  color: #ffd0d8;
+  text-shadow:
+    0 0 3px #000,
+    0 0 3px #000;
 }
 .hg-zone[hidden] {
   display: none;

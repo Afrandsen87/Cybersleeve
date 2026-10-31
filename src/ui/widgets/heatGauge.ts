@@ -30,9 +30,10 @@ export function buildHeatGauge(): HeatGauge {
   const fill = h('div', 'hg-fill');
   const zone = h('div', 'hg-zone');
   const value = h('span');
-  const zoneLabel = h('span');
+  const zoneLabel = h('span', 'hg-zone-label');
+  zone.append(zoneLabel); // inside the zone, so the label never reads as starting before it
   const labels = h('div', 'hg-labels');
-  labels.append(value, zoneLabel);
+  labels.append(value);
   const strip = h('div', 'hg');
   strip.append(fill, zone, labels);
   const legend = h('span', 'hg-bad');
@@ -54,7 +55,6 @@ export function buildHeatGauge(): HeatGauge {
       if (start !== null) zone.style.left = `${start}%`;
       setText(value, view.valueText);
       setText(zoneLabel, view.zoneText);
-      zoneLabel.hidden = start === null;
       setText(legend, view.legendText);
     },
   };

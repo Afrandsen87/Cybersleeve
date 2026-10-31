@@ -11,7 +11,7 @@ export const hudText: MainScreenText = {
   online: 'ONLINE',
   linked: 'LINKED',
   groupTitles: { access: 'ACCESS', skill: 'SKILL', defense: 'DEFENSE', risk: 'RISK' },
-  zoneText: 'TAX ZONE',
+  zoneText: 'FULLY TAXED ZONE',
   resleeveTitle: 'RE-SLEEVE',
   heatValue: (value) => `HEAT ${value}`,
   taxValue: (percent) => `TAX ${percent}%`,
