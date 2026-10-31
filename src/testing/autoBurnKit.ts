@@ -6,9 +6,10 @@
  *
  * @remarks
  * Called by: `core/automation/autoBurn*.test.ts`, `ui/autoBurnUi.test.ts`. Calls: `testConfig`, `automationKit`, `createGame`.
+ * {@link burnRules} builds rules by hand for the pure `autoBurnStatus` tests.
  */
 import { createGame } from '../app/createGame';
-import { type GameConfig, type GameEngine, createConfig } from '../core';
+import { type AutoBurnRules, type GameConfig, type GameEngine, createConfig } from '../core';
 import { num } from '../numbers';
 import { automationLaneBuyables, laneSkillId } from './automationKit';
 import { flat } from './flatState';
@@ -112,4 +113,27 @@ export function blockCooling(g: GameEngine): void {
 /** Switches the Overclock and the Auto-run of every action on (the Auto-runs are on after buying; this sets the Overclocks). */
 export function allOn(g: GameEngine): void {
   for (const id of BURN_ACTIONS) if (!g.overclockStatus(id)?.on) g.toggleOverclock(id);
+}
+
+/**
+ * Rules built by hand for the pure status tests: the toggle owned, every switch off, lower threshold 10, upper 50, no reserve.
+ *
+ * @param over the fields to change
+ */
+export function burnRules(over: Partial<AutoBurnRules> = {}): AutoBurnRules {
+  return {
+    toggle: true,
+    hold: false,
+    upper: false,
+    offOverclocks: false,
+    offActions: false,
+    onActions: false,
+    onOverclocks: false,
+    resumeOverclocks: {},
+    resumeAutoRuns: {},
+    lower: 10,
+    upperAt: 50,
+    reserve: 0,
+    ...over,
+  };
 }
