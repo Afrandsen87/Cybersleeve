@@ -738,6 +738,15 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.synths.creditsPerSecond();
   }
 
+  /**
+   * Credits per second this sleeve earns from its network and synthetic sleeves.
+   * Called by: UI HUD. Calls: NetworkSystem.creditsPerSecond.
+   * @returns current total passive income without changing state
+   */
+  creditsPerSecond(): BigNum {
+    return this.network.creditsPerSecond();
+  }
+
   /** What all synthetic sleeves would earn together at full action levels (see `SynthSleeves.incomeCeiling`). */
   synthIncomeCeiling(): BigNum {
     return this.synths.incomeCeiling();

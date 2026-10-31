@@ -4,6 +4,15 @@ Rendering, view models, text, tooltips, layout.
 
 Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verbatim from the four main docs; headings name the source.
 
+## Main screen view (2026-10-31)
+
+- **Panel precision:** panel stat values keep `PANEL_DIGITS` (4) significant figures through `formatSignificant` (`numbers/format.ts`; from 1000 it hands over to the `formatBigNum` suffixes). Tooltips keep full precision.
+- **HUD** (`view/hudView.ts`, `ViewModel.hud`): the credits readout, the income rate from `SleeveQueries.creditsPerSecond` (owner: `NetworkSystem.creditsPerSecond`, shown only above 0) and a small heat gauge shown with the heat row.
+- **Tabs:** `TabView.count` carries the skill or automation points (`null` at 0); the label holds no count.
+- **Sleeve groups** (`view/sleeveGroups.ts`): a table puts every sleeve stat row in ACCESS, SKILL, DEFENSE (ICE Rating, Legend) or RISK (heat); a group is hidden when all its rows are. The Legend decay bar is hidden while Legend is 0 (`StatBarView.hidden`).
+- **Heat gauge:** `SleeveView.heatGauge` (`null` while the heat row is hidden) places heat on a strip from `view/heatStrip.ts` (`heatStripLayout`, the one owner of strip positions, also meant for the Auto Burn panel: span `1.5 x` the largest of the tax start and markers, heat beyond pinned with `overflow`). The tax zone starts at `heatStopPoint`; with a capped tax there is no zone and the legend names the cap. While heat cools the heat bar's label is the cycle (`-amount / seconds`).
+- **Network:** `NetworkView.taxNote` (red, from `creditKeepFactor` and `heatStopPoint`, `null` at no tax) and `status` (`LINKED` while there are nodes). Main screen wording is `uiText.mainScreen` (`ui/hudText.ts`).
+
 ## Reveal ledger and tab blink
 
 **Reveal ledger** (`wallet.revealed`, `economy/revealLedger.ts`): a set of typed keys `stat:<id>`, `tab:<id>`, `skill:<id>`, `buyable:<id>` for everything the player has ever been shown. Only grows; survives a re-sleeve (`CARRIED_OVER_WALLET_FIELDS`). Queries never write it: each view build uses one `RevealTracker` (`ui/view/revealTracker.ts`) that says "shown" when the key is noted or the natural rule says so now, and collects keys that are new into `ViewModel.newlyRevealed`; `ui/dom.ts` then calls the engine command `noteRevealed(keys)` only when that list is not empty. Unknown and repeated keys are ignored (ids are resolved against the content, not a branch). Tabs: `tabsView` takes the tracker and a `TabAttention` (held by `ui/dom.ts` in `UiSelection`); `BuyableView.gated` marks a remembered purchase whose requirements are unmet (class `gated`, greyed).

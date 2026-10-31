@@ -98,7 +98,7 @@ describe('the sleeve skills in the view model', () => {
     expect(vm.skills.resleeve.pointsText).toBe('Sleeve skill points: 2');
     expect(vm.sleeve.buyables.map((b) => b.id)).not.toContain('eu');
     expect(skillViews(vm.skills.lanes).map((b) => b.id)).not.toContain('eu');
-    expect(vm.tabs[1]!.label).toBe('Skills (2)');
+    expect([vm.tabs[1]!.label, vm.tabs[1]!.count]).toEqual(['Skills', 2]);
   });
 
   it('mark what cannot be bought yet as unavailable, and what is bought as owned', () => {
@@ -164,7 +164,7 @@ describe('the screen', () => {
     const { root } = mount();
     expect([...root.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual([
       'Character',
-      'Skills (1)',
+      'Skills',
       'Automation',
       'Stats',
       'Corporation',

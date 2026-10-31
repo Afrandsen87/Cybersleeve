@@ -122,6 +122,11 @@ export interface SleeveQueries {
   passiveCreditsPerNode(sleeveId?: SleeveId): BigNum;
   /** Credits per second the network delivers now. */
   passiveCreditsPerSecond(sleeveId?: SleeveId): BigNum;
+  /**
+   * Credits per second the sleeve earns in total now: the network after the heat tax plus the synthetic sleeves.
+   * Called by: UI HUD. Calls: NetworkSystem.creditsPerSecond through GameEngine.
+   */
+  creditsPerSecond(sleeveId?: SleeveId): BigNum;
   /** True when the player owns the skill that gives synthetic sleeves. */
   synthSleevesUnlocked(sleeveId?: SleeveId): boolean;
   /** How many synthetic sleeves the player has. */

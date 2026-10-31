@@ -6,11 +6,11 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the helpers in `viewFormat.ts`.
  */
-import type { GameConfig, ItemQueries, SleeveQueries, GameStateView, SleeveStats } from '../../core';
-import { formatBigNum, formatPlain } from '../../numbers';
+import { heatStopPoint, type GameConfig, type ItemQueries, type SleeveQueries, type GameStateView, type SleeveStats } from '../../core';
+import { formatBigNum, formatPlain, formatSignificant } from '../../numbers';
 import type { UiText } from '../uiText';
 import { aggregatedMoleText } from './moleBonus';
-import { ACTION_BONUS_DECIMALS, MULTIPLIER_DECIMALS, PER_NODE_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
+import { ACTION_BONUS_DECIMALS, MULTIPLIER_DECIMALS, PANEL_DIGITS, PER_NODE_DECIMALS, buildStatRow as row, namedTerms } from './viewFormat';
 import type { NetworkView } from './viewTypes';
 
 /**
@@ -32,8 +32,19 @@ export function networkView(
   text: UiText,
 ): NetworkView {
   const keep = engine.creditKeepFactor();
+  const taxShare = 1 - keep;
+  const stop = heatStopPoint(stats.heatReduction, config.sleeve.heatTaxPerPoint, stats.heatTaxCap);
   return {
     title: text.titles.network,
+    status: !state.sleeve.network.isZero() ? text.mainScreen.linked : null,
+    taxNote:
+      taxShare > 0
+        ? text.mainScreen.taxNote(
+            formatSignificant(taxShare * 100, PANEL_DIGITS),
+            formatSignificant(stats.heat, PANEL_DIGITS),
+            stop === null ? null : formatSignificant(stop, PANEL_DIGITS),
+          )
+        : null,
     stats: [
       row('nodes', text, formatBigNum(state.sleeve.network)),
       row('payout', text, text.perSecond(formatBigNum(engine.passiveCreditsPerNode(), PER_NODE_DECIMALS)), () =>
@@ -62,7 +73,7 @@ export function networkView(
       row(
         'synths',
         text,
-        formatPlain(engine.synthCount()),
+        formatSignificant(engine.synthCount(), PANEL_DIGITS),
         () =>
           text.tips.synths({
             count: formatPlain(engine.synthCount()),
@@ -83,7 +94,7 @@ export function networkView(
       row(
         'moles',
         text,
-        formatPlain(state.sleeve.moles),
+        formatSignificant(state.sleeve.moles, PANEL_DIGITS),
         () =>
           text.tips.moles({
             moles: formatPlain(state.sleeve.moles),

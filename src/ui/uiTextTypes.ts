@@ -8,6 +8,7 @@
  */
 import type { AutoBurnSwitch, AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
 import type { TipTexts } from './tipTextTypes';
+import type { MainScreenText } from './parts/hudText';
 
 import type { ActionInfoParts, RewardLineParts, SleeveSectionId, SquareCellId, StatId } from './uiTextParts';
 
@@ -54,8 +55,8 @@ export interface UiText {
   /** The tabs at the top. The Skills tab shows the points available, unless there are none. */
   readonly tabs: {
     readonly character: string;
-    skills(points: number): string;
-    automation(points: number): string;
+    readonly skills: string;
+    readonly automation: string;
     readonly stats: string;
     readonly corporation: string;
   };
@@ -130,7 +131,7 @@ export interface UiText {
   readonly sections: Readonly<Record<SleeveSectionId, string>>;
   readonly statLabels: Readonly<Record<StatId, string>>;
   /** Label of the bar under a decaying stat; says so when the cycle is paused. */
-  readonly bars: { heat(running: boolean): string; legend(running: boolean): string };
+  readonly bars: { heat(running: boolean): string; readonly legend: string };
   /** Display unit of each reward kind (UI text only; logic never reads it). */
   readonly rewardUnits: Readonly<Record<RewardKind, string>>;
   /** Display unit of each currency a buyable can be paid in. */
@@ -177,6 +178,8 @@ export interface UiText {
     readonly modes: Readonly<Record<SquareCellId, { readonly symbol: string; readonly name: string }>>;
   };
   readonly tips: TipTexts;
+  /** The top bar, the Sleeve stat groups, the heat gauge and the panel status lights. */
+  readonly mainScreen: MainScreenText;
 
   readonly resleeve: {
     readonly idle: string;

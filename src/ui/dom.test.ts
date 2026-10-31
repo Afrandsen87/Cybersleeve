@@ -24,7 +24,7 @@ beforeEach(() => {
 describe('mountUi (smoke test against the real engine)', () => {
   it('paints immediately, before the first tick', () => {
     const { root } = mount();
-    expect(root.querySelector('.credits')?.textContent).toBe('Credits: 0');
+    expect(root.querySelector('.credits')?.textContent).toBe('0');
     expect(root.querySelector('.action-title')?.textContent).toBe('A');
   });
 
@@ -37,7 +37,7 @@ describe('mountUi (smoke test against the real engine)', () => {
     expect((root.querySelector('.bar-fill') as HTMLElement).style.transform).toBe('scaleX(0.5)');
     game.tick(5_000);
     render();
-    expect(root.querySelector('.credits')?.textContent).toBe('Credits: 0.5');
+    expect(root.querySelector('.credits')?.textContent).toBe('0.5');
   });
 
   it('a purchase button buys; once owned, the auto-run cell of the square switches on and off', () => {
@@ -190,7 +190,7 @@ describe('icons', () => {
     expect(title.textContent).toBe('A');
     const credits = root.querySelector('.credits') as HTMLElement;
     expect(credits.style.getPropertyValue('--icon')).toBe('url("icon-credits")');
-    expect(credits.textContent).toBe('Credits: 0');
+    expect(credits.textContent).toBe('0');
   });
 
   it('are left out entirely when none are given', () => {

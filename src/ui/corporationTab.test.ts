@@ -39,7 +39,7 @@ describe('the Corporation tab in the view model', () => {
   it('is hidden until the unlock is owned, and no other tab is shown for it alone', () => {
     const g = createGame({ config });
     const tab = () => buildViewModel(g).tabs.find((t) => t.id === 'corporation')!;
-    expect(tab()).toEqual({ id: 'corporation', label: 'Corporation', visible: false, attention: false });
+    expect(tab()).toEqual({ id: 'corporation', label: 'Corporation', count: null, visible: false, attention: false });
     own(g);
     expect(tab().visible).toBe(true);
     expect(buildViewModel(g).tabs.find((t) => t.id === 'character')!.visible).toBe(true); // the tabs show once there is a second one

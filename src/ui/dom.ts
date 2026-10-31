@@ -138,7 +138,7 @@ export function mountUi(
     selection.activeTab = activeTab;
     const vm = buildViewModel(engine, undefined, text, selection);
     if (vm.newlyRevealed.length > 0) engine.noteRevealed(vm.newlyRevealed); // the ledger only changes when a key is new
-    setText(credits, vm.creditsLine);
+    setText(credits, vm.hud.creditsText);
     renderStats(networkWidget, vm.network.stats, tips);
     renderInventory(inventoryWidget, vm.inventory, tips, selection);
     // The corporation can close again (a new game): its tab then gives way to the Character tab.

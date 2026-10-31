@@ -47,17 +47,17 @@ describe('skills in the view model', () => {
     expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
     expect(buildViewModel(g).skills.points).toBe(0);
     loose(g).actions['z']!.xp = num(10);
-    expect(buildViewModel(g).tabs[1]!.label).toBe('Skills (1)');
+    expect([buildViewModel(g).tabs[1]!.label, buildViewModel(g).tabs[1]!.count]).toEqual(['Skills', 1]);
   });
 
   it('has the two tabs, Character and Skills, and shows the points next to Skills unless there are none', () => {
     const g = pointGame();
     expect(buildViewModel(g).tabs).toEqual([
-      { id: 'character', label: 'Character', visible: true, attention: false },
-      { id: 'skills', label: 'Skills (1)', visible: true, attention: true },
-      { id: 'automation', label: 'Automation', visible: false, attention: false },
-      { id: 'stats', label: 'Stats', visible: false, attention: false },
-      { id: 'corporation', label: 'Corporation', visible: false, attention: false },
+      { id: 'character', label: 'Character', count: null, visible: true, attention: false },
+      { id: 'skills', label: 'Skills', count: 1, visible: true, attention: true },
+      { id: 'automation', label: 'Automation', count: null, visible: false, attention: false },
+      { id: 'stats', label: 'Stats', count: null, visible: false, attention: false },
+      { id: 'corporation', label: 'Corporation', count: null, visible: false, attention: false },
     ]);
     g.buy('s1');
     expect(buildViewModel(g).tabs[1]!.label).toBe('Skills');
@@ -168,7 +168,7 @@ describe('the screen', () => {
     const tabs = root.querySelector<HTMLElement>('.tabs')!;
     expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual([
       'Character',
-      'Skills (1)',
+      'Skills',
       'Automation',
       'Stats',
       'Corporation',
@@ -177,7 +177,7 @@ describe('the screen', () => {
     expect(tabs.parentElement).toBe(root.querySelector('header')); // the same line as the credits
     expect(tabs.previousElementSibling).toBe(root.querySelector('.credits'));
     expect(tabs.hidden).toBe(false);
-    expect(root.querySelector('.tab.attention')!.textContent).toBe('Skills (1)');
+    expect(root.querySelector('.tab.attention')!.textContent).toBe('Skills');
   });
 
   it('hides the tab bar until the first skill point is earned, then shows it', () => {

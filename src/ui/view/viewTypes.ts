@@ -4,6 +4,10 @@ import type { SleeveView, NetworkView } from './sleeveViewTypes';
 import type { InventoryView } from './inventoryViewTypes';
 import type { TabView, AutomationView, RunsView, SkillsView, ResleeveBuyView } from './panelViewTypes';
 import type { CorporationView } from './corporationViewTypes';
+import type { HudView } from './hudView';
+
+export type { HudView } from './hudView';
+export type { StatGroupView, HeatGaugeView } from './sleeveViewTypes';
 
 export type { SkillLaneView, SkillNodeView } from './skillTreeTypes';
 export type {
@@ -36,8 +40,8 @@ export { NO_SELECTION } from './inventoryViewTypes';
 export interface ViewModel {
   /** The balance on its own, e.g. `"12"`. */
   readonly creditsText: string;
-  /** The balance line, e.g. `"12 credits"`. */
-  readonly creditsLine: string;
+  /** Wallet and selected sleeve readouts for the top bar. */
+  readonly hud: HudView;
   /** Ledger keys the screen showed that `wallet.revealed` does not hold yet; the UI hands them to `noteRevealed` (usually empty). */
   readonly newlyRevealed: readonly string[];
   /** The tabs at the top, in order. */
