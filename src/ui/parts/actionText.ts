@@ -1,22 +1,29 @@
 /**
  * @module ui
  *
- * The text an action card is written with: its info, bars, reward and costs lines, the square cells and the critical flash.
+ * The text an action card is written with: its speed, bars, reward and costs rows, state LED, the square cells and the critical flash.
  *
  * @remarks
  * Pure types; part of `UiText` (`uiText.action`). Called by: `uiTextTypes.ts`, the action views. Calls: nothing.
  */
-import type { ActionInfoParts, RewardLineParts } from './actionTipParts';
+import type { RewardLineParts } from './actionTipParts';
+import type { ProcessState } from '../view/actionViewTypes';
 import type { SquareCellId } from './idParts';
 
 /** The texts of an action card. */
 export interface ActionText {
-  locked(reason: string): string;
-  info(parts: ActionInfoParts): string;
+  /** The speed value of a card's SPEED row: the speed factor and the run time. */
+  speedLine(speed: string, duration: string): string;
+  /** The tags of the card's stat rows. */
+  readonly stats: { readonly speed: string; readonly yield: string; readonly risk: string; readonly cost: string };
+  /** The state LED of a card's title bar, by state. */
+  readonly state: Readonly<Record<ProcessState, string>>;
+  /** The vertical label beside the row of the action's purchases. */
+  readonly mods: string;
   levelBar(level: number, xp: string, next: string): string;
   sleeveBar(level: number, xp: string, next: string, runsToNext: number): string;
   reward(parts: RewardLineParts): string;
-  /** The costs line under the reward line of a card: its cost items joined (empty text for none). */
+  /** One stat row's value: the cost items of one kind joined (empty text for none). */
   costs(items: readonly string[]): string;
   /** The cost items of a run (everything a run costs or makes worse), each a short phrase. */
   readonly cost: {
@@ -40,5 +47,5 @@ export interface ActionText {
   /** The critical success highlight of a card: just a mark for one success in the last second, an average per second for several. */
   critFlash(count: number, perSecond: string): string;
   /** The cells of the square on an action card: the symbol on the square button and the name read out for it. */
-  readonly modes: Readonly<Record<SquareCellId, { readonly symbol: string; readonly name: string }>>;
+  readonly modes: Readonly<Record<SquareCellId, { readonly symbol: string; readonly name: string; readonly label: string }>>;
 }

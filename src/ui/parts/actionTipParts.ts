@@ -135,13 +135,6 @@ export interface CriticalTipParts {
   readonly rewardMultiplier: string;
 }
 
-/** Pre-formatted pieces of the one-line description of an action. */
-export interface ActionInfoParts {
-  readonly speed: string;
-  readonly duration: string;
-  readonly auto: boolean;
-}
-
 /** Pre-formatted pieces of the reward line on an action card. */
 export interface RewardLineParts {
   readonly amount: string;
