@@ -19,6 +19,10 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-10-31 23:52',
+    changes: ['Add a Wipe save button beside Changelog with a confirmation'],
+  },
+  {
     version: '2026-11-01 Firmware, Automation and a new look',
     changes: [
       'Skills are now called Firmware, and sleeve skills are called Sleeve Firmware. The Firmware tab has a new design, and tree nodes no longer drift away from their lines.',
