@@ -8,7 +8,8 @@
  * Called by: `automationView.ts`. Calls: `AutoBurnControls`, `resumeChecklists`, `heatStripLayout`, `formatPlain`.
  */
 import type { ActionQueries, AutoBurnControls, AutoBurnSwitch, GameConfig } from '../../core';
-import { formatPlain } from '../../numbers';
+import { formatPlain, formatSignificant } from '../../numbers';
+import { PANEL_DIGITS } from './viewFormat';
 import type { UiText } from '../uiText';
 import { resumeChecklists } from './autoBurnChecklist';
 import { heatStripLayout } from './autoBurnStrip';
@@ -106,9 +107,8 @@ export function autoBurnView(
       visible: rules.toggle,
       activity: status.activity,
       ...t.activities[status.activity],
-      heat: `${t.heat} ${formatPlain(status.heat)}`,
+      heat: `${t.heat} ${formatSignificant(status.heat, PANEL_DIGITS)}`,
       leads: `${t.leads} ${formatPlain(status.held)}`,
-      toggle: `${t.inventory} ${status.toggleOn ? t.on : t.off}`,
     },
     strip: {
       visible: owned('hold'),
@@ -116,7 +116,7 @@ export function autoBurnView(
       zones: t.zones,
       floor: { visible: owned('hold'), value: rules.lower, text: floor, label: t.floor, editable: owned('thresholds') },
       redline: { visible: owned('upper'), value: rules.upperAt, text: redline, label: t.redline, editable: owned('thresholds') },
-      heat: `${formatPlain(status.heat)}${layout.overflow ? t.overflowMark : ''}`,
+      heat: `${formatSignificant(status.heat, PANEL_DIGITS)}${layout.overflow ? t.overflowMark : ''}`,
     },
     rows,
     reserve: { visible: reserve, value: rules.reserve, label: t.reserve },

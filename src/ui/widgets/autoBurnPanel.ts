@@ -95,14 +95,13 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
   const reason = h('span', 'k');
   const heat = h('span');
   const leads = h('span');
-  const inventory = h('span', 'k');
   const reserve = h('label');
   const reserveInput = numberInput(initial.reserve.label, (value) => {
     burn.setReserve(value);
     refresh();
   });
   reserve.append(h('span', 'k', initial.reserve.label), reserveInput);
-  status.append(state, reason, heat, leads, reserve, inventory);
+  status.append(state, reason, heat, leads, reserve);
   const wrap = h('div', 'strip-wrap');
   const strip = h('div', 'strip');
   const zones = initial.strip.zones.map((text, i) => h('div', `zone ${['z-cold', 'z-band', 'z-red'][i]}`, text));
@@ -132,7 +131,6 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
       setText(reason, view.status.reason);
       setText(heat, view.status.heat);
       setText(leads, view.status.leads);
-      setText(inventory, view.status.toggle);
       reserve.hidden = !view.reserve.visible;
       syncInput(reserveInput, view.reserve.value);
       wrap.hidden = !view.strip.visible;
@@ -150,8 +148,11 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
       floor.render(view.strip.floor, layout.floor);
       redline.render(view.strip.redline, layout.redline);
       positionAt(marker, layout.marker);
-      positionAt(markerLabel, layout.marker);
+      if (layout.overflow) {
+        if (markerLabel.style.left !== 'auto') markerLabel.style.left = 'auto';
+      } else positionAt(markerLabel, layout.marker);
       marker.classList.toggle('overflow', layout.overflow);
+      markerLabel.classList.toggle('overflow', layout.overflow);
       setText(markerLabel, view.strip.heat);
       rows.forEach((row, i) => {
         const v = view.rows[i];

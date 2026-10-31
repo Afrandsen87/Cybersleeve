@@ -403,3 +403,10 @@
 .ab .status label[hidden] {
   display: none;
 }
+
+/* Overflow heat remains inside the panel, anchored at the strip end. */
+.ab .heat-label.overflow {
+  right: 0;
+  transform: none;
+  color: var(--red);
+}

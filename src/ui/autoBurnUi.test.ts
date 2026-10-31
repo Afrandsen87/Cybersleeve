@@ -59,6 +59,17 @@ describe('the Burn lead tile', () => {
 });
 
 describe('the Auto Burn panel commands', () => {
+  it('anchors the overflow label inside the strip and restores normal positioning when cooled', () => {
+    const { game, render, box } = mount(9);
+    render();
+    const label = box().querySelector<HTMLElement>('.heat-label')!;
+    expect(label.classList.contains('overflow')).toBe(true);
+    expect(label.style.left).toBe('auto');
+    burnState(game).heat = 0;
+    render();
+    expect(label.classList.contains('overflow')).toBe(false);
+    expect(label.style.left).toBe('0%');
+  });
   it('shows plain notch values before Tune Thresholds and inputs after it', () => {
     const fixed = mount(7);
     fixed.render();
