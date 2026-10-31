@@ -107,5 +107,4 @@ Automation rarity skills live in content/buyables/skillBranches/autosaleLane.ts.
 ## Not configurable yet (by design, for later)
 Re-sleeve requirement (`ResleevePolicy`), what resets on re-sleeve, number formatting, offline progress.
 
-
 Upgrades presentation adds no tuning: rows derive from buyable currency and base price; bought-first order, MAX and badges read existing ownership and maxed views.

@@ -12,8 +12,8 @@ import type { BuyableView } from '../viewModel';
 import type { UpgradeTileText } from '../uiText';
 import { applyIcon, h, setText } from './domKit';
 
-/** Wording held only for opt-in tiles. */
-const tileLabels = new WeakMap<HTMLButtonElement, UpgradeTileText>();
+/** The wording and the price strip and badge of each opt-in tile, so a render reads no DOM. */
+const tileParts = new WeakMap<HTMLButtonElement, { readonly text: UpgradeTileText; readonly price: HTMLElement; readonly own: HTMLElement }>();
 
 /** Builds persistent purchase buttons; optional tile wording adds price strips and badges.
  * Called by: sleeveWidgets, actionCards, skillsPanel, corporationPanel. Calls: applyIcon, h, buy on click.
@@ -36,8 +36,10 @@ export function upgradeRow(
     applyIcon(upgrade, icons.urlFor(b.id));
     if (tile) {
       upgrade.classList.add('tile');
-      upgrade.append(h('span', 'price'), h('span', 'own'));
-      tileLabels.set(upgrade, tile);
+      const price = h('span', 'price');
+      const own = h('span', 'own');
+      upgrade.append(price, own);
+      tileParts.set(upgrade, { text: tile, price, own });
     }
     upgrade.setAttribute('aria-label', b.name);
     upgrade.addEventListener('click', () => buy(b.id));
@@ -65,12 +67,11 @@ export function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, 
     upgrade.classList.toggle('maxed', b.maxed);
     upgrade.classList.toggle('gated', b.gated);
     upgrade.classList.toggle('purchasable', b.available && !b.maxed && b.affordable);
-    const tile = tileLabels.get(upgrade);
+    const tile = tileParts.get(upgrade);
     if (tile) {
-      setText(upgrade.querySelector<HTMLElement>('.price')!, b.maxed ? tile.max : b.costText);
-      const own = upgrade.querySelector<HTMLElement>('.own')!;
-      setText(own, tile.owned(String(b.owned)));
-      own.hidden = !(b.repeatable && b.owned > 0);
+      setText(tile.price, b.maxed ? tile.text.max : b.costText);
+      setText(tile.own, tile.text.owned(String(b.owned)));
+      tile.own.hidden = !(b.repeatable && b.owned > 0);
       upgrade.classList.toggle('poor', b.available && !b.maxed && !b.affordable);
     }
     tips.set(upgrade, () => b.tip);
