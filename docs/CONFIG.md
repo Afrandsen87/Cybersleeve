@@ -1,5 +1,17 @@
 # Cybersleeve – Configuration Reference
 
+All progression numbers live in **`src/content/gameConfig.ts`** (type `GameConfig`, defined in `src/core/types.ts`). Change a value there and the whole game follows; no code changes needed. `createGame` validates the configuration (`validateConfig`) and refuses to start with a list of problems if a value is invalid.
+
+For experiments (tests, tuning sessions) derive a variant instead of editing the file:
+
+```ts
+import { createConfig } from './core';
+import { gameConfig } from './content/gameConfig';
+const fast = createConfig(gameConfig, { global: { speedMultiplier: 10 } });
+const engine = createGame({ config: fast });
+```
+
+Unit tests use their own fixed `src/testing/testConfig.ts`, so retuning the game does not break them.
 
 ## Quick recipes
 

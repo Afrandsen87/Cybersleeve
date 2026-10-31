@@ -7,8 +7,6 @@ import {
   type AUTOMATION_FEATURES,
   allowedRarities,
   dispersalSlots,
-  actionIsUnlocked,
-  resolveSleeveStats,
   AUTO_BURN_SWITCHES,
   automationPointsEarned,
   heatMakingAutoRuns,
@@ -16,7 +14,6 @@ import {
   overclockMakesHeat,
   ownsAutoBurnStep,
 } from '../../core';
-import { numberFactory } from '../../numbers';
 import type { InvariantCheck } from './shared';
 
 /**
@@ -66,10 +63,9 @@ export const checkAutomation: InvariantCheck = (state, config, problems) => {
   const slots = dispersalSlots(config.buyables, state.sleeve.purchased);
   if (auto.dispersalTargets.length > slots) problems.push('dispersal targets exceed selection slots');
   if (new Set(auto.dispersalTargets).size !== auto.dispersalTargets.length) problems.push('dispersal targets contain duplicates');
-  const access = resolveSleeveStats(config.buyables, state, config.sleeve, numberFactory).accessLevel;
+  // A kept target may be locked live (Daemon Persistence carries it past a re-sleeve that resets access); the UI lists it so it can be unticked.
   for (const id of auto.dispersalTargets) {
-    const action = config.actions.find((a) => a.id === id);
-    if (!action || !actionIsUnlocked(action, access)) problems.push('dispersal names an unknown or locked action ' + id);
+    if (!config.actions.some((a) => a.id === id)) problems.push('dispersal names an unknown action ' + id);
   }
   for (const id of Object.keys(auto.autosale)) {
     if (!config.items.rarities.some((r) => r.id === id)) problems.push(`autosale names unknown rarity ${id}`);

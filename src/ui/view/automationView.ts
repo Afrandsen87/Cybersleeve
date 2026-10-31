@@ -122,7 +122,7 @@ export function automationView(
       id: a.id,
       name: a.name,
       selected: targets.includes(a.id),
-      visible: dispersalOpen && engine.isUnlocked(a.id),
+      visible: dispersalOpen && (engine.isUnlocked(a.id) || targets.includes(a.id)), // a kept target the sleeve cannot reach now (after a re-sleeve) stays listed so it can be unticked
       disabled: !targets.includes(a.id) && targets.length >= slots,
     })),
     dispersalCount: text.automation.dispersalCount(targets.length, slots),

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @module testing
  *
  * What the invariant checks share: the config they read, the way a problem is reported, and the number tests they use.
