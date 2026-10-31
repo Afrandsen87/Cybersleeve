@@ -97,7 +97,7 @@ The prices are the same for every action for now. The sleeve-wide **Overclock up
 |---|---|---|
 | Auto-run | 100 credits | Restarts the action itself. |
 | Kompromat harvest | 500 credits | 5% of completed runs drop a Kompromat file, rarity 90 / 10 / 0 / 0 / 0 over common, uncommon, rare, legendary, crisis (see 10). |
-| Rarity refinement | 10,000 credits; needs the harvest | Increases the rarity of Kompromat drops based on Hacking Proficiency (see 10 for how). Its tooltip states the rule: 5% of each rarity moves up per doubling of (1 + proficiency). |
+| Rarity refinement | A Leverage skill (1 skill point) after Black Ledger; needs the harvest. Not on the card. | Increases the rarity of Kompromat drops based on Hacking Proficiency (see 10 for how). Its tooltip states the rule: 5% of each rarity moves up per doubling of (1 + proficiency). |
 | Skill transfer | 1,000,000 credits | Adds Practice Hacking's **sleeve level** to Grow network's level, for speed only (not its XP). |
 | Study methods | 1e15 credits | The XP every sleeve level of the **other** actions needs is divided by 1 + the sleeve level of Practice Hacking (level 1 halves it, level 3 quarters it); there is no ceiling. Practice Hacking itself is not affected. Not available (so not visible) before the first re-sleeve (`revealAfterResleeves: 1`; decided 2026-10-30 by the user). |
 
