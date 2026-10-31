@@ -17,6 +17,8 @@ import type { UiText } from '../uiText';
 export interface UiSelection {
   /** Pinned Firmware inspector node; UI memory only, never saved. */
   firmwareSelected: string | null;
+  /** Pinned Automation firmware; UI memory only, never saved. */
+  automationSelected: string | null;
   /** The rarity of Augment schematic selected in the Inventory, or `null`. */
   augmentRarityId: string | null;
   /** Test aid: show everything the rules of the game hide (the "Show all" button). */

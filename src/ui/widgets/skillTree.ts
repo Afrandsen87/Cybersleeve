@@ -87,7 +87,7 @@ export function mountSkillTree(ctx: UiContext, initial: readonly SkillLaneView[]
     if (lane.title) {
       const header = h('div', 'lane-header');
       header.append(h('h3', 'lane-title', lane.title));
-      if (options.onSelect) {
+      if (options.onSelect || options.cards) {
         const purpose = h('span', 'lane-purpose');
         const count = h('span', 'lane-count');
         const bar = h('span', 'lane-segments');

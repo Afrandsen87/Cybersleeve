@@ -14,7 +14,6 @@ export interface AutoBurnText {
   readonly reserve: string;
   readonly on: string;
   readonly off: string;
-  readonly inventory: string;
   readonly heat: string;
   readonly leads: string;
   readonly zones: readonly string[];
@@ -45,7 +44,6 @@ export const autoBurnText: AutoBurnText = {
   reserve: 'Reserve',
   on: 'ON',
   off: 'OFF',
-  inventory: 'Inventory toggle',
   heat: 'heat',
   leads: 'leads',
   zones: ['COLD', 'BAND', 'RED'],

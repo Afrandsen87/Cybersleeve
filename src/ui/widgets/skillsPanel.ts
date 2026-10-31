@@ -6,6 +6,7 @@
 import type { SkillsView } from '../viewModel';
 import { buildInspectorView, defaultSelection } from '../view/firmwareInspector';
 import { type UiContext, h, setText, setClass, setHidden } from './domKit';
+import { buildFirmwareLegend } from './firmwareLegend';
 import { mountSkillTree } from './skillTree';
 import { mountFirmwareInspector } from './firmwareInspector';
 
@@ -94,13 +95,7 @@ export function mountSkillsPanel(ctx: UiContext, initial: SkillsView): SkillsPan
   const sleeveScroll = h('div', 'sleeve-tree-scroll');
   sleeveScroll.append(resleeveTree.element);
   sleeve.panel.append(sleeveScroll);
-  const legend = h('div', 'firmware-legend');
-  for (const state of ['installed', 'affordable', 'available', 'locked', 'encrypted'] as const) {
-    const item = h('span', 'legend-item');
-    item.append(h('span', `legend-swatch ${state}`), h('span', undefined, ctx.text.firmware.status[state]));
-    legend.append(item);
-  }
-  legend.append(h('span', 'legend-hint', ctx.text.firmware.legendHint));
+  const legend = buildFirmwareLegend(ctx);
   const panels = h('div', 'firmware-panels');
   panels.append(main.panel, sleeve.panel);
   const layout = h('div', 'firmware-layout');

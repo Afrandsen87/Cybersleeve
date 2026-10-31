@@ -112,3 +112,5 @@ Automation rarity skills live in content/buyables/skillBranches/autosaleLane.ts.
 Re-sleeve requirement (`ResleevePolicy`), what resets on re-sleeve, number formatting, offline progress.
 
 Upgrades presentation adds no tuning: rows derive from buyable currency and base price; bought-first order, MAX and badges read existing ownership and maxed views.
+
+The Automation dock adds no progression tuning: 300px pane width, 250ms width transition, 350ms scroll anchoring and 1.4s control feedback are UI policies. No save, economy or content values change.

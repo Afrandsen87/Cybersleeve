@@ -65,7 +65,6 @@ export interface AutoBurnView {
     readonly reason: string;
     readonly heat: string;
     readonly leads: string;
-    readonly toggle: string;
   };
   readonly strip: {
     readonly visible: boolean;

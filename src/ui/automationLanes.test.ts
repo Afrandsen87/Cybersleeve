@@ -57,6 +57,7 @@ describe('the skill lane inside each automation box', () => {
 
   it('the box shows the lane from the start, with no separate unlock button; pressing the first skill unlocks the feature, the next one needs it', () => {
     const { root, game, render } = mount(2);
+    [...root.querySelectorAll<HTMLButtonElement>('.tab')].find((button) => /Automation/.test(button.textContent ?? ''))?.click();
     const box = root.querySelector<HTMLElement>('.automation-autoBurn')!;
     const nodes = () => [...box.querySelectorAll<HTMLButtonElement>('.skill-node')];
     expect(nodes()).toHaveLength(9); // the Auto Burn lane is the full nine skills
@@ -65,10 +66,12 @@ describe('the skill lane inside each automation box', () => {
     nodes()[1]!.click(); // the second skill cannot be bought before the first
     expect(game.ownedCount(laneSkillId('autoBurn', 2))).toBe(0);
     nodes()[0]!.click();
+    root.querySelector<HTMLButtonElement>('.automation-slot .firmware-install')!.click();
     render();
     expect(game.automation().isUnlocked('autoBurn')).toBe(true);
     expect(box.classList.contains('unlocked')).toBe(true);
     nodes()[1]!.click();
+    root.querySelector<HTMLButtonElement>('.automation-slot .firmware-install')!.click();
     expect(game.ownedCount(laneSkillId('autoBurn', 2))).toBe(1);
     expect(game.automation().pointsAvailable()).toBe(0);
   });
@@ -76,6 +79,7 @@ describe('the skill lane inside each automation box', () => {
   it('a lane can be started with the first point whichever feature it is', () => {
     const { root, game, render } = mount(1);
     root.querySelector<HTMLButtonElement>('.automation-dispersal .skill-node')!.click();
+    root.querySelector<HTMLButtonElement>('.automation-slot .firmware-install')!.click();
     render();
     expect(game.ownedCount(laneSkillId('dispersal', 1))).toBe(1);
     expect(game.automation().isUnlocked('dispersal')).toBe(true);
@@ -85,12 +89,19 @@ describe('the skill lane inside each automation box', () => {
 
 /** Automation context: one existing branch lays out as a trunk with two first-parent lanes. */
 describe('Kompromat fork and permission controls', () => {
-  it('hides automatic Back Channel switches while the manual channel is missing', () => {
+  it('disables owned Back Channel switches while the manual channel is missing', () => {
     const g = rarityGame([1, 2, 3, 4, 5, 6], false);
-    expect(buildViewModel(g).automation.backchannelRarities.every((r) => !r.visible)).toBe(true);
+    expect(
+      buildViewModel(g)
+        .automation.kompromat.rows[0]!.chips.filter((r) => r.visible)
+        .every((r) => r.disabled),
+    ).toBe(true);
     rarityState(g).sleeve.purchased['channel'] = 1;
-    const visible = buildViewModel(g).automation.backchannelRarities.filter((r) => r.visible);
-    expect(visible.map((r) => r.id)).toEqual(['common']);
+    const visible = buildViewModel(g)
+      .automation.kompromat.rows.find((row) => row.id === 'backchannel')!
+      .chips.filter((r) => r.visible);
+    expect(visible.map((r) => r.id)).toEqual(['common', 'uncommon', 'rare']);
+    expect(buildViewModel(g).automation.kompromat.rows[0]!.chips.find((r) => r.id === 'common')!.disabled).toBe(false);
   });
   it('places the two children of slot 3 on separate rows with the trunk between them', () => {
     const g = rarityGame();
@@ -116,14 +127,14 @@ describe('Kompromat fork and permission controls', () => {
     expect(
       buttons()
         .filter((b) => !b.hidden)
-        .map((b) => b.textContent),
+        .map((b) => b.querySelector('.nm')!.textContent),
     ).toEqual(['common']);
     purchased['skill-autosale-4'] = 1;
     render();
     expect(
       buttons()
         .filter((b) => !b.hidden)
-        .map((b) => b.textContent),
-    ).toEqual(['common', 'Auto Back Channel: common']);
+        .map((b) => b.querySelector('.nm')!.textContent),
+    ).toEqual(['common', 'common']);
   });
 });

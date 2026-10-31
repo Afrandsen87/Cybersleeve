@@ -82,6 +82,7 @@ export function mountUi(
   const icons = options.icons ?? noIcons;
   const selection: UiSelection = {
     firmwareSelected: null,
+    automationSelected: null,
     augmentRarityId: null,
     revealAll: false,
     tabAttention: new TabAttention(),
@@ -154,7 +155,8 @@ export function mountUi(
     skills.root.hidden = activeTab !== 'skills';
     stats.root.hidden = activeTab !== 'stats';
     automationPanel.hidden = activeTab !== 'automation';
-    renderAutomation(automationWidget, vm.automation);
+    document.documentElement.classList.toggle('automation-anchoring', activeTab === 'automation');
+    renderAutomation(automationWidget, vm.automation, activeTab === 'automation');
     skills.render(vm.skills);
     if (!stats.root.hidden) stats.render(vm.runs.rows);
     actions.render(vm.actions);

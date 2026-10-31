@@ -82,9 +82,9 @@ describe('automation in the view model', () => {
     expect(view.pointsText).toBe('Automation points: 0');
     expect(view.autoBurn.strip).toMatchObject({ visible: false, floor: { value: 10 }, redline: { value: 50 } });
     expect(view.autoBurn.rows.some((row) => row.visible)).toBe(false); // nothing is shown before its skill is owned
-    expect(view.rarities.map((r) => r.id)).toEqual(['common', 'rare']);
-    expect(view.actions.find((a) => a.id === 'b')!.selected).toBe(true);
-    expect(view.dispersalCount).toBe('Actions selected: 1 / 1');
+    expect(view.kompromat.rows.find((row) => row.id === 'autosale')!.chips.map((r) => r.id)).toEqual(['common', 'rare']);
+    expect(view.dispersal.actions.find((a) => a.id === 'b')!.selected).toBe(true);
+    expect(view.dispersal.count).toBe('1/1');
   });
 
   it('the tab bar shows as soon as there is an automation point, even before any skill point', () => {
@@ -103,11 +103,11 @@ describe('automation in the view model', () => {
         ],
       }),
     });
-    expect(buildViewModel(g).automation.actions.every((a) => !a.visible)).toBe(true);
+    expect(buildViewModel(g).automation.dispersal.actions.every((a) => !a.visible)).toBe(true);
     setCredits(g, num(100));
     g.buy('core');
     g.automation().unlock('dispersal');
-    const actions = buildViewModel(g).automation.actions;
+    const actions = buildViewModel(g).automation.dispersal.actions;
     expect(actions.filter((a) => a.visible).map((a) => a.id)).toEqual(['a', 'b']);
     expect(actions.find((a) => a.id === 'locked')!.visible).toBe(false);
   });
@@ -118,11 +118,14 @@ describe('the Automation tab on the screen', () => {
     const { root } = mount(2);
     tab(root, /Automation/).click();
     expect(panel(root).hidden).toBe(false);
-    expect(panel(root).querySelector('.skills-points')!.textContent).toBe('Automation points: 2');
+    expect(panel(root).querySelector('.skills-points')!.textContent).toBe('2AUTOMATION POINTS');
     const boxes = [...panel(root).querySelectorAll<HTMLElement>('.automation-feature')];
     expect(boxes).toHaveLength(3);
     for (const box of boxes) {
       expect(box.querySelector<HTMLElement>('.automation-controls')!.hidden).toBe(true);
+      expect(box.classList.contains('panel')).toBe(true);
+      expect(box.querySelector('.ph')!.textContent).toContain('OFFLINE');
+      expect(box.querySelector('.lane-header')).not.toBeNull();
     }
   });
 
@@ -131,12 +134,14 @@ describe('the Automation tab on the screen', () => {
     tab(root, /Automation/).click();
     const first = (feature: string) => panel(root).querySelector<HTMLButtonElement>(`.automation-${feature} .skill-node`)!;
     first('autoBurn').click();
+    panel(root).querySelector<HTMLButtonElement>('.automation-slot .firmware-install')!.click();
     render();
     expect(game.automation().isUnlocked('autoBurn')).toBe(true);
+    expect(panel(root).querySelector('.automation-autoBurn .ph')!.textContent).toContain('ONLINE');
     expect(panel(root).querySelector<HTMLElement>('.automation-autoBurn .automation-controls')!.hidden).toBe(false);
     first('autosale').click();
     expect(game.automation().isUnlocked('autosale')).toBe(false);
-    expect(panel(root).querySelector('.skills-points')!.textContent).toBe('Automation points: 0');
+    expect(panel(root).querySelector('.skills-points')!.textContent).toBe('0AUTOMATION POINTS');
   });
 
   it('autosale has a switch per allowed rarity, and dispersal selects actions up to its capacity', () => {
@@ -145,8 +150,8 @@ describe('the Automation tab on the screen', () => {
     game.automation().unlock('dispersal');
     game.buy(laneSkillId('autosale', 2));
     tab(root, /Automation/).click();
-    const rarities = [...panel(root).querySelectorAll<HTMLButtonElement>('.automation-autosale .automation-controls > .automation-switch')];
-    expect(rarities.map((b) => b.textContent)).toEqual(['Common', 'Rare']);
+    const rarities = [...panel(root).querySelectorAll<HTMLButtonElement>('.automation-autosale [data-protocol="autosale"]')];
+    expect(rarities.map((b) => b.querySelector('.nm')!.textContent)).toEqual(['Common', 'Rare']);
     rarities[1]!.click();
     expect(game.automation().isAutosaleOn('rare')).toBe(true);
     expect(game.automation().isAutosaleOn('common')).toBe(false);
@@ -158,13 +163,13 @@ describe('the Automation tab on the screen', () => {
     expect(panel(root).textContent).not.toContain('Share (%)');
     const targets = [...panel(root).querySelectorAll<HTMLButtonElement>('.automation-dispersal .automation-controls button')];
     expect(targets).toHaveLength(2);
-    expect(panel(root).querySelector('.automation-dispersal-count')!.textContent).toBe('Actions selected: 0 / 1');
+    expect(panel(root).querySelector('.automation-dispersal-count')!.textContent).toBe('0/1');
     targets[1]!.click();
     expect(game.automation().dispersalTargets()).toEqual(['b']);
     expect(targets[0]!.disabled).toBe(true);
     expect(targets[1]!.disabled).toBe(false);
     expect(targets[1]!.getAttribute('aria-pressed')).toBe('true');
-    expect(panel(root).querySelector('.automation-dispersal-count')!.textContent).toBe('Actions selected: 1 / 1');
+    expect(panel(root).querySelector('.automation-dispersal-count')!.textContent).toBe('1/1');
     targets[1]!.click();
     expect(game.automation().dispersalTargets()).toEqual([]);
     expect(targets[0]!.disabled).toBe(false);
@@ -175,11 +180,15 @@ describe('the Automation tab on the screen', () => {
     game.automation().unlock('dispersal');
     tab(root, /Automation/).click();
     const summary = panel(root).querySelector<HTMLElement>('.automation-dispersal-rarities')!;
-    expect(summary.hidden).toBe(true);
+    expect(summary.closest<HTMLElement>('.rule')!.hidden).toBe(true);
     (game.getState().wallet.seenItems as Record<string, Record<string, true>>)['schem'] = { common: true, rare: true };
     render();
-    expect(summary.hidden).toBe(false);
-    expect(summary.textContent).toBe('Disperses: Common');
-    expect(summary.textContent).not.toContain('Rare');
+    expect(summary.closest<HTMLElement>('.rule')!.hidden).toBe(false);
+    expect([...summary.querySelectorAll<HTMLElement>('.pill')].filter((pill) => !pill.hidden).map((pill) => pill.textContent)).toEqual([
+      'Common',
+    ]);
+    expect(
+      [...summary.querySelectorAll<HTMLElement>('.pill')].filter((pill) => !pill.hidden).map((pill) => pill.textContent),
+    ).not.toContain('Rare');
   });
 });

@@ -25,6 +25,7 @@ export interface InspectorView {
   readonly state: FirmwareNodeState;
   readonly status: string;
   readonly description: string;
+  readonly adds: string | null;
   readonly requires: readonly InspectorRelation[];
   readonly unlocksNext: readonly InspectorRelation[];
   readonly costText: string | null;
@@ -40,6 +41,7 @@ export interface InspectorInput {
   readonly pointsText: string;
   readonly sleevePointsText: string;
   readonly text: FirmwareText;
+  readonly adds?: string | null;
 }
 
 /**
@@ -80,6 +82,7 @@ export function buildInspectorView(input: InspectorInput): InspectorView | null 
   if (node.masked || node.state === 'encrypted') {
     return {
       ...base,
+      adds: null,
       iconId: null,
       name: text.hidden,
       description: text.hidden,
@@ -109,6 +112,7 @@ export function buildInspectorView(input: InspectorInput): InspectorView | null 
   if (node.state === 'locked' && firstUnowned) whyNot = text.installFirst(relation(firstUnowned).name);
   return {
     ...base,
+    adds: input.adds ?? null,
     iconId: node.view.id,
     name: node.view.name,
     description: node.view.description,

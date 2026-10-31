@@ -7,6 +7,7 @@
  * @remarks
  * Called by: `automationWidget.ts`. Calls: `autoBurnParts.ts`, `domKit`, `AutoBurnControls`.
  */
+import { type AutomationTarget, burnRowTargets, targets } from '../view/automationTargets';
 import type { AutoBurnControls } from '../../core';
 import type { AutoBurnView, BurnRowView } from '../view/viewTypes';
 import { chipList, led, notch, numberInput, positionAt } from './autoBurnParts';
@@ -15,6 +16,8 @@ import { type UiContext, h, setText, syncInput } from './domKit';
 /** The mounted panel. */
 export interface AutoBurnPanel {
   readonly element: HTMLElement;
+  /** Stable inspector targets. Called by: automation inspector. Calls: nothing. */
+  readonly controlTargets: ReadonlyMap<AutomationTarget, HTMLElement>;
   render(view: AutoBurnView): void;
 }
 
@@ -34,8 +37,11 @@ function protocol(
   initial: BurnRowView,
   burn: AutoBurnControls,
   refresh: () => void,
-): { element: HTMLElement; render(v: BurnRowView): void } {
+): { element: HTMLElement; controlTargets: ReadonlyMap<AutomationTarget, HTMLElement>; render(v: BurnRowView): void } {
   const element = h('div', `rule t-${initial.id}`);
+  const controlTargets = new Map<AutomationTarget, HTMLElement>();
+  const rowTarget = burnRowTargets[initial.id];
+  if (rowTarget) controlTargets.set(rowTarget, element);
   const tag = h('div', 'tag', initial.tag);
   const body = h('div', 'body');
   const condition = h('span', 'cond');
@@ -44,6 +50,7 @@ function protocol(
   const arrow = h('span', 'arrow');
   line.append(condition, arrow, action);
   const chips = chipList(ctx, burn, refresh, 'failsafe');
+  if (initial.id === 'failsafe') controlTargets.set(targets.offActions, chips.offActionsTarget);
   body.append(line, chips.element);
   const toggle = initial.switch ? led(initial.switch, burn, refresh) : null;
   element.append(tag, body, toggle?.element ?? h('span'));
@@ -53,10 +60,12 @@ function protocol(
     const sw = led(sub.switch, burn, refresh);
     row.append(list.element, sw.element);
     body.append(row);
+    if (sub.id === 'overclocks') controlTargets.set(targets.restartOc, row);
     return { id: sub.id, row, list, sw };
   });
   return {
     element,
+    controlTargets,
     render(v) {
       element.hidden = !v.visible;
       element.classList.toggle('firing', v.firing);
@@ -95,14 +104,13 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
   const reason = h('span', 'k');
   const heat = h('span');
   const leads = h('span');
-  const inventory = h('span', 'k');
   const reserve = h('label');
   const reserveInput = numberInput(initial.reserve.label, (value) => {
     burn.setReserve(value);
     refresh();
   });
   reserve.append(h('span', 'k', initial.reserve.label), reserveInput);
-  status.append(state, reason, heat, leads, reserve, inventory);
+  status.append(state, reason, heat, leads, reserve);
   const wrap = h('div', 'strip-wrap');
   const strip = h('div', 'strip');
   const zones = initial.strip.zones.map((text, i) => h('div', `zone ${['z-cold', 'z-band', 'z-red'][i]}`, text));
@@ -122,8 +130,15 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
   const rows = initial.rows.map((row) => protocol(ctx, row, burn, refresh));
   proto.append(...rows.map((r) => r.element));
   element.append(status, wrap, proto);
+  const controlTargets = new Map<AutomationTarget, HTMLElement>([
+    [targets.burnStatus, status],
+    [targets.strip, wrap],
+    [targets.reserve, reserve],
+    ...rows.flatMap((row) => [...row.controlTargets]),
+  ]);
   return {
     element,
+    controlTargets,
     render(view) {
       status.hidden = !view.status.visible;
       const stateClass = `state s-${view.status.activity}`;
@@ -132,7 +147,6 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
       setText(reason, view.status.reason);
       setText(heat, view.status.heat);
       setText(leads, view.status.leads);
-      setText(inventory, view.status.toggle);
       reserve.hidden = !view.reserve.visible;
       syncInput(reserveInput, view.reserve.value);
       wrap.hidden = !view.strip.visible;
@@ -150,8 +164,11 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
       floor.render(view.strip.floor, layout.floor);
       redline.render(view.strip.redline, layout.redline);
       positionAt(marker, layout.marker);
-      positionAt(markerLabel, layout.marker);
+      if (layout.overflow) {
+        if (markerLabel.style.left !== 'auto') markerLabel.style.left = 'auto';
+      } else positionAt(markerLabel, layout.marker);
       marker.classList.toggle('overflow', layout.overflow);
+      markerLabel.classList.toggle('overflow', layout.overflow);
       setText(markerLabel, view.strip.heat);
       rows.forEach((row, i) => {
         const v = view.rows[i];

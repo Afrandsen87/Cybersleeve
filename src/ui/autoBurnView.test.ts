@@ -3,9 +3,20 @@ import { describe, expect, it, vi } from 'vitest';
 import { allOn, blockCooling, burnConfig, burnGame } from '../testing/autoBurnKit';
 import { autoBurnView } from './view/autoBurnView';
 import { uiText } from './uiText';
+import { formatSignificant } from '../numbers';
+import { PANEL_DIGITS } from './view/viewFormat';
 import { buildViewModel } from './viewModel';
 
 describe('Auto Burn panel reveal', () => {
+  it('formats heat like the sleeve panel, reports overflow and states the toggle only once', () => {
+    const game = burnGame(9, 5, 1359.349);
+    const view = buildViewModel(game).automation.autoBurn;
+    const heat = formatSignificant(1359.349, PANEL_DIGITS);
+    expect(view.status.heat).toBe(`heat ${heat}`);
+    expect(view.strip.heat).toBe(`${heat}${uiText.automation.autoBurn.overflowMark}`);
+    expect(view.strip.layout.overflow).toBe(true);
+    expect(view.status).not.toHaveProperty('toggle');
+  });
   it.each(Array.from({ length: 10 }, (_, i) => i))('reveals exactly what lane step %s owns', (step) => {
     const v = buildViewModel(burnGame(step, 5, 100)).automation.autoBurn;
     expect(v.status.visible).toBe(step >= 1);
