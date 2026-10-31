@@ -3,14 +3,15 @@
  * Automation context: maps a firmware effect to its revealable panel control.
  * Called by: automationView and tests. Calls: assertNever, FirmwareText formatters.
  */
-import type { BuyableDefinition, BuyableEffect, AutoBurnStep } from '../../core';
+import { dispersalSlots, type BuyableDefinition, type BuyableEffect } from '../../core';
+import { type AutomationTarget, saleChip, channelChip, permit, slot, targets, burnTargets } from './automationTargets';
 import { assertNever } from '../../core/effects/effectTraits';
 import type { FirmwareText } from '../firmwareText';
 
 /** Control guidance for a readable node. Called by: automationView. Calls: nothing. */
 export interface AutomationAddition {
   readonly text: string;
-  readonly target: string;
+  readonly target: AutomationTarget;
 }
 
 /** Automation-owned effect subset, exhaustively mapped below. Called by: automationAdds. Calls: nothing. */
@@ -18,18 +19,6 @@ type AutomationEffect = Extract<
   BuyableEffect,
   { kind: 'unlocksAutomation' | 'autoBurnStep' | 'allowsAutosale' | 'allowsAutoBackchannel' | 'allowsDispersal' | 'dispersalSlots' }
 >;
-
-/** Stable Auto Burn controls, independent of content ids. Called by: automationAdds. Calls: nothing. */
-const BURN_TARGETS: Readonly<Record<AutoBurnStep, string>> = {
-  hold: 'row-throttle',
-  upper: 'row-redline',
-  offOverclocks: 'row-failsafe',
-  offActions: 'chip-offActions',
-  onActions: 'row-restart',
-  onOverclocks: 'sub-restartOc',
-  thresholds: 'ab-strip',
-  reserve: 'ab-reserve',
-};
 
 /** Narrows effects without adding a second game-rule owner. Called by: automationAdds. Calls: nothing. */
 function isAutomationEffect(effect: BuyableEffect): effect is AutomationEffect {
@@ -39,11 +28,11 @@ function isAutomationEffect(effect: BuyableEffect): effect is AutomationEffect {
 }
 
 /**
- * Names the control introduced by a skill. Slot labels total content grants through this node in tree order;
+ * Names the control introduced by a skill. Slot labels read owner capacity for this node and its ancestors;
  * ownership, affordability and masking remain the existing lane view's responsibility.
- * Called by: automationView. Calls: isAutomationEffect, FirmwareText formatters, assertNever.
+ * Called by: automationView. Calls: isAutomationEffect, FirmwareText formatters, dispersalSlots, assertNever.
  * @param skill Static skill definition.
- * @param skillsInTreeOrder Definitions in display order, including the unlock's first slot.
+ * @param skillsInTreeOrder Definitions in any order, including the unlock's first slot.
  * @param rarityName Configured display name lookup.
  * @param text Interface wording.
  * @returns Control guidance, or null for a non-automation effect.
@@ -61,40 +50,37 @@ export function automationAdds(
     case 'unlocksAutomation':
       switch (effect.feature) {
         case 'autoBurn':
-          return { text: words.burnUnlock, target: 'ab-status' };
+          return { text: words.burnUnlock, target: targets.burnStatus };
         case 'autosale':
           return {
             text: words.chip(rarityName(effect.allowsAutosale ?? ''), false, true),
-            target: `chip-sale-${effect.allowsAutosale ?? ''}`,
+            target: saleChip(effect.allowsAutosale ?? ''),
           };
         case 'dispersal':
-          return { text: words.dispersal(rarityName(effect.allowsDispersal ?? '')), target: 'ds-status' };
+          return { text: words.dispersal(rarityName(effect.allowsDispersal ?? '')), target: targets.dispersalStatus };
         default:
           return assertNever(effect.feature);
       }
     case 'autoBurnStep':
-      return { text: words.burnSteps[effect.step], target: BURN_TARGETS[effect.step] };
+      return { text: words.burnSteps[effect.step], target: burnTargets[effect.step] };
     case 'allowsAutosale':
-      return { text: words.chip(rarityName(effect.rarity), false, false), target: `chip-sale-${effect.rarity}` };
+      return { text: words.chip(rarityName(effect.rarity), false, false), target: saleChip(effect.rarity) };
     case 'allowsAutoBackchannel':
-      return { text: words.chip(rarityName(effect.rarity), true, false), target: `chip-chan-${effect.rarity}` };
+      return { text: words.chip(rarityName(effect.rarity), true, false), target: channelChip(effect.rarity) };
     case 'allowsDispersal':
-      return { text: words.permit(rarityName(effect.rarity)), target: `pill-${effect.rarity}` };
+      return { text: words.permit(rarityName(effect.rarity)), target: permit(effect.rarity) };
     case 'dispersalSlots': {
-      const end = skillsInTreeOrder.findIndex((node) => node.id === skill.id);
-      const slots = skillsInTreeOrder
-        .slice(0, end + 1)
-        .reduce(
-          (sum, node) =>
-            sum +
-            (node.effect.kind === 'dispersalSlots'
-              ? node.effect.count
-              : node.effect.kind === 'unlocksAutomation'
-                ? (node.effect.dispersalSlots ?? 0)
-                : 0),
-          0,
-        );
-      return { text: words.slot(slots), target: `slot-${slots}` };
+      const byId = new Map(skillsInTreeOrder.map((node) => [node.id, node]));
+      const record: Record<string, number> = {};
+      const pending = [skill.id];
+      while (pending.length) {
+        const id = pending.pop()!;
+        if (record[id]) continue;
+        record[id] = 1;
+        pending.push(...(byId.get(id)?.parents ?? []));
+      }
+      const slots = dispersalSlots(skillsInTreeOrder, record);
+      return { text: words.slot(slots), target: slot(slots) };
     }
     default:
       return assertNever(effect);

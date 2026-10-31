@@ -3,8 +3,11 @@
  * Automation-context dispersal projection; rules and capacity stay with the automation owner.
  * Called by: automationView. Calls: Automation queries, ItemQueries.hasSeenItem, ActionQueries.isUnlocked.
  */
-import type { ActionQueries, GameConfig, ItemQueries, SkillQueries } from '../../core';
+import { dispersalSlots, type ActionQueries, type GameConfig, type ItemQueries, type SkillQueries } from '../../core';
 import type { DispersalText, DispersalView } from './dispersalViewTypes';
+
+/** Static owner-sourced maximum capacity. Called by: buildDispersalView. Calls: dispersalSlots. */
+const maximumSlots = new WeakMap<GameConfig, number>();
 
 /** Projects configured actions and known permissions without mutating game state.
  * Called by: automationView. Calls: automation queries, hasSeenItem, isUnlocked.
@@ -18,6 +21,11 @@ export function buildDispersalView(
   config: GameConfig,
   text: DispersalText,
 ): DispersalView {
+  let maxSlots = maximumSlots.get(config);
+  if (maxSlots === undefined) {
+    maxSlots = dispersalSlots(config.buyables, Object.fromEntries(config.buyables.map((node) => [node.id, 1])));
+    maximumSlots.set(config, maxSlots);
+  }
   const automation = engine.automation();
   const targets = automation.dispersalTargets();
   const slots = automation.dispersalSlots();
@@ -36,17 +44,7 @@ export function buildDispersalView(
     summary: active ? text.status(permits.length, targets.length) : text.pickAction,
     used: targets.length,
     slots,
-    maxSlots: config.buyables.reduce((total, buyable) => {
-      const effect = buyable.effect;
-      return (
-        total +
-        (effect.kind === 'dispersalSlots'
-          ? effect.count
-          : effect.kind === 'unlocksAutomation' && effect.feature === 'dispersal'
-            ? (effect.dispersalSlots ?? 0)
-            : 0)
-      );
-    }, 0),
+    maxSlots,
     count: text.slotCount(targets.length, slots),
     fullSlotsNote: slots > 0 && targets.length >= slots ? text.fullSlots(slots) : '',
     permits,

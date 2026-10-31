@@ -3,6 +3,7 @@
  * Automation context: persistent dock placement, pointer wiring and finite scroll compensation.
  * Called by: automationWidget. Calls: shared Firmware inspector, dockedFocus, rowHolds, scrollAnchor.
  */
+import type { AutomationTarget } from '../../view/automationTargets';
 import type { AutomationView } from '../../view/automationViewTypes';
 import { buildInspectorView } from '../../view/firmwareInspector';
 import { emptyDockedFocus, transitionDockedFocus, type DockedFocusEvent } from '../../view/dockedFocus';
@@ -33,7 +34,7 @@ export function mountDockedInspector(
   root: HTMLElement,
   rows: ReadonlyMap<string, DockedRow>,
   initial: AutomationView,
-  controls: ReadonlyMap<string, HTMLElement>,
+  controls: ReadonlyMap<AutomationTarget, HTMLElement>,
 ) {
   let view = initial;
   let focus = emptyDockedFocus();
@@ -41,7 +42,7 @@ export function mountDockedInspector(
   let anchorElement: HTMLElement | null = null;
   let spacerHeight = 0;
   let shown = true;
-  let measured = false;
+  let measuredKey: string | null = null;
   const previousOwned = new Map<string, number>();
   const spacer = h('div', 'automation-anchor-spacer');
   const parking = h('div', 'automation-inspector-parking');
@@ -149,7 +150,8 @@ export function mountDockedInspector(
       const id = button.dataset['id']!;
       button.addEventListener('mouseenter', () => dispatch({ type: 'enterNode', node: { id, lane } }, button));
       button.addEventListener('focus', () => dispatch({ type: 'enterNode', node: { id, lane } }, button));
-      button.addEventListener('mouseleave', (event) => {
+      /** Routes keyboard and pointer exits. Called by: blur, mouseleave. Calls: dispatch. */
+      const leave = (event: MouseEvent | FocusEvent): void => {
         const target = event.relatedTarget;
         const to =
           target instanceof Node && inspector.element.contains(target)
@@ -163,12 +165,46 @@ export function mountDockedInspector(
             ? (target.closest<HTMLElement>('.skill-node') ?? target.closest<HTMLElement>('.automation-feat'))
             : null,
         );
-      });
+      };
+      button.addEventListener('mouseleave', leave);
+      button.addEventListener('blur', leave);
     }
   }
   document.addEventListener('keydown', (event) => {
     if (shown && event.key === 'Escape') dispatch({ type: 'escape' });
   });
+  /** Measures changed presentation shapes. Called by: render. Calls: presentation, inspector.render, getBoundingClientRect. */
+  function measureHeight(): void {
+    const nodes = view.features.flatMap((feature) => feature.lanes.flatMap((lane) => lane.nodes));
+    const key = JSON.stringify(nodes.map((node) => [node.view.id, node.masked, node.view.owned > 0]));
+    if (key === measuredKey) return;
+    let height = 0;
+    for (const node of nodes) {
+      measure.render(presentation(node.view.id), 'pinned', true);
+      height = Math.max(height, measure.element.getBoundingClientRect().height);
+    }
+    root.style.setProperty('--automation-inspector-height', height + 'px');
+    measuredKey = key;
+  }
+
+  /** Tracks hidden ownership too; visible increases restart feedback. Called by: render. Calls: classList, offsetWidth. */
+  function trackInstalls(flash: boolean): void {
+    for (const feature of view.features)
+      for (const node of feature.lanes.flatMap((lane) => lane.nodes)) {
+        const before = previousOwned.get(node.view.id);
+        if (flash && before !== undefined && node.view.owned > before) {
+          const target = feature.additions.get(node.view.id)?.target;
+          const control = target ? controls.get(target) : undefined;
+          if (control && !control.closest('[hidden]')) {
+            control.classList.remove('fresh');
+            void control.offsetWidth;
+            control.classList.add('fresh');
+          }
+        }
+        previousOwned.set(node.view.id, node.view.owned);
+      }
+  }
+
   const restored = ctx.selection.automationSelected;
   if (restored && laneOf(restored)) dispatch({ type: 'clickNode', node: { id: restored, lane: laneOf(restored)! } });
   else paint();
@@ -185,7 +221,7 @@ export function mountDockedInspector(
     /** Refreshes only changed inspector data and measurements. Called by: renderAutomation. Calls: presentation, paint. */
     render(next: AutomationView, changed: boolean, visible: boolean): void {
       view = next;
-      if (changed) measured = false;
+      if (changed || previousOwned.size === 0) trackInstalls(visible && shown); // `changed` is reported while hidden too
       if (!visible) {
         if (shown) {
           dispatch({ type: 'hide' });
@@ -195,23 +231,7 @@ export function mountDockedInspector(
         shown = false;
         return;
       }
-      if (changed || !measured) {
-        let height = 0;
-        for (const feature of view.features)
-          for (const node of feature.lanes.flatMap((lane) => lane.nodes)) {
-            measure.render(presentation(node.view.id), 'pinned', true);
-            height = Math.max(height, measure.element.getBoundingClientRect().height);
-            const before = previousOwned.get(node.view.id);
-            if (before !== undefined && node.view.owned > before) {
-              const target = feature.additions.get(node.view.id)?.target;
-              const control = target ? controls.get(target) : undefined;
-              if (control && !control.closest('[hidden]')) control.classList.add('fresh');
-            }
-            previousOwned.set(node.view.id, node.view.owned);
-          }
-        root.style.setProperty('--automation-inspector-height', `${height}px`);
-        measured = true;
-      }
+      if (changed || !shown || measuredKey === null) measureHeight();
       if (changed || !shown) paint();
       shown = true;
     },

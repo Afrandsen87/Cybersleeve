@@ -1,9 +1,37 @@
 /** Automation context: pure Kompromat protocols from owner queries. Called by: automationView. Calls: itemCount. */
-import { type GameConfig, type ItemQueries, type SkillQueries, type StateQueries, itemCount } from '../../core';
+import { type BuyableDefinition, type GameConfig, type ItemQueries, type SkillQueries, type StateQueries, itemCount } from '../../core';
 import { formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import type { BuyableView, SkillLaneView } from './viewTypes';
 import type { KompromatChipView, KompromatView } from './kompromatViewTypes';
+
+/** Static content indexes. Called by: kompromatView. Calls: nothing. */
+const configCache = new WeakMap<GameConfig, ReturnType<typeof indexConfig>>();
+/** Indexes rarity permission candidates once in content order. Called by: kompromatView. Calls: nothing. */
+function indexConfig(config: GameConfig) {
+  const sale = new Map<string, BuyableDefinition[]>();
+  const channel = new Map<string, BuyableDefinition[]>();
+  for (const skill of config.buyables) {
+    const effect = skill.effect;
+    const rarity =
+      effect.kind === 'allowsAutoBackchannel' || effect.kind === 'allowsAutosale'
+        ? effect.rarity
+        : effect.kind === 'unlocksAutomation' && effect.feature === 'autosale'
+          ? effect.allowsAutosale
+          : undefined;
+    if (rarity === undefined) continue;
+    const map = effect.kind === 'allowsAutoBackchannel' ? channel : sale;
+    const candidates = map.get(rarity) ?? [];
+    candidates.push(skill);
+    map.set(rarity, candidates);
+  }
+  return {
+    sale,
+    channel,
+    channelSkill: config.buyables.find((skill) => skill.effect.kind === 'backChannel'),
+    items: config.items.definitions.filter((item) => item.sellable !== false && item.hasRarity !== false),
+  };
+}
 
 /** Builds permission switches, inventory counts and safely masked dependency wording.
  * Called by: automationView. Calls: AutomationControls, itemCount.
@@ -25,26 +53,29 @@ export function kompromatView(
   const channel = engine.backChannel();
   const state = engine.getState();
   const words = text.automation.kompromat;
-  const channelSkill = config.buyables.find((b) => b.effect.kind === 'backChannel');
+  let indexed = configCache.get(config);
+  if (!indexed) {
+    indexed = indexConfig(config);
+    configCache.set(config, indexed);
+  }
+  const { channelSkill } = indexed;
   const channelLane = firmwareLanes.find((lane) => lane.nodes.some((node) => node.view.id === channelSkill?.id));
   const channelNode = channelLane?.nodes.find((node) => node.view.id === channelSkill?.id);
-  const items = config.items.definitions.filter((item) => item.sellable !== false && item.hasRarity !== false);
+  const heldByRarity = new Map(config.items.rarities.map((rarity) => [rarity.id, 0]));
+  for (const item of indexed.items)
+    for (const rarity of config.items.rarities)
+      heldByRarity.set(rarity.id, (heldByRarity.get(rarity.id) ?? 0) + itemCount(state, item.id, rarity.id));
   /** Maps each rarity to its permission owner and current switch state.
    * Called by: kompromatView. Calls: AutomationControls, itemCount.
    */
   function chips(backchannel: boolean): KompromatChipView[] {
     const allowed = automation.allowedRarities(backchannel ? 'autoBackchannel' : 'autosale');
     return config.items.rarities.map((rarity, rarityIndex) => {
-      const skill = config.buyables.find((b) => {
-        if ((viewById.get(b.id)?.owned ?? 0) <= 0) return false;
-        const effect = b.effect;
-        return backchannel
-          ? effect.kind === 'allowsAutoBackchannel' && effect.rarity === rarity.id
-          : (effect.kind === 'allowsAutosale' && effect.rarity === rarity.id) ||
-              (effect.kind === 'unlocksAutomation' && effect.feature === 'autosale' && effect.allowsAutosale === rarity.id);
-      });
+      const skill = (backchannel ? indexed!.channel : indexed!.sale)
+        .get(rarity.id)
+        ?.find((skill) => (viewById.get(skill.id)?.owned ?? 0) > 0);
       const disabled = backchannel && channel?.molesByRarity[rarity.id] === undefined;
-      const held = items.reduce((total, item) => total + itemCount(state, item.id, rarity.id), 0);
+      const held = heldByRarity.get(rarity.id) ?? 0;
       return {
         id: rarity.id,
         name: rarity.name,

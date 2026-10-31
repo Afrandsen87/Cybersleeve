@@ -23,9 +23,9 @@ export interface DockedFocus {
 /** Pointer and keyboard inputs without DOM dependencies. Called by: transitionDockedFocus. Calls: nothing. */
 export type DockedFocusEvent =
   | { readonly type: 'enterNode' | 'clickNode'; readonly node: DockedNode }
-  | { readonly type: 'overRow' | 'leaveRow'; readonly lane: string }
+  | { readonly type: 'leaveRow'; readonly lane: string }
   | { readonly type: 'leaveNode'; readonly lane: string; readonly to: 'row' | 'pane' | 'outside' }
-  | { readonly type: 'overPane' | 'close' | 'escape' | 'hide' };
+  | { readonly type: 'close' | 'escape' | 'hide' };
 
 /** Projects immutable memory into the visible pane. Called by: focus transitions. Calls: nothing.
  * @param pinned retained selection
@@ -68,10 +68,6 @@ export function transitionDockedFocus(state: DockedFocus, event: DockedFocusEven
       return state;
     case 'leaveRow':
       return state.openLane === event.lane ? project(state.pinned, null) : state;
-    case 'overRow':
-      return state.openLane === event.lane ? state : project(state.pinned, null);
-    case 'overPane':
-      return state;
     case 'hide':
       return project(state.pinned, null);
     case 'close':

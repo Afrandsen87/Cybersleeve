@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { gameConfig } from '../content/gameConfig';
+import { dispersalSlots } from '../core';
 import { testConfig } from '../testing/testConfig';
 import { firmwareText } from './firmwareText';
 import { automationAdds } from './view/automationAdds';
@@ -30,13 +31,18 @@ describe('automation control guidance', () => {
       expect(new Set(targets).size).toBe(targets.length);
     }
   });
-  it('numbers target controls by capacity granted through that node in tree order', () => {
-    let capacity = 0;
-    for (const skill of skills.filter((node) => node.branch === 'dispersal')) {
-      if (skill.effect.kind === 'unlocksAutomation') capacity += skill.effect.dispersalSlots ?? 0;
-      if (skill.effect.kind !== 'dispersalSlots') continue;
-      capacity += skill.effect.count;
-      expect(adds(skill)?.target).toBe(`slot-${capacity}`);
-    }
+  it('reads capacity for ancestors regardless of configuration order or sibling grants', () => {
+    const root = skills.find((skill) => skill.effect.kind === 'unlocksAutomation' && skill.effect.feature === 'dispersal')!;
+    const grant = skills.find((skill) => skill.effect.kind === 'dispersalSlots')!;
+    const child = { ...grant, id: 'child', parents: [root.id] };
+    const sibling = { ...grant, id: 'sibling', parents: [root.id] };
+    const unrelated = {
+      ...root,
+      id: 'unrelated',
+      effect: { kind: 'unlocksAutomation' as const, feature: 'autosale' as const, dispersalSlots: 99 },
+    };
+    const buyables = [sibling, child, unrelated, root];
+    const count = dispersalSlots(buyables, { [root.id]: 1, [child.id]: 1 });
+    expect(automationAdds(child, buyables, rarityName, firmwareText)?.target).toBe(`slot-${count}`);
   });
 });

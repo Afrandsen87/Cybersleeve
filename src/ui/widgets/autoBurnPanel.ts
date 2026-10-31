@@ -7,6 +7,7 @@
  * @remarks
  * Called by: `automationWidget.ts`. Calls: `autoBurnParts.ts`, `domKit`, `AutoBurnControls`.
  */
+import { type AutomationTarget, burnRowTargets, targets } from '../view/automationTargets';
 import type { AutoBurnControls } from '../../core';
 import type { AutoBurnView, BurnRowView } from '../view/viewTypes';
 import { chipList, led, notch, numberInput, positionAt } from './autoBurnParts';
@@ -16,7 +17,7 @@ import { type UiContext, h, setText, syncInput } from './domKit';
 export interface AutoBurnPanel {
   readonly element: HTMLElement;
   /** Stable inspector targets. Called by: automation inspector. Calls: nothing. */
-  readonly controlTargets: ReadonlyMap<string, HTMLElement>;
+  readonly controlTargets: ReadonlyMap<AutomationTarget, HTMLElement>;
   render(view: AutoBurnView): void;
 }
 
@@ -36,11 +37,11 @@ function protocol(
   initial: BurnRowView,
   burn: AutoBurnControls,
   refresh: () => void,
-): { element: HTMLElement; controlTargets: ReadonlyMap<string, HTMLElement>; render(v: BurnRowView): void } {
+): { element: HTMLElement; controlTargets: ReadonlyMap<AutomationTarget, HTMLElement>; render(v: BurnRowView): void } {
   const element = h('div', `rule t-${initial.id}`);
-  const controlTargets = new Map<string, HTMLElement>();
-  const rowKey = initial.id === 'trigger' ? 'redline' : initial.id;
-  controlTargets.set(`row-${rowKey}`, element);
+  const controlTargets = new Map<AutomationTarget, HTMLElement>();
+  const rowTarget = burnRowTargets[initial.id];
+  if (rowTarget) controlTargets.set(rowTarget, element);
   const tag = h('div', 'tag', initial.tag);
   const body = h('div', 'body');
   const condition = h('span', 'cond');
@@ -49,7 +50,7 @@ function protocol(
   const arrow = h('span', 'arrow');
   line.append(condition, arrow, action);
   const chips = chipList(ctx, burn, refresh, 'failsafe');
-  if (initial.id === 'failsafe') controlTargets.set('chip-offActions', chips.offActionsTarget);
+  if (initial.id === 'failsafe') controlTargets.set(targets.offActions, chips.offActionsTarget);
   body.append(line, chips.element);
   const toggle = initial.switch ? led(initial.switch, burn, refresh) : null;
   element.append(tag, body, toggle?.element ?? h('span'));
@@ -59,7 +60,7 @@ function protocol(
     const sw = led(sub.switch, burn, refresh);
     row.append(list.element, sw.element);
     body.append(row);
-    if (sub.id === 'overclocks') controlTargets.set('sub-restartOc', row);
+    if (sub.id === 'overclocks') controlTargets.set(targets.restartOc, row);
     return { id: sub.id, row, list, sw };
   });
   return {
@@ -129,10 +130,10 @@ export function mountAutoBurnPanel(ctx: UiContext, initial: AutoBurnView, burn: 
   const rows = initial.rows.map((row) => protocol(ctx, row, burn, refresh));
   proto.append(...rows.map((r) => r.element));
   element.append(status, wrap, proto);
-  const controlTargets = new Map<string, HTMLElement>([
-    ['ab-status', status],
-    ['ab-strip', wrap],
-    ['ab-reserve', reserve],
+  const controlTargets = new Map<AutomationTarget, HTMLElement>([
+    [targets.burnStatus, status],
+    [targets.strip, wrap],
+    [targets.reserve, reserve],
     ...rows.flatMap((row) => [...row.controlTargets]),
   ]);
   return {

@@ -97,7 +97,9 @@ describe('Kompromat fork and permission controls', () => {
         .every((r) => r.disabled),
     ).toBe(true);
     rarityState(g).sleeve.purchased['channel'] = 1;
-    const visible = buildViewModel(g).automation.backchannelRarities.filter((r) => r.visible);
+    const visible = buildViewModel(g)
+      .automation.kompromat.rows.find((row) => row.id === 'backchannel')!
+      .chips.filter((r) => r.visible);
     expect(visible.map((r) => r.id)).toEqual(['common', 'uncommon', 'rare']);
     expect(buildViewModel(g).automation.kompromat.rows[0]!.chips.find((r) => r.id === 'common')!.disabled).toBe(false);
   });

@@ -82,9 +82,9 @@ describe('automation in the view model', () => {
     expect(view.pointsText).toBe('Automation points: 0');
     expect(view.autoBurn.strip).toMatchObject({ visible: false, floor: { value: 10 }, redline: { value: 50 } });
     expect(view.autoBurn.rows.some((row) => row.visible)).toBe(false); // nothing is shown before its skill is owned
-    expect(view.rarities.map((r) => r.id)).toEqual(['common', 'rare']);
-    expect(view.actions.find((a) => a.id === 'b')!.selected).toBe(true);
-    expect(view.dispersalCount).toBe('Actions selected: 1 / 1');
+    expect(view.kompromat.rows.find((row) => row.id === 'autosale')!.chips.map((r) => r.id)).toEqual(['common', 'rare']);
+    expect(view.dispersal.actions.find((a) => a.id === 'b')!.selected).toBe(true);
+    expect(view.dispersal.count).toBe('1/1');
   });
 
   it('the tab bar shows as soon as there is an automation point, even before any skill point', () => {
@@ -103,11 +103,11 @@ describe('automation in the view model', () => {
         ],
       }),
     });
-    expect(buildViewModel(g).automation.actions.every((a) => !a.visible)).toBe(true);
+    expect(buildViewModel(g).automation.dispersal.actions.every((a) => !a.visible)).toBe(true);
     setCredits(g, num(100));
     g.buy('core');
     g.automation().unlock('dispersal');
-    const actions = buildViewModel(g).automation.actions;
+    const actions = buildViewModel(g).automation.dispersal.actions;
     expect(actions.filter((a) => a.visible).map((a) => a.id)).toEqual(['a', 'b']);
     expect(actions.find((a) => a.id === 'locked')!.visible).toBe(false);
   });

@@ -13,9 +13,7 @@ describe('docked focus', () => {
     const entered = step(emptyDockedFocus(), { type: 'enterNode', node: first });
     expect(entered).toMatchObject({ focusedId: first.id, openLane: 'a', mode: 'preview', pinned: null });
     for (const to of ['row', 'pane'] as const) {
-      const left = step(entered, { type: 'leaveNode', lane: 'a', to });
-      expect(step(left, { type: 'overRow', lane: 'a' })).toEqual(entered);
-      expect(step(left, { type: 'overPane' })).toEqual(entered);
+      expect(step(entered, { type: 'leaveNode', lane: 'a', to })).toEqual(entered);
     }
     expect(step(entered, { type: 'leaveRow', lane: 'a' }).openLane).toBeNull();
   });
@@ -43,8 +41,6 @@ describe('docked focus', () => {
     for (const to of ['row', 'pane'] as const) {
       expect(step(preview, { type: 'leaveNode', lane: 'b', to })).toEqual(preview);
     }
-    expect(step(preview, { type: 'overPane' })).toEqual(preview);
-    expect(step(preview, { type: 'overRow', lane: 'b' })).toEqual(preview);
     expect(step(preview, { type: 'leaveRow', lane: 'a' })).toEqual(preview);
     expect(step(preview, { type: 'leaveRow', lane: 'b' })).toEqual(pinned);
     expect(step(preview, { type: 'leaveNode', lane: 'b', to: 'outside' })).toEqual(pinned);
@@ -61,6 +57,5 @@ describe('docked focus', () => {
   it('clicking another preview replaces the pin and entering another row drops a stale preview', () => {
     const preview = step(step(emptyDockedFocus(), { type: 'clickNode', node: first }), { type: 'enterNode', node: other });
     expect(step(preview, { type: 'clickNode', node: other })).toMatchObject({ pinned: other, mode: 'pinned' });
-    expect(step(preview, { type: 'overRow', lane: 'a' }).focusedId).toBe(first.id);
   });
 });

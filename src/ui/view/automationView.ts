@@ -20,10 +20,32 @@ import { kompromatView } from './kompromatView';
 import { buildDispersalView } from './dispersalView';
 import { daemonOfflineNote } from './daemonView';
 import { autoBurnView } from './autoBurnView';
-import { automationAdds } from './automationAdds';
+import { automationAdds, type AutomationAddition } from './automationAdds';
 import type { RevealTracker } from './revealTracker';
 import { buildSkillLanes } from './skillTree';
 import type { AutomationView, BuyableView, SkillLaneView } from './viewTypes';
+
+/** Config/text-scoped static guidance. Called by: automationView. Calls: automationAdds. */
+const additionCache = new WeakMap<GameConfig, WeakMap<UiText, ReadonlyMap<string, AutomationAddition>>>();
+/** Builds static guidance once per config and text provider. Called by: automationView. Calls: automationAdds. */
+function staticAdditions(config: GameConfig, text: UiText): ReadonlyMap<string, AutomationAddition> {
+  let byText = additionCache.get(config);
+  if (!byText) {
+    byText = new WeakMap();
+    additionCache.set(config, byText);
+  }
+  const cached = byText.get(text);
+  if (cached) return cached;
+  const additions = new Map<string, AutomationAddition>();
+  const rarities = new Map(config.items.rarities.map((rarity) => [rarity.id, rarity.name]));
+  const skills = config.buyables.filter((skill) => skill.currency === 'automationPoints');
+  for (const skill of skills) {
+    const addition = automationAdds(skill, skills, (id) => rarities.get(id) ?? id, text.firmware);
+    if (addition) additions.set(skill.id, addition);
+  }
+  byText.set(text, additions);
+  return additions;
+}
 
 /**
  * The Automation tab.
@@ -53,6 +75,7 @@ export function automationView(
   tracker?: RevealTracker,
   firmwareLanes: readonly SkillLaneView[] = [],
 ): AutomationView {
+  const staticGuidance = staticAdditions(config, text);
   const automation = engine.automation();
   const burn = automation.autoBurn();
   const owned = (id: string): number => viewById.get(id)?.owned ?? 0;
@@ -86,18 +109,10 @@ export function automationView(
     pointsValueText: formatPlain(automation.pointsAvailable()),
     features: AUTOMATION_FEATURES.map((id) => {
       const lanes = laneOf(id);
-      const skills = config.buyables.filter((skill) => skill.currency === 'automationPoints' && skill.branch === id);
-      const additions = new Map();
+      const additions = new Map<string, AutomationAddition>();
       for (const node of lanes.flatMap((lane) => lane.nodes)) {
-        const skill = skills.find((entry) => entry.id === node.view.id);
-        if (!skill || node.masked) continue;
-        const addition = automationAdds(
-          skill,
-          skills,
-          (rarity) => config.items.rarities.find((entry) => entry.id === rarity)?.name ?? rarity,
-          text.firmware,
-        );
-        if (addition) additions.set(skill.id, addition);
+        const addition = staticGuidance.get(node.view.id);
+        if (!node.masked && addition) additions.set(node.view.id, addition);
       }
       return {
         id,
@@ -112,10 +127,5 @@ export function automationView(
     autoBurn: autoBurnView(burn, engine, config, viewById, text),
     kompromat,
     dispersal,
-    rarities: kompromat.rows.find((row) => row.id === 'autosale')?.chips ?? [],
-    backchannelRarities: kompromat.rows.find((row) => row.id === 'backchannel')?.chips ?? [],
-    actions: dispersal.actions,
-    dispersalCount: text.automation.dispersalCount(dispersal.used, dispersal.slots),
-    dispersalRarities: dispersal.permits.length ? text.automation.dispersalRarities(dispersal.permits.map((rarity) => rarity.name)) : '',
   };
 }

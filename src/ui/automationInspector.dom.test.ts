@@ -6,6 +6,9 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createGame } from '../app/createGame';
+import { gameConfig } from '../content/gameConfig';
+import { flat } from '../testing/flatState';
+import { automationAdds } from './view/automationAdds';
 import { createConfig } from '../core';
 import { num } from '../numbers';
 import { automationLaneBuyables, laneSkillId } from '../testing/automationKit';
@@ -66,6 +69,83 @@ afterEach(() => {
 });
 
 describe('Automation docked inspector', () => {
+  it('registers every real-content addition target in mounted panels', () => {
+    const config = createConfig(testConfig, gameConfig);
+    const game = createGame({ config });
+    const purchased = flat<{ purchased: Record<string, number> }>(game).purchased;
+    for (const skill of config.buyables) purchased[skill.id] = 1;
+    const ctx = widgetContext(
+      game,
+      () => {},
+      () => {},
+    );
+    ctx.selection.revealAll = true;
+    const view = buildViewModel(game, undefined, ctx.text, ctx.selection).automation;
+    const widget = buildAutomationWidget(ctx, view, game.automation(), () => {});
+    document.body.append(widget.root);
+    const registered = new Map([...widget.autoBurn.controlTargets, ...widget.kompromat.controlTargets, ...widget.dispersal.controlTargets]);
+    const skills = config.buyables.filter((skill) => skill.currency === 'automationPoints');
+    for (const skill of skills) {
+      const addition = automationAdds(skill, skills, (id) => id, ctx.text.firmware);
+      expect(addition, skill.id).not.toBeNull();
+      expect(registered.has(addition!.target), skill.id).toBe(true);
+    }
+  });
+
+  it('restores the pin or closes when keyboard focus leaves a non-pinned lane', () => {
+    const tab = kit();
+    const other = tab.node(laneSkillId('autoBurn', 1));
+    other.focus();
+    other.blur();
+    expect(tab.widget.root.querySelector('.automation-feat.open')).toBeNull();
+    tab.node(laneSkillId('autosale', 1)).click();
+    other.focus();
+    expect(tab.row('autoBurn').classList.contains('open')).toBe(true);
+    other.blur();
+    expect(tab.row('autosale').classList.contains('open')).toBe(true);
+    expect(tab.pane().querySelector('.inspector-name')!.textContent).toBe('autosale 1');
+  });
+
+  it('does not flash hidden purchases, but flashes visible increases and restarts feedback', () => {
+    const tab = kit();
+    renderAutomation(tab.widget, tab.view(), false);
+    tab.game.buy(laneSkillId('autosale', 1));
+    renderAutomation(tab.widget, tab.view(), false);
+    renderAutomation(tab.widget, tab.view(), true);
+    const target = tab.widget.kompromat.controlTargets.get('chip-sale-common')!;
+    expect(target.classList.contains('fresh')).toBe(false);
+    const burnTarget = tab.widget.autoBurn.controlTargets.get('ab-status')!;
+    burnTarget.classList.add('fresh');
+    const reflow = vi.spyOn(burnTarget, 'offsetWidth', 'get');
+    tab.game.buy(laneSkillId('autoBurn', 1));
+    renderAutomation(tab.widget, tab.view(), true);
+    expect(burnTarget.classList.contains('fresh')).toBe(true);
+    expect(reflow).toHaveBeenCalled();
+  });
+
+  it('remeasures masking and installation changes, but not point changes', () => {
+    const tab = kit();
+    const measure = tab.widget.root.querySelector<HTMLElement>('.automation-inspector-measure')!;
+    const bounds = vi.spyOn(measure, 'getBoundingClientRect');
+    tab.game.buy('core');
+    renderAutomation(tab.widget, tab.view());
+    expect(bounds).not.toHaveBeenCalled();
+    tab.game.buy(laneSkillId('autosale', 1));
+    renderAutomation(tab.widget, tab.view());
+    expect(bounds).toHaveBeenCalled();
+    bounds.mockClear();
+    const view = tab.view();
+    const masked = {
+      ...view,
+      features: view.features.map((feature) => ({
+        ...feature,
+        lanes: feature.lanes.map((lane) => ({ ...lane, nodes: lane.nodes.map((node) => ({ ...node, masked: true })) })),
+      })),
+    };
+    tab.widget.inspector.render(masked, true, true);
+    expect(bounds).toHaveBeenCalled();
+  });
+
   it('clicking pins and opens its row without buying; INSTALL activates and refreshes exactly once', () => {
     const tab = kit();
     const id = laneSkillId('autosale', 1);

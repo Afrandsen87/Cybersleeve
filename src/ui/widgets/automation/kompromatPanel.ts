@@ -1,5 +1,6 @@
 /** Automation context: persistent Kompromat protocol controls. Called by: automationWidget. Calls: domKit, AutomationControls. */
 import type { AutomationControls } from '../../../core';
+import { type AutomationTarget, saleChip, channelChip } from '../../view/automationTargets';
 import type { KompromatView } from '../../view/kompromatViewTypes';
 import { type UiContext, applyIcon, h, setClass, setHidden, setText } from '../domKit';
 
@@ -7,7 +8,7 @@ import { type UiContext, applyIcon, h, setClass, setHidden, setText } from '../d
 export interface KompromatPanel {
   readonly element: HTMLElement;
   /** Stable inspector controls. Called by: automation inspector. Calls: nothing. */
-  readonly controlTargets: ReadonlyMap<string, HTMLElement>;
+  readonly controlTargets: ReadonlyMap<AutomationTarget, HTMLElement>;
   render(view: KompromatView): void;
 }
 
@@ -25,7 +26,7 @@ export function mountKompromatPanel(
   controls: AutomationControls,
   refresh: () => void,
 ): KompromatPanel {
-  const controlTargets = new Map<string, HTMLElement>();
+  const controlTargets = new Map<AutomationTarget, HTMLElement>();
   const words = ctx.text.automation.kompromat;
   const element = h('div', 'ab kompromat-protocol');
   const status = h('div', 'status');
@@ -48,7 +49,7 @@ export function mountKompromatPanel(
     const chips = new Map(
       row.chips.map((chip) => {
         const button = h('button', `chip automation-switch rarity-${chip.rarityIndex}`) as HTMLButtonElement;
-        controlTargets.set(`chip-${row.id === 'backchannel' ? 'chan' : 'sale'}-${chip.id}`, button);
+        controlTargets.set(row.id === 'backchannel' ? channelChip(chip.id) : saleChip(chip.id), button);
         button.dataset['rarity'] = chip.id;
         button.dataset['protocol'] = row.id;
         if (chip.skillId) applyIcon(button, ctx.icons.urlFor(chip.skillId));

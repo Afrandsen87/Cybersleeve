@@ -102,10 +102,6 @@ export interface UiText {
     readonly features: Readonly<Record<AutomationFeature, { readonly name: string; readonly description: string }>>;
     /** Auto Burn: where the toggle is, the label of each switch, and the labels of the thresholds and the reserve. */
     readonly autoBurn: AutoBurnText;
-    /** Automation context: selected action count and owned capacity. */
-    dispersalCount(selected: number, slots: number): string;
-    /** Automation context: permitted schematic rarities the player already knows. */
-    dispersalRarities(rarities: readonly string[]): string;
   };
   /** The Skills box and the sleeve skills group. */
   readonly skills: {

@@ -4,6 +4,7 @@
  * Called by: automationWidget. Calls: domKit, AutomationControls.setDispersalTarget.
  */
 import type { AutomationControls } from '../../../core';
+import { type AutomationTarget, slot, permit, targets as controlKeys } from '../../view/automationTargets';
 import type { DispersalView } from '../../view/dispersalViewTypes';
 import { h, setClass, setHidden, setText, type UiContext } from '../domKit';
 
@@ -11,7 +12,7 @@ import { h, setClass, setHidden, setText, type UiContext } from '../domKit';
 export interface DispersalPanel {
   readonly element: HTMLElement;
   /** Stable inspector controls. Called by: automation inspector. Calls: nothing. */
-  readonly controlTargets: ReadonlyMap<string, HTMLElement>;
+  readonly controlTargets: ReadonlyMap<AutomationTarget, HTMLElement>;
   readonly targets: ReadonlyMap<string, HTMLButtonElement>;
   render(view: DispersalView): void;
 }
@@ -30,7 +31,7 @@ export function mountDispersalPanel(
   controls: AutomationControls,
   refresh: () => void,
 ): DispersalPanel {
-  const controlTargets = new Map<string, HTMLElement>();
+  const controlTargets = new Map<AutomationTarget, HTMLElement>();
   const text = ctx.text.automation.dispersal;
   const element = h('div', 'ab dispersal-protocol');
   const status = h('div', 'status');
@@ -42,7 +43,7 @@ export function mountDispersalPanel(
   const cells = Array.from({ length: initial.maxSlots }, () => h('i'));
   meter.append(...cells);
   cells.forEach((cell, index) => {
-    controlTargets.set(`slot-${index + 1}`, cell);
+    controlTargets.set(slot(index + 1), cell);
   });
   const count = h('span', 'automation-dispersal-count');
   const slotReadout = h('span', 'slot-readout');
@@ -57,7 +58,7 @@ export function mountDispersalPanel(
     initial.rarityOptions.map((rarity, index) => {
       const pill = h('span', `pill rarity-${index}`, rarity.name);
       permitLine.append(pill);
-      controlTargets.set(`pill-${rarity.id}`, pill);
+      controlTargets.set(permit(rarity.id), pill);
       return [rarity.id, pill] as const;
     }),
   );
@@ -84,8 +85,8 @@ export function mountDispersalPanel(
   targetRow.append(h('div', 'tag', text.targetTag), targetBody, h('span'));
   proto.append(permitRow, targetRow);
   element.append(status, proto);
-  controlTargets.set('ds-status', element);
-  controlTargets.set('row-target', targetRow);
+  controlTargets.set(controlKeys.dispersalStatus, element);
+  controlTargets.set(controlKeys.targetRow, targetRow);
   return {
     element,
     controlTargets,

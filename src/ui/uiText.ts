@@ -79,7 +79,7 @@ export const uiText: UiText = {
         `${sale} of ${total} rarities on autosale${channel === null ? '' : ` \u00b7 ${channel} to Back Channel`}`,
       held: (count) => `\u00d7${count}`,
       needs: (name, branch) => `needs ${name} (Firmware \u00b7 ${branch}) before these switches do anything`,
-      needsMasked: 'needs the Back Channel firmware before these switches do anything',
+      needsMasked: 'needs Firmware you have not decrypted yet before these switches do anything',
     },
     dispersal: {
       dispersing: 'DISPERSING',
@@ -111,8 +111,6 @@ export const uiText: UiText = {
       },
     },
     autoBurn: autoBurnText,
-    dispersalCount: (selected, slots) => `Actions selected: ${selected} / ${slots}`,
-    dispersalRarities: (rarities) => `Disperses: ${rarities.join(', ')}`,
   },
   skills: {
     points: (points) => `Firmware points: ${points}`,
