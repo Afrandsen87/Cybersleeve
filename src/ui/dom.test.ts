@@ -80,11 +80,11 @@ describe('mountUi (smoke test against the real engine)', () => {
     render();
     click('.resleeve');
     expect(game.getState().wallet.credits.toNumber()).toBe(50);
-    expect(root.querySelector('.resleeve')?.classList.contains('armed')).toBe(true);
+    expect(root.querySelector('.resleeve-row')?.classList.contains('armed')).toBe(true);
     click('.resleeve-cancel');
-    expect(root.querySelector('.resleeve')?.classList.contains('armed')).toBe(false);
+    expect(root.querySelector('.resleeve-row')?.classList.contains('armed')).toBe(false);
     click('.resleeve');
-    click('.resleeve');
+    click('.resleeve-confirm');
     expect(game.getState().wallet.credits.toNumber()).toBe(0);
   });
 

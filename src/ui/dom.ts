@@ -14,7 +14,8 @@ import { buildViewModel, type TabView } from './viewModel';
 import { mountActionCards } from './widgets/actionCards';
 import { buildAutomationWidget, renderAutomation } from './widgets/automationWidget';
 import type { ChangelogEntry } from './widgets/changelogModal';
-import { buildDebugControls, buildResleeveRow, buildSaveRow } from './widgets/controls';
+import { buildDebugControls, buildSaveRow } from './widgets/controls';
+import { buildResleeveRow } from './widgets/resleeveRow';
 import { mountCorporationPanel } from './widgets/corporationPanel';
 import { h, setText, type UiContext, type UiSelection } from './widgets/domKit';
 import { buildHud } from './widgets/hud';
@@ -162,8 +163,7 @@ export function mountUi(
     resleeveRow.render({
       canResleeve: vm.canResleeve,
       shown: vm.resleeveShown,
-      buy: vm.resleeveBuy,
-      shortfall: vm.resleeveShortfall,
+      box: vm.resleeveBox,
       title: vm.sleeve.resleeveTitle,
     });
     debug?.render();

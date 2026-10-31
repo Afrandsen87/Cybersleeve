@@ -16,6 +16,14 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 - Reveal checklist: readouts follow the existing tab/pool visibility; legend appears only while a displayed node is encrypted; branch purposes wait for a readable node; encrypted inspection reveals no content. Sleeve Firmware remains subject to the existing first-re-sleeve and parent gates. Persistence wording was verified against `CARRIED_OVER_BUYABLE_CURRENCIES` and the currency descriptor's `carriedOverResleeve` flag.
 - Impact and layer readiness: UI only, with the current sleeve's point pools and existing currency words; no mechanics, save fields, tuning, global singleton, copy iteration or assumption about additional corporations/prestige layers is added.
 
+## Re-sleeve box (2026-11-01)
+
+- `view/resleeveBox.ts` owns `resleeveBoxView`: locked (unaffordable or affordable, with the price on the gold UNLOCK button and a "you have / to go" line, to go clamped at 0), charging (magenta bar at the share met by the furthest-off requirement via `requirementFill`, percentage as the status, one line per requirement; no bar and CHARGING during the post-re-sleeve lockout) and ready (full bar, READY, "on arrival" line). Armed is the widget's, following its confirm gate.
+- The ledger (RESETS / KEEPS / GAINS) and the on-arrival line read the same `uiText.resleeve.ledger` parts; the old one-sentence confirm text is gone, and the shortfall no longer lives in the button tooltip.
+- `widgets/resleeveRow.ts` builds the elements once; `render` flips classes, text and the bar's `transform`. The armed box is absolutely placed at the bottom of the row over the (hidden, still in-flow) box, so it grows upwards; the bottom edge of the buttons never moves. The breathing glow is CSS only.
+- Also: the runs/s overlay on action bars (`.bar-label`) is mono bold white with a black outline, readable over the new bar graphics.
+- Presentation only: no tuning, save or mechanic change.
+
 ## Main screen view (2026-10-31)
 
 - **Panel precision:** panel stat values keep `PANEL_DIGITS` (4) significant figures through `formatSignificant` (`numbers/format.ts`; from 1000 it hands over to the `formatBigNum` suffixes). Tooltips keep full precision.

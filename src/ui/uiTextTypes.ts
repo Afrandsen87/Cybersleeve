@@ -157,12 +157,37 @@ export interface UiText {
   /** Wording for opt-in purchase tiles. */
   readonly upgradeTiles: UpgradeTileText;
 
+  /** The re-sleeve box: button words, status words and the lines under the title. The ledger and the Ready state's "on arrival" line read the same `ledger.gains`. */
   readonly resleeve: {
     readonly idle: string;
-    readonly armed: string;
+    /** The verb on the Unlock resleeving button (the price follows it). */
+    readonly unlock: string;
+    readonly confirm: string;
     readonly cancel: string;
-    /** The tip of the disabled Re-sleeve button: how many sleeve levels (all actions together) are held and how many the next re-sleeve needs. */
+    /** The status light's words (the title row), per state. */
+    readonly status: {
+      readonly locked: string;
+      readonly charging: string;
+      readonly ready: string;
+      readonly armed: string;
+      percent(percent: string): string;
+    };
+    /** One line under the title while Unlock resleeving is not owned. */
+    readonly lockedHint: string;
+    /** @param have the credits held, with unit */
+    have(have: string): string;
+    /** @param toGo what is still missing of the price, with unit */
+    haveToGo(have: string, toGo: string): string;
+    /** The line of a requirement not yet met: how many sleeve levels (all actions together) the next re-sleeve needs and how many are held. */
     needLevels(kind: 'sleeveLevels', held: string, needed: string): string;
+    /** The Ready state's line; `gain` is `ledger.gains.what`. */
+    onArrival(gain: string): string;
+    /** The three lines of the armed box. */
+    readonly ledger: {
+      readonly resets: { readonly label: string; readonly what: string };
+      readonly keeps: { readonly label: string; readonly what: string };
+      readonly gains: { readonly label: string; what(points: number): string };
+    };
   };
   /** Messages shown over the game. */
   readonly notices: { readonly otherTab: string; readonly taken: string };
