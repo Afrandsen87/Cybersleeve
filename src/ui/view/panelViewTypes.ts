@@ -6,9 +6,8 @@
  * @remarks
  * Part of the view types; `viewTypes.ts` re-exports them, so import from there.
  */
-import type { AutoBurnView } from './autoBurnViewTypes';
 
-import type { AutomationFeature, TAB_IDS } from '../../core';
+import type { TAB_IDS } from '../../core';
 import type { SkillLaneView } from './skillTreeTypes';
 
 /** One tab at the top. */
@@ -23,48 +22,7 @@ export interface TabView {
   readonly attention: boolean;
 }
 
-/** One feature in the Automation tab. */
-export interface AutomationFeatureView {
-  readonly id: AutomationFeature;
-  readonly name: string;
-  readonly description: string;
-  readonly unlocked: boolean;
-  /** The feature's skill lane, drawn in its box: the first skill is the unlock, the rest are what the automation can grow into. */
-  readonly lanes: readonly SkillLaneView[];
-}
-
-/** A checklist of the things a resume switch turns on: shown once the switch's skill is owned. */
-export interface ResumeChecklistView {
-  readonly visible: boolean;
-  /** One per reachable heat-making item; `locked` while the player does not own it (shown, not tickable). */
-  readonly items: readonly { readonly id: string; readonly name: string; readonly ticked: boolean; readonly locked: boolean }[];
-}
-
-/** Display data of the Automation tab. */
-export interface AutomationView {
-  readonly title: string;
-  /** Automation points still to spend. */
-  readonly points: number;
-  readonly pointsText: string;
-  readonly features: readonly AutomationFeatureView[];
-  readonly autoBurn: AutoBurnView;
-  /** Autosale: every rarity with its switch. */
-  readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean; readonly visible: boolean }[];
-  /** Automation context: Back Channel controls hidden until their rarity skill is owned. */
-  readonly backchannelRarities: readonly { readonly id: string; readonly name: string; readonly on: boolean; readonly visible: boolean }[];
-  /** Automation context: only unlocked actions appear, and only selected actions remain enabled at capacity. */
-  readonly actions: readonly {
-    readonly id: string;
-    readonly name: string;
-    readonly selected: boolean;
-    readonly visible: boolean;
-    readonly disabled: boolean;
-  }[];
-  /** Automation context: selection count, shown only after dispersal unlocks. */
-  readonly dispersalCount: string;
-  /** Automation context: permitted schematic rarities already known from inventory; empty before any is known. */
-  readonly dispersalRarities: string;
-}
+export type { AutomationFeatureView, AutomationView, ResumeChecklistView } from './automationViewTypes';
 
 /** The sleeve skills: a tree whose nodes need other nodes bought first. */
 export interface ResleeveSkillsView {

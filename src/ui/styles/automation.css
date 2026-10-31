@@ -1,62 +1,126 @@
-/* The Automation tab: a box with one section per feature. */
+/* Automation daemon chrome; protocol rows share autoBurn.css through .ab. */
 .automation-widget {
   display: grid;
   align-content: start;
   gap: 12px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px;
-}
-.automation-widget h2 {
-  margin: 0;
+  min-width: 0;
 }
 .automation-feature {
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  gap: 12px;
+  min-width: 0;
+}
+.automation-feature > .ph {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--lane);
+  font: 700 11px var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.automation-feature > .ph::before {
+  content: "//";
+}
+.daemon-state {
+  margin-left: auto;
+  color: var(--muted);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
 }
-.automation-feature.unlocked {
-  border-color: var(--cyan);
+.daemon-state.online {
+  color: var(--gain);
+  border-color: var(--gain);
 }
-.automation-description {
+.automation-description,
+.daemon-offline {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 .automation-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
+  min-width: 0;
 }
-.automation-controls[hidden] {
+.automation-widget [hidden] {
   display: none;
 }
-.automation-switch.on {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
+.automation-widget .skill-lane {
+  border-radius: 4px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--lane) 16%, transparent), color-mix(in srgb, var(--lane) 4%, transparent));
 }
-.automation-field {
+.automation-widget .skill-lane::after {
+  display: none;
+}
+.automation-widget .t-sale {
+  --tag: var(--branch-autosale);
+}
+.automation-widget .t-channel {
+  --tag: var(--cyan);
+}
+.automation-widget .t-permit,
+.automation-widget .t-target {
+  --tag: var(--branch-dispersal);
+}
+.automation-widget .s-on {
+  color: var(--gain);
+}
+.automation-widget .needs {
+  color: var(--muted);
+  font-size: 11px;
+}
+.automation-widget .chip .ld {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.automation-widget .chip.on .ld {
+  background: var(--rarity, var(--tag));
+  box-shadow: 0 0 5px var(--rarity, var(--tag));
+}
+.automation-widget .kompromat-protocol .chip {
+  --tag: var(--rarity);
+}
+.automation-widget .chip .nm,
+.automation-widget .pill {
+  color: var(--rarity);
+}
+.automation-widget .chip .cnt {
+  color: var(--muted);
+  font-size: 10px;
+}
+.automation-widget .chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.automation-widget .pill {
+  border: 1px solid var(--rarity);
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: color-mix(in srgb, var(--rarity) 8%, transparent);
+  font-size: 11px;
+}
+.automation-widget .slots {
+  display: inline-flex;
+  gap: 3px;
+}
+.automation-widget .slots i {
+  width: 10px;
+  height: 8px;
+  border-radius: 2px;
+  background: #1b2940;
+  border: 1px solid var(--line);
+}
+.automation-widget .slots i.on {
+  background: var(--branch-dispersal);
+  border-color: var(--branch-dispersal);
+  box-shadow: 0 0 6px var(--branch-dispersal);
+}
+.automation-widget .slot-readout {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-}
-.automation-field input {
-  width: 6em;
-  font: inherit;
-  color: var(--ink);
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 4px 6px;
-}
-
-.automation-field[hidden],
-.automation-switch[hidden] {
-  display: none;
 }

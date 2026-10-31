@@ -66,16 +66,20 @@
 .item-tile {
   --rarity: var(--muted);
 }
-.inventory-widget .rarity-1 {
+.inventory-widget .rarity-1,
+.automation-widget .rarity-1 {
   --rarity: #3dff7a;
 }
-.inventory-widget .rarity-2 {
+.inventory-widget .rarity-2,
+.automation-widget .rarity-2 {
   --rarity: #4d8bff;
 }
-.inventory-widget .rarity-3 {
+.inventory-widget .rarity-3,
+.automation-widget .rarity-3 {
   --rarity: #ff2bd6;
 }
-.inventory-widget .rarity-4 {
+.inventory-widget .rarity-4,
+.automation-widget .rarity-4 {
   --rarity: #ff8a1f;
 }
 .item-icon {
@@ -165,7 +169,8 @@
   border-color: var(--magenta);
   border-left-color: var(--rarity);
 }
-.inventory-widget .rarity-0 {
+.inventory-widget .rarity-0,
+.automation-widget .rarity-0 {
   --rarity: var(--info);
 }
 .rarity-legend {

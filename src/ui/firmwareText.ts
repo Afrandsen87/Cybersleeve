@@ -38,6 +38,9 @@ export const firmwareText: FirmwareText = {
     encrypted: 'Encrypted',
   },
   branchPurpose: {
+    autoBurn: 'keep heat in check and restart work',
+    autosale: 'sell files or give them to Back Channel',
+    dispersal: 'spread schematics over selected actions',
     cybernetics: 'speed, payout and crits',
     anonymity: 'cool heat and stay hidden',
     leverage: 'kompromat, moles and drops',

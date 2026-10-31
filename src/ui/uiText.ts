@@ -59,6 +59,42 @@ export const uiText: UiText = {
     },
   },
   automation: {
+    pointsLabel: 'AUTOMATION POINTS',
+    firmwareTitle: 'FIRMWARE',
+    online: 'ONLINE',
+    offline: 'OFFLINE',
+    offlineNote: (name) =>
+      name ? `Install ${name} below to bring this daemon online.` : 'Install the root firmware below to bring this daemon online.',
+    kompromat: {
+      active: 'ACTIVE',
+      standby: 'STANDBY',
+      backchannel: 'BACK CHANNEL',
+      autosale: 'AUTOSALE',
+      onDrop: 'ON DROP',
+      thenCondition: 'THEN',
+      channelAction: 'give up for Moles',
+      saleAction: 'sell at the normal price',
+      arrow: '\u2192',
+      status: (sale, total, channel) =>
+        `${sale} of ${total} rarities on autosale${channel === null ? '' : ` \u00b7 ${channel} to Back Channel`}`,
+      held: (count) => `\u00d7${count}`,
+      needs: (name, branch) => `needs ${name} (Firmware \u00b7 ${branch}) before these switches do anything`,
+      needsMasked: 'needs the Back Channel firmware before these switches do anything',
+    },
+    dispersal: {
+      dispersing: 'DISPERSING',
+      standby: 'STANDBY',
+      pickAction: 'pick an action below',
+      targets: 'targets',
+      permits: 'PERMITS',
+      permitCondition: 'schematics of',
+      targetCondition: 'spread evenly over',
+      targetTag: 'TARGETS',
+      arrow: '\u2192',
+      status: (rarities, actions) => `${rarities} rarit${rarities === 1 ? 'y' : 'ies'} over ${actions} action${actions === 1 ? '' : 's'}`,
+      slotCount: (used, slots) => `${used}/${slots}`,
+      fullSlots: (slots) => `all ${slots} slots used: untick one to pick another`,
+    },
     points: (points) => `Automation points: ${points}`,
     features: {
       autoBurn: {
@@ -77,7 +113,6 @@ export const uiText: UiText = {
     autoBurn: autoBurnText,
     dispersalCount: (selected, slots) => `Actions selected: ${selected} / ${slots}`,
     dispersalRarities: (rarities) => `Disperses: ${rarities.join(', ')}`,
-    autoBackchannel: (rarity) => `Auto Back Channel: ${rarity}`,
   },
   skills: {
     points: (points) => `Firmware points: ${points}`,

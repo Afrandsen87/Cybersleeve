@@ -6,6 +6,8 @@
  * @remarks
  * Split out of `uiText.ts`, which holds the default words and re-exports this type, so import it from there.
  */
+import type { KompromatText } from './view/kompromatViewTypes';
+import type { DispersalText } from './view/dispersalViewTypes';
 import type { AutoBurnText } from './autoBurnText';
 import type { FirmwareText } from './firmwareText';
 
@@ -88,6 +90,13 @@ export interface UiText {
   };
   /** The Automation tab: the points, each feature and its controls. */
   readonly automation: {
+    readonly pointsLabel: string;
+    readonly firmwareTitle: string;
+    readonly online: string;
+    readonly offline: string;
+    offlineNote(name: string | null): string;
+    readonly kompromat: KompromatText;
+    readonly dispersal: DispersalText;
     points(points: string): string;
     /** The name and what each feature does. */
     readonly features: Readonly<Record<AutomationFeature, { readonly name: string; readonly description: string }>>;
@@ -97,8 +106,6 @@ export interface UiText {
     dispersalCount(selected: number, slots: number): string;
     /** Automation context: permitted schematic rarities the player already knows. */
     dispersalRarities(rarities: readonly string[]): string;
-    /** Automation context: the label of an owned rarity switch. */
-    autoBackchannel(rarity: string): string;
   };
   /** The Skills box and the sleeve skills group. */
   readonly skills: {

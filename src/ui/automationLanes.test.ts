@@ -85,12 +85,17 @@ describe('the skill lane inside each automation box', () => {
 
 /** Automation context: one existing branch lays out as a trunk with two first-parent lanes. */
 describe('Kompromat fork and permission controls', () => {
-  it('hides automatic Back Channel switches while the manual channel is missing', () => {
+  it('disables owned Back Channel switches while the manual channel is missing', () => {
     const g = rarityGame([1, 2, 3, 4, 5, 6], false);
-    expect(buildViewModel(g).automation.backchannelRarities.every((r) => !r.visible)).toBe(true);
+    expect(
+      buildViewModel(g)
+        .automation.kompromat.rows[0]!.chips.filter((r) => r.visible)
+        .every((r) => r.disabled),
+    ).toBe(true);
     rarityState(g).sleeve.purchased['channel'] = 1;
     const visible = buildViewModel(g).automation.backchannelRarities.filter((r) => r.visible);
-    expect(visible.map((r) => r.id)).toEqual(['common']);
+    expect(visible.map((r) => r.id)).toEqual(['common', 'uncommon', 'rare']);
+    expect(buildViewModel(g).automation.kompromat.rows[0]!.chips.find((r) => r.id === 'common')!.disabled).toBe(false);
   });
   it('places the two children of slot 3 on separate rows with the trunk between them', () => {
     const g = rarityGame();
@@ -116,14 +121,14 @@ describe('Kompromat fork and permission controls', () => {
     expect(
       buttons()
         .filter((b) => !b.hidden)
-        .map((b) => b.textContent),
+        .map((b) => b.querySelector('.nm')!.textContent),
     ).toEqual(['common']);
     purchased['skill-autosale-4'] = 1;
     render();
     expect(
       buttons()
         .filter((b) => !b.hidden)
-        .map((b) => b.textContent),
-    ).toEqual(['common', 'Auto Back Channel: common']);
+        .map((b) => b.querySelector('.nm')!.textContent),
+    ).toEqual(['common', 'common']);
   });
 });

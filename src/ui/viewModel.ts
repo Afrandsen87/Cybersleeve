@@ -61,14 +61,15 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
   const viewById = new Map(buyableViews.map((v) => [v.id, v]));
   const sleeve = sleeveView(stats, state, config, buyableViews, viewById, text, tracker);
 
+  const skills = skillsView(engine, state, config, viewById, stats, text, revealAll, tracker);
   const vm: ViewModel = {
     creditsText: formatBigNum(state.wallet.credits),
     hud: hudView(engine, state, text, tracker),
     network: networkView(engine, config, state, stats, text),
     tabs: tabsView(engine, state, text, tracker, selection.tabAttention, selection.activeTab),
-    skills: skillsView(engine, state, config, viewById, stats, text, revealAll, tracker),
+    skills,
     runs: runsView(state.wallet.runs, config, text),
-    automation: automationView(engine, config, viewById, text, revealAll, tracker),
+    automation: automationView(engine, config, viewById, text, revealAll, tracker, skills.lanes),
     corporation: corporationView(engine, config, buyableViews, text),
     inventory: inventoryView(engine, factory, text, revealAll),
     actions: buildActionViews(engine, config, state, buyableViews, viewById, factory, text, selection),
