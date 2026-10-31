@@ -13,6 +13,7 @@ import './ui/styles/inventory.css';
 import './ui/styles/skills.css';
 import './ui/styles/automation.css';
 import './ui/styles/upgrades.css';
+import './ui/styles/process.css';
 import './ui/autoBurn.css';
 import { createGame } from './app/createGame';
 import { debugControlsEnabled } from './app/debugControls';

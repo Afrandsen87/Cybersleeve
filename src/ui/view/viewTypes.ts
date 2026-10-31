@@ -16,8 +16,11 @@ export type {
   SplitButtonView,
   ModeButtonView,
   SquareCellView,
+  ActionExtraKind,
+  ActionExtraLine,
   ActionSquareView,
   ActionView,
+  ProcessState,
 } from './actionViewTypes';
 export type { BuyableView } from './buyableViewTypes';
 export type { StatTone, SleeveSection, StatBarView, StatRowView, SleeveView, NetworkView } from './sleeveViewTypes';

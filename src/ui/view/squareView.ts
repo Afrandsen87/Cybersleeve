@@ -13,7 +13,7 @@ import type { ActionSquareView, AugmentButtonView, BuyableView, ModeButtonView, 
 
 /** A placeholder cell for a feature the action does not have. */
 function emptyCell(id: SquareCellId, text: UiText): SquareCellView {
-  return { id, ...text.action.modes[id], mode: 'empty', on: false, clickable: false, buyableId: null, tip: '' };
+  return { id, ...text.action.modes[id], mode: 'empty', on: false, clickable: false, buyableId: null, costText: null, tip: '' };
 }
 
 /**
@@ -38,6 +38,7 @@ function unlockCell(id: SquareCellId, buyable: BuyableView | undefined, toggle: 
       on: false,
       clickable: buyable.clickable,
       buyableId: buyable.id,
+      costText: buyable.costText,
       get tip() {
         return buyable.tip;
       },
@@ -51,6 +52,7 @@ function unlockCell(id: SquareCellId, buyable: BuyableView | undefined, toggle: 
     on: toggle ? toggle.on : buyable.enabled,
     clickable: toggle ? toggle.clickable : true,
     buyableId: buyable.id,
+    costText: null,
     ...(toggle?.split ? { split: toggle.split } : {}),
     get tip() {
       return source.tip;
@@ -95,6 +97,7 @@ export function squareView(
         on: augment.applied > 0,
         clickable: augment.enabled,
         buyableId: null,
+        costText: null,
         get tip() {
           return augment.tip;
         },

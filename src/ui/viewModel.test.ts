@@ -12,6 +12,10 @@ import {
   testConfig,
 } from '../testing/testConfig';
 import { buildViewModel, statRow } from './viewModel';
+import type { ActionView } from './viewModel';
+
+/** The texts of a card's extra lines, joined (what the RISK and COST rows show). */
+const costTexts = (card: ActionView): string => card.costItems.map((i) => i.text).join(' | ');
 
 describe('view model - unlocks, start costs and toggles', () => {
   const unlock = {
@@ -203,8 +207,8 @@ describe('view model - locked actions and heat', () => {
   it('shows heat that accrues per second on the card, in place of a per-run heat', () => {
     const g = game({ actions: [testConfig.actions[0]!, legendAction], buyables: [] });
     const card = buildViewModel(g).actions.find((a) => a.id === 'legend')!;
-    expect(card.costLine).toContain('+5 heat/s');
-    expect(card.costLine).not.toContain('+50 heat');
+    expect(costTexts(card)).toContain('+5 heat/s');
+    expect(costTexts(card)).not.toContain('+50 heat');
     expect(card.rewardLine).not.toContain('heat');
   });
 
@@ -214,7 +218,7 @@ describe('view model - locked actions and heat', () => {
     expect(mal.unlocked).toBe(false);
     expect(mal.requiredAccessLevel).toBe(2);
     expect(mal.heatPerRun).toBe(1);
-    expect(mal.costLine).toContain('+1 heat');
+    expect(costTexts(mal)).toContain('+1 heat');
     expect(mal.rewardLine).not.toContain('heat');
     setCredits(g, num(1000));
     g.buy('access');

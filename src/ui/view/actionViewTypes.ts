@@ -61,6 +61,10 @@ export interface SquareCellView {
   readonly symbol: string;
   /** Name read out for the button. */
   readonly name: string;
+  /** The short label under the cell's icon (AUTO, OC, FOCUS, AUG). */
+  readonly label: string;
+  /** The price of a `buy` cell, as the buyable shows it; `null` for every other mode. */
+  readonly costText: string | null;
   /**
    * What a press does: `buy` buys the unlock (the feature is not owned yet), `toggle` switches an owned feature on or off, `press`
    * does something once (Augment), `empty` is a placeholder for a feature this action does not have.
@@ -89,12 +93,28 @@ export interface ActionSquareView {
   readonly cells: readonly SquareCellView[];
 }
 
+/** What a card's extra line is about: `heat` is a risk (orange), `cost` is something spent (red). */
+export type ActionExtraKind = 'heat' | 'cost';
+
+/** One extra line of an action card: a phrase and what it is about, so the widget never reads the text to tell. */
+export interface ActionExtraLine {
+  readonly kind: ActionExtraKind;
+  readonly text: string;
+}
+
+/** What a card's state LED shows: running on Auto-run, running by hand, or not running. */
+export type ProcessState = 'auto' | 'running' | 'idle';
+
 /** Display data of one action. */
 export interface ActionView {
   readonly id: string;
   /** The critical success highlight: `null` while there was no critical success in the last second, else the text to show (a mark, or crits per second). */
   readonly critText: string | null;
   readonly name: string;
+  /** The muted process id in the title bar, derived from the action id (see `processId`). */
+  readonly processId: string;
+  /** The state LED of the title bar. */
+  readonly state: ProcessState;
   readonly level: number;
   readonly xpText: string;
   readonly nextLevelXpText: string;
@@ -138,8 +158,8 @@ export interface ActionView {
   readonly startCostText: string | null;
   /** Heat added by each completed run (0 for none). */
   readonly heatPerRun: number;
-  /** The one-line description under the title (speed, duration, cost; or why the action is locked). */
-  readonly infoText: string;
+  /** The value of the SPEED row: the speed factor and the run time. */
+  readonly speedLine: string;
   /** Hover text for the info line: how the action's speed comes about (empty while the action is locked). Built when read. */
   readonly speedTip: string;
   /** Label of the action level bar. */
@@ -148,10 +168,8 @@ export interface ActionView {
   readonly sleeveBarText: string;
   /** The gains line of the card: what a run pays or teaches. */
   readonly rewardLine: string;
-  /** The cost items of the card (heat, start cost, Overclock costs), each a short phrase; empty for an action with no costs. */
-  readonly costItems: readonly string[];
-  /** The costs line of the card: {@link ActionView.costItems} joined; empty text for none (the line is still drawn, so all cards line up). */
-  readonly costLine: string;
+  /** The extra lines of the card (heat, start cost, Overclock costs), each a short phrase with its kind; empty for an action with no costs. */
+  readonly costItems: readonly ActionExtraLine[];
   /** The purchases that belong to this action (those flagged `inSquare` are shown in its square, the others in its row of purchases). */
   readonly buyables: readonly BuyableView[];
   /** The square beside the bars: Auto-run, Overclock, Focus and Augment. */
