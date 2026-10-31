@@ -26,7 +26,7 @@ export const uiText: UiText = {
     upgrades: 'Sleeve Improvements',
     exploitation: 'Network Exploitation',
     skills: 'Skills',
-    resleeveSkills: 'Re-sleeve skills',
+    resleeveSkills: 'Sleeve skills',
     stats: 'Stats',
     automation: 'Automation',
     corporation: 'Corporation',
@@ -87,9 +87,10 @@ export const uiText: UiText = {
   },
   skills: {
     points: (points) => `Skill points: ${points}`,
-    resleevePoints: (points) => `Re-sleeve points: ${points}`,
+    resleevePoints: (points) => `Sleeve skill points: ${points}`,
     hidden: '???',
     branches: {
+      sleeveUp: '',
       cybernetics: 'Cybernetics',
       anonymity: 'Anonymity',
       leverage: 'Leverage',
@@ -150,7 +151,7 @@ export const uiText: UiText = {
     credits: 'credits',
     networkNodes: 'nodes',
     skillPoints: 'skill points',
-    resleevePoints: 're-sleeve points',
+    resleevePoints: 'sleeve skill points',
     automationPoints: 'automation points',
   },
   lock: {
@@ -191,7 +192,7 @@ export const uiText: UiText = {
   tips: tipText,
   resleeve: {
     idle: 'Re-sleeve',
-    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a re-sleeve point.',
+    armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a sleeve skill point.',
     cancel: 'Cancel',
     needLevels: (kind, held, needed) =>
       `Needs ${needed} ${kind === 'actionLevels' ? 'action' : 'sleeve'} levels in total across all actions to re-sleeve. You have ${held}.`,

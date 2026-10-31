@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGame } from '../app/createGame';
 import type { BuyableDefinition } from '../core';
+import { markResleeved } from '../testing/sleeveLevelsKit';
 import { skillViews } from '../testing/skillViews';
 import { BRANCH_REVEAL_STAT } from '../ui/view/branchMask';
 import { buildViewModel } from '../ui/viewModel';
@@ -93,7 +94,7 @@ describe('sleeve levels and re-sleeving', () => {
   it('everything about sleeve levels is behind the unlock of sleeve levels, or from the second sleeve run on', () => {
     for (const b of everyday.filter((x) => SLEEVE_LEVEL_KINDS.includes(x.effect.kind)))
       expect(
-        chain(b).some((c) => c.id === SLEEVE_LEVELS || (c.revealAfterResleeves ?? 0) >= 1),
+        chain(b).some((c) => c.id === SLEEVE_LEVELS || (c.requiresSleeveSkills ?? 0) >= 1),
         b.id,
       ).toBe(true);
   });
@@ -101,35 +102,27 @@ describe('sleeve levels and re-sleeving', () => {
   it('no purchase outside the re-sleeve tree mentions sleeve levels or sleeve XP unless it is gated the same way', () => {
     for (const b of everyday.filter((x) => x.id !== SLEEVE_LEVELS && /sleeve (level|xp)/i.test(x.description)))
       expect(
-        chain(b).some((c) => c.id === SLEEVE_LEVELS || (c.revealAfterResleeves ?? 0) >= 1),
+        chain(b).some((c) => c.id === SLEEVE_LEVELS || (c.requiresSleeveSkills ?? 0) >= 1),
         b.id,
       ).toBe(true);
   });
 
-  it('Faster conditioning, Skill transfer and Study methods wait for the second sleeve run', () => {
-    for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER, STUDY_METHODS]) expect(byId.get(id)!.revealAfterResleeves, id).toBe(1);
+  it('Faster conditioning, Skill transfer and Study methods wait for the first owned sleeve skill', () => {
+    for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER, STUDY_METHODS]) expect(byId.get(id)!.requiresSleeveSkills, id).toBe(1);
   });
 
-  it('they are unavailable in a new game and available after one finished sleeve-run', () => {
+  it('they are unavailable until Sleeve Up! is bought', () => {
     const g = createGame();
     for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(g.isBuyableAvailable(id), id).toBe(false);
-    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number; sleeveLevelsTotal: number }[]).push({
-      creditsPerSecond: 0,
-      actionLevelsTotal: 0,
-      sleeveLevelsTotal: 0,
-    });
+    markResleeved(g);
     for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(g.isBuyableAvailable(id), id).toBe(true);
   });
 
-  it('Study methods stays unavailable before the first re-sleeve even with Sleeve levels owned, and opens after it', () => {
+  it('Study methods also requires an owned sleeve skill after Sleeve levels', () => {
     const g = createGame();
     (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
     expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(false);
-    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number; sleeveLevelsTotal: number }[]).push({
-      creditsPerSecond: 0,
-      actionLevelsTotal: 0,
-      sleeveLevelsTotal: 0,
-    });
+    markResleeved(g);
     expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(true);
   });
 });

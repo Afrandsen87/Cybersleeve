@@ -1,7 +1,7 @@
 /**
  * @module content
  *
- * Ids of the re-sleeve skills and of the four branches (lanes) they are drawn in. Re-exported by `ids.ts`, so callers keep importing from there.
+ * Ids of the sleeve skills and of the four branches (lanes) they are drawn in. Re-exported by `ids.ts`, so callers keep importing from there.
  */
 
 /** Branch id of the re-sleeve lane about what a re-sleeve no longer wipes (its title is in `ui/uiText.ts`, its colour in `ui/style.css`). */
@@ -49,8 +49,14 @@ export const SKILL_SYNTHETIC_WORKERS = 'skill-synthetic-workers';
 /** Id of the corporation skill that unlocks buying synthetic sleeves on the Corporation tab. */
 export const SKILL_SYNTHETIC_PROCUREMENT = 'skill-synthetic-procurement';
 
+/** Root trunk branch. Called by: sleeve skill content. Calls: nothing. */
+export const BRANCH_SLEEVE_UP = 'sleeveUp';
+/** Root sleeve skill. Called by: content and tests. Calls: nothing. */
+export const SKILL_SLEEVE_UP = 'skill-sleeve-up';
+
 /** Every re-sleeve skill id, lane by lane (retention, reach, synthetics, corporation), each root first. */
 export const RESLEEVE_SKILLS = [
+  SKILL_SLEEVE_UP,
   SKILL_REFLEX_ARCHIVE,
   SKILL_DAEMON_PERSISTENCE,
   SKILL_RESIDUAL_PROFICIENCY,

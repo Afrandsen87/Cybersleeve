@@ -59,9 +59,12 @@ describe('Corporation reads the synthetic sleeves through SynthQueries.boost onl
 describe('SynthSleeves.boost', () => {
   it('is the shared synthBoost of the sleeve count: 1 without sleeves or copies, above 1 with both', () => {
     const state = createInitialState(config, factory);
-    const synths = new SynthSleeves(config, state, undefined as never, factory);
+    const synthConfig = createConfig(config, { buyables: [...config.buyables, resleeveSkill('synth-unlock', { kind: 'synthSleeves' })] });
+    const synths = new SynthSleeves(synthConfig, state, undefined as never, factory);
     expect(synths.boost(0.1, 3)).toBe(1);
     state.wallet.synths.push({ runIndex: 0 }, { runIndex: 0 });
+    expect(synths.boost(0.1, 3)).toBe(1); // dormant until the unlock is owned
+    state.sleeve.purchased['synth-unlock'] = 1;
     expect(synths.boost(0.1, 0)).toBe(1);
     expect(synths.boost(0.1, 3)).toBeCloseTo(synthBoost(0.1, 2, 3), 12);
     expect(synths.boost(0.1, 3)).toBeGreaterThan(1);

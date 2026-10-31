@@ -45,18 +45,18 @@ export interface BuyableDefinition {
    */
   readonly requires?: readonly BuyableId[];
   /**
-   * Re-sleeves that must have happened (finished sleeve-runs, `GameState.runs.length`) before this is available. Default: 0 (no
-   * rule). 1 means "from the player's second sleeve run on". Checked by `Shop.isAvailable`, so it hides the buyable and blocks buying it.
+   * Economy context: distinct owned buyables paid in resleevePoints needed for availability (integer >= 0; default 0).
+   * Copies count once. Called by: Shop.isAvailable and config validation. Calls: nothing.
    */
-  readonly revealAfterResleeves?: number;
+  readonly requiresSleeveSkills?: number;
   /**
-   * Skill-tree edges: the skills that must be owned before this one can be bought (the skill is drawn after them in its branch, with a line from each parent). Every parent is in the same `branch` (validated). A skill
-   * is readable only when its `requires` are owned and all its parents are readable. Default: none (a root of its branch).
+   * Skill-tree edges: the skills that must be owned before this one can be bought (the skill is drawn after them in its branch, with a line from each parent). Parents share the branch or belong to a trunk (one parentless skill). A sleeve skill
+   * is readable only when its `requires` are owned and all its parents are owned; other skills need readable parents. Default: none (a root of its branch).
    */
   readonly parents?: readonly BuyableId[];
   /**
    * The skill-tree branch this skill is drawn in (a lane of the Skills tab; its title is in the text table, its colour in the style
-   * sheet). Skills without a branch share one general lane. Only meaningful for skills.
+   * sheet). Skills without a branch share one general lane. Only meaningful for skills. A trunk branch contains exactly one parentless skill and may parent other branches.
    */
   readonly branch?: string;
   /** How many copies can be bought; `Infinity` for unlimited. Default: 1. */

@@ -11,7 +11,7 @@ describe('revealAll (view model)', () => {
   const plain = () => buildViewModel(createGame({ config }));
   const revealed = () => buildViewModel(createGame({ config }), undefined, undefined, { augmentRarityId: null, revealAll: true });
 
-  it('shows every tab and the re-sleeve skills on a fresh game, where the rules hide them', () => {
+  it('shows every tab and the sleeve skills on a fresh game, where the rules hide them', () => {
     expect(plain().tabs.every((t) => t.visible)).toBe(false);
     expect(revealed().tabs.every((t) => t.visible)).toBe(true);
     expect(revealed().skills.resleeve.visible).toBe(true);

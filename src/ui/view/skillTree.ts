@@ -5,9 +5,10 @@
  * text is readable.
  *
  * @remarks
- * Called by: `panelViews.ts` (the skills and the re-sleeve skills). Calls: nothing outside this file; pure, no engine access.
+ * Called by: `panelViews.ts` (the skills and the sleeve skills). Calls: nothing outside this file; pure, no engine access.
  *
- * A skill is READABLE when its own gate (`requires`, the purchase that makes it useful) is owned and every parent is readable, so
+ * A skill is READABLE when its own gate (`requires`, the purchase that makes it useful) is owned and every parent is readable
+ * (owned instead when parentsMustBeOwned is set for sleeve skills), so
  * the masking runs down the tree. A skill that is not readable is MASKED: its name, text, price and tip are replaced by the hidden text.
  * A skill the reveal ledger holds (`skill:<id>`) stays readable for good, but is `locked` (faded) while its gates are unmet again (e.g. after a re-sleeve).
  * The tree itself (every node and its place, the branch titles) is always shown. A branch with a reveal stat (`branchMask.ts`) is masked as a whole until that stat is revealed.
@@ -34,12 +35,14 @@ export interface SkillTreeInput {
   readonly hiddenText: string;
   /** Whether every skill of a branch reads as hidden (default: none), e.g. the heat branch before heat exists. Ignored with `revealAll`. */
   readonly branchMasked?: (branchId: string) => boolean;
-  /** False masks the whole tree (the re-sleeve skills before the first re-sleeve). */
+  /** False masks the whole tree (the sleeve skills before the first re-sleeve). */
   readonly open: boolean;
   /** Test aid ("Show all"): nothing is masked, whatever the gates and `open` say. */
   readonly revealAll: boolean;
   /** The reveal ledger reader: a skill it holds is readable even while its gates are unmet; skills that become readable are collected for it (default: none). */
   readonly tracker?: RevealTracker;
+  /** Require owned parents for natural readability (sleeve skills only). */
+  readonly parentsMustBeOwned?: boolean;
 }
 
 /**
@@ -68,7 +71,7 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
       b !== undefined &&
       !input.branchMasked?.(laneOf(b)) &&
       (b.requires ?? []).every((r) => owned(r) > 0) &&
-      (b.parents ?? []).every((p) => readable(p));
+      (b.parents ?? []).every((p) => (input.parentsMustBeOwned ? owned(p) > 0 : readable(p)));
     naturalMemo.set(id, natural);
     const result = input.tracker ? input.tracker.reveals('skill', id, natural) : natural;
     readableMemo.set(id, result);

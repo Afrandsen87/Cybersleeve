@@ -6,27 +6,15 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the text table.
  */
-import {
-  AUTOMATION_FEATURES,
-  AUTO_BURN_SWITCHES,
-  type AutoBurnSwitch,
-  type ActionQueries,
-  type TAB_IDS,
-  type CorporationQueries,
-  type GameConfig,
-  type SkillQueries,
-  type SleeveStats,
-  type GameStateView,
-} from '../../core';
+import type { TAB_IDS, CorporationQueries, GameConfig, SkillQueries, SleeveStats, GameStateView } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
-import { resumeChecklists } from './autoBurnChecklist';
 import { branchMaskedFn } from './branchMask';
 import type { RevealTracker } from './revealTracker';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
 import { TabAttention } from './tabAttention';
-import type { AutomationView, BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
+import type { BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
 
 /** The latest finished sleeve-runs, newest first. */
 export function runsView(runs: GameStateView['wallet']['runs'], config: GameConfig, text: UiText): RunsView {
@@ -104,10 +92,10 @@ export function tabsView(
 }
 
 /**
- * The Skills tab, with the group of re-sleeve skills.
+ * The Skills tab, with the group of sleeve skills.
  *
  * Both trees show every node and every branch title from the start; what a skill says stays hidden until it is readable (see
- * `skillTree.ts`). The re-sleeve skills are all hidden until the first re-sleeve.
+ * `skillTree.ts`). The sleeve skills are all hidden until the first re-sleeve.
  *
  * Called by: {@link buildViewModel}. Calls: {@link buildSkillLanes}.
  *
@@ -144,6 +132,7 @@ export function skillsView(
   const resleeveLanes = buildSkillLanes({
     ...common,
     skills: config.buyables.filter((b) => b.currency === 'resleevePoints'),
+    parentsMustBeOwned: true,
     laneTitle: branchTitle,
     open: state.wallet.runs.length > 0,
   });

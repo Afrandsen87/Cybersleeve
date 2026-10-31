@@ -1,8 +1,10 @@
 /**
  * @module content
  *
- * The reach lane of the re-sleeve skills: XP, access and focus. Sleeve Euphoria is the root; each skill needs the one before.
+ * The reach lane of the sleeve skills: XP, access and focus. Sleeve Euphoria is the root; each skill needs the one before.
  */
+import { SKILL_SLEEVE_UP } from '../../ids';
+
 import type { BuyableDefinition } from '../../../core';
 import { num } from '../../../numbers';
 import {
@@ -25,6 +27,7 @@ export const reachSkills: BuyableDefinition[] = [
       "Every action level needs less XP the higher that action's sleeve level is: half as much at sleeve level 10, a quarter at 100.",
     formula: 'XP Needed = Normal XP x 0.5 ^ log10(Sleeve Level of the action)',
     currency: 'resleevePoints',
+    parents: [SKILL_SLEEVE_UP],
     branch: BRANCH_REACH,
     cost: num(1),
     // each order of magnitude of sleeve level halves what is left: 50% less at level 10, 75% less at level 100; never more than 99.9% less

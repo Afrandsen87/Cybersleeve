@@ -55,7 +55,7 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     description: "Adds Practice Hacking's sleeve level to Grow network's level, which raises its speed.",
     actionId: PRACTICE_HACKING,
     cost: num(1_000_000),
-    revealAfterResleeves: 1, // from the second sleeve run on
+    requiresSleeveSkills: 1, // opens after buying the first sleeve skill
     effect: { kind: 'levelBonusFromSleeveLevel', sourceActionId: PRACTICE_HACKING, targetActionId: GROW_NETWORK },
   },
 
@@ -67,7 +67,7 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     actionId: PRACTICE_HACKING,
     cost: num(1e15),
     requires: [SLEEVE_LEVELS], // reveal gate: sleeve levels exist once the Sleeve levels upgrade is owned
-    revealAfterResleeves: 1, // not available (so not visible) before the first re-sleeve
+    requiresSleeveSkills: 1, // opens after buying the first sleeve skill
     // divisor = 1 + perLevel x Practice Hacking sleeve level: perLevel 1 halves the XP at level 1; there is no ceiling
     effect: { kind: 'sleeveXpReduction', sourceActionId: PRACTICE_HACKING, perLevel: 1 },
   },

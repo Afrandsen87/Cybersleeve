@@ -3,6 +3,8 @@
  *
  * Helpers for working with {@link GameConfig}: deriving variants and validating values.
  */
+import { checkSkillGates } from './skillGates';
+
 import { validateCorporationEffect } from '../corporation/corporationEffects';
 import { definitionOf, type EffectContext } from '../effects/effectRegistry';
 import { traitsOf } from '../effects/effectTraits';
@@ -328,25 +330,13 @@ export function validateConfig(config: GameConfig): string[] {
       if (!buyableIds.has(r)) errors.push(`buyable "${b.id}": requires unknown buyable "${r}"`);
       if (r === b.id) errors.push(`buyable "${b.id}": cannot require itself`);
     }
-    for (const p of b.parents ?? []) {
-      if (!buyableIds.has(p)) errors.push(`buyable "${b.id}": has unknown parent "${p}"`);
-      if (p === b.id) errors.push(`buyable "${b.id}": cannot be its own parent`);
-      const parent = config.buyables.find((x) => x.id === p);
-      if (parent && parent.branch !== b.branch) {
-        errors.push(`buyable "${b.id}": its parent "${p}" is in another branch (a parent must be in the same branch)`);
-      }
-    }
-    if ((b.parents?.length ?? 0) > 0 && !isPointCurrency(b.currency)) {
-      errors.push(`buyable "${b.id}": only skills (paid in points) have parents`);
-    }
-    const resleeves = b.revealAfterResleeves ?? 0;
-    if (!(Number.isInteger(resleeves) && resleeves >= 0)) errors.push(`buyable "${b.id}": revealAfterResleeves must be an integer >= 0`);
     const max = b.maxPurchases ?? 1;
     if (!(Number.isInteger(max) && max >= 1) && max !== Infinity)
       errors.push(`buyable "${b.id}": maxPurchases must be an integer >= 1 or Infinity`);
     const growth = b.costGrowth ?? 1;
     if (!(Number.isFinite(growth) && growth >= 1)) errors.push(`buyable "${b.id}": costGrowth must be >= 1`);
   }
+  checkSkillGates(config.buyables, errors);
   errors.push(...findRequirementCycles(config.buyables));
 
   checkCriticalRule('criticalSuccess', config.criticalSuccess, errors);
