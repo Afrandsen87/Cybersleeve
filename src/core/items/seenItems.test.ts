@@ -143,7 +143,15 @@ describe('seen items: re-sleeve and save', () => {
 
 describe('seen items: a real v7 save', () => {
   const v7 = readFileSync(new URL('../../testing/fixtures/saves/v7-early-before-resleeve.json', import.meta.url), 'utf8');
-  const loaded = () => deserializeState(migrateSave(v7), gameConfig, numberFactory)!;
+  const loaded = () =>
+    deserializeState(
+      migrateSave(
+        v7,
+        gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
+      ),
+      gameConfig,
+      numberFactory,
+    )!;
 
   it('has every held stack seen, and the held-implies-seen invariant holds', () => {
     const { wallet } = loaded();

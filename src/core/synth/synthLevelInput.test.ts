@@ -8,12 +8,13 @@ import { describe, expect, it } from 'vitest';
 import { num, numberFactory } from '../../numbers';
 import type { Progression } from '../actions/progression';
 import { createInitialState } from '../save/state';
-import { testConfig } from '../../testing/testConfig';
+import { config as testConfig } from '../../testing/resleeveTreeKit';
 import { SynthSleeves } from './synthSleeves';
 
 /** Two finished runs (10 credits per second at 100 levels, 20 at 200), both copied by a synthetic sleeve. */
 function setup(liveLevels: number, levelInput?: (synth: { runIndex: number }) => number) {
   const state = createInitialState(testConfig, numberFactory);
+  state.sleeve.purchased = { eu: 1, syn: 1 };
   state.wallet.runs = [
     { creditsPerSecond: num(10), actionLevelsTotal: 100, sleeveLevelsTotal: 0 },
     { creditsPerSecond: num(20), actionLevelsTotal: 200, sleeveLevelsTotal: 0 },
@@ -49,9 +50,9 @@ describe('SynthSleeves level input', () => {
     const state = createInitialState(testConfig, numberFactory);
     state.wallet.runs = [{ creditsPerSecond: num(10), actionLevelsTotal: 100, sleeveLevelsTotal: 0 }];
     const perfect = { id: 'pc', name: 'pc', description: '', cost: num(1), effect: { kind: 'perfectCopies' } } as const;
-    state.sleeve.purchased = { pc: 1 };
+    state.sleeve.purchased = { eu: 1, syn: 1, pc: 1 };
     const progression = { totalActionLevelsWithProgress: () => 0 } as unknown as Progression;
-    const make = () => new SynthSleeves({ buyables: [perfect] }, state, progression, numberFactory, () => num(25));
+    const make = () => new SynthSleeves({ buyables: [...testConfig.buyables, perfect] }, state, progression, numberFactory, () => num(25));
     expect(make().incomeCeiling().toNumber()).toBe(0);
     state.wallet.synths = [{ runIndex: 0 }];
     expect(make().incomeCeiling().toNumber()).toBe(25);

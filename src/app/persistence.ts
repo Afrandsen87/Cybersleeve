@@ -85,8 +85,12 @@ export function createBrowserStore(): KeyValueStore {
  * Calls: `serializeState`, `deserializeState`.
  */
 export class SaveGame {
+  /** Config-derived refund targets. Called by: load, importText, read. Calls: nothing. */
+  private readonly sleeveSkillIds: readonly string[];
+
   /**
-   * Creates a save-game handler.
+   * Creates a save-game handler and derives sleeve-skill refund targets.
+   * Called by: main, tests. Calls: nothing.
    *
    * @param store where saves are kept (e.g. `localStorage`)
    * @param config game content (needed to validate loaded saves)
@@ -96,7 +100,9 @@ export class SaveGame {
     private readonly store: KeyValueStore,
     private readonly config: Pick<GameConfig, 'actions' | 'buyables' | 'focus' | 'items' | 'progression' | 'sleeve'>,
     private readonly factory: NumberFactory,
-  ) {}
+  ) {
+    this.sleeveSkillIds = config.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id);
+  }
 
   /**
    * Writes the state. Storage errors (quota, private mode) are swallowed and reported via the return value. A successful write also drops the
@@ -133,7 +139,7 @@ export class SaveGame {
       const state = this.read(json);
       if (state !== null) {
         this.store.setItem(PREVIOUS_KEY, json);
-        if (migrateSave(json) !== json) this.store.setItem(PRE_MIGRATION_KEY, json);
+        if (migrateSave(json, this.sleeveSkillIds) !== json) this.store.setItem(PRE_MIGRATION_KEY, json);
         return state;
       }
       this.store.setItem(BACKUP_KEY, json);
@@ -164,8 +170,8 @@ export class SaveGame {
       const trimmed = text.trim();
       const state = this.read(trimmed);
       if (state === null) return false;
-      // an older save is stored as the loaded (backfilled) state: its text alone would be marked v9 without the backfill
-      this.store.setItem(SAVE_KEY, needsProgressionBackfill(trimmed) ? serializeState(state) : migrateSave(trimmed));
+      // an older save is stored as the loaded (backfilled) state: its text alone would be marked current without the backfill
+      this.store.setItem(SAVE_KEY, needsProgressionBackfill(trimmed) ? serializeState(state) : migrateSave(trimmed, this.sleeveSkillIds));
       return true;
     } catch {
       return false;
@@ -177,7 +183,7 @@ export class SaveGame {
    * (the one migration step that needs the config, so it runs on the loaded state).
    */
   private read(json: string): GameState | null {
-    const state = deserializeState(migrateSave(json), this.config, this.factory);
+    const state = deserializeState(migrateSave(json, this.sleeveSkillIds), this.config, this.factory);
     if (state !== null && needsProgressionBackfill(json)) {
       migrateProgressionSave(state, new Progression(this.config, this.factory).totalSleeveLevels(state), RARITY_REFINEMENT);
     }

@@ -7,7 +7,7 @@ import { isKnownRevealKey } from '../../core';
 import { type InvariantCheck, validAmount, validCount } from './shared';
 
 /**
- * Runs have valid income and level totals; synthetic sleeves point at recorded runs within the copy limit and exist only with their skill;
+ * Runs have valid income and level totals; synthetic sleeves point at recorded runs within the copy limit including dormant sleeves without their skill;
  * every corporation action has a state with valid progress.
  *
  * Called by: `testing/invariants.ts`. Calls: nothing.
@@ -27,11 +27,6 @@ export const checkWallet: InvariantCheck = (state, config, problems) => {
     if (n === copiesAllowed + 1) problems.push(`more than ${copiesAllowed} synthetic sleeves copy run ${synth.runIndex}`);
     copies.set(synth.runIndex, n);
   }
-  if (
-    state.wallet.synths.length > 0 &&
-    !config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (state.sleeve.purchased[b.id] ?? 0) > 0)
-  )
-    problems.push('synthetic sleeves exist without the skill that gives them');
   // the reveal ledger: a set of keys that name something that exists (resolved by id)
   const revealed = state.wallet.revealed;
   if (new Set(revealed).size !== revealed.length) problems.push('the reveal ledger holds a key twice');

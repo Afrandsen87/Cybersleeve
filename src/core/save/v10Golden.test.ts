@@ -1,5 +1,5 @@
 /**
- * The v9 save text, byte for byte, for two real saves.
+ * The v10 save text, byte for byte, for two real saves.
  *
  * Purpose: the save text must not change by accident. A fixture (v6, and the same life written as v7) is migrated, loaded and saved, and the
  * text must equal the golden file exactly (key order included). The golden files may be pretty-printed by the formatter; they are compared as
@@ -16,17 +16,26 @@ import { migrateSave } from './migrate';
 
 const dir = new URL('../../testing/fixtures/saves/', import.meta.url);
 const CASES = [
-  ['v6-early-before-resleeve.json', 'v9-early-before-resleeve.golden.json'],
-  ['v6-after-three-resleeves.json', 'v9-after-three-resleeves.golden.json'],
-  ['v7-early-before-resleeve.json', 'v9-early-before-resleeve.golden.json'],
-  ['v7-after-three-resleeves.json', 'v9-after-three-resleeves.golden.json'],
+  ['v6-early-before-resleeve.json', 'v10-early-before-resleeve.golden.json'],
+  ['v6-after-three-resleeves.json', 'v10-after-three-resleeves.golden.json'],
+  ['v7-early-before-resleeve.json', 'v10-early-before-resleeve.golden.json'],
+  ['v7-after-three-resleeves.json', 'v10-after-three-resleeves.golden.json'],
 ] as const;
 
 describe.each(CASES)('save text of %s', (fixture, golden) => {
   const saved = (): string =>
-    serializeState(deserializeState(migrateSave(readFileSync(new URL(fixture, dir), 'utf8')), gameConfig, numberFactory)!);
+    serializeState(
+      deserializeState(
+        migrateSave(
+          readFileSync(new URL(fixture, dir), 'utf8'),
+          gameConfig.buyables.filter((b) => b.currency === 'resleevePoints').map((b) => b.id),
+        ),
+        gameConfig,
+        numberFactory,
+      )!,
+    );
 
-  it('equals the golden v9 text exactly', () => {
+  it('equals the golden v10 text exactly', () => {
     expect(saved()).toBe(JSON.stringify(JSON.parse(readFileSync(new URL(golden, dir), 'utf8'))));
   });
 

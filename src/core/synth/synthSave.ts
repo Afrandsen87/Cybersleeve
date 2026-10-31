@@ -5,17 +5,15 @@
  */
 import { isRecord } from '../kernel/readValues';
 import type { SavePart } from '../kernel/savePart';
-import type { GameConfig, GameState, Wallet } from '../types';
+import type { GameState, Wallet } from '../types';
 
 /**
- * Reads the synthetic sleeves: only ones that point at a run that exists, and none at all unless the player owns the skill that gives them
- * (a save cannot hand out sleeves).
+ * Reads synthetic sleeves pointing at existing runs, including dormant sleeves while their skill is unowned.
  *
  * Called by: {@link synthSavePart}. Calls: nothing.
  */
-export function readSynths(v: unknown, state: GameState, buyables: GameConfig['buyables']): Wallet['synths'] {
-  const unlocked = buyables.some((b) => b.effect.kind === 'synthSleeves' && (state.sleeve.purchased[b.id] ?? 0) > 0);
-  if (!unlocked || !Array.isArray(v)) return [];
+export function readSynths(v: unknown, state: GameState): Wallet['synths'] {
+  if (!Array.isArray(v)) return [];
   const out: Wallet['synths'] = [];
   for (const entry of v) {
     const index = isRecord(entry) ? entry['runIndex'] : undefined;
@@ -26,14 +24,14 @@ export function readSynths(v: unknown, state: GameState, buyables: GameConfig['b
 }
 
 /**
- * The synths part. Must be read after the purchases and the runs.
+ * The synths part. Must be read after the runs; ownership gates effects, never persisted records.
  *
  * Called by: `save/saveParts.ts`. Calls: {@link readSynths}.
  */
-export const synthSavePart: SavePart<Pick<GameConfig, 'buyables'>> = {
+export const synthSavePart: SavePart<unknown> = {
   name: 'synths',
   write: (state) => ({ wallet: { synths: state.wallet.synths.map((s) => ({ runIndex: s.runIndex })) } }),
-  read: (state, raw, config) => {
-    state.wallet.synths = readSynths(raw.wallet['synths'], state, config.buyables);
+  read: (state, raw) => {
+    state.wallet.synths = readSynths(raw.wallet['synths'], state);
   },
 };

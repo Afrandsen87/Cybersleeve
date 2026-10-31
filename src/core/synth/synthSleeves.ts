@@ -126,9 +126,9 @@ export class SynthSleeves implements SynthQueries {
     return this.config.buyables.some((b) => b.effect.kind === 'synthSleeves' && (this.state.sleeve.purchased[b.id] ?? 0) > 0);
   }
 
-  /** How many synthetic sleeves the player has. */
+  /** Active sleeves, zero while locked; saved records stay dormant. Called by: engine queries, boost, income. Calls: isUnlocked. */
   count(): number {
-    return this.state.wallet.synths.length;
+    return this.isUnlocked() ? this.state.wallet.synths.length : 0;
   }
 
   /**
@@ -140,7 +140,7 @@ export class SynthSleeves implements SynthQueries {
     return synthBoost(perLn, this.count(), copies);
   }
 
-  /** Credits per second all synthetic sleeves earn together, not taxed by heat (they have paid their tax already). */
+  /** Active synthetic income, zero while locked. Called by: network, engine queries. Calls: income. */
   creditsPerSecond(): BigNum {
     return this.income((synth) => this.levelInput(synth));
   }
@@ -152,16 +152,16 @@ export class SynthSleeves implements SynthQueries {
    *
    * Called by: `engine.ts` (shown in the synthetic sleeves tip). Calls: {@link SynthSleeves.income}.
    *
-   * @returns credits per second (>= 0; 0 with no sleeves)
+   * @returns credits per second (>= 0; 0 while locked or with no sleeves)
    */
   incomeCeiling(): BigNum {
     return this.income(() => Number.POSITIVE_INFINITY);
   }
 
-  /** The one summing rule behind {@link SynthSleeves.creditsPerSecond} and {@link SynthSleeves.incomeCeiling}, for a given level input. */
+  /** Sums active sleeve income for the given levels. Called by: creditsPerSecond, incomeCeiling. Calls: count, isPerfect, synthCreditsPerSecond. */
   private income(levelOf: SynthLevelInput): BigNum {
     let total = this.factory.fromNumber(0);
-    if (this.state.wallet.synths.length === 0) return total;
+    if (this.count() === 0) return total;
     const live = this.isPerfect() ? this.networkIncome() : null;
     for (const synth of this.state.wallet.synths) {
       const record = this.state.wallet.runs[synth.runIndex];
@@ -191,13 +191,13 @@ export class SynthSleeves implements SynthQueries {
   }
 
   /**
-   * Reacts to a purchase: buying the synthetic sleeves skill gives the first sleeve at once.
+   * Reacts to a purchase: gives the first sleeve only when no saved sleeves exist, so re-buying resumes dormant sleeves.
    *
-   * Called by: `shop.ts` (after every purchase).
+   * Called by: `shop.ts` (after every purchase). Calls: addForLatestRun.
    *
    * @param buyable the buyable that was just bought
    */
   onPurchased(buyable: BuyableDefinition): void {
-    if (buyable.effect.kind === 'synthSleeves') this.addForLatestRun();
+    if (buyable.effect.kind === 'synthSleeves' && this.state.wallet.synths.length === 0) this.addForLatestRun();
   }
 }

@@ -63,12 +63,12 @@ describe('saving', () => {
     expect(loaded.wallet.synths).toEqual([{ runIndex: 1 }, { runIndex: 2 }]);
   });
 
-  it('hands out no synthetic sleeves to a save that does not own the skill', () => {
+  it('keeps dormant synthetic sleeves without owning the skill', () => {
     const g = newGame();
     g.resleeve();
     const data = flatSave(serializeState(g.getState())) as Record<string, unknown>;
     data['synths'] = [{ runIndex: 0 }];
-    expect(deserializeState(asSave(data), config, numberFactory)!.wallet.synths).toEqual([]);
+    expect(deserializeState(asSave(data), config, numberFactory)!.wallet.synths).toEqual([{ runIndex: 0 }]);
   });
 
   it('the state of a played game passes every invariant', () => {

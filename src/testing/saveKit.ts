@@ -40,5 +40,5 @@ export function flatSave(text: string): FlatSave {
  * @returns text `deserializeState` reads
  */
 export function asSave(flat: unknown): string {
-  return migrateSave(JSON.stringify(flat));
+  return migrateSave(JSON.stringify(flat), []);
 }

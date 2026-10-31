@@ -13,11 +13,12 @@
  * new Unlock resleeving (`resleeve-unlock`). A v7 save that owns the first bought the old 100e9 unlock, so it also gets the second.
  * v9 (one bump for the change batch) adds the reveal ledger, the Auto Burn resume lists (and drops the removed Pick Targets skill), and the
  * sleeve-level total on run records. The last needs the game config, so it is a post-load step ({@link needsProgressionBackfill}).
- * The migrations chain: a v6 save goes through {@link migrateV6}, {@link migrateV7} and {@link migrateV8}.
+ * v10 refunds sleeve-skill purchases and their reveal keys before the defensive reader.
+ * The migrations chain: v6 through migrateV6, migrateV7, migrateV8 and migrateV9.
  */
 
 /** The version the migration writes (the current save version). */
-export const MIGRATED_VERSION = 9;
+export const MIGRATED_VERSION = 10;
 
 /** The version {@link migrateV7} writes. */
 const V8 = 8;
@@ -33,6 +34,7 @@ const V8_RESLEEVE_UNLOCK_ID = 'resleeve-unlock';
 
 // The ids of the only sleeve and the only corporation live in the kernel, where the contexts' save parts can read them; the migration writes under them.
 export { DEFAULT_SLEEVE_ID } from '../kernel/savePart';
+import { migrateV9 } from './migrateV10';
 import { migrateAutoBurnResume } from '../automation/autoBurnMigration';
 import { addRevealedLedger } from '../economy/revealLedgerSave';
 import { DEFAULT_CORPORATION_ID, DEFAULT_SLEEVE_ID } from '../kernel/savePart';
@@ -126,13 +128,13 @@ export function migrateV8(save: Record<string, unknown>): Record<string, unknown
   const withLedger = addRevealedLedger(save) as Record<string, unknown>;
   const sleeves = withLedger['sleeves'];
   const wallet = withLedger['wallet'];
-  if (!isRecord(sleeves) || !isRecord(wallet)) return { ...withLedger, version: MIGRATED_VERSION };
+  if (!isRecord(sleeves) || !isRecord(wallet)) return { ...withLedger, version: 9 };
   const main = sleeves[DEFAULT_SLEEVE_ID];
-  if (!isRecord(main)) return { ...withLedger, version: MIGRATED_VERSION };
+  if (!isRecord(main)) return { ...withLedger, version: 9 };
   const migrated = migrateAutoBurnResume({ wallet, sleeve: main });
   return {
     ...withLedger,
-    version: MIGRATED_VERSION,
+    version: 9,
     wallet: migrated.wallet,
     sleeves: { ...sleeves, [DEFAULT_SLEEVE_ID]: migrated.sleeve },
   };
@@ -160,13 +162,14 @@ export function needsProgressionBackfill(json: string): boolean {
  * Brings saved text to the current format.
  *
  * Called by: `app/persistence.ts` (before every read of a stored or pasted save).
- * Calls: {@link migrateV6}, {@link migrateV7}, {@link migrateV8}.
+ * Calls: {@link migrateV6}, {@link migrateV7}, {@link migrateV8}, {@link migrateV9}.
  *
+ * @param sleeveSkillIds config ids of buyables paid in re-sleeve points
  * @param json saved text, of any version
  * @returns the text unchanged when it is already the current version or not a save this code understands (the reader then rejects it as it always did),
  *   otherwise the migrated text
  */
-export function migrateSave(json: string): string {
+export function migrateSave(json: string, sleeveSkillIds: readonly string[]): string {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -175,7 +178,9 @@ export function migrateSave(json: string): string {
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return json;
   const flat = parsed as Record<string, unknown>;
-  if (flat['version'] === 6) return JSON.stringify(migrateV8(migrateV7(migrateV6(flat))));
-  if (flat['version'] === V7) return JSON.stringify(migrateV8(migrateV7(flat)));
-  return flat['version'] === V8 ? JSON.stringify(migrateV8(flat)) : json;
+  let save = flat;
+  if (save['version'] === 6) save = migrateV6(save);
+  if (save['version'] === V7) save = migrateV7(save);
+  if (save['version'] === V8) save = migrateV8(save);
+  return save['version'] === 9 ? JSON.stringify(migrateV9(save, sleeveSkillIds)) : json;
 }
