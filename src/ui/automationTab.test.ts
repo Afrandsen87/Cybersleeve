@@ -72,7 +72,7 @@ describe('automation in the view model', () => {
     setCredits(g, num(100));
     g.buy('core');
     g.automation().unlock('dispersal');
-    g.automation().setDispersal('b', 40);
+    g.automation().setDispersalTarget('b', true);
     const view = buildViewModel(g).automation;
     expect(view.features.map((f) => [f.id, f.unlocked])).toEqual([
       ['autoBurn', false],
@@ -83,7 +83,8 @@ describe('automation in the view model', () => {
     expect(view.autoBurn.thresholds).toMatchObject({ visible: false, lower: 10, upper: 50 });
     expect(view.autoBurn.switches.some((sw) => sw.visible)).toBe(false); // nothing is shown before its skill is owned
     expect(view.rarities.map((r) => r.id)).toEqual(['common', 'rare']);
-    expect(view.actions.find((a) => a.id === 'b')!.percent).toBe(40);
+    expect(view.actions.find((a) => a.id === 'b')!.selected).toBe(true);
+    expect(view.dispersalCount).toBe('Actions selected: 1 / 1');
   });
 
   it('the tab bar shows as soon as there is an automation point, even before any skill point', () => {
@@ -91,6 +92,24 @@ describe('automation in the view model', () => {
     setCredits(g, num(100));
     g.buy('core');
     expect(buildViewModel(g).tabs.map((t) => t.visible)).toEqual([true, false, true, false, false]); // Stats waits for the first re-sleeve, Corporation for its unlock
+  });
+
+  it('only lists actions whose access level is unlocked, after the dispersal skill is owned', () => {
+    const g = createGame({
+      config: createConfig(config, {
+        actions: [
+          ...config.actions,
+          { id: 'locked', name: 'Locked', requiredAccessLevel: 2, baseDurationMs: 1000, reward: num(0), xpPerRun: num(1) },
+        ],
+      }),
+    });
+    expect(buildViewModel(g).automation.actions.every((a) => !a.visible)).toBe(true);
+    setCredits(g, num(100));
+    g.buy('core');
+    g.automation().unlock('dispersal');
+    const actions = buildViewModel(g).automation.actions;
+    expect(actions.filter((a) => a.visible).map((a) => a.id)).toEqual(['a', 'b']);
+    expect(actions.find((a) => a.id === 'locked')!.visible).toBe(false);
   });
 });
 
@@ -120,7 +139,7 @@ describe('the Automation tab on the screen', () => {
     expect(panel(root).querySelector('.skills-points')!.textContent).toBe('Automation points: 0');
   });
 
-  it('autosale has a switch per allowed rarity, and dispersal a share per action', () => {
+  it('autosale has a switch per allowed rarity, and dispersal selects actions up to its capacity', () => {
     const { root, game } = mount(3);
     game.automation().unlock('autosale');
     game.automation().unlock('dispersal');
@@ -135,21 +154,32 @@ describe('the Automation tab on the screen', () => {
     rarities[1]!.click();
     expect(game.automation().isAutosaleOn('rare')).toBe(false);
 
-    const shares = [...panel(root).querySelectorAll<HTMLInputElement>('.automation-dispersal input')];
-    expect(shares).toHaveLength(2);
-    shares[1]!.value = '60';
-    shares[1]!.dispatchEvent(new Event('change'));
-    expect(game.automation().dispersal('b')).toBe(60);
+    expect(panel(root).querySelectorAll('.automation-dispersal input')).toHaveLength(0);
+    expect(panel(root).textContent).not.toContain('Share (%)');
+    const targets = [...panel(root).querySelectorAll<HTMLButtonElement>('.automation-dispersal .automation-controls button')];
+    expect(targets).toHaveLength(2);
+    expect(panel(root).querySelector('.automation-dispersal-count')!.textContent).toBe('Actions selected: 0 / 1');
+    targets[1]!.click();
+    expect(game.automation().dispersalTargets()).toEqual(['b']);
+    expect(targets[0]!.disabled).toBe(true);
+    expect(targets[1]!.disabled).toBe(false);
+    expect(targets[1]!.getAttribute('aria-pressed')).toBe('true');
+    expect(panel(root).querySelector('.automation-dispersal-count')!.textContent).toBe('Actions selected: 1 / 1');
+    targets[1]!.click();
+    expect(game.automation().dispersalTargets()).toEqual([]);
+    expect(targets[0]!.disabled).toBe(false);
   });
 
-  it('does not overwrite what the player is typing while the screen redraws', () => {
+  it('only names schematic rarities already seen, and updates their summary after reveal', () => {
     const { root, game, render } = mount(1);
     game.automation().unlock('dispersal');
     tab(root, /Automation/).click();
-    const input = panel(root).querySelector<HTMLInputElement>('.automation-dispersal input')!;
-    input.focus();
-    input.value = '7';
+    const summary = panel(root).querySelector<HTMLElement>('.automation-dispersal-rarities')!;
+    expect(summary.hidden).toBe(true);
+    (game.getState().wallet.seenItems as Record<string, Record<string, true>>)['schem'] = { common: true, rare: true };
     render();
-    expect(input.value).toBe('7');
+    expect(summary.hidden).toBe(false);
+    expect(summary.textContent).toBe('Disperses: Common');
+    expect(summary.textContent).not.toContain('Rare');
   });
 });

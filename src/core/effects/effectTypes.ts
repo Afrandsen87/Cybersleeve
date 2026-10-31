@@ -19,7 +19,7 @@ import type {
   ItemDropRule,
   PaysActionRule,
   RarityShift,
-  StateSlice,
+  StateSliceView,
 } from '../types';
 
 /** Facts about one kind of effect. */
@@ -122,7 +122,7 @@ export interface SleeveHookContext {
   readonly id: BuyableId;
   /** Copies of the buyable owned (>= 1). */
   readonly owned: number;
-  readonly state: StateSlice<'network' | 'inventory' | 'synths' | 'hardeningCrits'>;
+  readonly state: StateSliceView<'network' | 'inventory' | 'synths' | 'hardeningCrits'>;
   readonly factory: NumberFactory;
   /** Effective action level of an action (including level bonuses). */
   readonly actionLevelOf: (actionId: ActionId) => number;

@@ -9,7 +9,15 @@
  * Called by: `icons.ts`, which spreads {@link AUTOMATION_ART_GRIDS} into `ICON_GRIDS` and {@link AUTOMATION_ART_ICONS} into
  * `ENTITY_ICONS`. Calls: `automationSkillId` and the lane ids from `ids.ts`.
  */
-import { AUTOMATION_LINE_LENGTH, automationSkillId, BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL } from './ids';
+import {
+  AUTOMATION_LINE_LENGTH,
+  AUTO_BURN_EMPTY_SLOTS,
+  AUTOMATION_SKILLS,
+  automationSkillId,
+  BRANCH_AUTO_BURN,
+  BRANCH_AUTOSALE,
+  BRANCH_DISPERSAL,
+} from './ids';
 
 /** The emblem rows (rows 1 to 10 of the icon) of each lane, and the colour of its filled progress cells. */
 const EMBLEMS: Readonly<Record<string, { readonly rows: readonly string[]; readonly fill: string }>> = {
@@ -82,19 +90,21 @@ const gridName = (branch: string, step: number): string => `auto-${branch}-${ste
 /** One grid per automation skill, by name. */
 export const AUTOMATION_ART_GRIDS: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
   Object.keys(EMBLEMS).flatMap((branch) =>
-    Array.from(
-      { length: branch === BRANCH_AUTOSALE ? 8 : AUTOMATION_LINE_LENGTH },
-      (_, i) => [gridName(branch, i + 1), buildGrid(branch, i + 1)] as const,
-    ),
+    Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1)
+      .filter(
+        (slot) =>
+          (branch !== BRANCH_AUTO_BURN || !AUTO_BURN_EMPTY_SLOTS.includes(slot)) &&
+          AUTOMATION_SKILLS.includes(automationSkillId(branch, slot)),
+      )
+      .map((slot) => [gridName(branch, slot), buildGrid(branch, slot)] as const),
   ),
 );
 
-/** Which grid of {@link AUTOMATION_ART_GRIDS} each automation skill shows, by skill id. */
+/** Which grid of AUTOMATION_ART_GRIDS each automation skill shows, by skill id. */
 export const AUTOMATION_ART_ICONS: Readonly<Record<string, string>> = Object.fromEntries(
   Object.keys(EMBLEMS).flatMap((branch) =>
-    Array.from(
-      { length: branch === BRANCH_AUTOSALE ? 8 : AUTOMATION_LINE_LENGTH },
-      (_, i) => [automationSkillId(branch, i + 1), gridName(branch, i + 1)] as const,
-    ),
+    Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1)
+      .filter((slot) => AUTOMATION_SKILLS.includes(automationSkillId(branch, slot)))
+      .map((slot) => [automationSkillId(branch, slot), gridName(branch, slot)] as const),
   ),
 );

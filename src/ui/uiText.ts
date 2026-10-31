@@ -66,7 +66,7 @@ export const uiText: UiText = {
       },
       dispersal: {
         name: 'Augment dispersal',
-        description: 'Applies the Augment schematics you hold to the actions by the shares you set.',
+        description: 'Applies permitted Augment schematics evenly to the actions you select.',
       },
     },
     autoBurn: {
@@ -83,7 +83,8 @@ export const uiText: UiText = {
       upper: 'Upper threshold (heat)',
       reserve: 'Burn leads to always keep',
     },
-    dispersalShare: 'Share (%)',
+    dispersalCount: (selected, slots) => `Actions selected: ${selected} / ${slots}`,
+    dispersalRarities: (rarities) => `Disperses: ${rarities.join(', ')}`,
     autoBackchannel: (rarity) => `Auto Back Channel: ${rarity}`,
   },
   skills: {

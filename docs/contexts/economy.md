@@ -12,6 +12,10 @@ Code: `src/core/economy/` (see `docs/contexts/_folders.md`). Text below is moved
 
 - **Reveal ledger** (`economy/revealLedger.ts`, `revealLedgerSave.ts`): see `docs/REVEAL_RULES.md`. `noteRevealed` is the only writer of `wallet.revealed`; `Shop.isRevealed` stays the natural purchase rule and `isAvailable` the only buying gate. `Shop.resleevePointsEarned` supports the Skills tab blink.
 
+`IncomeStats` passes the resolved `SleeveStats.heatTaxScale` into `Economy.keepFactor`, `taxedCreditsPerNode` and passive income. They forward it to the single heat-tax owner; Credit Siphon reads the same taxed income. Tests share `testing/cloakingKit.ts`.
+
+Economy sleeveSkills.ts:sleeveSkillsOwned counts distinct owned skills for Shop.isAvailable and injected effect callers. Copies count once. Networked Sleeve is a one-time 10,000-node Network Exploitation purchase gated by two skills, adding that count to Practice Hacking's effective level. Network Safety Protocols is on Grow network: 3,500 nodes initially, x50 per copy, unlimited, gated by one skill and its heat-making Overclock unlock; actions/runIce.ts owns base ICE awards.
+
 ## Design (from DESIGN.md)
 
 ### 6. Network and passive income
@@ -65,10 +69,4 @@ Sorted by base price within *Rebuyable* (no heading in the widget), *One-time* a
 
 - **Peak income also prices Kompromat (2026-10-30, by the user):** `network.ts` raises `sleeve.peakNetworkIncome`; `items/inventory.ts` (`Inventory.sellValue`) reads it as `max(rarity floor, sellSeconds x peak)`. Economy owns the peak, items only reads the state field.
 
-## Cloaking tax input (P2)
 
-`IncomeStats` passes the resolved `SleeveStats.heatTaxScale` into `Economy.keepFactor`, `taxedCreditsPerNode` and passive income. They forward it to the single heat-tax owner; Credit Siphon reads the same taxed income. Tests share `testing/cloakingKit.ts`.
-
-## P2 node purchases and shared skill count
-
-Economy sleeveSkills.ts:sleeveSkillsOwned counts distinct owned skills for Shop.isAvailable and injected effect callers. Copies count once. Networked Sleeve is a one-time 10,000-node Network Exploitation purchase gated by two skills, adding that count to Practice Hacking's effective level. Network Safety Protocols is on Grow network: 3,500 nodes initially, x50 per copy, unlimited, gated by one skill and its heat-making Overclock unlock; actions/runIce.ts owns base ICE awards.

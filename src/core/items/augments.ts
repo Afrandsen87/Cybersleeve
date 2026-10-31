@@ -88,15 +88,17 @@ export class Augments {
    *
    * @param actionId the action to augment
    * @param count how many to apply at most (a whole number >= 1)
+   * @param allowedRarities automation context: permitted rarities; other callers default to all known rarities
    * @returns how many were applied (0 when the action is unknown, its Auto-run is not owned, the game has no schematic, or none is held)
    */
-  applyMany(actionId: ActionId, count: number): number {
+  applyMany(actionId: ActionId, count: number, allowedRarities: readonly RarityId[] = this.rarityIds): number {
     const augment = this.config.items.augment;
     const action = this.state.sleeve.actions[actionId];
     if (!augment || !action || !this.autoRunOwned(actionId)) return 0;
     let applied = 0;
     for (const rarity of this.rarityIds) {
       if (applied >= count) break;
+      if (!allowedRarities.includes(rarity)) continue;
       const taken = this.inventory.take(augment.itemId, rarity, count - applied);
       if (taken > 0) action.augments[rarity] = (action.augments[rarity] ?? 0) + taken;
       applied += taken;

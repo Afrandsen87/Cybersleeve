@@ -3,6 +3,7 @@
  *
  * Automation: features the player unlocks with automation points and that then play part of the game for them.
  */
+import { dispersalSlots } from './dispersalSlots';
 import { allowedRarities, type RarityAutomation } from './rarityPermissions';
 import type { BackChannel } from '../items/backChannel';
 import type { Augments } from '../items/augments';
@@ -18,6 +19,7 @@ import {
   type AutomationFeature,
   type AutomationControls,
   type AutomationShop,
+  type AutomationActions,
 } from './automationTypes';
 
 /**
@@ -29,7 +31,7 @@ import {
  * Automation tab; owning the first one (`unlocksAutomation`) is what unlocks it, so "unlock" buys that skill. All three features work in closed form, so a slice of any length costs the same:
  * - **Auto Burn** (`autoBurn.ts`) is the Burn lead Inventory toggle and the rules the skills of its lane add.
  * - **Autosale** sells whole stacks of the switched-on rarities of every sellable item.
- * - **Augment dispersal** hands the schematics held to the actions in proportion to their shares (largest remainder, so none is lost).
+ * - **Augment dispersal** hands permitted schematics evenly to selected actions (largest remainder, so none is lost).
  *
  * Called by: `engine.ts` (`GameEngine.advance` calls {@link Automation.step}; the screen uses {@link AutomationControls}).
  * Calls: {@link AutoBurn}, {@link Augments}, {@link Inventory}, {@link AutomationShop}.
@@ -46,6 +48,7 @@ export class Automation implements AutomationControls {
    * @param shop the automation points still to spend, and buying the unlocking skill
    * @param backChannel automation context: the same batch owner used by the manual command
    * @param channel the manual channel query; null until its skill is owned
+   * @param actions automation context: existing access-level availability query
    */
   constructor(
     private readonly config: Pick<GameConfig, 'automation' | 'buyables' | 'items' | 'actions'>,
@@ -56,6 +59,7 @@ export class Automation implements AutomationControls {
     private readonly shop: AutomationShop,
     private readonly backChannel: Pick<BackChannel, 'giveUp'>,
     private readonly channel: { backChannel(): { itemId: string } | null },
+    private readonly actions: AutomationActions,
   ) {}
 
   /** See {@link AutomationControls.available}. */
@@ -131,19 +135,30 @@ export class Automation implements AutomationControls {
     return on;
   }
 
-  /** See {@link AutomationControls.dispersal}. */
-  dispersal(actionId: ActionId): number {
-    return this.state.wallet.automation.dispersal[actionId] ?? 0;
+  /** Automation context: owned selection capacity. Called by: UI, setDispersalTarget. Calls: dispersalSlots. */
+  dispersalSlots(): number {
+    return dispersalSlots(this.config.buyables, this.state.sleeve.purchased);
   }
 
-  /** See {@link AutomationControls.setDispersal}. Mutates `state.automation.dispersal`. */
-  setDispersal(actionId: ActionId, percent: number): boolean {
-    if (!this.isUnlocked('dispersal') || !this.config.actions.some((a) => a.id === actionId) || !Number.isFinite(percent)) return false;
-    // The shares of all actions together never pass 100: an action gets at most what the others leave.
-    const others = Object.entries(this.state.wallet.automation.dispersal).reduce((n, [id, s]) => (id === actionId ? n : n + s), 0);
-    const share = Math.min(Math.max(0, 100 - others), Math.max(0, percent));
-    if (share > 0) this.state.wallet.automation.dispersal[actionId] = share;
-    else delete this.state.wallet.automation.dispersal[actionId];
+  /** Automation context: reads the selected actions without mutating state. Called by: UI. Calls: nothing. */
+  dispersalTargets(): readonly ActionId[] {
+    return [...this.state.wallet.automation.dispersalTargets];
+  }
+
+  /** Automation context: selects available actions up to capacity; unticking is always allowed. Called by: UI. Calls: isUnlocked, dispersalSlots, actions.isUnlocked. */
+  setDispersalTarget(actionId: ActionId, on: boolean): boolean {
+    const targets = this.state.wallet.automation.dispersalTargets;
+    if (!on) {
+      this.state.wallet.automation.dispersalTargets = targets.filter((id) => id !== actionId);
+      return true;
+    }
+    if (!this.isUnlocked('dispersal') || !this.config.actions.some((a) => a.id === actionId) || !this.actions.isUnlocked(actionId))
+      return false;
+    if (targets.includes(actionId)) return true;
+    if (targets.length >= this.dispersalSlots()) return false;
+    this.state.wallet.automation.dispersalTargets = this.config.actions
+      .filter((a) => a.id === actionId || targets.includes(a.id))
+      .map((a) => a.id);
     return true;
   }
 
@@ -178,20 +193,21 @@ export class Automation implements AutomationControls {
   }
 
   /**
-   * Dispersal: gives all the schematics held to the actions with a share, in proportion. An action whose Auto-run is not owned takes none: its share stays in the inventory until it is.
+   * Automation context: dispersal gives permitted schematics evenly to selected actions. An action whose Auto-run is not owned takes none: its share stays in the inventory until it is.
    *
    * @remarks
    * An action whose Auto-run is not owned takes no augments (`Augments.applyMany` returns 0 and uses nothing up), so its part of
    * the split is simply not applied this round: the schematics stay in the inventory, none consumed or lost. The split is still
-   * worked out over every action with a share (closed form, no retry), so the next step splits what is left again and the other
-   * actions keep getting their own proportion; buying that Auto-run makes the action take its share from then on.
+   * worked out over every selected action (closed form, no retry), so the next step splits what is left again and the other
+   * actions keep getting their own portion; buying that Auto-run makes the action take its share from then on.
    */
   private disperse(): void {
     const augment = this.config.items.augment;
     if (!augment) return;
-    const held = this.config.items.rarities.reduce((n, r) => n + (this.state.wallet.inventory[augment.itemId]?.[r.id] ?? 0), 0);
+    const rarities = this.allowedRarities('dispersal');
+    const held = rarities.reduce((n, id) => n + (this.state.wallet.inventory[augment.itemId]?.[id] ?? 0), 0);
     const shares = this.config.actions
-      .map((a) => ({ id: a.id, share: this.state.wallet.automation.dispersal[a.id] ?? 0 }))
+      .map((a) => ({ id: a.id, share: this.state.wallet.automation.dispersalTargets.includes(a.id) ? 1 : 0 }))
       .filter((s) => s.share > 0);
     const total = shares.reduce((n, s) => n + s.share, 0);
     if (held <= 0 || total <= 0) return;
@@ -212,6 +228,6 @@ export class Automation implements AutomationControls {
       p.count += 1;
       left -= 1;
     }
-    for (const p of parts) if (p.count > 0) this.augments.applyMany(p.id, p.count);
+    for (const p of parts) if (p.count > 0) this.augments.applyMany(p.id, p.count, rarities);
   }
 }

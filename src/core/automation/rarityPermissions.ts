@@ -6,7 +6,7 @@
 import type { BuyableDefinition, GameConfig, RarityId } from '../types';
 
 /** Automation context: the two independently permissioned rarity switch groups. */
-export type RarityAutomation = 'autosale' | 'autoBackchannel';
+export type RarityAutomation = 'autosale' | 'autoBackchannel' | 'dispersal';
 
 /**
  * Automation context: returns known rarities granted by owned skills, in content order.
@@ -28,6 +28,9 @@ export function allowedRarities(
     if (feature === 'autosale') {
       if (e.kind === 'allowsAutosale') granted.add(e.rarity);
       if (e.kind === 'unlocksAutomation' && e.feature === 'autosale' && e.allowsAutosale !== undefined) granted.add(e.allowsAutosale);
+    } else if (feature === 'dispersal') {
+      if (e.kind === 'allowsDispersal') granted.add(e.rarity);
+      if (e.kind === 'unlocksAutomation' && e.feature === 'dispersal' && e.allowsDispersal !== undefined) granted.add(e.allowsDispersal);
     } else if (e.kind === 'allowsAutoBackchannel') granted.add(e.rarity);
   }
   return config.items.rarities.filter((r) => granted.has(r.id)).map((r) => r.id);
@@ -41,7 +44,11 @@ function grantingBuyables(buyables: readonly BuyableDefinition[]): readonly Buya
   let found = grantingByContent.get(buyables);
   if (found === undefined) {
     found = buyables.filter(
-      (b) => b.effect.kind === 'allowsAutosale' || b.effect.kind === 'allowsAutoBackchannel' || b.effect.kind === 'unlocksAutomation',
+      (b) =>
+        b.effect.kind === 'allowsDispersal' ||
+        b.effect.kind === 'allowsAutosale' ||
+        b.effect.kind === 'allowsAutoBackchannel' ||
+        b.effect.kind === 'unlocksAutomation',
     );
     grantingByContent.set(buyables, found);
   }

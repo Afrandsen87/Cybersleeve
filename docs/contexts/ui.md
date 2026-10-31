@@ -8,6 +8,8 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 
 **Reveal ledger** (`wallet.revealed`, `economy/revealLedger.ts`): a set of typed keys `stat:<id>`, `tab:<id>`, `skill:<id>`, `buyable:<id>` for everything the player has ever been shown. Only grows; survives a re-sleeve (`CARRIED_OVER_WALLET_FIELDS`). Queries never write it: each view build uses one `RevealTracker` (`ui/view/revealTracker.ts`) that says "shown" when the key is noted or the natural rule says so now, and collects keys that are new into `ViewModel.newlyRevealed`; `ui/dom.ts` then calls the engine command `noteRevealed(keys)` only when that list is not empty. Unknown and repeated keys are ignored (ids are resolved against the content, not a branch). Tabs: `tabsView` takes the tracker and a `TabAttention` (held by `ui/dom.ts` in `UiSelection`); `BuyableView.gated` marks a remembered purchase whose requirements are unmet (class `gated`, greyed).
 
+The autosale branch uses the existing first-parent placeNodes layout: slot 3 has children 4 and 7 on separate rows. No extra branch or layout algorithm is needed. Autosale and auto Back Channel switches are individually hidden until their rarity permission is owned. The tree keeps all icons visible and masks text/tips through manual-concept prerequisites. Back Channel controls occupy a second row and hide while manual Back Channel is absent; lazy skill tips use the existing getter path. Once dispersal slot 1 is owned, its controls show unlocked actions as toggles, a selected / available slots count, and only known allowed rarity names. A full selection disables further ticks while selected targets stay untickable. Percentage inputs and Share (%) text are removed. Dispersal skill text waits for the schematic concept and each rarity reveal; icons remain unique and visible.
+
 ## Decisions (from docs/DECISIONS.md)
 
 
@@ -44,6 +46,3 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 
 - **Purchase look (2026-10-31, by the user):** one state set for every purchase button and action-card cell, always glowing in its border colour. First copy affordable: blue border, glow, full-colour icon. Repeatable and bought: blue border, dimmed icon; teal glow and full icon while another copy is affordable. Unbought and unaffordable: grey and dim. `maxed` (no more copies, or a bought toggle cell): no border, full-colour icon, unlit; a toggle cell that is on glows gold with a gold border. Classes: `purchasable`, `owned`, `maxed`, `on` (`widgets/upgradeButtons.ts`, `widgets/actionCards.ts`, `style.css`); skill nodes keep their lane colours.
 
-## P3: Kompromat automation (2026-10-31)
-
-The autosale branch uses the existing first-parent placeNodes layout: slot 3 has children 4 and 7 on separate rows. No extra branch or layout algorithm is needed. Autosale and auto Back Channel switches are individually hidden until their rarity permission is owned. The tree keeps all icons visible and masks text/tips through manual-concept prerequisites. Back Channel controls occupy a second row; lazy skill tips use the existing getter path.

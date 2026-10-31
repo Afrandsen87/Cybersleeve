@@ -10,7 +10,7 @@ import { type CurveBeyond, concaveBonus } from '../kernel/concaveBonus';
 import { bigOrders, concaveShare } from '../kernel/curves';
 import { definitionOf, type SleeveAccumulator } from './effectRegistry';
 import { INFINITY, saturate } from '../kernel/infinity';
-import type { ActionId, BuyableDefinition, SleeveConfig, StateSlice } from '../types';
+import type { ActionId, BuyableDefinition, SleeveConfig, StateSliceView } from '../types';
 import type { FactorTerm, SleeveStats } from './sleeveStatsTypes';
 
 /**
@@ -54,7 +54,7 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
  */
 export function resolveSleeveStats(
   buyables: readonly BuyableDefinition[],
-  state: StateSlice<
+  state: StateSliceView<
     | 'purchased'
     | 'heat'
     | 'hackingProficiency'

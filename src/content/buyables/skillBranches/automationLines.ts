@@ -4,39 +4,13 @@
  * The three automation lanes (Auto Burn, Compromat Autosale, Augment Dispersal), bought with automation points and drawn inside each
  * automation's box in the Automation tab. A lane uses stable slots up to `AUTOMATION_LINE_LENGTH`; autosale forks within one branch. The FIRST skill of a lane is the
  * unlock (`unlocksAutomation`). The Auto Burn lane is designed: its other eight skills each add one step of Auto Burn (`autoBurnStep`); slot 8 is skipped (the removed Pick Targets) so saved skill ids stay stable.
- * The autosale tree lives in autosaleLane.ts; only Augment Dispersal remains a placeholder chain.
+ * The autosale and dispersal trees live in autosaleLane.ts and dispersalLane.ts.
  */
-import type { AutoBurnStep, AutomationFeature, BuyableDefinition } from '../../../core';
+import type { AutoBurnStep, BuyableDefinition } from '../../../core';
 import { autosaleSkills } from './autosaleLane';
+import { dispersalSkills } from './dispersalLane';
 import { num } from '../../../numbers';
-import { AUTOMATION_LINE_LENGTH, BRANCH_AUTO_BURN, BRANCH_DISPERSAL, automationSkillId } from '../../ids';
-
-/**
- * A chain of skills: step 1 is the root and unlocks the automation, each later step is a placeholder with the one before it as its only parent.
- *
- * Called by: {@link automationSkills}.
- *
- * @param branch the lane's branch id, which is also the id of the automation it unlocks
- * @param name the lane's display name (steps are named "<name> 1" ... "<name> N")
- * @param symbol the short letters shown when no icon is drawn (steps get "<symbol>1" ... "<symbol>N")
- * @returns `AUTOMATION_LINE_LENGTH` skills, 1 automation point each
- */
-function placeholderLine(branch: AutomationFeature, name: string, symbol: string): BuyableDefinition[] {
-  return Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i): BuyableDefinition => {
-    const step = i + 1;
-    return {
-      id: automationSkillId(branch, step),
-      name: `${name} ${step}`,
-      symbol: `${symbol}${step}`,
-      description: step === 1 ? `Unlocks ${name}.` : `Placeholder: a more advanced ${name} (step ${step}).`,
-      currency: 'automationPoints',
-      branch,
-      ...(step > 1 ? { parents: [automationSkillId(branch, step - 1)] } : {}),
-      cost: num(1), // placeholder price
-      effect: step === 1 ? { kind: 'unlocksAutomation', feature: branch } : { kind: 'placeholder' },
-    };
-  });
-}
+import { BRANCH_AUTO_BURN, automationSkillId } from '../../ids';
 
 /** The nine skills of the Auto Burn lane, in order (slot 8 is empty): name, what it adds, and the step it grants (`null` for the first, which is the unlock). */
 const AUTO_BURN_SKILLS: readonly {
@@ -120,8 +94,4 @@ function autoBurnLine(): BuyableDefinition[] {
 }
 
 /** The automation lanes of the skill tree, lane by lane. */
-export const automationSkills: BuyableDefinition[] = [
-  ...autoBurnLine(),
-  ...autosaleSkills,
-  ...placeholderLine(BRANCH_DISPERSAL, 'Dispersal', 'D'),
-];
+export const automationSkills: BuyableDefinition[] = [...autoBurnLine(), ...autosaleSkills, ...dispersalSkills];

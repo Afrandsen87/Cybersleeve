@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @module testing
  *
  * What the invariant checks share: the config they read, the way a problem is reported, and the number tests they use.
@@ -7,7 +7,7 @@ import type { BigNum } from '../../numbers';
 import type { GameConfig, GameStateView } from '../../core';
 
 /** Config sections the checks read. */
-export type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'corporation' | 'focus' | 'items' | 'progression'>;
+export type InvariantConfig = Pick<GameConfig, 'actions' | 'buyables' | 'corporation' | 'focus' | 'sleeve' | 'items' | 'progression'>;
 
 /** One area of the invariants: reads the state and the content and pushes a message per violation onto `problems`. */
 export type InvariantCheck = (state: GameStateView, config: InvariantConfig, problems: string[]) => void;

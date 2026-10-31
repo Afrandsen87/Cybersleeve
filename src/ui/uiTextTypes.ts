@@ -92,8 +92,10 @@ export interface UiText {
       readonly upper: string;
       readonly reserve: string;
     };
-    /** The label of the share an action gets from Augment dispersal, in percent. */
-    readonly dispersalShare: string;
+    /** Automation context: selected action count and owned capacity. */
+    dispersalCount(selected: number, slots: number): string;
+    /** Automation context: permitted schematic rarities the player already knows. */
+    dispersalRarities(rarities: readonly string[]): string;
     /** Automation context: the label of an owned rarity switch. */
     autoBackchannel(rarity: string): string;
   };

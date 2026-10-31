@@ -9,7 +9,8 @@ import { createGame } from '../app/createGame';
 import type { BuyableDefinition } from '../core';
 import { markResleeved } from '../testing/sleeveLevelsKit';
 import { skillViews } from '../testing/skillViews';
-import { NETWORKED_SLEEVE, NETWORK_SAFETY_PROTOCOLS } from './ids';
+import { NETWORKED_SLEEVE, NETWORK_SAFETY_PROTOCOLS, automationSkillId, AUGMENT_SCHEMATIC, INDUSTRIAL_ESPIONAGE } from './ids';
+import { rarityState } from '../testing/rarityAutomationKit';
 import { BRANCH_REVEAL_STAT } from '../ui/view/branchMask';
 import { buildViewModel } from '../ui/viewModel';
 import {
@@ -171,5 +172,24 @@ describe('the action speed tip', () => {
     expect(tip(g)).not.toMatch(/sleeve/i);
     (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
     expect(tip(g)).toMatch(/Sleeve Level/);
+  });
+});
+
+/** Automation context: rarity terminology appears only after that schematic rarity is known. */
+describe('Augment dispersal reveal gates', () => {
+  it('masks schematic skill text until the item and rarity are known, independently of purchase requirements', () => {
+    const g = createGame();
+    const views = () => skillViews(buildViewModel(g).automation.features.find((f) => f.id === 'dispersal')!.lanes);
+    const root = () => views().find((b) => b.id === automationSkillId('dispersal', 1))!;
+    expect(root().name).toBe('???');
+    const state = rarityState(g);
+    state.sleeve.purchased[INDUSTRIAL_ESPIONAGE] = 1;
+    expect(root().name).toBe('???');
+    state.wallet.seenItems[AUGMENT_SCHEMATIC] = { common: true };
+    expect(root().name).not.toBe('???');
+    expect(views().find((b) => b.id === automationSkillId('dispersal', 3))!.name).toBe('???');
+    state.wallet.seenItems[AUGMENT_SCHEMATIC]['uncommon'] = true;
+    expect(views().find((b) => b.id === automationSkillId('dispersal', 3))!.name).not.toBe('???');
+    expect(views().find((b) => b.id === automationSkillId('dispersal', 6))!.name).toBe('???');
   });
 });

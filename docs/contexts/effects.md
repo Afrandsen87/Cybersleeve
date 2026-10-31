@@ -13,6 +13,10 @@ Code: `src/core/effects/` (see `docs/contexts/_folders.md`). Text below is moved
 - **Config variables:** none of its own; the `buyables[]` fields below and `sleeve.*` stat bases are read through the resolvers.
 - Critical chance (`criticalChance`) is NOT capped: copies add up and a total above 1 gives several critical successes per run (decided 2026-10-29). Only `criticalExtraChance` is capped at 1.
 
+levelBonusFromSleeveSkills {targetActionId} is sleeve-wide, validates its target and adds the injected distinct sleeve-skill count per copy in resolveLevelBonus. Effects never imports economy. runIceChance {chance, perCopy} needs an action, validates finite chance in [0,1] and finite perCopy >= 0, and is read by actions/runIce.ts. heatReductionPerSleeveSkill {perSkill} validates [0,1), contributes heatTaxScale through the injected count and uses sleeveWideCarried. Each has exactly one registry entry. Effective level is owned by actions/effectiveLevel.ts; sleeve actionLevelOf callbacks include bonuses.
+
+Automation adds allowsAutosale {rarity} and allowsAutoBackchannel {rarity}, one union member and one automationEntries registry entry each. unlocksAutomation optionally carries allowsAutosale (the root grants common). Dispersal adds dispersalSlots {count} (integer >= 1) and allowsDispersal {rarity}, with one union member and registry entry each. The dispersal root retains unlocksAutomation with optional allowsDispersal and dispersalSlots; optional rarity grants must match the unlocked feature. Every rarity reference validates against the configured rarity ids.
+
 ## Configuration (from docs/CONFIG.md)
 
 ### `buyables[]` – one entry per purchase
@@ -57,10 +61,4 @@ Current buyables (the newest additions are listed in DESIGN.md section 7). **Ove
 *Group: Decided 2026-10-27 (by the user, more re-sleeve skills)*
 - New effect kinds (entries in `core/resleeve/resleeveEffects.ts`): `buyableCapBonus`, `focusStacking`, `synthsPerResleeve`, `interfaceSpeedPerLnSynths`, `synthXpBoost`, `perfectCopies`, `corporationSpeedPerLnSynths`, `unlocksSynthPurchase`, `autoRepurchase`, `keepsAutomation`, `carriesProficiency`, `carriesIceRating`. The new skills use placeholder icons borrowed from related ones. No save version bump: every new saved field is optional on read.
 
-## P2 registry additions
 
-levelBonusFromSleeveSkills {targetActionId} is sleeve-wide, validates its target and adds the injected distinct sleeve-skill count per copy in resolveLevelBonus. Effects never imports economy. runIceChance {chance, perCopy} needs an action, validates finite chance in [0,1] and finite perCopy >= 0, and is read by actions/runIce.ts. heatReductionPerSleeveSkill {perSkill} validates [0,1), contributes heatTaxScale through the injected count and uses sleeveWideCarried. Each has exactly one registry entry. Effective level is owned by actions/effectiveLevel.ts; sleeve actionLevelOf callbacks include bonuses.
-
-## P3: Kompromat automation (2026-10-31)
-
-Automation adds allowsAutosale {rarity} and allowsAutoBackchannel {rarity}, one union member and one automationEntries registry entry each. unlocksAutomation optionally carries allowsAutosale (the root grants common). Every rarity reference validates against the configured rarity ids.

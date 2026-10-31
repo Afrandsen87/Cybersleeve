@@ -204,6 +204,7 @@ export function createGame(options: CreateGameOptions = {}): GameEngine {
       },
       backChannel,
       stats,
+      runner,
     ),
     reflexArchive: new ReflexArchive(config.buyables, state, shop),
     network: new NetworkSystem(state, stats, factory, synths),

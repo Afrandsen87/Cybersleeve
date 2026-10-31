@@ -27,6 +27,10 @@ Maintained alongside the code; it is the source for the future generated HTML ov
 ## Core folders
 One folder per bounded context under `src/core/` (layers and allowed exceptions: `core/boundaries.test.ts`; folder map: `docs/contexts/_folders.md`). The full description, with the test kits, is `docs/contexts/_folders.md`. The docs are split per context in `docs/contexts/<context>.md` (index: `docs/contexts/README.md`).
 
+Actions: core/actions/effectiveLevel.ts owns effective levels; runIce.ts batches base ICE awards after pay. Economy: core/economy/sleeveSkills.ts owns distinct skill counting for Shop and injected effects. Effects: entries/heatSkillEntries.ts registers carried compounded heat scaling; resolveSleeveStats receives the count callback. Content: protocolIcons.ts holds purchase grids composed by the icons facade. No saved state or boundary exceptions were added.
+
+automation.ts remains the stable facade. automationTypes.ts holds settings, controls, point accounting and feature ownership; rarityPermissions.ts owns allowedRarities and dispersalSlots for live controls, save loading and invariants. createGame injects the same BackChannel instance into the engine manual command and Automation. autosaleLane.ts supplies one forked branch and dispersalLane.ts supplies its nine-node chain; existing placeNodes draws it. Shared test fixtures are in testing/rarityAutomationKit.ts.
+
 ## Layering (dependencies point downwards only)
 
 *Moved to [contexts/_layering.md](contexts/_layering.md).*
@@ -69,10 +73,4 @@ One folder per bounded context under `src/core/` (layers and allowed exceptions:
 See `docs/contexts/_limitations.md`.
 
 
-## P2 ownership additions
 
-Actions: core/actions/effectiveLevel.ts owns effective levels; runIce.ts batches base ICE awards after pay. Economy: core/economy/sleeveSkills.ts owns distinct skill counting for Shop and injected effects. Effects: entries/heatSkillEntries.ts registers carried compounded heat scaling; resolveSleeveStats receives the count callback. Content: protocolIcons.ts holds purchase grids composed by the icons facade. No saved state or boundary exceptions were added.
-
-## P3: Kompromat automation (2026-10-31)
-
-automation.ts remains the stable facade. automationTypes.ts holds settings, controls, point accounting and feature ownership; rarityPermissions.ts owns allowedRarities for live controls, save loading and invariants. createGame injects the same BackChannel instance into the engine manual command and Automation. autosaleLane.ts supplies one forked branch; existing placeNodes draws it. Shared test fixtures are in testing/rarityAutomationKit.ts.

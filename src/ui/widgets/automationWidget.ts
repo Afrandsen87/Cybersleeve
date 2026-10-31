@@ -39,7 +39,11 @@ export interface AutomationWidget {
   readonly rarities: ReadonlyMap<string, HTMLButtonElement>;
   /** Automation context: Back Channel buttons, hidden individually by skill ownership. */
   readonly backchannelRarities: ReadonlyMap<string, HTMLButtonElement>;
-  readonly shares: ReadonlyMap<string, HTMLInputElement>;
+  /** Automation context: action selection buttons, hidden until the action and feature unlock. */
+  readonly targets: ReadonlyMap<string, HTMLButtonElement>;
+  /** Automation context: selected count and known rarity summary. */
+  readonly dispersalCount: HTMLElement;
+  readonly dispersalRarities: HTMLElement;
 }
 
 /** A labelled number input. A change (Enter or leaving the field) is passed to `onChange` as a number. */
@@ -62,7 +66,7 @@ function numberField(
 
 /**
  * Builds the Automation tab: the points, and one box per feature with an unlock button, its controls once unlocked (Auto Burn's switch and
- * ceiling, a switch per rarity for autosale, a share per action for dispersal) and its skill lane (always shown; the first skill is the
+ * ceiling, a switch per rarity for autosale, a selection button per unlocked action for dispersal) and its skill lane (always shown; the first skill is the
  * unlock: there is no separate unlock button). Every press goes to the automation controls of the engine, which decide
  * what is allowed; a skill press goes through `ctx.activate`.
  *
@@ -120,7 +124,9 @@ export function buildAutomationWidget(
   });
   const rarities = new Map<string, HTMLButtonElement>();
   const backchannelRarities = new Map<string, HTMLButtonElement>();
-  const shares = new Map<string, HTMLInputElement>();
+  const targets = new Map<string, HTMLButtonElement>();
+  const dispersalCount = h('p', 'automation-dispersal-count');
+  const dispersalRarities = h('p', 'automation-dispersal-rarities');
   for (const f of view.features) {
     const box = h('section', `automation-feature automation-${f.id}`);
     const body = h('div', 'automation-controls');
@@ -148,13 +154,15 @@ export function buildAutomationWidget(
       }
       body.append(channelRow);
     } else {
+      body.append(dispersalCount, dispersalRarities);
       for (const a of view.actions) {
-        const field = numberField(`${a.name}: ${view.shareLabel}`, 0, 100, (v) => {
-          controls.setDispersal(a.id, v);
+        const button = h('button', 'automation-switch', a.name) as HTMLButtonElement;
+        button.addEventListener('click', () => {
+          controls.setDispersalTarget(a.id, !controls.dispersalTargets().includes(a.id));
           refresh();
         });
-        shares.set(a.id, field.input);
-        body.append(field.row);
+        targets.set(a.id, button);
+        body.append(button);
       }
     }
     const tree = mountSkillTree(ctx, f.lanes);
@@ -174,7 +182,9 @@ export function buildAutomationWidget(
     resumeAutoRuns,
     rarities,
     backchannelRarities,
-    shares,
+    targets,
+    dispersalCount,
+    dispersalRarities,
   };
 }
 
@@ -220,8 +230,15 @@ export function renderAutomation(widget: AutomationWidget, view: AutomationView)
       b.classList.toggle('on', r.on);
     }
   }
+  setText(widget.dispersalCount, view.dispersalCount);
+  setText(widget.dispersalRarities, view.dispersalRarities);
+  widget.dispersalRarities.hidden = view.dispersalRarities.length === 0;
   for (const a of view.actions) {
-    const input = widget.shares.get(a.id);
-    if (input) syncInput(input, a.percent);
+    const button = widget.targets.get(a.id);
+    if (!button) continue;
+    button.hidden = !a.visible;
+    button.disabled = a.disabled;
+    button.classList.toggle('on', a.selected);
+    button.setAttribute('aria-pressed', String(a.selected));
   }
 }

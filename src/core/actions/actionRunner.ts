@@ -3,6 +3,7 @@
  *
  * Running actions: access gating, start costs, run progress and the closed-form completion of runs.
  */
+import { actionIsUnlocked } from '../kernel/actionAccess';
 import { earnRunIce } from './runIce';
 import type { BigNum, NumberFactory } from '../../numbers';
 import type { ActionLookup } from './actionLookup';
@@ -105,7 +106,7 @@ export class ActionRunner {
    * @throws Error if the action id is unknown
    */
   isUnlocked(id: ActionId): boolean {
-    return this.stats.sleeveStats().accessLevel >= (this.definition(id).requiredAccessLevel ?? 1);
+    return actionIsUnlocked(this.definition(id), this.stats.sleeveStats().accessLevel);
   }
 
   /**

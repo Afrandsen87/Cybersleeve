@@ -71,8 +71,8 @@ export interface AutomationState {
   autosale: Record<RarityId, boolean>;
   /** Automation context: per-rarity Back Channel switches; missing means off. */
   autoBackchannel: Record<RarityId, boolean>;
-  /** Share (percent, 0..100) of the Augment schematics each action gets (absent: 0). All shares together are at most 100. */
-  dispersal: Record<ActionId, number>;
+  /** Automation context: selected actions receive equal portions of allowed augments. */
+  dispersalTargets: ActionId[];
 }
 
 /**
@@ -83,7 +83,7 @@ export interface AutomationState {
  * @param config reads `automation.autoBurnCeiling` and `automation.autoBurnUpper`
  */
 export function createAutomationState(config: Pick<GameConfig, 'automation'>): AutomationState {
-  return { autoBurn: createAutoBurnSettings(config), autosale: {}, autoBackchannel: {}, dispersal: {} };
+  return { autoBurn: createAutoBurnSettings(config), autosale: {}, autoBackchannel: {}, dispersalTargets: [] };
 }
 
 /** What the screen and the commands use (satisfied by {@link Automation}). */
@@ -110,8 +110,16 @@ export interface AutomationControls {
   isAutosaleOn(rarityId: RarityId): boolean;
   /** Switches the autosale of a rarity; only works for a skill-allowed known rarity. @returns true when it is now on */
   setAutosale(rarityId: RarityId, on: boolean): boolean;
-  /** Augment dispersal: the share (percent) the action gets. */
-  dispersal(actionId: ActionId): number;
-  /** Sets an action's share (clamped to 0..100); only works once unlocked and for a known action. @returns true when it was set */
-  setDispersal(actionId: ActionId, percent: number): boolean;
+  /** Automation context: number of actions selectable through owned lane skills. */
+  dispersalSlots(): number;
+  /** Automation context: current selected actions in configuration order. */
+  dispersalTargets(): readonly ActionId[];
+  /** Automation context: selects an unlocked action within capacity, or removes it; false on refusal. */
+  setDispersalTarget(actionId: ActionId, on: boolean): boolean;
+}
+
+/** Automation context: narrow availability query injected by createGame. Called by: Automation. Calls: ActionRunner.isUnlocked. */
+export interface AutomationActions {
+  /** Whether the known action is currently available through access level. */
+  isUnlocked(actionId: ActionId): boolean;
 }

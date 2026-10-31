@@ -65,8 +65,7 @@
           "onOverclocks": false
         }
       },
-      "autosale": {},
-      "dispersal": {}
+      "autosale": {}
     },
     "inventory": { "kompromat": { "common": 8 }, "augment-schematic": { "common": 1 } },
     "seenItems": { "kompromat": { "common": true }, "augment-schematic": { "common": true } },

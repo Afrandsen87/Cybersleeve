@@ -85,6 +85,13 @@ describe('the skill lane inside each automation box', () => {
 
 /** Automation context: one existing branch lays out as a trunk with two first-parent lanes. */
 describe('Kompromat fork and permission controls', () => {
+  it('hides automatic Back Channel switches while the manual channel is missing', () => {
+    const g = rarityGame([1, 2, 3, 4, 5, 6], false);
+    expect(buildViewModel(g).automation.backchannelRarities.every((r) => !r.visible)).toBe(true);
+    rarityState(g).sleeve.purchased['channel'] = 1;
+    const visible = buildViewModel(g).automation.backchannelRarities.filter((r) => r.visible);
+    expect(visible.map((r) => r.id)).toEqual(['common']);
+  });
   it('places the two children of slot 3 on separate rows with the trunk between them', () => {
     const g = rarityGame();
     const lane = buildViewModel(g).automation.features.find((f) => f.id === 'autosale')!.lanes[0]!;

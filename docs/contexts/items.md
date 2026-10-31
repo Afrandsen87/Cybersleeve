@@ -9,9 +9,11 @@ Code: `src/core/items/` (see `docs/contexts/_folders.md`). Text below is moved v
 - **Inventory first-stack helpers (P12):** `Inventory.heldFirst / takeFirst / addFirst(itemId, ...)` work on the single stack an item without rarity keeps under the first rarity (Zero-days, Admin keys, Skill shards, their bonus drops, rarity-less drops). They replaced six hand-written `rarities[0]` lookups in `zeroDays.ts`, `skillShards.ts` and `drops.ts`. The `rarities[0]` lookups left are in `automation.ts` (Auto Burn: it needs the rarity id for `BurnLeads`) and `augments.ts` (takes by a chosen rarity).
 - **`dropShare(rule, rarityId, firstRarityId)` (`items/drops.ts`, P12):** the chance one run drops a rule's item in a rarity (normalised weights). `DerivedStats.dropSources` sums it; real drops are split with the same weights.
 - **Burn lead toggle (2026-10-30):** with the Auto Burn lane's first skill the Inventory tile is a toggle like the Zero-day (`GameEngine.toggleBurnLead`, row `toggleable`, tip explains the rule in force); before it, the click uses one lead. The toggle state is `sleeve.autoBurn.on`, not a key toggle. Lead use by the toggle is `AutoBurn` calling `BurnLeads.useMany`.
-- **Burn leads (P3):** `BurnLeads.use` delegates to `useMany(rarity, 1)`, so there is one heat formula (`heat x (1 - fraction)^k - flat x ...`). A single lead now gives the same heat as before up to the last floating-point digit (`burnLeads.test.ts` pins it to 1e-9).
+- **Burn leads:** `BurnLeads.use` delegates to `useMany(rarity, 1)`, so there is one heat formula (`heat x (1 - fraction)^k - flat x ...`). A single lead now gives the same heat as before up to the last floating-point digit (`burnLeads.test.ts` pins it to 1e-9).
 - **Deferred to S5b:** moving the Zero-day shard bonus drop into `items` (it is now `perRunEvents` + `addFirst` in `crits/zeroDays.ts`); a `DropQueries` interface (the current `dropShare` function covers P12's share rule).
 - **State / config:** unchanged (`inventory`, `items.*`).
+
+Automation calls the existing BackChannel.giveUp with all for each enabled, skill-allowed rarity, using the manual channel query. The existing owner controls rarity eligibility and Moles payout; it needs no count-form extension or random draws. Auto Back Channel precedes autosale. Automation dispersal passes only skill-allowed rarities to Augments.applyMany; it applies those most-common-first in closed form. Equal-weight targets share held allowed schematics through the existing balancing and largest-remainder split. An action without owned Auto-run consumes none; disallowed rarities remain in inventory.
 
 ## Design (from DESIGN.md)
 
@@ -71,6 +73,3 @@ Ids must be unique, and items need at least one rarity. Selling pays `Inventory.
 - **Silver Tongue** (the "lead hoarder" idea, renamed to something charismatic): reuses the existing `itemDropChanceMultiplier` effect (x1.5 on the Burn lead, so 0.5% becomes 0.75%).
 - **Kompromat sale price follows peak income.** *Decided 2026-10-30 (by the user):* selling for a flat price became worthless once income outgrew it, so each rarity sells for `max(sellValue floor, sellSeconds x the current life's peak network income)`. The peak is read from `sleeve.peakNetworkIncome` (Inventory already owns the state slice, so no economy import); it resets with the life.
 
-## P3: Kompromat automation (2026-10-31)
-
-Automation calls the existing BackChannel.giveUp with all for each enabled, skill-allowed rarity, using the manual channel query. The existing owner controls rarity eligibility and Moles payout; it needs no count-form extension or random draws. Auto Back Channel precedes autosale.
