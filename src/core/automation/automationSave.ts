@@ -33,12 +33,16 @@ export const automationSavePart: SavePart<Pick<GameConfig, 'automation' | 'buyab
       wallet: {
         automation: {
           autoBurn: {
-            ...automation.autoBurn,
+            lower: automation.autoBurn.lower,
+            upper: automation.autoBurn.upper,
+            reserve: automation.autoBurn.reserve,
             switches: { ...automation.autoBurn.switches },
             ...(Object.keys(automation.autoBurn.resumeOverclocks).length > 0
               ? { resumeOverclocks: { ...automation.autoBurn.resumeOverclocks } }
               : {}),
-            ...(Object.keys(automation.autoBurn.resumeAutoRuns).length > 0 ? { resumeAutoRuns: { ...automation.autoBurn.resumeAutoRuns } } : {}),
+            ...(Object.keys(automation.autoBurn.resumeAutoRuns).length > 0
+              ? { resumeAutoRuns: { ...automation.autoBurn.resumeAutoRuns } }
+              : {}),
           },
           autosale: { ...automation.autosale },
           dispersal: { ...automation.dispersal },

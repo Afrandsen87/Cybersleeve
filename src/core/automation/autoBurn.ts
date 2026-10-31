@@ -1,7 +1,7 @@
 /**
  * @module core
  *
- * Auto Burn: the Burn lead Inventory toggle, and the rules that grow with the ten skills of its lane.
+ * Auto Burn: the Burn lead Inventory toggle, and the rules that grow with the skills of its lane.
  */
 import { heatHoldTarget, heatNeedsCooling } from '../heat/heat';
 import type { Inventory } from '../items/inventory';
@@ -229,6 +229,7 @@ export class AutoBurn implements AutoBurnControls {
 
   /** The on rules: heat below the lower threshold with leads available, see {@link AutoBurnSwitcher.switchOn}; a change also switches the toggle on. */
   private switchOn(rules: AutoBurnRules): void {
-    if (this.available(rules) > 0 && this.state.sleeve.heat < rules.lower && this.switcher.switchOn(rules)) this.state.sleeve.autoBurn.on = true;
+    if (this.available(rules) > 0 && this.state.sleeve.heat < rules.lower && this.switcher.switchOn(rules))
+      this.state.sleeve.autoBurn.on = true;
   }
 }

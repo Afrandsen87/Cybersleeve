@@ -121,8 +121,7 @@ export function buildAutomationWidget(
   for (const f of view.features) {
     const box = h('section', `automation-feature automation-${f.id}`);
     const body = h('div', 'automation-controls');
-    if (f.id === 'autoBurn')
-      body.append(h('p', 'automation-hint', view.autoBurn.hint), ...switchRows, lower.row, upper.row, reserve.row);
+    if (f.id === 'autoBurn') body.append(h('p', 'automation-hint', view.autoBurn.hint), ...switchRows, lower.row, upper.row, reserve.row);
     else if (f.id === 'autosale') {
       for (const r of view.rarities) {
         const b = h('button', 'automation-switch', r.name) as HTMLButtonElement;

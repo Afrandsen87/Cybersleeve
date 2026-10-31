@@ -89,3 +89,26 @@ describe('the Auto Burn box in the Automation tab', () => {
     expect(game.automation().autoBurn().rules()).toMatchObject({ lower: 20, upperAt: 50, reserve: 4 });
   });
 });
+
+describe('the resume checklists', () => {
+  it('appear under their switch with the owned heat-making things, and a tick sets the setting', () => {
+    const { game, render, shown, box } = mount(7);
+    render();
+    const names = shown('.automation-check').map((r) => r.textContent);
+    expect(names).toContain('hot');
+    expect(names).not.toContain('cold'); // its Overclock makes no heat
+    const hot = [...box().querySelectorAll<HTMLElement>('.automation-check')].find((r) => r.textContent === 'hot')!;
+    const input = hot.querySelector('input')!;
+    input.checked = true;
+    input.dispatchEvent(new Event('change'));
+    render();
+    expect(Object.keys(game.automation().autoBurn().rules().resumeOverclocks)).toEqual(['hot']);
+    expect(buildViewModel(game).automation.autoBurn.resumeOverclocks.items.find((i) => i.id === 'hot')?.ticked).toBe(true);
+  });
+
+  it('stay hidden before their skills are owned', () => {
+    const { render, shown } = mount(5);
+    render();
+    expect(shown('.automation-checklist')).toEqual([]);
+  });
+});
