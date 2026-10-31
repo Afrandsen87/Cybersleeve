@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Main screen – mockup</title>
+<style>
+  /* ---------- idea 1: the visual language. One meaning per colour, monospace for data ---------- */
+  :root {
+    --bg: #0b0f1a; --panel: #121829; --panel-2: #0e1324; --ink: #e6f1ff; --muted: #7f93b3; --line: #26304d; --line-2: #1b2340;
+    --info: #19e3ff;     /* cyan: on / information */
+    --run: #ff2bd6;      /* magenta: running */
+    --heat: #ff7a1a;     /* orange: heat */
+    --danger: #ff3b5c;   /* red: danger / loss */
+    --gain: #39ff88;     /* green: gain */
+    --auto: #b266ff;     /* purple: automation */
+    --afford: #ffd23f;   /* gold: affordable */
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--ink); font: 14px/1.4 system-ui, sans-serif;
+    background: radial-gradient(1200px 500px at 50% -200px, #16204a 0%, transparent 70%),
+      linear-gradient(var(--line-2) 1px, transparent 1px) 0 0 / 100% 24px, var(--bg); background-color: var(--bg); }
+  body::after { content: ""; position: fixed; inset: 0; pointer-events: none; /* faint scanlines */
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px); }
+  main { max-width: 1180px; margin: 0 auto; padding: 12px 16px 24px; display: grid; gap: 12px; }
+  .mono, .num { font-family: var(--mono); }
+  button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+
+  .demo { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border: 1px dashed #3a4466; border-radius: 8px;
+    font-size: 13px; color: var(--muted); }
+  .demo b { color: var(--ink); }
+  .demo label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+  /* ---------- idea 2: panel chrome ---------- */
+  .panel { position: relative; background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line);
+    border-radius: 4px; padding: 10px 12px 12px; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .panel::before, .panel::after { content: ""; position: absolute; width: 10px; height: 10px; border-color: var(--accent, var(--info)); border-style: solid; opacity: .8; }
+  .panel::before { top: 0; left: 0; border-width: 2px 0 0 2px; }
+  .panel::after { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
+  .ph { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font: 700 11px var(--mono); letter-spacing: .14em; color: var(--accent, var(--info)); }
+  .ph::before { content: "//"; color: var(--muted); }
+  .ph .led { margin-left: auto; }
+  .ph .sub { color: var(--muted); font-weight: 400; letter-spacing: .04em; }
+
+  .led { display: inline-flex; align-items: center; gap: 6px; font: 700 10px var(--mono); letter-spacing: .1em; color: var(--muted); }
+  .led::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3a4466; }
+  .led.on { color: var(--c, var(--info)); } .led.on::before { background: var(--c, var(--info)); box-shadow: 0 0 6px var(--c, var(--info)); }
+  .led.pulse::before { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; box-shadow: none; } }
+
+  /* ---------- idea 4: HUD ---------- */
+  .hud { display: grid; grid-template-columns: auto auto 1fr auto; gap: 22px; align-items: center; padding: 8px 14px;
+    border-bottom: 1px solid color-mix(in srgb, var(--run) 50%, transparent); box-shadow: 0 1px 0 rgba(255,43,214,.15), 0 8px 24px -16px var(--run); }
+  .credits { display: flex; align-items: baseline; gap: 10px; }
+  .credits .coin { width: 26px; height: 26px; align-self: center; border-radius: 5px; background: var(--afford); color: #1a1300; font: 900 16px var(--mono);
+    display: grid; place-items: center; box-shadow: 0 0 10px var(--afford); }
+  .credits .big { font: 700 30px var(--mono); color: var(--info); text-shadow: 0 0 12px color-mix(in srgb, var(--info) 60%, transparent); letter-spacing: .02em; }
+  .credits .rate { font: 13px var(--mono); color: var(--gain); }
+  .hud-heat { display: grid; gap: 3px; min-width: 210px; font: 11px var(--mono); }
+  .hud-heat .row { display: flex; justify-content: space-between; gap: 10px; }
+  .hud-heat .k { color: var(--muted); letter-spacing: .1em; }
+  .hud-heat .v { color: var(--heat); font-weight: 700; }
+  .hud-heat .tax { color: var(--danger); font-weight: 700; }
+  .mini { height: 6px; border-radius: 3px; background: #0b0f1a; border: 1px solid var(--line); overflow: hidden; }
+  .mini i { display: block; height: 100%; transform-origin: left; background: linear-gradient(90deg, var(--heat), var(--danger)); box-shadow: 0 0 8px var(--danger); }
+  .tabs { display: flex; gap: 6px; justify-self: end; }
+  .tab { position: relative; padding: 7px 14px; font: 700 12px var(--mono); letter-spacing: .1em; color: var(--muted); border-radius: 3px; background: transparent; }
+  .tab.active { color: var(--info); border-color: var(--info); box-shadow: inset 0 -2px 0 var(--info), 0 0 10px -4px var(--info); }
+  .tab .badge { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; font-size: 10px;
+    display: grid; place-items: center; color: #0b0f1a; background: var(--afford); box-shadow: 0 0 8px var(--afford); }
+  .tab.auto .badge { background: var(--auto); box-shadow: 0 0 8px var(--auto); }
+
+  /* ---------- top band ---------- */
+  .band { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; }
+  .right { display: grid; grid-template-columns: 1fr 1.25fr; grid-template-rows: auto 1fr; gap: 12px; }
+  .inv { grid-column: 1 / -1; }
+
+  /* key/value grid (idea 3: short numbers) */
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: 13px; }
+  .kv .k { color: var(--muted); }
+  .kv .v { font-family: var(--mono); font-weight: 700; color: var(--ink); text-align: right; }
+  .kv .v.info { color: var(--info); } .kv .v.gain { color: var(--gain); } .kv .v.heat { color: var(--heat); } .kv .v.bad { color: var(--danger); }
+  .note { grid-column: 1 / -1; font: 11px var(--mono); color: var(--danger); margin: -1px 0 3px; }
+  .note::before { content: "▲ "; }
+
+  /* idea 6: sleeve readout */
+  .sleeve { --accent: var(--info); display: flex; flex-direction: column; gap: 10px; }
+  .group { display: grid; gap: 4px; }
+  .gt { font: 700 10px var(--mono); letter-spacing: .16em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .gt::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .group.risk .gt { color: var(--danger); } .group.risk .gt::after { background: color-mix(in srgb, var(--danger) 40%, transparent); }
+
+  /* idea 5: heat gauge */
+  .heat-gauge { display: grid; gap: 4px; }
+  .hg { position: relative; height: 18px; border: 1px solid var(--line); border-radius: 3px; background: #0b0f1a; overflow: hidden; }
+  .hg .fill { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, #ffb35c, var(--heat) 45%, var(--danger)); opacity: .85; }
+  .hg .taxzone { position: absolute; top: 0; bottom: 0; right: 0; background: repeating-linear-gradient(135deg, rgba(255,59,92,.28) 0 5px, transparent 5px 10px); border-left: 2px solid var(--danger); }
+  .hg .lbl { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 6px; font: 700 10px var(--mono); letter-spacing: .08em; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+  .hg-legend { display: flex; justify-content: space-between; font: 10px var(--mono); color: var(--muted); }
+  .hg-legend .bad { color: var(--danger); }
+  .cool { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font: 10px var(--mono); color: var(--muted); }
+  .bar { height: 5px; border-radius: 3px; background: #0b0f1a; border: 1px solid var(--line-2); overflow: hidden; }
+  .bar i { display: block; height: 100%; transform-origin: left; background: var(--c, var(--info)); box-shadow: 0 0 6px var(--c, var(--info)); }
+  .resleeve { margin-top: auto; display: grid; gap: 6px; padding: 10px; border: 1px dashed color-mix(in srgb, var(--run) 50%, transparent); border-radius: 4px; }
+  .resleeve .t { display: flex; justify-content: space-between; font: 700 11px var(--mono); letter-spacing: .12em; color: var(--run); }
+  .resleeve .why { font: 11px var(--mono); color: var(--muted); }
+
+  .network { --accent: var(--info); }
+
+  /* idea 7: buyable tiles */
+  .shop { --accent: var(--afford); display: grid; gap: 8px; align-content: start; }
+  .shop-row { display: grid; grid-template-columns: 74px 1fr; gap: 8px; align-items: start; }
+  .shop-row .rl { font: 700 10px var(--mono); letter-spacing: .12em; color: var(--muted); padding-top: 14px; }
+  .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tile { position: relative; width: 52px; display: grid; justify-items: center; gap: 0; padding: 0; border-radius: 6px; overflow: hidden; background: #0d1222; }
+  .tile .glyph { height: 38px; width: 100%; display: grid; place-items: center; font-size: 20px; }
+  .tile .price { width: 100%; font: 700 10px var(--mono); padding: 2px 0; text-align: center; border-top: 1px solid var(--line); color: var(--muted); background: #0a0e1a; }
+  .tile .own { position: absolute; top: 2px; right: 3px; font: 700 9px var(--mono); color: var(--ink); text-shadow: 0 0 3px #000; }
+  .tile.afford { border-color: var(--afford); box-shadow: 0 0 10px -3px var(--afford); }
+  .tile.afford .price { color: var(--afford); }
+  .tile.poor .glyph { opacity: .4; filter: grayscale(.7); }
+  .tile.maxed { border-color: var(--teal, #14a89a); } .tile.maxed .price { color: #14a89a; }
+
+  /* inventory (today's tiles, themed) */
+  .inventory { --accent: var(--info); }
+  .inv-groups { display: flex; gap: 12px; flex-wrap: wrap; }
+  .ig { padding: 8px; border: 1px solid var(--line); border-radius: 4px; background: #0d1222; display: grid; gap: 6px; }
+  .ig .gt { gap: 6px; }
+  .ig-tiles { display: flex; gap: 6px; align-items: end; }
+  .it { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--r, var(--line)); border-radius: 5px; position: relative; font-size: 16px; background: #0b0f1a; }
+  .it b { position: absolute; bottom: 1px; font: 700 10px var(--mono); }
+  .it.zero { opacity: .35; }
+  .sep { width: 1px; align-self: stretch; background: var(--line); }
+
+  /* idea 8: stash */
+  .stash { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stash .ig { gap: 8px; }
+  .legend { display: flex; gap: 10px; font: 10px var(--mono); color: var(--muted); flex-wrap: wrap; }
+  .legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 4px; border-radius: 2px; background: var(--r); box-shadow: 0 0 4px var(--r); vertical-align: -1px; }
+  .slot { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; padding: 4px 6px; border-radius: 4px; border-left: 3px solid var(--r); background: color-mix(in srgb, var(--r) 7%, transparent); font-size: 12px; }
+  .slot .ic { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--r); border-radius: 4px; background: #0b0f1a; }
+  .slot .nm { color: var(--ink); } .slot .nm small { display: block; font: 10px var(--mono); color: var(--r); letter-spacing: .08em; }
+  .slot .ct { font: 700 13px var(--mono); }
+  .slot.zero { opacity: .4; }
+  .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .sell { display: flex; gap: 8px; }
+  .sell button { flex: 1; padding: 6px 8px; font: 700 11px var(--mono); letter-spacing: .06em; }
+  .sell button .g { color: var(--gain); font-weight: 400; }
+  .sell button.primary { border-color: var(--gain); box-shadow: 0 0 8px -3px var(--gain); }
+
+  /* ---------- idea 9: action cards as process windows ---------- */
+  .actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .proc { --c: var(--info); position: relative; display: grid; gap: 8px; padding: 0 0 10px; border: 1px solid color-mix(in srgb, var(--c) 35%, var(--line));
+    border-radius: 4px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 6%, var(--panel)), var(--panel-2)); overflow: hidden; }
+  .proc.running { border-color: color-mix(in srgb, var(--c) 70%, transparent); box-shadow: 0 0 14px -6px var(--c); }
+  .proc.idle { filter: saturate(.45); opacity: .82; }
+  .titlebar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: color-mix(in srgb, var(--c) 14%, #0b0f1a);
+    border-bottom: 1px solid color-mix(in srgb, var(--c) 40%, transparent); }
+  .titlebar .ico { width: 20px; height: 20px; display: grid; place-items: center; font-size: 13px; color: var(--c); border: 1px solid var(--c); border-radius: 3px; }
+  .titlebar .name { font-weight: 700; }
+  .titlebar .pid { font: 10px var(--mono); color: var(--muted); }
+  .titlebar .state { margin-left: auto; }
+  .crit { font: 900 11px var(--mono); letter-spacing: .12em; color: var(--run); text-shadow: 0 0 8px var(--run); animation: crit 1.8s ease-out infinite; }
+  @keyframes crit { 0% { opacity: 0; transform: translateY(4px); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; } }
+  .pbody { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 0 10px; }
+  .stats { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font: 12px var(--mono); align-content: start; }
+  .stats .k { color: var(--muted); font-size: 10px; letter-spacing: .12em; padding-top: 1px; }
+  .stats .v { color: var(--ink); } .stats .v em { font-style: normal; color: var(--muted); }
+  .stats .heat { color: var(--heat); } .stats .bad { color: var(--danger); }
+  .progress { grid-column: 1 / -1; position: relative; height: 12px; border: 1px solid color-mix(in srgb, var(--c) 40%, var(--line)); border-radius: 2px; background: #0b0f1a; overflow: hidden; }
+  .progress i { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 40%, transparent), var(--c)); box-shadow: 0 0 10px var(--c); }
+  .running .progress i { animation: run var(--dur, 1s) linear infinite; }
+  .fast .progress i { animation: none; transform: none; background: repeating-linear-gradient(90deg, var(--c) 0 6px, color-mix(in srgb, var(--c) 50%, transparent) 6px 12px); background-size: 24px 100%; animation: stream .4s linear infinite; }
+  @keyframes run { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes stream { to { background-position: 24px 0; } }
+  .progress span { position: absolute; inset: 0; display: grid; place-items: center; font: 700 9px var(--mono); text-shadow: 0 0 3px #000; }
+  .lv { grid-column: 1 / -1; display: grid; grid-template-columns: 74px 1fr auto; gap: 8px; align-items: center; font: 10px var(--mono); color: var(--muted); }
+  .lv .bar i { --c: #14d6b0; }
+  .lv .r { color: var(--ink); }
+  .ctrls { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; align-content: start; }
+  .ctl { display: grid; place-items: center; gap: 1px; width: 46px; height: 40px; padding: 2px; border-radius: 4px; background: #0b0f1a; font: 700 9px var(--mono); letter-spacing: .08em; color: var(--muted); }
+  .ctl .g { font-size: 14px; line-height: 1; filter: grayscale(1); opacity: .5; }
+  .ctl.on { color: var(--k); border-color: var(--k); box-shadow: 0 0 8px -2px var(--k), inset 0 0 8px -4px var(--k); }
+  .ctl.on .g { filter: none; opacity: 1; }
+  .ctl.none { visibility: hidden; }
+  .mods { display: flex; gap: 6px; padding: 6px 10px 0; margin: 0 10px; border-top: 1px dashed var(--line); align-items: center; }
+  .mods .ml { font: 700 9px var(--mono); letter-spacing: .14em; color: var(--muted); margin-right: 2px; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .mods .tile { width: 44px; } .mods .tile .glyph { height: 30px; font-size: 16px; }
+  .empty-slot { border: 1px dashed var(--line); border-radius: 4px; }
+
+  .notes { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+  .notes li { margin: 3px 0; } .notes b { color: var(--ink); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="demo">
+    <b>Mockup controls</b>
+    <label><input id="opt-stash" type="checkbox" checked> Idea 8: Inventory as a stash (off = today's tiles, restyled)</label>
+    <label><input id="opt-idle" type="checkbox"> Show Grow network idle</label>
+  </div>
+
+  <!-- idea 4: HUD -->
+  <header class="hud">
+    <div class="credits"><span class="coin">₵</span><span class="big" id="credits">21.26No</span><span class="rate">+34.73T/s</span></div>
+    <div class="hud-heat">
+      <div class="row"><span class="k">HEAT</span><span><span class="v">652</span> · <span class="tax">TAX 100%</span></span></div>
+      <div class="mini"><i style="transform: scaleX(1)"></i></div>
+    </div>
+    <span></span>
+    <nav class="tabs">
+      <button class="tab active">CHARACTER</button>
+      <button class="tab">SKILLS<span class="badge">2</span></button>
+      <button class="tab auto">AUTOMATION<span class="badge">3</span></button>
+      <button class="tab">STATS</button>
+    </nav>
+  </header>
+
+  <section class="band">
+    <!-- idea 6: sleeve readout -->
+    <div class="panel sleeve">
+      <h3 class="ph">SLEEVE <span class="sub">#0007</span><span class="led on pulse">ONLINE</span></h3>
+      <div class="group"><div class="gt">ACCESS</div>
+        <div class="kv"><span class="k">Access Level</span><span class="v info">5</span></div></div>
+      <div class="group"><div class="gt">SKILL</div>
+        <div class="kv"><span class="k">Interface speed</span><span class="v">8.12</span>
+          <span class="k">Hacking Proficiency</span><span class="v">144.2</span>
+          <span class="k">Critical success</span><span class="v">20%</span></div></div>
+      <div class="group"><div class="gt">DEFENSE</div>
+        <div class="kv"><span class="k">ICE Rating</span><span class="v info">2.01K</span>
+          <span class="k">Legend</span><span class="v info">3</span></div>
+        <div class="cool"><span>LEGEND DECAY</span><div class="bar" style="--c: var(--info)"><i style="transform: scaleX(.4)"></i></div><span>cools heat faster</span></div></div>
+      <div class="group risk"><div class="gt">RISK</div>
+        <!-- idea 5: heat gauge -->
+        <div class="heat-gauge">
+          <div class="hg"><div class="fill" style="transform: scaleX(1)"></div><div class="taxzone" style="left: 63%"></div>
+            <div class="lbl"><span style="color:#fff">HEAT 652</span><span style="color:#ffd0d8">TAX ZONE</span></div></div>
+          <div class="hg-legend"><span>0</span><span class="bad">all credits taxed ≥ 410</span></div>
+          <div class="cool"><span>COOLDOWN</span><div class="bar" style="--c: var(--info)"><i style="transform: scaleX(.72)"></i></div><span>-1 / 2.1s</span></div>
+        </div>
+      </div>
+      <div class="resleeve">
+        <div class="t"><span>RE-SLEEVE</span><span>63%</span></div>
+        <div class="bar" style="--c: var(--run)"><i style="transform: scaleX(.63)"></i></div>
+        <div class="why">needs Access Level 6 · +3 sleeve skill points on arrival</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="panel network">
+        <h3 class="ph">NETWORK<span class="led on pulse" style="--c: var(--gain)">LINKED</span></h3>
+        <div class="kv">
+          <span class="k">Nodes</span><span class="v info">63.37K</span>
+          <span class="k">Payout per node</span><span class="v">7.52/s</span>
+          <span class="k">Credits per second</span><span class="v bad">+0</span>
+          <span class="note">heat tax takes 100% (heat 652 ≥ 410)</span>
+          <span class="k">Synthetic sleeves</span><span class="v">9</span>
+          <span class="k">Synthetic credits / s</span><span class="v gain">+34.73T</span>
+        </div>
+      </div>
+
+      <!-- idea 7: buyable tiles, Sleeve Improvements + Network Exploitation merged into labelled rows -->
+      <div class="panel shop">
+        <h3 class="ph">UPGRADES<span class="sub">sleeve = credits · network = nodes · gold = affordable</span></h3>
+        <div class="shop-row"><span class="rl">SLEEVE</span><div class="tiles" id="t-sleeve"></div></div>
+        <div class="shop-row"><span class="rl">NETWORK</span><div class="tiles" id="t-net"></div></div>
+      </div>
+
+      <div class="panel inventory inv">
+        <h3 class="ph">INVENTORY</h3>
+        <div id="inv-today" class="inv-groups"></div>
+        <div id="inv-stash" class="stash"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="actions" id="actions"></section>
+
+  <div class="notes"><ul>
+    <li><b>1 colour language:</b> cyan = info/on, magenta = running, orange = heat, red = danger/loss, green = gain, purple = automation, gold = affordable. All numbers are monospace.</li>
+    <li><b>2 chrome:</b> <code>// TAG</code> headers with status LEDs, notched corners with bracket accents, faint grid and scanlines.</li>
+    <li><b>3 numbers:</b> 3–4 significant figures in panels (144.2375 → 144.2); full precision stays in tooltips.</li>
+    <li><b>4 HUD:</b> credits with income rate, heat and tax always visible, tab counts as badges (gold = skill points, purple = automation points).</li>
+    <li><b>5 heat:</b> the gauge shows where the tax zone starts, and Network explains its +0. The 410 threshold is illustrative; the real one comes from the heat model.</li>
+    <li><b>6 sleeve:</b> grouped ACCESS / SKILL / DEFENSE (ICE, Legend: it speeds cooling) / RISK (heat); Re-sleeve says what it needs. The readiness % and requirement text are invented.</li>
+    <li><b>7 tiles:</b> rows split by currency (SLEEVE = credits, NETWORK = nodes); a bought one-time upgrade moves to the front and shows MAX; price strip, owned count, gold glow when affordable, dimmed when not. Glyphs stand in for the real pixel icons.</li>
+    <li><b>8 stash (switch above):</b> named slots with rarity labels, a rarity legend, Sell buttons that show what they earn. The values are invented.</li>
+    <li><b>9 process windows:</b> a title bar with a state LED, a stat grid, a progress bar in each action's colour (it streams when runs are faster than the eye), labelled AUTO / OC / FOCUS / AUG toggles, and a MODS row. Idle cards are desaturated.</li>
+  </ul></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ---------- upgrades (glyphs are stand-ins for the pixel icons) ----------
+const tile = (t) => `<button class="tile ${t.s}" title="${t.n}"><span class="glyph" style="color:${t.c}">${t.g}</span>${t.o ? `<span class="own">×${t.o}</span>` : ''}<span class="price">${t.p}</span></button>`;
+$('t-sleeve').innerHTML = [
+  { g: '❂', c: '#ff6fb5', n: 'Neural lace (one-time, bought: moved to the front)', p: 'MAX', s: 'maxed' },
+  { g: '▤', c: '#ff2bd6', n: 'Interface rig', p: '1.2No', o: 14, s: 'afford' },
+  { g: '◔', c: '#39ff88', n: 'Speed governor', p: '8.4No', o: 9, s: 'afford' },
+  { g: '✦', c: '#ffd23f', n: 'Focus lens', p: '44No', o: 6, s: 'poor' },
+  { g: '❂', c: '#ff6fb5', n: 'Neural lace', p: '3.1Dc', o: 2, s: 'poor' },
+  { g: '⛉', c: '#19e3ff', n: 'ICE shell', p: '920Oc', o: 21, s: 'afford' },
+  { g: 'ϟ', c: '#ff7a1a', n: 'Overclock core', p: '15No', o: 5, s: 'afford' },
+  { g: '⚙', c: '#8da2c0', n: 'Automation core', p: 'MAX', o: 3, s: 'maxed' },
+  { g: '⌖', c: '#19e3ff', n: 'Targeting', p: '61No', o: 4, s: 'poor' },
+].map(tile).join('');
+$('t-net').innerHTML = [
+  { g: '((·))', c: '#19e3ff', n: 'Relay', p: '6.6No', o: 12, s: 'afford' },
+  { g: '≡', c: '#ffd23f', n: 'Ledger', p: '90No', o: 3, s: 'poor' },
+].map(tile).join('');
+
+// ---------- inventory: today's tiles (restyled) and the stash variant (idea 8) ----------
+const R = { common: '#19e3ff', uncommon: '#39ff88', rare: '#2f6bff', epic: '#ff2bd6', legendary: '#ff7a1a', none: '#3a4466' };
+const it = (g, n, r) => `<span class="it ${n ? '' : 'zero'}" style="--r:${R[r]}"><span>${g}</span><b style="color:${R[r]}">${n}</b></span>`;
+$('inv-today').innerHTML =
+  `<div class="ig"><div class="gt">ITEMS</div><div class="ig-tiles">${it('▣', 105, 'common')}${it('▣', 14, 'uncommon')}${it('▣', 3, 'rare')}<span class="sep"></span>${it('🔥', 198, 'none')}<span class="sep"></span>${it('ϟ', 368, 'none')}<span class="sep"></span>${it('⚷', 0, 'none')}</div></div>` +
+  `<div class="ig"><div class="gt">FOR SALE</div><div class="ig-tiles">${it('▮', 381, 'common')}${it('▮', 44, 'uncommon')}${it('▮', 0, 'rare')}${it('▮', 0, 'epic')}${it('▮', 0, 'legendary')}<span class="sep"></span><span class="sell" style="display:grid;gap:4px"><button style="padding:4px 10px;font:11px var(--mono)">Sell</button><button style="padding:4px 10px;font:11px var(--mono)">Sell all</button></span></div></div>`;
+const slot = (g, name, rar, n) => `<div class="slot ${n ? '' : 'zero'}" style="--r:${R[rar] || R.none}"><span class="ic">${g}</span><span class="nm">${name}<small>${rar === 'none' ? 'CONSUMABLE' : rar.toUpperCase()}</small></span><span class="ct">${n}</span></div>`;
+$('inv-stash').innerHTML =
+  `<div class="ig"><div class="gt">ITEMS</div>
+     <div class="slots">${slot('▣', 'Augment schematic', 'common', 105)}${slot('▣', 'Augment schematic', 'uncommon', 14)}${slot('▣', 'Augment schematic', 'rare', 3)}${slot('🔥', 'Burn lead', 'none', 198)}${slot('ϟ', 'Overclock charge', 'none', 368)}${slot('⚷', 'Access key', 'none', 0)}</div></div>` +
+  `<div class="ig"><div class="gt">FOR SALE · KOMPROMAT</div>
+     <div class="legend"><span style="--r:${R.common}">common</span><span style="--r:${R.uncommon}">uncommon</span><span style="--r:${R.rare}">rare</span><span style="--r:${R.epic}">epic</span><span style="--r:${R.legendary}">legendary</span></div>
+     <div class="slots">${slot('▮', 'Kompromat', 'common', 381)}${slot('▮', 'Kompromat', 'uncommon', 44)}${slot('▮', 'Kompromat', 'rare', 0)}${slot('▮', 'Kompromat', 'epic', 0)}</div>
+     <div class="sell"><button>SELL 1 <span class="g">+3.1No</span></button><button class="primary">SELL ALL <span class="g">+1.24Dc</span></button></div></div>`;
+
+// ---------- action cards (idea 9) ----------
+const ACTIONS = [
+  { name: 'Grow network', pid: 'grow_net', c: '#19e3ff', g: '✕', state: 'auto', fast: true, rate: '9.2 runs/s',
+    stats: [['SPEED', '×27.7 <em>· 0.11s</em>'], ['YIELD', '+4 nodes/run <em>×4</em>']],
+    lv: [12, '14.4K/21.7K', .66], sl: [8, '651/2.56K', .25], runs: 91, ctl: { auto: 1, oc: 1, focus: 1, aug: 0 },
+    mods: [['×2', '#ffd23f', 'afford', '4.1No'], ['🔥', '#ff7a1a', 'afford', '9.9No'], ['▣', '#19e3ff', 'poor', '2Dc'], ['∞', '#39ff88', 'maxed', 'MAX']] },
+  { name: 'Practice Hacking', pid: 'practice', c: '#39ff88', g: '▭', state: 'auto', crit: true, dur: '.29s',
+    stats: [['SPEED', '×17.0 <em>· 0.29s</em>'], ['YIELD', '+0.01 proficiency/run']],
+    lv: [11, '1.51K/11.3K', .13], sl: [7, '43/1.28K', .03], runs: 46, ctl: { auto: 1, oc: 0, focus: 1, aug: 0 },
+    mods: [['▤', '#ff2bd6', 'afford', '1.1No'], ['⇄', '#19e3ff', 'poor', '30No'], ['▥', '#2f6bff', 'maxed', 'MAX']] },
+  { name: 'Push malware', pid: 'malware', c: '#ff3b5c', g: '✺', state: 'auto', dur: '.38s',
+    stats: [['SPEED', '×15.8 <em>· 0.38s</em>'], ['YIELD', '+0.0002 payout/run <em>×2</em>'], ['RISK', '<span class="heat">10% chance +1 heat</span>']],
+    lv: [10, '4.43K/5.91K', .75], sl: [6, '87/640', .14], runs: 80, ctl: { auto: 1, oc: 1, focus: 1, aug: 0 },
+    mods: [['×2', '#ffd23f', 'afford', '7.0No'], ['⛉', '#19e3ff', 'poor', '88No'], ['ϟ', '#ff2bd6', 'afford', '5.5No'], ['⚿', '#ffd23f', 'poor', '1Dc'], ['◌', '#19e3ff', 'maxed', 'MAX']] },
+  { name: 'Kill servers', pid: 'killsrv', c: '#ff7a1a', g: '☒', state: 'auto', dur: '11.7s',
+    stats: [['SPEED', '×10.2 <em>· 11.7s</em>'], ['YIELD', '+1 ICE Rating/run'], ['COST', '<span class="bad">1% of nodes (633)</span>']],
+    lv: [4, '9/158', .06], sl: [1, '16/20', .8], runs: 19, ctl: { auto: 1, oc: 1, focus: 1, aug: 0 },
+    mods: [['×2', '#ffd23f', 'afford', '3.3No'], ['⛉', '#19e3ff', 'poor', '40No'], ['₵', '#ffd23f', 'afford', '6.1No'], ['☒', '#ff3b5c', 'poor', '70No'], ['⚷', '#ffd23f', 'afford', '2.2No']] },
+  { name: 'Build Legend', pid: 'legend', c: '#ffd23f', g: '☠', state: 'idle', dur: '37s',
+    stats: [['SPEED', '×8.1 <em>· 37.0s</em>'], ['YIELD', '+1 legend/run'], ['RISK', '<span class="heat">+5 heat/s while running</span>']],
+    lv: [0, '0/9.9', 0], sl: [0, '2/10', .2], runs: 84, ctl: { auto: 0, oc: null, focus: 0, aug: 0 }, mods: [] },
+];
+const CTL = [['auto', 'AUTO', '⟳', '#39ff88'], ['oc', 'OC', 'ϟ', '#ff7a1a'], ['focus', 'FOCUS', '⌖', '#19e3ff'], ['aug', 'AUG', '⚙', '#b266ff']];
+const STATE = { auto: ['on pulse', 'AUTO', 'var(--auto)'], run: ['on pulse', 'RUNNING', 'var(--run)'], idle: ['', 'IDLE', 'var(--muted)'] };
+function card(a) {
+  const [cls, word, col] = STATE[a.state];
+  const running = a.state !== 'idle';
+  return `<article class="proc ${running ? 'running' : 'idle'} ${a.fast && running ? 'fast' : ''}" style="--c:${a.c};--dur:${a.dur || '1s'}">
+    <div class="titlebar"><span class="ico">${a.g}</span><span class="name">${a.name}</span><span class="pid">${a.pid}</span>
+      ${a.crit ? '<span class="crit" style="margin-left:auto">CRITICAL!</span>' : ''}<span class="led ${cls} state" style="--c:${col}${a.crit ? ';margin-left:10px' : ''}">${word}</span></div>
+    <div class="pbody">
+      <div class="stats">${a.stats.map(([k, v]) => `<span class="k">${k}</span><span class="v">${v}</span>`).join('')}</div>
+      <div class="ctrls">${CTL.map(([k, l, g, kc]) => `<button class="ctl ${a.ctl[k] === null ? 'none' : a.ctl[k] ? 'on' : ''}" style="--k:${kc}" data-ctl="${k}"><span class="g">${g}</span>${l}</button>`).join('')}</div>
+      <div class="progress"><i style="${running ? '' : 'transform:scaleX(0)'}"></i><span>${a.fast && running ? a.rate : ''}</span></div>
+      <div class="lv"><span>LV ${a.lv[0]}</span><div class="bar"><i style="transform:scaleX(${a.lv[2]})"></i></div><span class="r">${a.lv[1]} XP</span></div>
+      <div class="lv"><span>SLEEVE ${a.sl[0]}</span><div class="bar"><i style="transform:scaleX(${a.sl[2]})"></i></div><span class="r">${a.sl[1]} · ${a.runs} runs</span></div>
+    </div>
+    ${a.mods.length ? `<div class="mods"><span class="ml">MODS</span>${a.mods.map(([g, c, s, p]) => tile({ g, c, s, p, n: 'mod' })).join('')}</div>` : ''}
+  </article>`;
+}
+function render() {
+  ACTIONS[0].state = $('opt-idle').checked ? 'idle' : 'auto';
+  $('actions').innerHTML = ACTIONS.map(card).join('') + '<div class="empty-slot" hidden></div>';
+  $('inv-stash').hidden = !$('opt-stash').checked;
+  $('inv-today').hidden = $('opt-stash').checked;
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('.ctl'); if (b) b.classList.toggle('on'); });
+$('opt-stash').addEventListener('change', render);
+$('opt-idle').addEventListener('change', render);
+render();
+</script>
+</body>
+</html>

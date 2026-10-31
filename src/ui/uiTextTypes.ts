@@ -6,7 +6,9 @@
  * @remarks
  * Split out of `uiText.ts`, which holds the default words and re-exports this type, so import it from there.
  */
-import type { AutoBurnSwitch, AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
+import type { AutoBurnText } from './autoBurnText';
+
+import type { AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
 import type { TipTexts } from './tipTextTypes';
 
 import type { ActionInfoParts, RewardLineParts, SleeveSectionId, SquareCellId, StatId } from './uiTextParts';
@@ -82,16 +84,7 @@ export interface UiText {
     /** The name and what each feature does. */
     readonly features: Readonly<Record<AutomationFeature, { readonly name: string; readonly description: string }>>;
     /** Auto Burn: where the toggle is, the label of each switch, and the labels of the thresholds and the reserve. */
-    readonly autoBurn: {
-      readonly hint: string;
-      readonly switches: Readonly<Record<Exclude<AutoBurnSwitch, 'hold' | 'upper'>, string>>;
-      /** Labels of the two switches that act at a threshold; they show the heat value in force. */
-      holdAt(lowerHeat: string): string;
-      upperAt(upperHeat: string): string;
-      readonly lower: string;
-      readonly upper: string;
-      readonly reserve: string;
-    };
+    readonly autoBurn: AutoBurnText;
     /** Automation context: selected action count and owned capacity. */
     dispersalCount(selected: number, slots: number): string;
     /** Automation context: permitted schematic rarities the player already knows. */

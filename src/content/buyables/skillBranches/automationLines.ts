@@ -29,21 +29,19 @@ const AUTO_BURN_SKILLS: readonly {
   {
     slot: 2,
     name: 'Hold Down',
-    description:
-      'Adds the switch "Hold at lower threshold": use just enough leads to bring heat down to the lower threshold, none at or below it.',
+    description: 'Adds the switch "Hold at Floor": use just enough leads to bring heat down to the Floor, none at or below it.',
     step: 'hold',
   },
   {
     slot: 3,
     name: 'Redline Trigger',
-    description:
-      'Adds the switch "Switch on at upper threshold": the Burn lead toggle switches itself on when heat reaches the upper threshold.',
+    description: 'Adds the switch "Switch on at Redline": the Burn lead toggle switches itself on when heat reaches the Redline.',
     step: 'upper',
   },
   {
     slot: 4,
     name: 'Cool Overclocks',
-    description: 'Adds a switch: when out of leads while heat is above the lower threshold, switch off every Overclock that makes heat.',
+    description: 'Adds a switch: when out of leads while heat is above the Floor, switch off every Overclock that makes heat.',
     step: 'offOverclocks',
   },
   {
@@ -56,7 +54,7 @@ const AUTO_BURN_SKILLS: readonly {
     slot: 6,
     name: 'Resume Auto-runs',
     description:
-      'Adds a switch: when heat is below the lower threshold and leads are available, switch on the Auto-runs you tick in its list (even ones you switched off yourself), and the Burn lead toggle.',
+      'Adds a switch: when heat is below the Floor and leads are available, switch on the Auto-runs you tick in its list (even ones you switched off yourself), and the Burn lead toggle.',
     step: 'onActions',
   },
   {
@@ -65,11 +63,11 @@ const AUTO_BURN_SKILLS: readonly {
     description: 'Adds a switch: in that situation also switch on the Overclocks you tick in its list.',
     step: 'onOverclocks',
   },
-  { slot: 9, name: 'Tune Thresholds', description: 'Edit the lower and the upper threshold.', step: 'thresholds' },
+  { slot: 9, name: 'Tune Thresholds', description: 'Edit the Floor and the Redline.', step: 'thresholds' },
   {
     slot: 10,
     name: 'Lead Reserve',
-    description: 'Set a number of Burn leads to always keep: every rule above treats only the leads beyond it as available.',
+    description: 'Set a Reserve of Burn leads to always keep: every rule above treats only the leads beyond it as available.',
     step: 'reserve',
   },
 ];

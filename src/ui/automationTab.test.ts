@@ -80,8 +80,8 @@ describe('automation in the view model', () => {
       ['dispersal', true],
     ]);
     expect(view.pointsText).toBe('Automation points: 0');
-    expect(view.autoBurn.thresholds).toMatchObject({ visible: false, lower: 10, upper: 50 });
-    expect(view.autoBurn.switches.some((sw) => sw.visible)).toBe(false); // nothing is shown before its skill is owned
+    expect(view.autoBurn.strip).toMatchObject({ visible: false, floor: { value: 10 }, redline: { value: 50 } });
+    expect(view.autoBurn.rows.some((row) => row.visible)).toBe(false); // nothing is shown before its skill is owned
     expect(view.rarities.map((r) => r.id)).toEqual(['common', 'rare']);
     expect(view.actions.find((a) => a.id === 'b')!.selected).toBe(true);
     expect(view.dispersalCount).toBe('Actions selected: 1 / 1');

@@ -39,6 +39,7 @@ export {
 } from './automation/automation';
 export { AutoBurn, type AutoBurnControls, type AutoBurnSwitches } from './automation/autoBurn';
 export { type AutoBurnRules, ownsAutoBurnStep } from './automation/autoBurnRules';
+export type { AutoBurnActivity, AutoBurnFiring, AutoBurnStatus } from './automation/autoBurnStatus';
 export {
   AUTO_BURN_STEPS,
   AUTO_BURN_SWITCHES,

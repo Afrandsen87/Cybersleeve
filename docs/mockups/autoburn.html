@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Auto Burn panel – mockup</title>
+<style>
+  :root {
+    --bg: #0b0f1a; --panel: #141a2b; --ink: #e6f1ff; --muted: #8da2c0; --cyan: #19e3ff;
+    --magenta: #ff2bd6; --line: #26304d; --teal: #14a89a; --burn: #b266ff; --red: #ff3b5c;
+    --orange: #ff7a1a; --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 system-ui, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+  h1 { font-size: 15px; color: var(--muted); font-weight: 600; margin: 0; }
+  button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+
+  /* mockup-only controls */
+  .demo { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; padding: 10px 12px; border: 1px dashed #3a4466;
+    border-radius: 8px; font-size: 13px; color: var(--muted); }
+  .demo b { color: var(--ink); font-weight: 600; }
+  .demo label { display: inline-flex; gap: 8px; align-items: center; }
+  .demo input[type=range] { width: 140px; accent-color: var(--burn); }
+
+  /* the panel */
+  .ab { border: 1px solid var(--cyan); border-radius: 8px; padding: 12px; background: var(--panel); display: grid; gap: 12px; }
+  .ab-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .ab-title { font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--burn); text-shadow: 0 0 8px var(--burn); margin: 0; }
+  .ab-desc { margin: 0; color: var(--muted); font-size: 13px; }
+
+  /* status line */
+  .status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; font: 13px var(--mono); padding: 8px 12px;
+    background: #0d1222; border: 1px solid var(--line); border-radius: 6px; }
+  .status .state { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: .06em; }
+  .status .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+  .status .k { color: var(--muted); }
+  .status .sep { color: #3a4466; }
+  .status input { width: 4.5em; }
+  .s-burn { color: var(--orange); } .s-idle { color: var(--cyan); } .s-off { color: var(--muted); }
+  .s-cool { color: var(--red); } .s-resume { color: #39ff88; }
+
+  input[type=number] { font: 13px var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 4px; padding: 2px 4px; }
+  input[type=number]:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+
+  /* heat strip */
+  .strip-wrap { padding: 30px 6px 18px; }
+  .strip { position: relative; height: 26px; border-radius: 4px; background: #0d1222; border: 1px solid var(--line); }
+  .zone { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center;
+    font: 700 10px var(--mono); letter-spacing: .14em; overflow: hidden; white-space: nowrap; }
+  .z-cold { background: linear-gradient(90deg, color-mix(in srgb, var(--cyan) 22%, transparent), color-mix(in srgb, var(--cyan) 8%, transparent)); color: var(--cyan); }
+  .z-band { background: color-mix(in srgb, var(--burn) 14%, transparent); color: var(--burn); }
+  .z-red { background: linear-gradient(90deg, color-mix(in srgb, var(--red) 10%, transparent), color-mix(in srgb, var(--red) 30%, transparent)); color: var(--red); }
+  .zone.live { text-shadow: 0 0 6px currentColor; }
+  .zone:not(.live) { color: color-mix(in srgb, currentColor 55%, transparent); }
+  .notch { position: absolute; top: -6px; bottom: -6px; width: 2px; transform: translateX(-1px); }
+  .notch.floor { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  .notch.redline { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .notch-label { position: absolute; top: -30px; transform: translateX(-50%); font: 11px var(--mono); white-space: nowrap;
+    display: inline-flex; gap: 5px; align-items: center; }
+  .notch-label.floor { color: var(--cyan); } .notch-label.redline { color: var(--red); }
+  .notch-label input { width: 3.6em; padding: 0 3px; }
+  .heat-marker { position: absolute; top: -3px; bottom: -3px; width: 3px; transform: translateX(-1.5px); background: #fff;
+    box-shadow: 0 0 8px #fff; border-radius: 2px; transition: left .15s; }
+  .heat-label { position: absolute; bottom: -19px; transform: translateX(-50%); font: 11px var(--mono); color: #fff; white-space: nowrap; transition: left .15s; }
+
+  /* protocol listing */
+  .proto { display: grid; gap: 6px; font: 13px var(--mono); }
+  .rule { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 10px;
+    border: 1px solid var(--line); border-left: 3px solid var(--tag); border-radius: 6px; background: #10162a;
+    transition: box-shadow .15s, background .15s; }
+  .rule.firing { background: color-mix(in srgb, var(--tag) 10%, #10162a); box-shadow: inset 3px 0 12px -4px var(--tag), 0 0 10px -4px var(--tag); }
+  .rule.off .body { opacity: .5; }
+  .tag { font-weight: 700; letter-spacing: .1em; color: var(--tag); font-size: 12px; }
+  .rule.firing .tag { text-shadow: 0 0 8px var(--tag); }
+  .tag small { display: block; font-weight: 400; letter-spacing: 0; color: var(--muted); font-size: 10px; }
+  .body { display: grid; gap: 6px; }
+  .line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .cond { color: var(--muted); }
+  .arrow { color: var(--tag); }
+  .act { color: var(--ink); font-weight: 600; }
+  .num { color: var(--tag); font-weight: 700; }
+  .t-trigger { --tag: var(--red); } .t-throttle { --tag: var(--burn); } .t-failsafe { --tag: var(--orange); } .t-restart { --tag: var(--cyan); }
+  .sub { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding-top: 6px; border-top: 1px dashed var(--line); }
+
+  /* LED switch */
+  .led { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px; font: 700 11px var(--mono);
+    letter-spacing: .08em; color: var(--muted); background: #0b0f1a; min-width: 64px; justify-content: center; }
+  .led::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #3a4466; }
+  .led.on { color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px -2px var(--cyan); }
+  .led.on::before { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+  .led:hover { border-color: var(--cyan); }
+
+  /* chips */
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 6px; border-radius: 6px; font: 12px var(--mono);
+    color: var(--muted); border: 1px dashed #3a4466; background: transparent; }
+  .chip .ico { width: 16px; height: 16px; image-rendering: pixelated; opacity: .5; }
+  .chip.on { color: var(--ink); border: 1px solid var(--tag); background: color-mix(in srgb, var(--tag) 12%, transparent); box-shadow: 0 0 8px -3px var(--tag); }
+  .chip.on .ico { opacity: 1; }
+  .chip:hover { border-color: var(--tag); }
+  .chip .kind { color: var(--muted); font-size: 10px; letter-spacing: .06em; }
+
+  /* skill lane (same look as today, new icons) */
+  .lane { position: relative; display: flex; gap: 16px; align-items: center; padding: 14px 12px 14px 22px; border-left: 3px solid var(--burn);
+    border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, var(--burn) 26%, transparent), transparent 80%);
+    box-shadow: inset 3px 0 10px -6px var(--burn); overflow-x: auto; }
+  .lane::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: linear-gradient(90deg, var(--burn), transparent 70%); box-shadow: 0 0 8px var(--burn); }
+  .node { position: relative; width: 44px; height: 44px; flex: none; padding: 0; display: grid; place-items: center; border-radius: 8px; }
+  .node svg { width: 32px; height: 32px; image-rendering: pixelated; }
+  .node.owned { border-color: var(--burn); box-shadow: 0 0 10px var(--burn); background: color-mix(in srgb, var(--burn) 18%, var(--panel)); }
+  .node.next { border-color: var(--burn); border-style: dashed; }
+  .node.next svg { opacity: .55; }
+  .node.later svg { opacity: .12; filter: grayscale(1); }
+  .node + .node::before { content: ""; position: absolute; right: 100%; top: 50%; width: 17px; height: 2px; margin-right: 1px; background: color-mix(in srgb, var(--burn) 40%, transparent); }
+  .node.owned + .node::before { background: var(--burn); box-shadow: 0 0 4px var(--burn); }
+  .tip { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); width: 240px; padding: 8px 10px; font-size: 12px;
+    text-align: left; background: #0d1222; border: 1px solid var(--burn); border-radius: 6px; display: none; z-index: 2; pointer-events: none; }
+  .tip b { display: block; color: var(--burn); margin-bottom: 2px; }
+  .node:hover .tip { display: block; }
+
+  .notes { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+  .notes li { margin: 3px 0; }
+  .notes code { color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mockup: Auto Burn panel (A protocol rows + B heat strip + C names + E icons + status line)</h1>
+
+  <div class="demo">
+    <span><b>Mockup controls</b> (not part of the design)</span>
+    <label>Skills owned <input id="d-skills" type="range" min="1" max="9" value="9"> <b id="d-skills-v"></b></label>
+    <label>Heat <input id="d-heat" type="range" min="0" max="100" value="23"> <b id="d-heat-v"></b></label>
+    <label>Burn leads <input id="d-leads" type="range" min="0" max="200" value="134"> <b id="d-leads-v"></b></label>
+    <label><input id="d-toggle" type="checkbox" checked> Inventory toggle</label>
+  </div>
+
+  <section class="ab">
+    <div class="ab-head">
+      <h3 class="ab-title">AUTO BURN</h3>
+      <p class="ab-desc">A daemon that burns leads to keep your heat in check, and stops or restarts heat-making work.</p>
+    </div>
+    <div id="status" class="status"></div>
+    <div id="strip-wrap" class="strip-wrap"></div>
+    <div id="proto" class="proto"></div>
+    <div id="lane" class="lane"></div>
+  </section>
+
+  <div class="notes">
+    <ul>
+      <li>Drag <b>Skills owned</b> to see the reveal order: each skill adds one row, notch or field, and nothing appears earlier.</li>
+      <li>The highlighted row is the rule acting right now. Move <b>Heat</b> and <b>Burn leads</b> to watch it change.</li>
+      <li>Floor and Redline are fixed numbers until <i>Tune Thresholds</i>; Reserve appears with <i>Lead Reserve</i>.</li>
+      <li>The status-line logic here is a rough mockup. The real panel reads it from the Auto Burn rules owner (<code>autoBurnRules</code>).</li>
+      <li>Icons are rough 16×16 sketches; final art goes in <code>automationSkillIcons.ts</code>. The heat scale 0–100 is only for the mockup.</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+// ---------- pixel icons: an 11x11 base with an optional 7x7 badge bottom-right ----------
+const PAL = { o: '#ff7a1a', y: '#ffd23f', w: '#ffffff', c: '#19e3ff', b: '#2f6bff', k: '#0b0f1a', g: '#8da2c0', r: '#ff3b5c', e: '#39ff88', p: '#b266ff' };
+const BASE = {
+  flame: ['.....o.....', '....oo..o..', '...ooyo.oo.', '..ooyyooyo.', '.ooyyyyoyyo', '.oyyywyyyyo', '.oyywwwyyyo', '.oyywwwyyyo', '..oyywwyyo.', '...ooyyoo..', '.....oo....'],
+  chip: ['..c.c.c.c..', '..c.c.c.c..', 'cbbbbbbbbbc', '.bkkkkkkkb.', 'cbkccccckbc', '.bkcwwwckb.', 'cbkccccckbc', '.bkkkkkkkb.', 'cbbbbbbbbbc', '..c.c.c.c..', '..c.c.c.c..'],
+  loop: ['...ccccc...', '..cc...cc..', '.cc.....cc.', '.c.......c.', '.c......ccc', '.c.......c.', '.c.........', '.cc.....cc.', '..cc...cc..', '...ccccc...', '...........'],
+  gauge: ['...........', '...ggggg...', '..g.....r..', '.g.......r.', 'g.........r', 'g....w...rr', 'g.....w..r.', 'g......w...', 'gggggggggg.', '...........', '...........'],
+  sliders: ['...........', 'ggggggggggg', '...cc......', '...cc......', 'ggggggggggg', '...........', 'ggggggggggg', '.......rr..', '.......rr..', 'ggggggggggg', '...........'],
+  lock: ['...ggggg...', '..g.....g..', '..g.....g..', '..g.....g..', '.yyyyyyyyy.', '.yyyyyyyyy.', '.yyyykyyyy.', '.yyyykyyyy.', '.yyyyyyyyy.', '.yyyyyyyyy.', '...........'],
+};
+const BADGE = {
+  down: ['...c...', '...c...', '...c...', 'ccccccc', '.ccccc.', '..ccc..', '...c...'],
+  snow: ['c..c..c', '.c.c.c.', '..www..', 'cccwccc', '..www..', '.c.c.c.', 'c..c..c'],
+  play: ['.e.....', '.eee...', '.eeeee.', '.eeeeee', '.eeeee.', '.eee...', '.e.....'],
+  flame: ['...o...', '..oo.o.', '.ooyoo.', '.oyyyo.', '.oywyo.', '.oyyyo.', '..ooo..'],
+};
+function rects(rows, dx, dy) {
+  let s = '';
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { if (PAL[ch]) s += `<rect x="${x + dx}" y="${y + dy}" width="1" height="1" fill="${PAL[ch]}"/>`; }));
+  return s;
+}
+function icon(base, badge) {
+  let s = rects(BASE[base], badge ? 1 : 2, badge ? 1 : 2);
+  if (badge) s += `<rect x="8" y="8" width="8" height="8" fill="#0b0f1a"/>` + rects(BADGE[badge], 9, 9);
+  return `<svg viewBox="0 0 16 16" shape-rendering="crispEdges">${s}</svg>`;
+}
+
+// ---------- the nine skills (same order and effects as content/buyables/skillBranches/automationLines.ts) ----------
+const SKILLS = [
+  { name: 'Burn Toggle', ico: ['flame'], desc: 'Burn leads become a toggle in the Inventory: one lead a second while there is heat.' },
+  { name: 'Hold Down', ico: ['flame', 'down'], desc: 'THROTTLE: burn only enough leads to bring heat down to the Floor.' },
+  { name: 'Redline Trigger', ico: ['gauge', 'flame'], desc: 'TRIGGER: heat reaching the Redline switches the toggle on.' },
+  { name: 'Cool Overclocks', ico: ['chip', 'snow'], desc: 'FAILSAFE: out of leads above the Floor, kill heat-making Overclocks.' },
+  { name: 'Cool Auto-runs', ico: ['loop', 'snow'], desc: 'FAILSAFE: in that case also kill heat-making Auto-runs.' },
+  { name: 'Resume Auto-runs', ico: ['loop', 'play'], desc: 'RESTART: below the Floor with leads, restart the Auto-runs you pick.' },
+  { name: 'Resume Overclocks', ico: ['chip', 'play'], desc: 'RESTART: in that case also restart the Overclocks you pick.' },
+  { name: 'Tune Thresholds', ico: ['sliders'], desc: 'Edit the Floor and the Redline.' },
+  { name: 'Lead Reserve', ico: ['lock', 'flame'], desc: 'Set a Reserve of leads that the rules never touch.' },
+];
+
+// ---------- mockup state ----------
+const S = {
+  skills: 9, heat: 23, leads: 134, toggle: true, floor: 20, redline: 70, reserve: 10,
+  sw: { hold: true, upper: true, offOverclocks: true, offActions: false, onActions: true, onOverclocks: false },
+  resumeAuto: { grow: true, push: false },
+  resumeOc: { grow: false, push: true },
+};
+const ACTIONS = [{ id: 'grow', name: 'Grow network' }, { id: 'push', name: 'Push malware' }];
+const has = (n) => S.skills >= n; // n = 1-based position in SKILLS
+
+function situation() {
+  const floor = has(2) || has(3) ? S.floor : null;
+  const reserve = has(9) ? S.reserve : 0;
+  const avail = S.leads - reserve > 0;
+  const trigger = has(3) && S.sw.upper && S.heat >= S.redline;
+  const on = S.toggle || trigger;
+  const fail = on && !avail && S.heat > S.floor && has(4) && (S.sw.offOverclocks || (has(5) && S.sw.offActions));
+  const restart = S.heat < S.floor && avail && ((has(6) && S.sw.onActions) || (has(7) && S.sw.onOverclocks));
+  let state;
+  if (fail) state = ['s-cool', 'COOLING', 'out of leads: heat-making work killed'];
+  else if (restart) state = ['s-resume', 'RESTARTING', 'heat is low: restarting picked work'];
+  else if (!on) state = ['s-off', 'STANDBY', 'Inventory toggle is off'];
+  else if (!avail) state = ['s-cool', 'DRY', 'no leads to burn'];
+  else if (S.heat <= 0) state = ['s-idle', 'IDLE', 'no heat'];
+  else if (has(2) && S.sw.hold && S.heat <= S.floor) state = ['s-idle', 'HOLDING', `at Floor ${S.floor}`];
+  else state = ['s-burn', 'BURNING', has(2) && S.sw.hold ? `down to Floor ${S.floor}` : '1 lead / s'];
+  return { floor, reserve, avail, trigger, on, fail, restart, state };
+}
+
+// ---------- render ----------
+const $ = (id) => document.getElementById(id);
+const pct = (v) => `${Math.max(0, Math.min(100, v))}%`;
+
+function render() {
+  const x = situation();
+  $('d-skills-v').textContent = `${S.skills} · ${SKILLS[S.skills - 1].name}`;
+  $('d-heat-v').textContent = S.heat;
+  $('d-leads-v').textContent = S.leads;
+
+  // status line
+  const [cls, word, why] = x.state;
+  $('status').innerHTML =
+    `<span class="state ${cls}"><span class="dot"></span>${word}</span><span class="k">${why}</span>` +
+    `<span class="sep">│</span><span><span class="k">heat</span> ${S.heat}</span>` +
+    `<span><span class="k">leads</span> ${S.leads}</span>` +
+    (has(9) ? `<label><span class="k">reserve</span> <input id="in-reserve" type="number" min="0" value="${S.reserve}"></label>` : '') +
+    `<span class="sep">│</span><span class="k">Inventory toggle</span> <span class="${S.toggle ? 's-idle' : 's-off'}">${S.toggle ? 'ON' : 'OFF'}</span>` +
+    (x.trigger && !S.toggle ? ' <span class="s-burn">(Redline forced it on)</span>' : '');
+
+  // heat strip
+  const edit = has(8);
+  const notch = (kind, label, v, id) =>
+    `<div class="notch ${kind}" style="left:${pct(v)}"></div>` +
+    `<div class="notch-label ${kind}" style="left:${pct(v)}">${label} ${edit ? `<input id="${id}" type="number" min="0" value="${v}">` : `<b>${v}</b>`}</div>`;
+  const zones = [];
+  if (has(2) || has(3)) {
+    const f = S.floor, u = has(3) ? S.redline : 100;
+    zones.push(`<div class="zone z-cold ${S.heat < f ? 'live' : ''}" style="left:0;width:${pct(f)}">${has(6) ? 'RESTART' : 'COLD'}</div>`);
+    zones.push(`<div class="zone z-band ${S.heat >= f && S.heat < u ? 'live' : ''}" style="left:${pct(f)};width:${pct(u - f)}">THROTTLE</div>`);
+    if (has(3)) zones.push(`<div class="zone z-red ${S.heat >= u ? 'live' : ''}" style="left:${pct(u)};width:${pct(100 - u)}">TRIGGER</div>`);
+  }
+  $('strip-wrap').innerHTML =
+    `<div class="strip">${zones.join('')}` +
+    (has(2) || has(3) ? notch('floor', 'FLOOR', S.floor, 'in-floor') : '') +
+    (has(3) ? notch('redline', 'REDLINE', S.redline, 'in-redline') : '') +
+    `<div class="heat-marker" style="left:${pct(S.heat)}"></div><div class="heat-label" style="left:${pct(S.heat)}">heat ${S.heat}</div></div>`;
+
+  // protocol rows
+  const led = (key) => `<button class="led ${S.sw[key] ? 'on' : ''}" data-sw="${key}">${S.sw[key] ? 'ON' : 'OFF'}</button>`;
+  const chip = (on, ico, label, kind, data) =>
+    `<button class="chip ${on ? 'on' : ''}" ${data}><span class="ico">${icon(...ico)}</span>${label}${kind ? ` <span class="kind">${kind}</span>` : ''}</button>`;
+  const rows = [];
+  const res = has(9) && S.reserve > 0 ? ` beyond reserve <span class="num">${S.reserve}</span>` : '';
+  if (has(3))
+    rows.push(`<div class="rule t-trigger ${x.trigger ? 'firing' : ''} ${S.sw.upper ? '' : 'off'}"><div class="tag">TRIGGER<small>Redline Trigger</small></div>
+      <div class="body"><div class="line"><span class="cond">WHEN heat ≥ <span class="num">${S.redline}</span></span><span class="arrow">→</span><span class="act">switch the Burn toggle on</span></div></div>${led('upper')}</div>`);
+  if (has(2))
+    rows.push(`<div class="rule t-throttle ${x.on && x.avail && S.heat > 0 && !x.fail && !x.restart ? 'firing' : ''} ${S.sw.hold ? '' : 'off'}"><div class="tag">THROTTLE<small>Hold Down</small></div>
+      <div class="body"><div class="line"><span class="cond">WHILE burning</span><span class="arrow">→</span><span class="act">burn only down to heat <span class="num">${S.floor}</span></span><span class="cond">(saves leads)</span></div></div>${led('hold')}</div>`);
+  if (has(4)) {
+    const chips = chip(S.sw.offOverclocks, ['chip', 'snow'], 'Overclocks', '', 'data-sw-chip="offOverclocks"') +
+      (has(5) ? chip(S.sw.offActions, ['loop', 'snow'], 'Auto-runs', '', 'data-sw-chip="offActions"') : '');
+    rows.push(`<div class="rule t-failsafe ${x.fail ? 'firing' : ''}"><div class="tag">FAILSAFE<small>Cool ${has(5) ? 'Overclocks · Auto-runs' : 'Overclocks'}</small></div>
+      <div class="body"><div class="line"><span class="cond">WHEN out of leads${res} AND heat &gt; <span class="num">${S.floor}</span></span><span class="arrow">→</span><span class="act">kill heat-making</span>${chips}</div></div><span></span></div>`);
+  }
+  if (has(6)) {
+    const autoChips = ACTIONS.map((a) => chip(S.resumeAuto[a.id], ['loop', 'play'], a.name, 'AUTO-RUN', `data-ra="${a.id}"`)).join('');
+    const ocChips = ACTIONS.map((a) => chip(S.resumeOc[a.id], ['chip', 'play'], a.name, 'OVERCLOCK', `data-ro="${a.id}"`)).join('');
+    rows.push(`<div class="rule t-restart ${x.restart ? 'firing' : ''}"><div class="tag">RESTART<small>Resume ${has(7) ? 'Auto-runs · Overclocks' : 'Auto-runs'}</small></div>
+      <div class="body">
+        <div class="line"><span class="cond">WHEN heat &lt; <span class="num">${S.floor}</span> AND leads${res ? res : ' left'}</span><span class="arrow">→</span><span class="act">restart what you pick, and the Burn toggle</span></div>
+        <div class="sub ${S.sw.onActions ? '' : 'off'}"><div class="line">${autoChips}</div>${led('onActions')}</div>
+        ${has(7) ? `<div class="sub ${S.sw.onOverclocks ? '' : 'off'}"><div class="line">${ocChips}</div>${led('onOverclocks')}</div>` : ''}
+      </div><span></span></div>`);
+  }
+  $('proto').innerHTML = rows.join('');
+  $('proto').hidden = rows.length === 0;
+  $('strip-wrap').hidden = !(has(2) || has(3));
+
+  // skill lane
+  $('lane').innerHTML = SKILLS.map((s, i) => {
+    const st = i < S.skills ? 'owned' : i === S.skills ? 'next' : 'later';
+    const tip = st === 'later' ? '<b>???</b>' : `<b>${s.name}</b>${s.desc}`;
+    return `<button class="node ${st}">${icon(...s.ico)}<span class="tip">${tip}</span></button>`;
+  }).join('');
+}
+
+// ---------- events ----------
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.sw) S.sw[t.dataset.sw] = !S.sw[t.dataset.sw];
+  else if (t.dataset.swChip) S.sw[t.dataset.swChip] = !S.sw[t.dataset.swChip];
+  else if (t.dataset.ra) S.resumeAuto[t.dataset.ra] = !S.resumeAuto[t.dataset.ra];
+  else if (t.dataset.ro) S.resumeOc[t.dataset.ro] = !S.resumeOc[t.dataset.ro];
+  else return;
+  render();
+});
+document.addEventListener('change', (e) => {
+  const v = Math.max(0, Number(e.target.value) || 0);
+  if (e.target.id === 'in-floor' && v < S.redline) S.floor = v;
+  else if (e.target.id === 'in-redline' && v > S.floor) S.redline = Math.min(100, v);
+  else if (e.target.id === 'in-reserve') S.reserve = v;
+  else if (e.target.id === 'd-toggle') S.toggle = e.target.checked;
+  render();
+});
+for (const [id, key] of [['d-skills', 'skills'], ['d-heat', 'heat'], ['d-leads', 'leads']])
+  $(id).addEventListener('input', (e) => { S[key] = Number(e.target.value); render(); });
+render();
+</script>
+</body>
+</html>

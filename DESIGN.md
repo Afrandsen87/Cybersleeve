@@ -81,6 +81,7 @@ Skill Transfer adds Practice Hacking's sleeve level to Grow network's effective 
 ### 8b. Automation
 
 *Moved to [docs/contexts/automation.md](docs/contexts/automation.md).* Kompromat autosale is unlocked per rarity; its fork adds auto Back Channel before autosale. Augment dispersal applies permitted rarities evenly to selected unlocked actions; its chain grants up to six selections. Removed placeholders refund their automation points on load.
+The Auto Burn panel shows a status line (STANDBY, IDLE, BLOCKED, DRY, HOLDING or BURNING), heat, held leads and the display-only Inventory toggle. Each owned skill reveals its part: the Floor strip and THROTTLE, the Redline notch and REDLINE row, FAILSAFE target chips, RESTART target sub-rows, editable Floor/Redline values, then Reserve. The restart lists show every heat-making Auto-run and Overclock of an action the sleeve can reach; one the sleeve has not unlocked yet has a red border, cannot be picked, and its tooltip says so (a list with none reachable shows a muted line). Floor and Redline stay fixed until Tune Thresholds; Reserve counts leads kept untouched. The heat strip spans 0..max(1.5 x Redline, Floor + 1), with overflow heat pinned at the edge while its label retains the real value. Activity, firing flags and lead availability come only from `autoBurnStatus.ts` through `AutoBurnControls.status()`; the same owner supplies the off/on conditions used by Auto Burn. Full mechanics: [automation context](docs/contexts/automation.md).
 
 ## 9. Infinity and big numbers
 

@@ -91,6 +91,15 @@ export function setText(el: HTMLElement, text: string): void {
   if (el.textContent !== text) el.textContent = text;
 }
 
+/** Updates a number input unless its owner is typing, without emitting events.
+ * Called by: automationWidget, autoBurnPanel. Calls: DOM activeElement.
+ * @param input field to synchronize
+ * @param value owner value
+ */
+export function syncInput(input: HTMLInputElement, value: number): void {
+  if (input.ownerDocument.activeElement !== input && input.value !== String(value)) input.value = String(value);
+}
+
 /**
  * Sets how full a bar is. The fill is a full-width element scaled from the left (`transform`, which the browser can animate without
  * re-laying out the page), and CSS eases it towards each new value over one refresh interval so it moves smoothly between refreshes.
