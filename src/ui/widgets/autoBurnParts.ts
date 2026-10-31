@@ -65,7 +65,8 @@ export interface ChipListView {
 }
 
 /**
- * A row of toggle chips. The buttons are rebuilt only when the list of chip ids changes; clicks read the latest chip state.
+ * A row of toggle chips. The buttons are rebuilt only when the list of chip ids changes; clicks read the latest chip state. A locked chip
+ * ignores clicks and shows its tooltip (`ctx.tips`).
  * A chip with `switchName` sets that switch; otherwise it ticks an Auto-run (`group` 'autoRuns') or an Overclock for the resume rule.
  *
  * Called by: `protocol` (in `autoBurnPanel.ts`). Calls: `applyIcon`, `AutoBurnControls.setSwitch`, `.setResumeAutoRun`, `.setResumeOverclock`.
@@ -82,6 +83,7 @@ export function chipList(ctx: UiContext, burn: AutoBurnControls, refresh: () => 
   let current: readonly BurnChipView[] = [];
   const buttons = new Map<string, HTMLButtonElement>();
   const emptyLine = h('span', 'cond');
+  element.append(emptyLine); // in place from the start: an empty first list never triggers a rebuild
   const build = (chips: readonly BurnChipView[]): void => {
     buttons.clear();
     element.replaceChildren(emptyLine);
@@ -93,7 +95,7 @@ export function chipList(ctx: UiContext, burn: AutoBurnControls, refresh: () => 
       b.append(icon, h('span', undefined, chip.name), h('span', 'kind', chip.kind));
       b.addEventListener('click', () => {
         const value = current.find((c) => c.id === chip.id);
-        if (!value) return;
+        if (!value || value.locked) return;
         if (value.switchName) burn.setSwitch(value.switchName, !burn.rules()[value.switchName]);
         else if (group === 'autoRuns') burn.setResumeAutoRun(value.id, !value.on);
         else burn.setResumeOverclock(value.id, !value.on);
@@ -119,6 +121,11 @@ export function chipList(ctx: UiContext, burn: AutoBurnControls, refresh: () => 
         if (!b) continue;
         b.classList.toggle('on', chip.on);
         b.setAttribute('aria-pressed', String(chip.on));
+        // a locked chip stays hoverable (not `disabled`) so its tooltip can show
+        b.classList.toggle('locked', chip.locked);
+        b.setAttribute('aria-disabled', String(chip.locked));
+        const tip = chip.tip;
+        ctx.tips.set(b, tip ? () => tip : null);
       }
     },
   };

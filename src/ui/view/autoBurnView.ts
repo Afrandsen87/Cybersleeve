@@ -48,7 +48,7 @@ function stepSkillName(config: Pick<GameConfig, 'buyables'>, step: AutoBurnStep)
  */
 export function autoBurnView(
   burn: AutoBurnControls,
-  engine: Pick<ActionQueries, 'overclockStatus'>,
+  engine: Pick<ActionQueries, 'overclockStatus' | 'isUnlocked'>,
   config: GameConfig,
   views: ReadonlyMap<string, BuyableView>,
   text: UiText,
@@ -63,11 +63,29 @@ export function autoBurnView(
   const redline = formatPlain(rules.upperAt);
   const lists = resumeChecklists(burn, engine, config, views);
   const chips = (items: typeof lists.resumeAutoRuns.items, icon: string, kind: string): BurnChipView[] =>
-    items.map((i) => ({ id: i.id, name: i.name, on: i.ticked, icon, kind }));
+    items.map((i) => ({ id: i.id, name: i.name, on: i.ticked, icon, kind, locked: i.locked, ...(i.locked ? { tip: t.lockedTip } : {}) }));
   const failsafe: BurnChipView[] = [
-    { id: 'offOverclocks', name: t.overclocks, on: rules.offOverclocks, icon: 'overclock', kind: '', switchName: 'offOverclocks' },
+    {
+      id: 'offOverclocks',
+      name: t.overclocks,
+      on: rules.offOverclocks,
+      icon: 'overclock',
+      kind: '',
+      locked: false,
+      switchName: 'offOverclocks',
+    },
     ...(owned('offActions')
-      ? [{ id: 'offActions', name: t.autoRuns, on: rules.offActions, icon: 'auto-run', kind: '', switchName: 'offActions' as const }]
+      ? [
+          {
+            id: 'offActions',
+            name: t.autoRuns,
+            on: rules.offActions,
+            icon: 'auto-run',
+            kind: '',
+            locked: false,
+            switchName: 'offActions' as const,
+          },
+        ]
       : []),
   ];
   const conditions = [t.trigger(redline), t.throttle(floor), t.failsafe(floor, reserve), t.restart(floor, reserve)];

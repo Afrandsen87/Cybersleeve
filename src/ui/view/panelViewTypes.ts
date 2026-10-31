@@ -34,7 +34,8 @@ export interface AutomationFeatureView {
 /** A checklist of the things a resume switch turns on: shown once the switch's skill is owned. */
 export interface ResumeChecklistView {
   readonly visible: boolean;
-  readonly items: readonly { readonly id: string; readonly name: string; readonly ticked: boolean }[];
+  /** One per reachable heat-making item; `locked` while the player does not own it (shown, not tickable). */
+  readonly items: readonly { readonly id: string; readonly name: string; readonly ticked: boolean; readonly locked: boolean }[];
 }
 
 /** Display data of the Automation tab. */

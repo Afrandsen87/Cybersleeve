@@ -32,6 +32,8 @@ export interface AutoBurnText {
   readonly overclockKind: string;
   readonly emptyAutoRuns: string;
   readonly emptyOverclocks: string;
+  /** The tooltip of a resume chip whose Auto-run or Overclock the player does not own yet. */
+  readonly lockedTip: string;
   trigger(redline: string): string;
   throttle(floor: string): string;
   failsafe(floor: string, reserve: boolean): string;
@@ -67,6 +69,7 @@ export const autoBurnText: AutoBurnText = {
   overclockKind: 'OVERCLOCK',
   emptyAutoRuns: 'No heat-making Auto-runs owned yet',
   emptyOverclocks: 'No heat-making Overclocks owned yet',
+  lockedTip: "You haven't unlocked this function on your sleeve yet.",
   trigger: (v) => `WHEN heat ≥ ${v}`,
   throttle: (v) => `WHILE burning → burn only down to heat ${v} (saves leads)`,
   failsafe: (v, reserve) => `WHEN out of leads${reserve ? ' above Reserve' : ''} AND heat > ${v}`,

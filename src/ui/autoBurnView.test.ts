@@ -87,7 +87,29 @@ describe('Auto Burn panel reveal', () => {
     if (template) for (const id of ['auto-hot', 'auto-warm']) ownedViews.set(id, { ...template, id, name: 'Auto-run', owned: 1 });
     const v = autoBurnView(game.automation().autoBurn(), game, config, ownedViews, uiText);
     expect(v.rows[3]!.subrows[0]!.chips.map((c) => c.name)).toEqual(['hot', 'warm']);
-    const empty = autoBurnView(game.automation().autoBurn(), { overclockStatus: () => null }, config, new Map(), uiText);
-    expect(empty.rows[3]!.subrows.every((s) => s.visible && s.chips.length === 0 && s.empty.length > 0)).toBe(true);
+    expect(v.rows[3]!.subrows[0]!.chips.every((c) => !c.locked && c.tip === undefined)).toBe(true);
+    const unowned = autoBurnView(
+      game.automation().autoBurn(),
+      { overclockStatus: () => null, isUnlocked: () => true },
+      config,
+      new Map(),
+      uiText,
+    );
+    for (const sub of unowned.rows[3]!.subrows) {
+      expect(sub.visible).toBe(true);
+      expect(sub.chips.length).toBeGreaterThan(0);
+      expect(sub.chips.every((c) => c.locked && c.tip === uiText.automation.autoBurn.lockedTip)).toBe(true);
+    }
+  });
+  it('lists no resume chip for an action the player cannot reach yet', () => {
+    const game = burnGame(7, 5, 10);
+    const v = autoBurnView(
+      game.automation().autoBurn(),
+      { overclockStatus: () => null, isUnlocked: () => false },
+      burnConfig,
+      new Map(),
+      uiText,
+    );
+    expect(v.rows[3]!.subrows.every((s) => s.visible && s.chips.length === 0 && s.empty.length > 0)).toBe(true);
   });
 });

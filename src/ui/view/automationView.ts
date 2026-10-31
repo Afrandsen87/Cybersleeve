@@ -30,7 +30,7 @@ import type { AutomationView, BuyableView, SkillLaneView } from './viewTypes';
  * @param tracker the reveal ledger reader
  */
 export function automationView(
-  engine: SkillQueries & Pick<ActionQueries, 'overclockStatus'>,
+  engine: SkillQueries & Pick<ActionQueries, 'overclockStatus' | 'isUnlocked'>,
   config: GameConfig,
   viewById: ReadonlyMap<string, BuyableView>,
   text: UiText,

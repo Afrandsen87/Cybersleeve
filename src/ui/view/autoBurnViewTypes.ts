@@ -18,6 +18,10 @@ export interface BurnChipView {
   readonly kind: string;
   readonly icon: string;
   readonly on: boolean;
+  /** True for an item the player does not own yet: shown with a red border, not clickable. */
+  readonly locked: boolean;
+  /** The tooltip, set only on a locked chip. */
+  readonly tip?: string;
   readonly switchName?: AutoBurnSwitch;
 }
 /** Restart group. Called by: view, panel. Calls: none. */

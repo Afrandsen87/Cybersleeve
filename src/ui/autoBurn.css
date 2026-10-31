@@ -352,6 +352,14 @@
 .ab .chip:hover {
   border-color: var(--tag);
 }
+/* An Auto-run or Overclock the sleeve has not unlocked yet: shown, not tickable. */
+.ab .chip.locked,
+.ab .chip.locked:hover {
+  border: 1px solid var(--red);
+  background: transparent;
+  box-shadow: none;
+  cursor: not-allowed;
+}
 .ab .chip .kind {
   color: var(--muted);
   font-size: 10px;
