@@ -97,7 +97,7 @@ The prices are the same for every action for now. The sleeve-wide **Overclock up
 |---|---|---|
 | Auto-run | 100 credits | Restarts the action itself. |
 | Kompromat harvest | 500 credits | 5% of completed runs drop a Kompromat file, rarity 90 / 10 / 0 / 0 / 0 over common, uncommon, rare, legendary, crisis (see 10). |
-| Rarity refinement | 10,000 credits; needs the harvest | Increases the rarity of Kompromat drops based on Hacking Proficiency (see 10 for how). Its tooltip states the rule: 5% of each rarity moves up per doubling of (1 + proficiency). |
+| Rarity refinement | A Leverage skill (1 skill point) after Black Ledger; needs the harvest. Not on the card. | Increases the rarity of Kompromat drops based on Hacking Proficiency (see 10 for how). Its tooltip states the rule: 5% of each rarity moves up per doubling of (1 + proficiency). |
 | Skill transfer | 1,000,000 credits | Adds Practice Hacking's **sleeve level** to Grow network's level, for speed only (not its XP). |
 | Study methods | 1e15 credits | The XP every sleeve level of the **other** actions needs is divided by 1 + the sleeve level of Practice Hacking (level 1 halves it, level 3 quarters it); there is no ceiling. Practice Hacking itself is not affected. Not available (so not visible) before the first re-sleeve (`revealAfterResleeves: 1`; decided 2026-10-30 by the user). |
 
@@ -220,3 +220,4 @@ Speed = actionLevel factor x the action's own sleeveLevel factor x interface spe
 *Group: Decided 2026-10-30 (by the user)*
 - **Overclock on Push malware only raises the heat chance (x4, 40% of runs); Obfuscation halves that chance (20%):** the 3x heat per run is gone. Obfuscation (effect `overclockHeatChanceFactor`, factor 0.5) halves the raised chance, never below the action's own. *Decided 2026-10-30 (by the user):* the factor went from 2 to 4 (so Obfuscation now leaves 20%, not the normal 10%). It replaced `overclockHeatFactor`.
 - **XP tooltips read narrow queries, they do not recompute:** `ActionQueries.xpPerRunBreakdown(id)` (`RunStats.xpBreakdown`: base, XP lever, Augment factor, Neural Mirror factor, critical XP multiplier, and the total that equals `xpPerRun`, which now uses the same factors), `LevelQueries.actionXpCurve(id)` / `sleeveXpCurve(id)` (`Progression`: first level cost, growth, Skill-shard delay, reduction; type `XpCurve` in `actions/xpCurve.ts`) and `sleeveXpGrant()`.
+- **`StartCosts.shareOf(id)`** is the one owner of the live share of the balance a start cost takes (`min(1, fractionOfBalance x startCostScale)`); `costOf` uses it and `ActionQueries.startShareOf` exposes it for the card text.

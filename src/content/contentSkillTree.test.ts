@@ -29,6 +29,7 @@ import {
   SKILL_DOSSIER,
   SKILL_TIERED_INFORMANTS,
   SKILL_DOUBLE_AGENT,
+  RARITY_REFINEMENT,
   SKILL_MUSCLE_MEMORY,
   SKILL_NOSE_FOR_SECRETS,
   SKILL_OBFUSCATION,
@@ -119,6 +120,7 @@ describe('what a new game shows of the skill tree', () => {
         SKILL_DOSSIER,
         SKILL_TIERED_INFORMANTS,
         SKILL_DOUBLE_AGENT,
+        RARITY_REFINEMENT,
       ].sort(),
     );
   });

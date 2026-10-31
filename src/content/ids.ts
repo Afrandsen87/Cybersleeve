@@ -113,6 +113,8 @@ export const SKILL_BLACKOUT = 'skill-blackout';
 /** Id of the corporation action that may upgrade a random Kompromat file. */
 export const INSIDER_BACKSTABBING = 'insider-backstabbing';
 export * from './resleeveSkillIds';
+/** Id of the Leverage skill that lets Hacking Proficiency shift the drop ratios towards the rarer rarities. */
+export const RARITY_REFINEMENT = 'rarity-refinement';
 /** Every skill id, branch by branch (cybernetics, anonymity, leverage), each root first. */
 export const SKILLS = [
   SKILL_OVERCLOCK,
@@ -139,6 +141,7 @@ export const SKILLS = [
   SKILL_DEEP_FILES,
   SKILL_SEALED_ARCHIVES,
   SKILL_BLACK_LEDGER,
+  RARITY_REFINEMENT,
   SKILL_DOSSIER,
   SKILL_TIERED_INFORMANTS,
   SKILL_DOUBLE_AGENT,
@@ -160,9 +163,13 @@ export const BRANCH_DISPERSAL = 'dispersal' as const;
 export const AUTOMATION_LINE_LENGTH = 10;
 /** Id of the `step`-th skill (1-based) of an automation lane. */
 export const automationSkillId = (branch: string, step: number): string => `skill-${branch}-${step}`;
-/** Every automation skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first. */
+/** Auto Burn lane slots that hold no skill (slot 8 was Pick Targets, removed; the slot stays empty so the ids of the later skills stay stable). */
+export const AUTO_BURN_EMPTY_SLOTS: readonly number[] = [8];
+/** Every automation skill id, lane by lane (Auto Burn, Autosale, Dispersal), each root first; the empty Auto Burn slots are left out. */
 export const AUTOMATION_SKILLS: readonly string[] = [BRANCH_AUTO_BURN, BRANCH_AUTOSALE, BRANCH_DISPERSAL].flatMap((branch) =>
-  Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => automationSkillId(branch, i + 1)),
+  Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1)
+    .filter((slot) => branch !== BRANCH_AUTO_BURN || !AUTO_BURN_EMPTY_SLOTS.includes(slot))
+    .map((slot) => automationSkillId(branch, slot)),
 );
 /** Id of the Kill servers auto-run buyable. */
 export const KILL_AUTO_RUN = 'kill-auto-run';
@@ -176,8 +183,6 @@ export const KOMPROMAT = 'kompromat';
 export const AUGMENT_SCHEMATIC = 'augment-schematic';
 /** Id of the Grow network buyable that lets its runs drop Augment schematics. */
 export const INDUSTRIAL_ESPIONAGE = 'industrial-espionage';
-/** Id of the Practice Hacking buyable that lets Hacking Proficiency shift the drop ratios towards the rarer rarities. */
-export const RARITY_REFINEMENT = 'rarity-refinement';
 /** Id of the sleeve upgrade that makes every Overclock stronger. */
 export const OVERCLOCK_UPGRADE = 'overclock-upgrade';
 /** Id of the sleeve upgrade that gives more Focus slots. */

@@ -15,8 +15,10 @@ import { buildBuyableViews } from './view/buyableViews';
 import { corporationView } from './view/corporationView';
 import { inventoryView } from './view/inventoryView';
 import { networkView } from './view/networkView';
-import { automationView, runsView, skillsView, tabsView } from './view/panelViews';
+import { automationView } from './view/automationView';
+import { runsView, skillsView, tabsView } from './view/panelViews';
 import { revealEverything } from './view/revealAll';
+import { RevealTracker } from './view/revealTracker';
 import { resleeveBuyView, resleeveShortfallView, sleeveLevelsOpen } from './view/sleeveGate';
 import { sleeveView } from './view/sleeveView';
 import { NO_SELECTION, type ViewModel, type ViewSelection } from './view/viewTypes';
@@ -53,25 +55,28 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
   const stats = engine.sleeveStats();
 
   const revealAll = selection.revealAll === true;
-  const buyableViews = buildBuyableViews(engine, config, text, revealAll);
+  const tracker = new RevealTracker(state.wallet.revealed);
+  const buyableViews = buildBuyableViews(engine, config, text, revealAll, tracker);
   const viewById = new Map(buyableViews.map((v) => [v.id, v]));
 
   const vm: ViewModel = {
     creditsText: formatBigNum(state.wallet.credits),
     creditsLine: text.credits(formatBigNum(state.wallet.credits)),
     network: networkView(engine, config, state, stats, text),
-    tabs: tabsView(engine, state, text),
-    skills: skillsView(engine, state, config, viewById, stats, text, revealAll),
+    tabs: tabsView(engine, state, text, tracker, selection.tabAttention, selection.activeTab),
+    skills: skillsView(engine, state, config, viewById, stats, text, revealAll, tracker),
     runs: runsView(state.wallet.runs, config, text),
-    automation: automationView(engine, config, viewById, text, revealAll),
+    automation: automationView(engine, config, viewById, text, revealAll, tracker),
     corporation: corporationView(engine, config, buyableViews, text),
     inventory: inventoryView(engine, factory, text),
     actions: buildActionViews(engine, config, state, buyableViews, viewById, factory, text, selection),
-    sleeve: sleeveView(stats, state, config, buyableViews, viewById, text),
+    sleeve: sleeveView(stats, state, config, buyableViews, viewById, text, tracker),
     canResleeve: engine.canResleeve(),
     resleeveShown: sleeveLevelsOpen(state, config),
     resleeveBuy: resleeveBuyView(state, config, viewById),
     resleeveShortfall: resleeveShortfallView(engine, state, config),
+    newlyRevealed: [],
   };
-  return revealAll ? revealEverything(vm) : vm;
+  const shown = revealAll ? revealEverything(vm) : vm;
+  return { ...shown, newlyRevealed: tracker.fresh() }; // read last: every view above has met its things by now
 }

@@ -165,6 +165,11 @@ export class Shop {
     return this.snapshot.memo(currency, () => this.computePoints(state, currency));
   }
 
+  /** Re-sleeve points earned in total, spent or not (what the Skills tab counts to know a point is new). Called by: `engine.ts`. */
+  resleevePointsEarned(state: GameState): number {
+    return this.pointsEarned('resleevePoints', state);
+  }
+
   /** Skill points earned in total from the action levels, spent or not. Called by: `engine.ts`. */
   skillPointsEarned(state: GameState): number {
     return this.pointsEarned('skillPoints', state);

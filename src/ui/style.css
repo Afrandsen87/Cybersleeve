@@ -268,10 +268,9 @@ body {
   text-transform: uppercase;
   color: var(--muted);
 }
-.upgrade.ready:not(:disabled) {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
+/* Shown because the ledger remembers it, but its requirements are unmet again: greyed. */
+.upgrade.gated {
+  opacity: 0.45;
 }
 .stats {
   display: grid;
@@ -542,8 +541,8 @@ button:not(:disabled):hover {
   border-color: var(--teal);
   color: var(--teal);
 }
-/* A one-off purchase that has been bought (it cannot be bought again): dark golden border instead of the repeatable teal. */
-.upgrade.owned.single {
+/* A purchase with no more copies to buy (a one-off that was bought, or a repeatable at its cap): golden border instead of the repeatable teal. */
+.upgrade.maxed {
   border-color: var(--gold);
   color: var(--gold);
 }
@@ -896,6 +895,7 @@ button:not(:disabled):hover {
 /* A masked skill keeps its place and its lane colour, but nothing glows: it is not lit yet. */
 .skill-lane .skill-node.masked,
 .skill-lane .skill-node.masked.purchasable {
+  opacity: 0.35;
   color: var(--muted);
   border-color: var(--line);
   box-shadow: none;
@@ -966,8 +966,8 @@ button:not(:disabled):hover {
   height: auto;
   margin: 0;
 }
-/* An icon dims with its button: unaffordable or switched off. Owned and ready buttons show it at full colour. */
-.upgrade.has-icon:disabled:not(.single.owned)::before,
+/* An icon dims with its button: unaffordable or switched off. Affordable and maxed buttons show it at full colour. */
+.upgrade.has-icon:disabled:not(.maxed)::before,
 .upgrade.has-icon.off::before {
   filter: grayscale(0.8) brightness(0.55);
 }
@@ -1057,11 +1057,6 @@ button:not(:disabled):hover {
 .square-unlock.has-icon::before {
   inset: 14px;
 }
-.square-unlock.ready:not(:disabled) {
-  border-color: var(--cyan);
-  color: var(--cyan);
-  box-shadow: 0 0 8px var(--cyan);
-}
 /* Focus with several slots per action: an add and a remove half lie over the Focus cell (bottom left of the square) and the cell itself only shows. */
 .square {
   position: relative;
@@ -1090,6 +1085,25 @@ button:not(:disabled):hover {
 .cell-focus.split {
   pointer-events: none;
 }
+/*
+ * Action-card toggle cells (Auto-run, Overclock, Focus and its two halves), once bought: golden border and a full-colour icon, unlit
+ * while off and lit in gold while on (the glow always matches the border).
+ */
+.square-grid > .upgrade.maxed,
+.square > .cell-half:not(.on) {
+  border-color: var(--gold);
+  color: var(--gold);
+  text-decoration: none;
+}
+.square-grid > .upgrade.maxed.has-icon::before {
+  filter: none;
+}
+.square-grid > .upgrade.maxed.on,
+.square > .cell-half.on {
+  background: #2a2208;
+  border-color: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+}
 /* A feature this action does not have yet: an empty placeholder. */
 .cell.empty {
   border-style: dashed;
@@ -1099,11 +1113,20 @@ button:not(:disabled):hover {
 .cell.applied:not(:disabled) {
   border-color: var(--teal);
 }
-/* A buyable that can be bought right now: bright blue border. Last in the file so it wins over the cyan ready rules. */
-.upgrade.purchasable:not(:disabled),
+/*
+ * A buyable that can be bought right now glows in the colour of its border: bright blue the first time, teal for another copy. Last in
+ * the file so it wins over the lane and owned rules. Skill nodes keep their lane colours.
+ */
+.upgrade.purchasable:not(:disabled):not(.owned):not(.skill-node),
 .square-unlock.purchasable:not(:disabled),
 .cell.purchasable:not(:disabled) {
   border-color: var(--bright-blue);
+  color: var(--bright-blue);
+  box-shadow: 0 0 8px var(--bright-blue);
+}
+.upgrade.owned.purchasable:not(:disabled):not(.maxed):not(.skill-node) {
+  border-color: var(--teal);
+  box-shadow: 0 0 8px var(--teal);
 }
 
 /* The Automation tab: a box with one section per feature. */
@@ -1167,6 +1190,22 @@ button:not(:disabled):hover {
 .automation-field[hidden],
 .automation-switch[hidden] {
   display: none;
+}
+.automation-checklist {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 4px 12px;
+  font-size: 13px;
+}
+.automation-checklist[hidden] {
+  display: none;
+}
+.automation-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .automation-hint {
   flex-basis: 100%;

@@ -84,7 +84,10 @@ export interface UiText {
     /** Auto Burn: where the toggle is, the label of each switch, and the labels of the thresholds and the reserve. */
     readonly autoBurn: {
       readonly hint: string;
-      readonly switches: Readonly<Record<AutoBurnSwitch, string>>;
+      readonly switches: Readonly<Record<Exclude<AutoBurnSwitch, 'hold' | 'upper'>, string>>;
+      /** Labels of the two switches that act at a threshold; they show the heat value in force. */
+      holdAt(lowerHeat: string): string;
+      upperAt(upperHeat: string): string;
       readonly lower: string;
       readonly upper: string;
       readonly reserve: string;
@@ -180,7 +183,7 @@ export interface UiText {
     readonly armed: string;
     readonly cancel: string;
     /** The tip of the disabled Re-sleeve button: how many sleeve levels (all actions together) are held and how many the next re-sleeve needs. */
-    needLevels(held: string, needed: string): string;
+    needLevels(kind: 'actionLevels' | 'sleeveLevels', held: string, needed: string): string;
   };
   /** Messages shown over the game. */
   readonly notices: { readonly otherTab: string; readonly taken: string };

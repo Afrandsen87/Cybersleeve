@@ -3,11 +3,11 @@
  *
  * Translates owned buyables into the sleeve-wide stats (interface speed, ICE Rating, heat, critical chance, ...).
  *
- * Called by: `engine/*`, `ui/viewModel.ts`. Calls: `effectRegistry.definitionOf` (the sleeve hooks), `kernel/concaveBonus`, `kernel/curves`.
+ * Called by: `engine/*`, `ui/viewModel.ts`. Calls: `effectRegistry.definitionOf` (the sleeve hooks), `kernel/concaveBonus`, `kernel/curves` (`bigOrders`, `concaveShare`).
  */
 import type { BigNum, NumberFactory } from '../../numbers';
 import { type CurveBeyond, concaveBonus } from '../kernel/concaveBonus';
-import { bigOrders } from '../kernel/curves';
+import { bigOrders, concaveShare } from '../kernel/curves';
 import { definitionOf, type SleeveAccumulator } from './effectRegistry';
 import { INFINITY, saturate } from '../kernel/infinity';
 import type { ActionId, BuyableDefinition, SleeveConfig, StateSlice } from '../types';
@@ -37,8 +37,8 @@ export function earnedSpeedBeyond(sleeve: Pick<SleeveConfig, 'earnedSpeedKnee' |
  * (`sleeve.earnedSpeedScale`, `sleeve.earnedSpeedExponent`, and past `sleeve.earnedSpeedKnee` the flatter
  * `sleeve.earnedSpeedExponentBeyond`), so every further run is worth less than the one before.
  * Access level is `sleeve.baseAccessLevel` plus `amount` per owned `accessLevel` copy (copies stack). Heat and Legend are the current values in the state. ICE Rating is the earned value plus the
- * `iceRatingFromActionLevel` bonuses (`perLevel * action level * copies`), times `factor^copies` of every `iceRatingMultiplier` buyable; the heat reduction is `iceRatingReductionPerOrder` per
- * order of magnitude of it (capped at 100%). The node payout multiplier is `factor^copies` of the `nodePayoutMultiplier` buyables; the node payout bonus
+ * `iceRatingFromActionLevel` bonuses (`perLevel * action level * copies`), times `factor^copies` of every `iceRatingMultiplier` buyable; the heat reduction is `concaveShare` of its orders of magnitude
+ * (`(orders / iceRatingOrdersForFullReduction) ^ iceRatingReductionExponent`, capped at 100%). The node payout multiplier is `factor^copies` of the `nodePayoutMultiplier` buyables; the node payout bonus
  * earned by actions is a separate amount added to the base value of a node (see `Economy.passiveCreditsPerNode`).
  * Called by: `engine.ts`.
  *
@@ -121,7 +121,7 @@ export function resolveSleeveStats(
   const heatCooldownSpeed = acc.heatCooldownSpeed;
   const heatCooldownBoost = acc.heatCooldownBoost;
   const interfaceBase = sleeve.baseInterfaceSpeed + interfaceBoosts;
-  const heatReduction = Math.min(1, sleeve.iceRatingReductionPerOrder * bigOrders(iceRating));
+  const heatReduction = concaveShare(bigOrders(iceRating), sleeve.iceRatingOrdersForFullReduction, sleeve.iceRatingReductionExponent);
   const hackingMultiplier = saturate(
     1 +
       concaveBonus(

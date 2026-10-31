@@ -10,6 +10,7 @@ import { buildViewModel } from '../ui/viewModel';
 import {
   AUGMENT_SCHEMATIC,
   AUTO_RUN,
+  BRANCH_LEVERAGE,
   BURN_LEAD,
   BURN_LEADS,
   GROW_NETWORK,
@@ -21,6 +22,7 @@ import {
   PRACTICE_HACKING,
   PUSH_MALWARE,
   SKILL_BACK_CHANNEL,
+  SKILL_BLACK_LEDGER,
   SKILL_MUSCLE_MEMORY,
   SKILL_NOSE_FOR_SECRETS,
   RARITY_REFINEMENT,
@@ -28,17 +30,17 @@ import {
 import { flat } from '../testing/flatState';
 
 describe('Rarity refinement (real content)', () => {
-  it('is on the Practice Hacking card after the harvest, needs the harvest and costs 10,000', () => {
-    const card = buildViewModel(createGame()).actions.find((a) => a.id === PRACTICE_HACKING)!;
-    expect(
-      card.buyables
-        .filter((b) => !b.inSquare)
-        .map((b) => b.id)
-        .slice(0, 2),
-    ).toEqual([KOMPROMAT_HARVEST, RARITY_REFINEMENT]);
+  it('is a Leverage skill after Black Ledger that needs the harvest, costs one skill point and is not on the Practice Hacking card', () => {
     const def = gameConfig.buyables.find((b) => b.id === RARITY_REFINEMENT)!;
+    expect(def.currency).toBe('skillPoints');
+    expect(def.branch).toBe(BRANCH_LEVERAGE);
+    expect(def.parents).toEqual([SKILL_BLACK_LEDGER]);
     expect(def.requires).toEqual([KOMPROMAT_HARVEST]);
-    expect(def.cost.eq(num(10_000))).toBe(true);
+    expect(def.cost.eq(num(1))).toBe(true);
+    expect(def.actionId).toBe(PRACTICE_HACKING); // its effect acts per action
+    const vm = buildViewModel(createGame());
+    expect(vm.actions.find((a) => a.id === PRACTICE_HACKING)!.buyables.map((b) => b.id)).not.toContain(RARITY_REFINEMENT);
+    expect(vm.skills.lanes.flatMap((l) => l.nodes).map((n) => n.view.id)).toContain(RARITY_REFINEMENT);
   });
 
   it('the refinement keeps the total, moves weight to rarer drops as proficiency grows, and already shifts at proficiency 3', () => {
@@ -65,10 +67,12 @@ describe('Rarity refinement (real content)', () => {
 
   it('the tooltip states the rule from the buyable description, without live numbers', () => {
     const g = createGame();
-    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown } }).sleeve.hackingProficiency = num(250);
+    (g.getState() as unknown as { sleeve: { hackingProficiency: unknown; purchased: Record<string, number> } }).sleeve.hackingProficiency =
+      num(250);
+    flat<{ purchased: Record<string, number> }>(g).purchased[KOMPROMAT_HARVEST] = 1; // opens the reveal gate
     const tip = buildViewModel(g)
-      .actions.find((a) => a.id === PRACTICE_HACKING)!
-      .buyables.find((b) => b.id === RARITY_REFINEMENT)!.tip;
+      .skills.lanes.flatMap((l) => l.nodes)
+      .find((n) => n.view.id === RARITY_REFINEMENT)!.view.tip;
     const def = gameConfig.buyables.find((b) => b.id === RARITY_REFINEMENT)!;
     expect(tip.split('\n').slice(0, 2)).toEqual(['Rarity refinement', def.description]);
     expect(tip).not.toContain('250');

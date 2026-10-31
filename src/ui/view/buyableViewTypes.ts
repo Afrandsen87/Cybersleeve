@@ -19,6 +19,8 @@ export interface BuyableView {
   readonly maxed: boolean;
   /** Requirements met and the price within reach of what was held (see `reveal.buyableOrders`; the square's purchases are always in reach); other buyables are hidden. */
   readonly available: boolean;
+  /** Shown only because the reveal ledger remembers it: its requirements are unmet again (e.g. after a re-sleeve). Drawn greyed; it cannot be bought. */
+  readonly gated: boolean;
   /** Can be bought right now. */
   readonly affordable: boolean;
   /** An auto-run purchase: once owned, clicking it switches auto-run on or off instead of buying. */

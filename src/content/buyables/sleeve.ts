@@ -27,7 +27,7 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: AUTOMATION_CORE,
     name: 'Automation core',
     symbol: 'AC',
-    description: 'Gives 1 automation point. Each point unlocks one automation feature in the Automation tab. Each copy costs 100x more.',
+    description: 'Gives 1 automation point. Each point unlocks one automation feature in the Automation tab. Each copy costs 10x more.',
     cost: num(1_000_000),
     costGrowth: 100,
     maxPurchases: Infinity,
@@ -38,9 +38,9 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: ICE_RATING_BOOST,
     name: 'ICE Rating boost',
     symbol: 'IB',
-    description: 'Multiplies ICE Rating by 2. Each copy costs 100x more.',
+    description: 'Multiplies ICE Rating by 2. Each copy costs 10x more.',
     cost: num(150_000), // a little above Hardened payload: it multiplies nothing until that adds base ICE Rating
-    costGrowth: 100, // every 2nd order of magnitude
+    costGrowth: 10, // every order of magnitude
     maxPurchases: Infinity,
     effect: { kind: 'iceRatingMultiplier', factor: 2 },
   },
@@ -120,10 +120,10 @@ export const sleeveBuyables: BuyableDefinition[] = [
     id: FASTER_CONDITIONING,
     name: 'Faster conditioning',
     symbol: 'FC',
-    description: 'Every action needs 1 run fewer for each batch of sleeve XP, down to 10 runs. Each copy costs 100x more.',
+    description: 'Every action needs 1 run fewer for each batch of sleeve XP, down to 10 runs. Each copy costs 10x more.',
     cost: num(1_000),
     revealAfterResleeves: 1, // from the second sleeve run on
-    costGrowth: 100, // every 2nd order of magnitude
+    costGrowth: 10, // every order of magnitude
     // 90 copies take the 100 runs per batch down to the floor of 10 (the content test checks the cap matches)
     maxPurchases: 90,
     effect: { kind: 'runsPerSleeveXpReduction', perCopy: 1, minRuns: 10 },
@@ -144,10 +144,9 @@ export const sleeveBuyables: BuyableDefinition[] = [
 
   {
     id: SLEEVE_LEVELS,
-    name: 'Sleeve levels',
-    symbol: 'SL',
-    description:
-      'Your sleeve starts to learn: every action now earns sleeve XP, and each sleeve level gives a lasting bonus. Also shows the Re-sleeve button. Kept when you re-sleeve.',
+    name: 'Sleeve Theory',
+    symbol: 'SY',
+    description: 'Begin to unlock the full potential of your sleeve.',
     cost: num(100e6),
     effect: { kind: 'unlockSleeveLevels' },
   },

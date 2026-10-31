@@ -53,7 +53,7 @@ describe('action card costs line (view model)', () => {
     own(g, 'oc-a');
     expect(buildViewModel(g).actions[0]!.costItems).toEqual([]);
     g.toggleOverclock('a');
-    expect(buildViewModel(g).actions[0]!.costItems).toEqual(['holds heat in place (Overclock)']);
+    expect(buildViewModel(g).actions[0]!.costItems).toEqual(['prevents heat cooldown while active (Overclock)']);
   });
 
   it('shows the heat chance the run uses, Overclock factor included', () => {

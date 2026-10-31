@@ -31,6 +31,7 @@ import { type Inventory, hasSeenItem } from '../items/inventory';
 import type { NetworkSystem } from '../economy/network';
 import type { OverflowPolicy } from '../kernel/overflow';
 import { notePeaks } from '../economy/reveal';
+import { noteRevealed } from '../economy/revealLedger';
 import type { Progression } from '../actions/progression';
 import type { XpCurve } from '../actions/xpCurve';
 import type { XpPerRunBreakdown } from '../actions/runStats';
@@ -232,6 +233,16 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.shop.toggle(this.state, id);
   }
 
+  /**
+   * Writes keys the screen showed into the reveal ledger (`wallet.revealed`), see `economy/revealLedger.ts`. The only writer; the view build
+   * only collects the keys, so no query mutates.
+   *
+   * Called by: `ui/dom.ts` (only when the view found a new key). Calls: `noteRevealed`.
+   */
+  noteRevealed(keys: readonly string[]): void {
+    noteRevealed(this.state, this.config, keys);
+  }
+
   /** Buys one copy of a buyable. Auto-run takes effect on the next tick. */
   buy(id: BuyableId): PurchaseResult {
     return this.shop.buy(this.state, id);
@@ -418,6 +429,11 @@ export class GameEngine implements GameQueries, GameCommands {
   /** True when starting the action now would work (unlocked, and the start cost can be paid). @throws Error if the action id is unknown */
   canStart(id: ActionId): boolean {
     return this.runner.canStart(id);
+  }
+
+  /** The live share of the balance the start cost takes, or `null` (see `StartCosts.shareOf`). */
+  startShareOf(id: ActionId): number | null {
+    return this.runner.startShareOf(id);
   }
 
   /**
@@ -627,6 +643,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.shop.skillPointsEarned(this.state);
   }
 
+  /** Re-sleeve points earned in total, spent or not. */
+  resleevePointsEarned(): number {
+    return this.shop.resleevePointsEarned(this.state);
+  }
+
   /** Skill points the player can still spend. */
   skillPoints(): number {
     return this.shop.pointsAvailable(this.state, 'skillPoints');
@@ -717,6 +738,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.synths.creditsPerSecond();
   }
 
+  /** What all synthetic sleeves would earn together at full action levels (see `SynthSleeves.incomeCeiling`). */
+  synthIncomeCeiling(): BigNum {
+    return this.synths.incomeCeiling();
+  }
+
   /** The share of earned credits kept after the heat tax (`1 - heat * (1 - iceRating reduction) / 100`, never below 0). */
   creditKeepFactor(): number {
     return this.stats.creditKeepFactor();
@@ -787,9 +813,9 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.resleevePolicy.canResleeve(this.state);
   }
 
-  /** What the next re-sleeve is waiting for in sleeve levels (held and needed), or `null` when it needs none. */
-  resleeveRequirement(): ResleeveRequirement | null {
-    return this.resleevePolicy.requirement?.(this.state) ?? null;
+  /** What the next re-sleeve is waiting for (action levels and sleeve levels, held and needed); empty when it needs nothing. */
+  resleeveRequirements(): readonly ResleeveRequirement[] {
+    return this.resleevePolicy.requirements?.(this.state) ?? [];
   }
 
   // ---- time ----------------------------------------------------------------------------------------------------

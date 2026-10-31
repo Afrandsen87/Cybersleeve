@@ -6,16 +6,16 @@
  * @remarks
  * Part of the view types; `viewTypes.ts` re-exports them, so import from there.
  */
-import type { AutoBurnSwitch, AutomationFeature } from '../../core';
+import type { AutoBurnSwitch, AutomationFeature, TAB_IDS } from '../../core';
 import type { SkillLaneView } from './skillTreeTypes';
 
 /** One tab at the top. */
 export interface TabView {
-  readonly id: 'character' | 'skills' | 'automation' | 'stats' | 'corporation';
+  readonly id: (typeof TAB_IDS)[number];
   readonly label: string;
   /** Shown once the tab is useful: no tab shows until the first skill point has been earned. */
   readonly visible: boolean;
-  /** The tab blinks: something in it waits for the player (a skill point to spend). */
+  /** The tab blinks: it has earned points the player has not looked at yet (see `tabAttention.ts`). */
   readonly attention: boolean;
 }
 
@@ -27,6 +27,12 @@ export interface AutomationFeatureView {
   readonly unlocked: boolean;
   /** The feature's skill lane, drawn in its box: the first skill is the unlock, the rest are what the automation can grow into. */
   readonly lanes: readonly SkillLaneView[];
+}
+
+/** A checklist of the things a resume switch turns on: shown once the switch's skill is owned. */
+export interface ResumeChecklistView {
+  readonly visible: boolean;
+  readonly items: readonly { readonly id: string; readonly name: string; readonly ticked: boolean }[];
 }
 
 /** Display data of the Automation tab. */
@@ -56,6 +62,9 @@ export interface AutomationView {
       readonly upperLabel: string;
     };
     readonly reserve: { readonly visible: boolean; readonly value: number; readonly label: string };
+    /** The resume checklists under the two resume switches: the owned heat-making Overclocks and Auto-runs (shown with their switch). */
+    readonly resumeOverclocks: ResumeChecklistView;
+    readonly resumeAutoRuns: ResumeChecklistView;
   };
   /** Autosale: every rarity with its switch. */
   readonly rarities: readonly { readonly id: string; readonly name: string; readonly on: boolean }[];

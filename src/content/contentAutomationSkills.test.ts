@@ -8,7 +8,7 @@ import { AUTOMATION_FEATURES, AUTO_BURN_STEPS } from '../core';
 import { num } from '../numbers';
 import { setCredits } from '../testing/testConfig';
 import { gameConfig } from './gameConfig';
-import { AUTOMATION_CORE, AUTOMATION_LINE_LENGTH, AUTOMATION_SKILLS, automationSkillId } from './ids';
+import { AUTOMATION_CORE, AUTOMATION_LINE_LENGTH, AUTOMATION_SKILLS, AUTO_BURN_EMPTY_SLOTS, automationSkillId } from './ids';
 
 const inLane = (feature: string) => gameConfig.buyables.filter((b) => b.branch === feature && b.currency === 'automationPoints');
 
@@ -28,10 +28,10 @@ describe('the automation skill lanes (real content)', () => {
     expect(autoBurnUpper).toBeGreaterThan(autoBurnCeiling);
   });
 
-  it('there is one lane per automation feature, each the same length, costing 1 automation point, belonging to no action', () => {
+  it('there is one lane per automation feature, each as long as its slots, costing 1 automation point, belonging to no action', () => {
     for (const feature of AUTOMATION_FEATURES) {
       const skills = inLane(feature);
-      expect(skills, feature).toHaveLength(AUTOMATION_LINE_LENGTH);
+      expect(skills, feature).toHaveLength(AUTOMATION_LINE_LENGTH - (feature === 'autoBurn' ? AUTO_BURN_EMPTY_SLOTS.length : 0));
       for (const b of skills) {
         expect(b.cost.eq(num(1)), b.id).toBe(true);
         expect(b.actionId, b.id).toBeUndefined();
@@ -40,14 +40,24 @@ describe('the automation skill lanes (real content)', () => {
     expect(gameConfig.buyables.filter((b) => b.currency === 'automationPoints').map((b) => b.id)).toEqual([...AUTOMATION_SKILLS]);
   });
 
-  it('each lane is one chain, and only its first skill unlocks the automation; the Auto Burn lane grants its nine steps in order, the others are placeholders', () => {
+  it('each lane is one chain, and only its first skill unlocks the automation; the Auto Burn lane grants its eight steps in order, the others are placeholders', () => {
     for (const feature of AUTOMATION_FEATURES) {
+      const slots = Array.from({ length: AUTOMATION_LINE_LENGTH }, (_, i) => i + 1).filter(
+        (slot) => feature !== 'autoBurn' || !AUTO_BURN_EMPTY_SLOTS.includes(slot),
+      );
       inLane(feature).forEach((b, i) => {
-        expect(b.id, feature).toBe(automationSkillId(feature, i + 1));
-        expect(b.parents ?? [], b.id).toEqual(i === 0 ? [] : [automationSkillId(feature, i)]);
+        expect(b.id, feature).toBe(automationSkillId(feature, slots[i] ?? 0));
+        expect(b.parents ?? [], b.id).toEqual(i === 0 ? [] : [automationSkillId(feature, slots[i - 1] ?? 0)]);
         expect(b.effect.kind, b.id).toBe(i === 0 ? 'unlocksAutomation' : feature === 'autoBurn' ? 'autoBurnStep' : 'placeholder');
       });
     }
+  });
+
+  it('removing Pick Targets kept the later Auto Burn skill ids: Tune Thresholds is slot 9 with slot 7 as its parent', () => {
+    const tune = gameConfig.buyables.find((b) => b.effect.kind === 'autoBurnStep' && b.effect.step === 'thresholds');
+    expect(tune?.id).toBe(automationSkillId('autoBurn', 9));
+    expect(tune?.parents).toEqual([automationSkillId('autoBurn', 7)]);
+    expect(gameConfig.buyables.some((b) => b.id === automationSkillId('autoBurn', 8))).toBe(false);
   });
 
   it('the lanes are not in the Skills tab: no skill point pays for them', () => {

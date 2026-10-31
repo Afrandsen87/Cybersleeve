@@ -117,7 +117,7 @@ export interface AutomationControls {
  * Points are not stored: earned points are `perCopy` of every owned `automationPoints` buyable, and the points available are those
  * minus the price of the owned skills paid in automation points (the Shop works that out). Each feature has a lane of skills in the
  * Automation tab; owning the first one (`unlocksAutomation`) is what unlocks it, so "unlock" buys that skill. All three features work in closed form, so a slice of any length costs the same:
- * - **Auto Burn** (`autoBurn.ts`) is the Burn lead Inventory toggle and the rules the ten skills of its lane add.
+ * - **Auto Burn** (`autoBurn.ts`) is the Burn lead Inventory toggle and the rules the skills of its lane add.
  * - **Autosale** sells whole stacks of the switched-on rarities of every sellable item.
  * - **Augment dispersal** hands the schematics held to the actions in proportion to their shares (largest remainder, so none is lost).
  *

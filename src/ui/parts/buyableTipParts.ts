@@ -4,6 +4,8 @@ export interface SynthTipParts {
   readonly count: string;
   /** What they earn per second together. */
   readonly perSecond: string;
+  /** What they earn together at full action levels. */
+  readonly ceiling: string;
 }
 
 /** Pre-formatted pieces of a buyable's hover text. */

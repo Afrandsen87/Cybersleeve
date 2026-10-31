@@ -45,7 +45,7 @@ export class StartCosts {
     let total = cost.amount ?? this.factory.fromNumber(0);
     if (cost.fractionOfBalance !== undefined) {
       const scale = this.stats.startCostScale(id);
-      const share = balance.mul(this.factory.fromNumber(Math.min(1, cost.fractionOfBalance * scale.factor)));
+      const share = balance.mul(this.factory.fromNumber(this.shareOf(id) ?? 0));
       let part = whole ? share.floor() : share;
       // A reduction never lets the price vanish: one node is the least a network can be made to give up.
       if (scale.atLeastOne && whole && part.isZero() && balance.gte(this.factory.fromNumber(1))) {
@@ -54,6 +54,20 @@ export class StartCosts {
       total = total.add(part);
     }
     return total;
+  }
+
+  /**
+   * The share of the balance the action's start cost takes right now: the content's `fractionOfBalance` times
+   * `DerivedStats.startCostScale`, never above 1. The one owner of this rule: {@link StartCosts.costOf} and the card text use it.
+   *
+   * Called by: {@link StartCosts.costOf}, `ActionRunner.startShareOf`.
+   * @returns the share (0..1), or `null` when the action has no share-of-balance cost
+   * @throws Error if the action id is unknown
+   */
+  shareOf(id: ActionId): number | null {
+    const fraction = this.definition(id).startCost?.fractionOfBalance;
+    if (fraction === undefined) return null;
+    return Math.min(1, fraction * this.stats.startCostScale(id).factor);
   }
 
   /** True when the start cost (if any) can be paid now; a share-of-balance cost that comes to 0 cannot (the run would be free). */

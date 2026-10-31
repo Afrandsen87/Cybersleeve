@@ -72,13 +72,13 @@ export const uiText: UiText = {
     autoBurn: {
       hint: 'The Burn lead toggle is in the Inventory.',
       switches: {
-        hold: 'Hold at lower threshold',
-        upper: 'Switch on at upper threshold',
         offOverclocks: 'Toggle on, out of leads: switch off Overclocks that make heat',
         offActions: 'Toggle on, out of leads: switch off Auto-run of actions that make heat',
-        onActions: 'Heat low, leads available: switch Auto-runs back on',
-        onOverclocks: 'Heat low, leads available: switch Overclocks back on',
+        onActions: 'Heat low, leads available: switch on the ticked Auto-runs',
+        onOverclocks: 'Heat low, leads available: switch on the ticked Overclocks',
       },
+      holdAt: (heat) => `Hold at lower threshold (${heat} heat)`,
+      upperAt: (heat) => `Switch on at upper threshold (${heat} heat)`,
       lower: 'Lower threshold (heat)',
       upper: 'Upper threshold (heat)',
       reserve: 'Burn leads to always keep',
@@ -176,7 +176,7 @@ export const uiText: UiText = {
       heatPerMinute: (amount) => `+${amount} heat/min (Overclock)`,
       start: (cost) => `costs ${cost}`,
       nodesPerRun: (amount) => `${amount} nodes per run (Overclock)`,
-      holdsHeat: 'holds heat in place (Overclock)',
+      holdsHeat: 'prevents heat cooldown while active (Overclock)',
     },
     augment: 'Augment',
     xpFactors: { lever: 'XP Boost', augments: 'Augment Boost', mirror: 'Mirror Boost' },
@@ -193,7 +193,8 @@ export const uiText: UiText = {
     idle: 'Re-sleeve',
     armed: 'Confirm re-sleeve: credits, network, levels and purchases reset. You will keep sleeve levels and gain a re-sleeve point.',
     cancel: 'Cancel',
-    needLevels: (held, needed) => `Needs ${needed} sleeve levels in total across all actions to re-sleeve. You have ${held}.`,
+    needLevels: (kind, held, needed) =>
+      `Needs ${needed} ${kind === 'actionLevels' ? 'action' : 'sleeve'} levels in total across all actions to re-sleeve. You have ${held}.`,
   },
   notices: {
     otherTab: 'This game was opened in another tab, which now owns the save. Reload this page to play here instead.',

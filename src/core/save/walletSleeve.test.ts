@@ -32,6 +32,7 @@ const WALLET_KEYS = [
   'inventory',
   'lastLifeAutoRunOn',
   'lastLifePurchases',
+  'revealed',
   'runs',
   'seenItems',
   'synths',
@@ -99,7 +100,9 @@ describe('the v7 save shape', () => {
     expect(Object.keys(data).sort()).toEqual(['sleeves', 'version', 'wallet']);
     expect(Object.keys(data.sleeves)).toEqual(['main']);
     expect(Object.keys(data.wallet.corporations)).toEqual(['main']);
-    expect(Object.keys(data.wallet).sort()).toEqual([...WALLET_KEYS.filter((k) => k !== 'corporation'), 'corporations'].sort());
+    expect(Object.keys(data.wallet).sort()).toEqual(
+      [...WALLET_KEYS.filter((k) => k !== 'corporation' && k !== 'revealed'), 'corporations'].sort(),
+    );
     expect(Object.keys(data.sleeves.main).sort()).toEqual(SLEEVE_KEYS);
   });
 
@@ -131,7 +134,7 @@ describe('a re-sleeve keeps exactly the fields on the positive lists', () => {
     s.wallet.credits = num(7);
     s.wallet.allTimePeakCredits = num(70);
     s.wallet.allTimePeakNetwork = num(71);
-    s.wallet.runs = [{ creditsPerSecond: num(1), actionLevelsTotal: 2 }];
+    s.wallet.runs = [{ creditsPerSecond: num(1), actionLevelsTotal: 2, sleeveLevelsTotal: 0 }];
     s.wallet.synths = [{ runIndex: 0 }];
     s.wallet.corporation.stocks = 5;
     s.wallet.automation.autoBurn.lower = 9;

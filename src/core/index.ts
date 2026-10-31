@@ -26,6 +26,8 @@ export { SkillShards } from './items/skillShards';
 export { CriticalLinks } from './crits/criticalLinks';
 export { ActionToggles } from './actions/actionToggles';
 export { earnedSkillPoints } from './skills/skills';
+export { REVEALABLE_STATS, TAB_IDS, isKnownRevealKey, noteRevealed, revealKey, type RevealKind } from './economy/revealLedger';
+export { addRevealedLedger } from './economy/revealLedgerSave';
 export { ItemDrops } from './items/drops';
 export {
   AUTOMATION_FEATURES,
@@ -64,7 +66,8 @@ export { Shop } from './economy/shop';
 export { SynthSleeves, synthCreditsPerSecond } from './synth/synthSleeves';
 export { Resleever } from './resleeve/resleever';
 export { allOf } from './resleeve/resleeve';
-export { SleeveLevelGate } from './resleeve/sleeveLevelGate';
+export type { ResleeveRequirement, ResleeveRequirementKind } from './resleeve/resleeve';
+export { ProgressGate, migrateProgressionSave } from './resleeve/progressGate';
 export { ResleeveGate, resleeveGateId } from './resleeve/resleeveGate';
 export { sleeveLevelsGateId } from './effects/ownedOfKind';
 export { CARRIED_OVER_ACTION_FIELDS, CARRIED_OVER_WALLET_FIELDS, createInitialState, resetForResleeve } from './save/state';
@@ -91,4 +94,4 @@ export { NetworkSystem } from './economy/network';
 export { createActionLookup } from './actions/actionLookup';
 export { GameEngine } from './engine/engine';
 export { SAVE_VERSION, serializeState, deserializeState } from './save/serialization';
-export { migrateSave } from './save/migrate';
+export { migrateSave, needsProgressionBackfill } from './save/migrate';

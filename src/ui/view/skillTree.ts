@@ -9,9 +9,11 @@
  *
  * A skill is READABLE when its own gate (`requires`, the purchase that makes it useful) is owned and every parent is readable, so
  * the masking runs down the tree. A skill that is not readable is MASKED: its name, text, price and tip are replaced by the hidden text.
+ * A skill the reveal ledger holds (`skill:<id>`) stays readable for good, but is `locked` (faded) while its gates are unmet again (e.g. after a re-sleeve).
  * The tree itself (every node and its place, the branch titles) is always shown. A branch with a reveal stat (`branchMask.ts`) is masked as a whole until that stat is revealed.
  */
 import type { BuyableDefinition } from '../../core';
+import type { RevealTracker } from './revealTracker';
 import type { SkillLaneView, SkillNodeView } from './skillTreeTypes';
 import type { BuyableView } from './viewTypes';
 
@@ -36,12 +38,14 @@ export interface SkillTreeInput {
   readonly open: boolean;
   /** Test aid ("Show all"): nothing is masked, whatever the gates and `open` say. */
   readonly revealAll: boolean;
+  /** The reveal ledger reader: a skill it holds is readable even while its gates are unmet; skills that become readable are collected for it (default: none). */
+  readonly tracker?: RevealTracker;
 }
 
 /**
  * Lays out the skills in lanes and decides which are readable.
  *
- * Called by: `panelViews.ts`. Calls: {@link maskedView}.
+ * Called by: `panelViews.ts`. Calls: {@link maskedView}, `RevealTracker.reveals`.
  *
  * @param input the skills and what is needed to read them
  * @returns one lane per branch in order of first appearance; a lane's nodes are in configuration order
@@ -52,18 +56,21 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
   const laneOf = (b: BuyableDefinition): string => b.branch ?? GENERAL_LANE;
 
   const readableMemo = new Map<string, boolean>();
+  const naturalMemo = new Map<string, boolean>(); // readable by its gates alone, whatever the ledger holds
   const readable = (id: string): boolean => {
     if (input.revealAll) return true;
     const known = readableMemo.get(id);
     if (known !== undefined) return known;
     readableMemo.set(id, false); // guards against a loop (validation rejects those; this keeps a bad config from hanging the screen)
     const b = byId.get(id);
-    const result =
+    const natural =
       input.open &&
       b !== undefined &&
       !input.branchMasked?.(laneOf(b)) &&
       (b.requires ?? []).every((r) => owned(r) > 0) &&
       (b.parents ?? []).every((p) => readable(p));
+    naturalMemo.set(id, natural);
+    const result = input.tracker ? input.tracker.reveals('skill', id, natural) : natural;
     readableMemo.set(id, result);
     return result;
   };
@@ -85,7 +92,8 @@ export function buildSkillLanes(input: SkillTreeInput): SkillLaneView[] {
         row: place.row,
         parents: place.parents,
         masked,
-        locked: !masked && (b.parents ?? []).some((p) => owned(p) <= 0),
+        // readable only through the ledger (its gates are unmet again) also counts as locked
+        locked: !masked && ((b.parents ?? []).some((p) => owned(p) <= 0) || naturalMemo.get(b.id) === false),
       });
     }
     return {

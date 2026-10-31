@@ -167,7 +167,7 @@ describe('the square on the screen', () => {
     setCredits(game, num(100));
     render();
     expect(unlock(0).disabled).toBe(false);
-    expect(unlock(0).classList.contains('ready')).toBe(true);
+    expect(unlock(0).classList.contains('purchasable')).toBe(true);
     expect(hoverText(unlock(0))).toContain('Cost = 10 credits');
     unlock(0).click();
     expect(game.ownedCount('auto')).toBe(1);
@@ -190,9 +190,11 @@ describe('the square on the screen', () => {
     render();
     const overclock = cell(0, 'overclock');
     expect(overclock.classList.contains('owned')).toBe(false);
-    expect(overclock.classList.contains('ready')).toBe(true);
+    expect(overclock.classList.contains('purchasable')).toBe(true);
+    expect(overclock.classList.contains('maxed')).toBe(false);
     expect(hoverText(overclock)).toContain('Cost = 1 credits');
     overclock.click();
+    expect(overclock.classList.contains('maxed')).toBe(true); // a bought toggle is gold, lit only while on
     expect(game.ownedCount('oc-a')).toBe(1);
     expect(game.overclockStatus('a')!.on).toBe(false);
     expect(overclock.classList.contains('owned')).toBe(true);

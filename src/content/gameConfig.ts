@@ -36,8 +36,11 @@ export const gameConfig: GameConfig = {
   focus: { speedBonus: 0.25, baseSlots: 1 },
 
   /** Each re-sleeve gives one re-sleeve point; the Stats tab lists the last 10 sleeve-runs. */
-  // The Nth re-sleeve needs base + perResleeve x (N - 1) sleeve levels in total (all actions together). Placeholder values; the first stays low so it is not delayed.
-  resleeve: { pointsPerResleeve: 1, runsShown: 10, lockoutMs: 5_000, sleeveLevelsNeeded: { base: 1, perResleeve: 1 } },
+  // Progress gate: a re-sleeve needs this run's totals to beat the last run's by at least these amounts (action levels and sleeve levels).
+  resleeve: { pointsPerResleeve: 1, runsShown: 10, lockoutMs: 5_000, progressNeeded: { actionLevels: 1, sleeveLevels: 1 } },
+
+  /** Skill points: one each at total action levels 1 and 5, then one more per 10 total levels (10, 20, 30...). */
+  skills: { earlyThresholds: [1, 5], every: 10 },
 
   /** A purchase shows once its price is within 3 orders of magnitude of the most of its currency held this life. */
   reveal: { buyableOrders: 3 },
@@ -98,8 +101,10 @@ export const gameConfig: GameConfig = {
     heatCooldownAmount: 1,
     /** ICE Rating of a new sleeve. */
     baseIceRating: 1,
-    /** Share of the heat effect removed per order of magnitude of ICE Rating: 1%, so 100% at 1e100. */
-    iceRatingReductionPerOrder: 0.01,
+    /** The heat effect is fully removed at 100 orders of magnitude of ICE Rating (1e100). */
+    iceRatingOrdersForFullReduction: 100,
+    /** Reduction = (orders / 100) ^ 0.75: a gentle curve, a little steeper at the start (1e4 removes about 9%, 1e20 about 30%) and still rising where ICE Rating really gets to. */
+    iceRatingReductionExponent: 0.75,
     /** Each point of Legend makes heat cool 10% faster. */
     legendHeatSpeedup: 0.1,
     /** Legend falls by 1 every 10 minutes. */

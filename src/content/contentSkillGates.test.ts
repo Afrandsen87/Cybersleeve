@@ -113,9 +113,10 @@ describe('sleeve levels and re-sleeving', () => {
   it('they are unavailable in a new game and available after one finished sleeve-run', () => {
     const g = createGame();
     for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(g.isBuyableAvailable(id), id).toBe(false);
-    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number }[]).push({
+    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number; sleeveLevelsTotal: number }[]).push({
       creditsPerSecond: 0,
       actionLevelsTotal: 0,
+      sleeveLevelsTotal: 0,
     });
     for (const id of [FASTER_CONDITIONING, SKILL_TRANSFER]) expect(g.isBuyableAvailable(id), id).toBe(true);
   });
@@ -124,9 +125,10 @@ describe('sleeve levels and re-sleeving', () => {
     const g = createGame();
     (g.getState().sleeve.purchased as Record<string, number>)[SLEEVE_LEVELS] = 1;
     expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(false);
-    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number }[]).push({
+    (g.getState().wallet.runs as { creditsPerSecond: unknown; actionLevelsTotal: number; sleeveLevelsTotal: number }[]).push({
       creditsPerSecond: 0,
       actionLevelsTotal: 0,
+      sleeveLevelsTotal: 0,
     });
     expect(g.isBuyableAvailable(STUDY_METHODS)).toBe(true);
   });

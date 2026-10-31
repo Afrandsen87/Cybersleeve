@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { deserializeState, serializeState } from '..';
 import { numberFactory } from '../../numbers';
+import { migrateAutoBurnResume } from './autoBurnMigration';
 import { burnConfig, burnGame, burnState } from '../../testing/autoBurnKit';
 import { findInvariantViolations } from '../../testing/invariants';
 import { asSave, flatSave } from '../../testing/saveKit';
@@ -67,5 +68,53 @@ describe("the upper trigger's flag", () => {
     expect(JSON.parse(serializeState(loadText(text))).sleeves.main.autoBurn).toEqual(JSON.parse(text).sleeves.main.autoBurn);
     const missing = withLife(text, { on: true, seconds: 0, overclocksOff: {}, autoRunsOff: {} });
     expect(loadText(missing).sleeve.autoBurn.upperArmed).toBe(true);
+  });
+});
+
+describe('the resume checklists', () => {
+  it('are saved only when something is ticked, load back, and drop ids that make no heat or are unknown', () => {
+    const g = burnGame(7, 0, 0);
+    expect(JSON.stringify(JSON.parse(serializeState(g.getState())).wallet.automation.autoBurn)).not.toContain('resume');
+    g.automation().autoBurn().setResumeOverclock('hot', true);
+    g.automation().autoBurn().setResumeAutoRun('auto-hot', true);
+    const text = serializeState(g.getState());
+    const burn = loadText(text).wallet.automation.autoBurn;
+    expect(burn.resumeOverclocks).toEqual({ hot: true });
+    expect(burn.resumeAutoRuns).toEqual({ 'auto-hot': true });
+    const data = JSON.parse(text);
+    data.wallet.automation.autoBurn.resumeOverclocks = { hot: true, cold: true, nope: true };
+    data.wallet.automation.autoBurn.resumeAutoRuns = { 'auto-warm': true, 'auto-hot': 1 };
+    const loaded = loadText(JSON.stringify(data)).wallet.automation.autoBurn;
+    expect(loaded.resumeOverclocks).toEqual({ hot: true });
+    expect(loaded.resumeAutoRuns).toEqual({});
+  });
+});
+
+describe('migrateAutoBurnResume', () => {
+  const raw = {
+    wallet: { automation: { autoBurn: { lower: 5, upper: 9 } } },
+    sleeve: {
+      purchased: { 'skill-autoBurn-8': 1, 'skill-autoBurn-9': 1 },
+      autoBurn: { overclocksOff: { hot: true }, autoRunsOff: { 'auto-hot': true, x: 1 } },
+    },
+  };
+
+  it('drops the Pick Targets purchase, ticks what was recorded as switched off, keeps the rest and does not change its input', () => {
+    const before = JSON.stringify(raw);
+    const out = migrateAutoBurnResume(raw);
+    expect(out.sleeve['purchased']).toEqual({ 'skill-autoBurn-9': 1 });
+    expect(out.wallet['automation']).toEqual({
+      autoBurn: { lower: 5, upper: 9, resumeOverclocks: { hot: true }, resumeAutoRuns: { 'auto-hot': true } },
+    });
+    expect(JSON.stringify(raw)).toBe(before);
+  });
+
+  it('merges existing lists and survives an empty or malformed save', () => {
+    const merged = migrateAutoBurnResume({ ...raw, wallet: { automation: { autoBurn: { resumeOverclocks: { warm: true } } } } });
+    expect(JSON.stringify(merged.wallet)).toContain('"resumeOverclocks":{"hot":true,"warm":true}');
+    expect(migrateAutoBurnResume({ wallet: {}, sleeve: { purchased: 5 } })).toEqual({
+      wallet: { automation: { autoBurn: { resumeOverclocks: {}, resumeAutoRuns: {} } } },
+      sleeve: { purchased: 5 },
+    });
   });
 });

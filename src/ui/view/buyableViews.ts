@@ -20,6 +20,7 @@ import {
 } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { BuyableValues, SleeveSectionId, UiText } from '../uiText';
+import type { RevealTracker } from './revealTracker';
 import { initials } from './viewFormat';
 import type { BuyableView } from './viewTypes';
 
@@ -73,6 +74,7 @@ export { isPointCurrency };
  * @param engine the engine to read the numbers from
  * @param owned copies owned (a purchase not yet owned shows what one copy gives)
  * @param text the display text
+ * @param buyables every buyable (Hardened payload adds up the Forensic hardening that feeds it)
  * @returns the variables and the result, or `null` when the effect has no formula to fill in
  */
 function purchaseValues(
@@ -80,7 +82,24 @@ function purchaseValues(
   engine: LevelQueries & ShopQueries & StateQueries,
   owned: number,
   text: UiText,
+  buyables: readonly BuyableDefinition[],
 ): BuyableValues | null {
+  if (b.effect.kind === 'iceRatingFromActionLevel') {
+    const source = b.effect.sourceActionId;
+    const base = b.effect.perLevel * Math.max(1, owned);
+    let hardening: number | null = null;
+    for (const h of buyables) {
+      const copies = engine.ownedCount(h.id);
+      if (h.effect.kind !== 'hardenedPayloadFromCrits' || h.effect.levelActionId !== source || copies <= 0) continue;
+      const crits = engine.getState().sleeve.hardeningCrits[h.id] ?? 0;
+      hardening = (hardening ?? 0) + hardeningBonusPerLevel(crits, h.effect.perCrit) * copies;
+    }
+    return text.tips.hardenedPayloadValues({
+      base: formatPlain(base, 0),
+      hardening: hardening === null ? null : formatPlain(hardening, 0),
+      total: formatPlain(base + (hardening ?? 0), 0),
+    });
+  }
   if (b.effect.kind === 'hardenedPayloadFromCrits') {
     const crits = engine.getState().sleeve.hardeningCrits[b.id] ?? 0;
     return text.tips.hardeningValues({
@@ -115,18 +134,21 @@ const sortedCache = new WeakMap<GameConfig, readonly BuyableDefinition[]>();
  * The view of every buyable in the configuration, in base-price order ({@link sortByBasePrice}). Every widget filters this list, so
  * each of them shows its purchases cheapest first.
  *
- * Called by: {@link buildViewModel}. Calls: `GameQueries.ownedCount`, `canBuy`, `costOf`, `isBuyableAvailable`, the text table.
+ * Called by: {@link buildViewModel}. Calls: `GameQueries.ownedCount`, `canBuy`, `costOf`, `isBuyableAvailable`, `RevealTracker.reveals`, the text table.
  *
  * @param engine the engine to read from
  * @param config game configuration
  * @param text the display text
  * @param revealAll test aid: every purchase is `available`, whatever its requirements and reveal rules say
+ * @param tracker the reveal ledger reader: a purchase it holds (`buyable:<id>`) stays shown, greyed and unbuyable (`gated`) while its requirements are unmet.
+ *   Purchases paid in points are skills: the skill tree notes those (`skill:<id>`), not this list.
  */
 export function buildBuyableViews(
   engine: LevelQueries & ShopQueries & StateQueries,
   config: GameConfig,
   text: UiText,
   revealAll = false,
+  tracker?: RevealTracker,
 ): BuyableView[] {
   let sorted = sortedCache.get(config);
   if (!sorted) {
@@ -142,19 +164,22 @@ export function buildBuyableViews(
     const costText = formatBigNum(engine.costOf(b.id));
     const costUnit = text.costUnits[engine.currencyOf(b.id)];
     const repeatable = (b.maxPurchases ?? 1) > 1;
+    const requirementsMet = engine.isBuyableAvailable(b.id);
+    const natural = requirementsMet && (SQUARE_EFFECTS.includes(b.effect.kind) || engine.isBuyableRevealed(b.id));
+    const shown = tracker && !isPointCurrency(b.currency) ? tracker.reveals('buyable', b.id, natural) : natural;
     return {
       id: b.id,
       name: b.name,
       description: b.description,
       symbol: b.symbol ?? initials(b.name),
-      actionId: b.actionId,
+      actionId: isPointCurrency(b.currency) ? undefined : b.actionId, // a skill that names an action (for its effect) is not on that action's card
       costText,
       costUnit,
       owned,
       repeatable,
       maxed,
-      available:
-        revealAll || (engine.isBuyableAvailable(b.id) && (SQUARE_EFFECTS.includes(b.effect.kind) || engine.isBuyableRevealed(b.id))),
+      available: revealAll || shown,
+      gated: shown && !requirementsMet,
       affordable,
       toggleable,
       enabled,
@@ -166,7 +191,7 @@ export function buildBuyableViews(
           name: b.name,
           description: b.description,
           formula: b.formula ?? null,
-          values: purchaseValues(b, engine, owned, text),
+          values: purchaseValues(b, engine, owned, text, config.buyables),
           cost: costText,
           costUnit,
           owned,

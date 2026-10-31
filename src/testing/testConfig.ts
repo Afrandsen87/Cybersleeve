@@ -36,7 +36,8 @@ export const testConfig: GameConfig = {
   },
   criticalSuccess: { xpMultiplier: 2, rewardMultiplier: 3 },
   focus: { speedBonus: 0.25, baseSlots: 1 },
-  resleeve: { pointsPerResleeve: 1, runsShown: 10 },
+  resleeve: { pointsPerResleeve: 1, runsShown: 10 }, // no progress gate: tests re-sleeve freely; the gate has its own tests
+  skills: { earlyThresholds: [1, 5], every: 10 },
   progression: {
     runsPerSleeveXp: 100,
     sleeveXpPerGrant: 1,
@@ -61,7 +62,8 @@ export const testConfig: GameConfig = {
     heatCooldownMs: 60_000,
     heatCooldownAmount: 1,
     baseIceRating: 1,
-    iceRatingReductionPerOrder: 0.005,
+    iceRatingOrdersForFullReduction: 200,
+    iceRatingReductionExponent: 1, // straight line: the curve is tested on its own
     legendHeatSpeedup: 0.1,
     legendDecayPeriodMs: 600_000,
   },

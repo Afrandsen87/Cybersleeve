@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { gameConfig } from '../../content/gameConfig';
 import { numberFactory } from '../../numbers';
 import { type FlatSave, asSave, flatSave } from '../../testing/saveKit';
-import { RESLEEVE_UNLOCK, SLEEVE_LEVELS } from '../../content/ids';
+import { RARITY_REFINEMENT, RESLEEVE_UNLOCK, SLEEVE_LEVELS } from '../../content/ids';
 import { SAVE_VERSION, deserializeState, serializeState } from '..';
 import { migrateSave } from './migrate';
 
@@ -33,7 +33,13 @@ const flatWithoutNewFields = (text: string) => {
 };
 
 /** The same flat save as the v8 reader gives it back: a life that owned Sleeve levels (the old unlock) now also owns Unlock resleeving. */
-function inV8(raw: FlatSave): FlatSave {
+function inV8(rawSave: FlatSave): FlatSave {
+  // Rarity refinement became a skill (paid in skill points): a purchase at the old price is not read back
+  const without = (bought: unknown): Record<string, number> => {
+    const { [RARITY_REFINEMENT]: _gone, ...kept } = bought as Record<string, number>;
+    return kept;
+  };
+  const raw: FlatSave = { ...rawSave, purchased: without(rawSave['purchased']), lastLifePurchases: without(rawSave['lastLifePurchases']) };
   const purchased = raw['purchased'] as Record<string, number>;
   const withUnlock = (purchased[SLEEVE_LEVELS] ?? 0) > 0 ? { ...raw, purchased: { ...purchased, [RESLEEVE_UNLOCK]: 1 } } : raw;
   // Auto Burn's old ceiling is its lower threshold now; the rest of its settings start fresh (the old on/off lives in the sleeve's Burn lead toggle)
@@ -81,7 +87,8 @@ describe.each(FIXTURES)('v6 fixture %s', (name) => {
     expect(Object.keys(data.wallet.corporations)).toEqual(['main']);
     expect(data.wallet.runs).toEqual(raw['runs']);
     expect(data.wallet.inventory).toEqual(raw['inventory']);
-    expect(data.sleeves.main.purchased).toEqual(inV8(raw)['purchased']);
+    const { [RARITY_REFINEMENT]: _retired, ...purchasedNow } = data.sleeves.main.purchased; // the reader drops the retired purchase, the migration keeps it
+    expect(purchasedNow).toEqual(inV8(raw)['purchased']);
     expect(data.sleeves.main.actions).toEqual(raw['actions']);
   });
 

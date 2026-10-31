@@ -24,6 +24,7 @@ import type {
   InterfaceSpeedTipParts,
   LegendTipParts,
   MolesTipParts,
+  HardenedPayloadValueParts,
   HardeningValueParts,
   NetworkGrowthValueParts,
   OverclockTipParts,
@@ -73,4 +74,5 @@ export interface TipTexts {
   synths(parts: SynthTipParts): string;
   networkGrowthValues(parts: NetworkGrowthValueParts): BuyableValues;
   hardeningValues(parts: HardeningValueParts): BuyableValues;
+  hardenedPayloadValues(parts: HardenedPayloadValueParts): BuyableValues;
 }

@@ -13,7 +13,15 @@ import type { TipTexts } from './tipTextTypes';
 /** The actions hover texts. */
 export const actionTips: Pick<
   TipTexts,
-  'actionSpeed' | 'payout' | 'income' | 'critical' | 'overclock' | 'focus' | 'networkGrowthValues' | 'hardeningValues'
+  | 'actionSpeed'
+  | 'payout'
+  | 'income'
+  | 'critical'
+  | 'overclock'
+  | 'focus'
+  | 'networkGrowthValues'
+  | 'hardeningValues'
+  | 'hardenedPayloadValues'
 > = {
   actionSpeed: ({
     speed,
@@ -93,7 +101,7 @@ export const actionTips: Pick<
       ...(heatPerMinute === null ? [] : [`Causes ${heatPerMinute} heat per minute while this action runs`]),
       ...(heatChanceFactor === null ? [] : [`Each run is ${heatChanceFactor}x as likely to make heat`]),
       ...(nodesLost === null ? [] : [`Each completed run costs ${nodesLost} nodes`]),
-      ...(holdsHeat ? ['Heat stays in place while this action runs'] : []),
+      ...(holdsHeat ? ['Prevents heat cooldown while active'] : []),
       ...(chain === null
         ? []
         : [
@@ -124,6 +132,10 @@ export const actionTips: Pick<
   hardeningValues: ({ crits, perLevel }) => ({
     variables: [`Critical successes counted = ${crits}`],
     result: `Extra ICE Rating per level = ${perLevel}`,
+  }),
+  hardenedPayloadValues: ({ base, hardening, total }) => ({
+    variables: [],
+    result: `ICE Rating per level = ${base}${hardening === null ? '' : ` + Forensic hardening ${hardening}`} = ${total}`,
   }),
   networkGrowthValues: ({ level, percent }) => ({
     variables: [`Action level = ${level}`],

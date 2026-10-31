@@ -97,6 +97,7 @@ describe('scalar field registry', () => {
       'purchased',
       'inventory',
       'seenItems',
+      'revealed',
       'runs',
       'synths',
       'corporation',

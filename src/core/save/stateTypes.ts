@@ -37,6 +37,8 @@ export interface SleeveRunRecord {
   readonly creditsPerSecond: BigNum;
   /** The total of all action levels the sleeve had reached at that moment (a whole number >= 0). */
   readonly actionLevelsTotal: number;
+  /** The total of all sleeve levels the sleeve held at that moment (a whole number >= 0; the progress gate's baseline). */
+  readonly sleeveLevelsTotal: number;
   /** The action level each action had reached at that moment (absent in records written before levels were kept). */
   readonly actionLevels?: Readonly<Record<ActionId, number>>;
 }
@@ -76,6 +78,11 @@ export interface Wallet {
    * seen). Written only by `Inventory.add`. Decides which inventory groups and rows are shown. Survives re-sleeving. A save without it loads empty.
    */
   seenItems: Record<ItemId, Record<RarityId, true>>;
+  /**
+   * The reveal ledger: typed keys (`stat:<id>`, `tab:<id>`, `skill:<id>`, `buyable:<id>`) of everything the player has ever been shown, used as a set
+   * (no repeats). Only ever grows; written only by `noteRevealed` (see `economy/revealLedger.ts`). Survives re-sleeving. A save without it loads empty.
+   */
+  revealed: string[];
   /** What the player unlocked and set in the Automation tab. Reset by re-sleeving unless a retention skill keeps it. */
   automation: AutomationState;
   /** Progress of the corporation's actions. Survives re-sleeving: the corporation is not the character. (The save keeps corporations as a map keyed by id, with one entry.) */

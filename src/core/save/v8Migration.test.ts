@@ -19,7 +19,7 @@ const purchasedOf = (text: string): Record<string, number> => JSON.parse(text).s
 
 describe('v7 to v8', () => {
   it('writes the current version', () => {
-    expect(SAVE_VERSION).toBe(8);
+    expect(SAVE_VERSION).toBe(9);
     expect(JSON.parse(migrateSave(v7({}))).version).toBe(SAVE_VERSION);
   });
 

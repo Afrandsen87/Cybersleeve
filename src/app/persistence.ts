@@ -3,7 +3,18 @@
  *
  * Saving and loading through an injected key/value store.
  */
-import { deserializeState, migrateSave, serializeState, type GameConfig, type GameState, type GameStateView } from '../core';
+import {
+  Progression,
+  deserializeState,
+  migrateProgressionSave,
+  migrateSave,
+  needsProgressionBackfill,
+  serializeState,
+  type GameConfig,
+  type GameState,
+  type GameStateView,
+} from '../core';
+import { RARITY_REFINEMENT } from '../content/ids';
 import type { NumberFactory } from '../numbers';
 
 /** Minimal storage contract (a subset of the browser `Storage`). Lets tests use an in-memory fake. */
@@ -151,17 +162,26 @@ export class SaveGame {
   importText(text: string): boolean {
     try {
       const trimmed = text.trim();
-      if (this.read(trimmed) === null) return false;
-      this.store.setItem(SAVE_KEY, migrateSave(trimmed));
+      const state = this.read(trimmed);
+      if (state === null) return false;
+      // an older save is stored as the loaded (backfilled) state: its text alone would be marked v9 without the backfill
+      this.store.setItem(SAVE_KEY, needsProgressionBackfill(trimmed) ? serializeState(state) : migrateSave(trimmed));
       return true;
     } catch {
       return false;
     }
   }
 
-  /** Reads saved text of any version this build can migrate. */
+  /**
+   * Reads saved text of any version this build can migrate. A save from before v9 also gets its newest run record's sleeve-level total
+   * (the one migration step that needs the config, so it runs on the loaded state).
+   */
   private read(json: string): GameState | null {
-    return deserializeState(migrateSave(json), this.config, this.factory);
+    const state = deserializeState(migrateSave(json), this.config, this.factory);
+    if (state !== null && needsProgressionBackfill(json)) {
+      migrateProgressionSave(state, new Progression(this.config, this.factory).totalSleeveLevels(state), RARITY_REFINEMENT);
+    }
+    return state;
   }
 
   /** Deletes the main save and the previous known-good one (the backups of an unreadable save and of a pre-migration save are kept). Storage errors are swallowed. */

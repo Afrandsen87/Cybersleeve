@@ -74,7 +74,7 @@ export const actionsConfig: GameConfig['actions'] = [
     /** Action XP per completed run. */
     xpPerRun: num(1),
     /**
-     * Overclock: pays double the ICE Rating per run, but heat is held in place while it runs. The Kill chain buyable adds a chain
+     * Overclock: pays double the ICE Rating per run, but it prevents heat cooldown while active. The Kill chain buyable adds a chain
      * to it (see KILL_CHAIN).
      */
     overclock: { rewardBonus: 1, stopsHeatCooling: true },

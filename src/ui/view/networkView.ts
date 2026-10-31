@@ -63,7 +63,12 @@ export function networkView(
         'synths',
         text,
         formatPlain(engine.synthCount()),
-        () => text.tips.synths({ count: formatPlain(engine.synthCount()), perSecond: formatBigNum(engine.synthCreditsPerSecond()) }),
+        () =>
+          text.tips.synths({
+            count: formatPlain(engine.synthCount()),
+            perSecond: formatBigNum(engine.synthCreditsPerSecond()),
+            ceiling: formatBigNum(engine.synthIncomeCeiling()),
+          }),
         null,
         !engine.synthSleevesUnlocked(), // the entry appears with the skill that gives synthetic sleeves
       ),

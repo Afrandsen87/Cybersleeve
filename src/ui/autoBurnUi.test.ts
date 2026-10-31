@@ -70,15 +70,18 @@ describe('the Auto Burn box in the Automation tab', () => {
   it('shows each switch once its skill is owned, and a click sets it', () => {
     const { game, render, shown } = mount(3);
     render();
-    expect(shown('.automation-switch').map((b) => b.textContent)).toEqual(['Hold at lower threshold', 'Switch on at upper threshold']);
+    expect(shown('.automation-switch').map((b) => b.textContent)).toEqual([
+      'Hold at lower threshold (10 heat)',
+      'Switch on at upper threshold (50 heat)',
+    ]);
     shown('.automation-switch')[0]!.click();
     expect(game.automation().autoBurn().rules().hold).toBe(true);
     render();
     expect(shown('.automation-switch')[0]!.classList.contains('on')).toBe(true);
   });
 
-  it('shows the thresholds and the reserve with skills 9 and 10, and they change the settings', () => {
-    const { game, render, shown } = mount(10);
+  it('shows the thresholds and the reserve with skills 8 and 9, and they change the settings', () => {
+    const { game, render, shown } = mount(9);
     render();
     const inputs = shown('.automation-field input') as HTMLInputElement[];
     expect(inputs.map((i) => i.value)).toEqual(['10', '50', '0']);
@@ -87,5 +90,28 @@ describe('the Auto Burn box in the Automation tab', () => {
     inputs[2]!.value = '4';
     inputs[2]!.dispatchEvent(new Event('change'));
     expect(game.automation().autoBurn().rules()).toMatchObject({ lower: 20, upperAt: 50, reserve: 4 });
+  });
+});
+
+describe('the resume checklists', () => {
+  it('appear under their switch with the owned heat-making things, and a tick sets the setting', () => {
+    const { game, render, shown, box } = mount(7);
+    render();
+    const names = shown('.automation-check').map((r) => r.textContent);
+    expect(names).toContain('hot');
+    expect(names).not.toContain('cold'); // its Overclock makes no heat
+    const hot = [...box().querySelectorAll<HTMLElement>('.automation-check')].find((r) => r.textContent === 'hot')!;
+    const input = hot.querySelector('input')!;
+    input.checked = true;
+    input.dispatchEvent(new Event('change'));
+    render();
+    expect(Object.keys(game.automation().autoBurn().rules().resumeOverclocks)).toEqual(['hot']);
+    expect(buildViewModel(game).automation.autoBurn.resumeOverclocks.items.find((i) => i.id === 'hot')?.ticked).toBe(true);
+  });
+
+  it('stay hidden before their skills are owned', () => {
+    const { render, shown } = mount(5);
+    render();
+    expect(shown('.automation-checklist')).toEqual([]);
   });
 });
