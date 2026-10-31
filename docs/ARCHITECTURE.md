@@ -89,3 +89,9 @@ See `docs/contexts/_limitations.md`.
 - `src/ui/parts/upgradeText.ts`: `UpgradeTileText` contract, exported through `uiTextParts.ts`.
 - `src/ui/upgradeText.ts`: default MAX and owned-count wording, wired as `uiText.upgradeTiles`.
 - `src/ui/widgets/sleeveWidgets.ts`: one Upgrades panel; persistent tile rows reorder only when IDs differ.
+
+## Inventory stash presentation
+
+- `src/ui/widgets/inventorySlots.ts`: named slot building and state rendering, extracted from the stable `inventoryWidget.ts` facade.
+- `src/ui/parts/stashText.ts` and `src/ui/stashText.ts`: StashText contract and default `uiText.stash` captions/gains.
+- `src/ui/inventoryKit.ts`: shared testConfig-based inventory fixtures for separate view, DOM and stash tests.

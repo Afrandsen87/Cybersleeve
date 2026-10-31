@@ -13,6 +13,8 @@ const engine = createGame({ config: fast });
 
 Unit tests use their own fixed `src/testing/testConfig.ts`, so retuning the game does not break them.
 
+The Inventory stash adds no tuning: captions and gain signs live in `uiText.stash`; sale payouts still read the existing `Inventory.sellValue` owner through the view.
+
 ## Quick recipes
 
 | Goal | Change |

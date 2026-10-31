@@ -1,6 +1,7 @@
 import { autoBurnText } from './autoBurnText';
 import { formatPlain } from '../numbers';
 
+import { stashText } from './stashText';
 import { hudText } from './hudText';
 import { upgradeText } from './upgradeText';
 import { tipText } from './tipText';
@@ -13,6 +14,7 @@ export type { UiText };
 
 /** The default (placeholder) text of the game. */
 export const uiText: UiText = {
+  stash: stashText,
   perSecond: (amount) => `${amount}/s`,
   format: {
     speed: (value) => `x${value}`,

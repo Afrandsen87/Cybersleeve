@@ -1,7 +1,7 @@
 .inventory-widget[hidden],
 .inventory-section[hidden],
 .item-group[hidden],
-.item-tile[hidden] {
+.item-tile.item-slot[hidden] {
   display: none;
 }
 /*
@@ -17,7 +17,7 @@
 }
 .inventory-section {
   display: grid;
-  grid-template-rows: auto 1fr; /* the header bar, then the body, which centres its content in the height that is left */
+  grid-template-rows: auto 1fr;
   gap: 10px;
   padding: 0 14px 14px;
   background: #0d1220;
@@ -48,50 +48,34 @@
   box-shadow: 0 0 6px var(--magenta);
 }
 .inventory-sell-body {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  align-self: center;
+  display: grid;
+  gap: 10px;
+  align-self: start;
 }
-/* The tiles of each item in a row of their own, the items side by side with a divider between them, centred in the panel. */
+/* Groups preserve item identity while slots flow through two columns. */
 .item-grid {
-  display: flex;
-  align-items: center;
-  align-self: center;
-  gap: 12px;
-  padding: 2px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 5px;
+  align-content: start;
 }
 .item-group {
-  display: grid;
-  grid-auto-flow: column;
-  gap: 8px;
+  display: contents;
 }
-.item-group + .item-group {
-  padding-left: 12px;
-  border-left: 1px solid var(--line);
-}
-/* A tile: the icon with the count underneath. The border colour tells the rarities apart. */
+/* A neutral slot gets rarity colour only from its rarity-N class. */
 .item-tile {
-  --rarity: var(--line);
-  display: grid;
-  justify-items: center;
-  width: 38px;
-  gap: 1px;
-  padding: 3px 1px 2px;
-  background: #0a0e18;
-  border-color: var(--rarity);
-  border-radius: 6px;
+  --rarity: var(--muted);
 }
-.item-tile.rarity-1 {
+.rarity-1 {
   --rarity: #3dff7a;
 }
-.item-tile.rarity-2 {
+.rarity-2 {
   --rarity: #4d8bff;
 }
-.item-tile.rarity-3 {
+.rarity-3 {
   --rarity: #ff2bd6;
 }
-.item-tile.rarity-4 {
+.rarity-4 {
   --rarity: #ff8a1f;
 }
 .item-icon {
@@ -111,20 +95,12 @@
   margin: 0;
   vertical-align: top;
 }
-.item-count {
-  font-size: 10px;
-  line-height: 1.2;
-  font-weight: 700;
-  color: var(--cyan);
-}
+
 /* A stack that is not held is dimmed (by colour, so its tooltip stays readable). */
-.item-tile.empty .item-icon::before,
 .item-tile.empty .item-icon {
   opacity: 0.35;
 }
-.item-tile.empty .item-count {
-  color: #5b6b86;
-}
+
 .item-tile:disabled {
   opacity: 1;
 }
@@ -138,18 +114,99 @@
   border-color: var(--magenta, #ff2bd6);
   box-shadow: 0 0 8px var(--magenta, #ff2bd6);
 }
-.inventory-actions {
+
+.inventory-action[hidden] {
+  display: none;
+}
+
+/* Named stash slots: icon, title with caption, count. */
+.item-tile.item-slot {
   display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  justify-items: stretch;
+  align-items: center;
+  width: auto;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--rarity);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--rarity) 7%, transparent);
+  text-align: left;
+}
+.item-slot .item-icon {
+  width: 30px;
+  height: 30px;
+  line-height: 30px;
+}
+.item-name {
+  color: var(--ink);
+  font-size: 12px;
+}
+.item-caption {
+  display: block;
+  color: var(--rarity);
+  font: 10px var(--mono);
+  letter-spacing: 0.08em;
+}
+.item-slot .item-count {
+  color: var(--ink);
+  font: 700 13px var(--mono);
+}
+.item-slot.empty .item-name,
+.item-slot.empty .item-count {
+  opacity: 0.4;
+}
+.item-slot.selected {
+  background: #14304a;
+}
+.item-slot.on {
+  background: #3a1440;
+  border-color: var(--magenta);
+  border-left-color: var(--rarity);
+}
+.rarity-0 {
+  --rarity: var(--info);
+}
+.rarity-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font: 10px var(--mono);
+}
+.rarity-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--rarity);
+  box-shadow: 0 0 4px var(--rarity);
+}
+.inventory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8px 0 0;
+  border-left: 0;
+  border-top: 1px solid var(--line);
   gap: 6px;
   align-content: center;
-  padding-left: 14px;
-  border-left: 1px solid var(--line);
 }
 .inventory-action {
+  display: flex;
+  gap: 6px;
+  text-transform: uppercase;
+  font-family: var(--mono);
   padding: 4px 10px;
   font-size: 12px;
   border-radius: 6px;
 }
-.inventory-action[hidden] {
-  display: none;
+.inventory-action .gain {
+  color: var(--gain);
+}
+.inventory-action.sell-all {
+  border-color: var(--gain);
+  box-shadow: 0 0 8px -3px var(--gain);
 }

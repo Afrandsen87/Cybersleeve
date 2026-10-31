@@ -13,7 +13,10 @@ import type { UpgradeTileText } from '../uiText';
 import { applyIcon, h, setText } from './domKit';
 
 /** The wording and the price strip and badge of each opt-in tile, so a render reads no DOM. */
-const tileParts = new WeakMap<HTMLButtonElement, { readonly text: UpgradeTileText; readonly price: HTMLElement; readonly own: HTMLElement }>();
+const tileParts = new WeakMap<
+  HTMLButtonElement,
+  { readonly text: UpgradeTileText; readonly price: HTMLElement; readonly own: HTMLElement }
+>();
 
 /** Builds persistent purchase buttons; optional tile wording adds price strips and badges.
  * Called by: sleeveWidgets, actionCards, skillsPanel, corporationPanel. Calls: applyIcon, h, buy on click.

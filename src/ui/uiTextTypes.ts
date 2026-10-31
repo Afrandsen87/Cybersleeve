@@ -11,6 +11,7 @@ import type { AutoBurnText } from './autoBurnText';
 import type { AutomationFeature, CorporationEffect, Currency, RewardKind } from '../core';
 import type { TipTexts } from './tipTextTypes';
 import type { ActionText } from './parts/actionText';
+import type { StashText } from './parts/stashText';
 import type { MainScreenText } from './parts/hudText';
 import type { UpgradeTileText } from './parts/upgradeText';
 
@@ -20,6 +21,8 @@ export * from './uiTextParts';
 
 /** All display text of the interface. */
 export interface UiText {
+  /** Inventory slot captions and gains. */
+  readonly stash: StashText;
   /** An amount per second, e.g. `"0.015/s"`. */
   perSecond(amount: string): string;
   /** Small display forms of numbers that other texts are built from. */

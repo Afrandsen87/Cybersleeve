@@ -90,7 +90,7 @@ The Auto Burn panel shows a status line (STANDBY, IDLE, BLOCKED, DRY, HOLDING or
 
 ## 10. Items, drops, the Inventory and Augments
 
-*Moved to [docs/contexts/items.md](docs/contexts/items.md).* In short: an item and its rarity show in the Inventory only once found (or held); the Augment button waits for the upgrade that drops schematics. Kompromat sells for the larger of a floor per rarity and some seconds (60 for common, x5 per rarity) of this life's peak network income.
+*Moved to [docs/contexts/items.md](docs/contexts/items.md).* The Inventory uses named stash slots (icon, name, rarity/CONSUMABLE caption, count), a legend of shown sellable rarities, and selected-stack gains on Sell / Sell all. In short: an item and its rarity show in the Inventory only once found (or held); the Augment button waits for the upgrade that drops schematics. Kompromat sells for the larger of a floor per rarity and some seconds (60 for common, x5 per rarity) of this life's peak network income.
 
 ## 11. Re-sleeving (first prestige)
 

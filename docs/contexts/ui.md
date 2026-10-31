@@ -20,6 +20,14 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 - **Style folder:** `ui/style.css` is the base; area files live in `ui/styles/` (list in `docs/ARCHITECTURE.md`).
 - **Widgets only draw view fields:** `widgets/hud.ts` (credits, rate, tabs), `widgets/tabBar.ts` (badge from `TabView.count`, colour by `data-tab` in CSS), `widgets/heatGauge.ts` (fill by `transform`, tax zone from `strip.taxStartPercent`), `widgets/statWidget.ts` (group headers, hidden bars, `StatRowView.tone` as `data-tone`). `networkView` sets the tone (income gain, a taxed +0 danger, nodes info). The re-sleeve box title is `SleeveView.resleeveTitle`.
 
+## Inventory stash (2026-10-31)
+
+- Named two-column slots show the real pixel icon, item name, rarity caption (uppercase, rarity colour) or CONSUMABLE, and count; an empty stack dims. Existing select, augment, use and toggle interactions remain.
+- `view/inventoryView.ts` supplies lazy `sellOneText` / `sellAllText` from the same `engine.sellValue(rarity)` price as the tip, multiplying only with BigNum. Kept items return null; the widget never calculates a sale price.
+- The For sale legend lists only rarities with a shown sellable row, in rarity order. `widgets/inventoryWidget.ts` replaces its entries only when the rarity-index sequence changes. Sell gains clear and buttons disable when selection drops; Back channel is unchanged.
+- `widgets/inventorySlots.ts` owns slot construction/rendering. `parts/stashText.ts` defines StashText; `stashText.ts` supplies `uiText.stash` captions and gains through `uiTextParts.ts` / `uiTextTypes.ts`. Shared tests use `inventoryKit.ts` (testConfig-based stock/seen helpers).
+- Presentation only: no tuning, save or mechanic change; no new assumptions about sleeve, corporation or prestige counts.
+
 ## Reveal ledger and tab blink
 
 **Reveal ledger** (`wallet.revealed`, `economy/revealLedger.ts`): a set of typed keys `stat:<id>`, `tab:<id>`, `skill:<id>`, `buyable:<id>` for everything the player has ever been shown. Only grows; survives a re-sleeve (`CARRIED_OVER_WALLET_FIELDS`). Queries never write it: each view build uses one `RevealTracker` (`ui/view/revealTracker.ts`) that says "shown" when the key is noted or the natural rule says so now, and collects keys that are new into `ViewModel.newlyRevealed`; `ui/dom.ts` then calls the engine command `noteRevealed(keys)` only when that list is not empty. Unknown and repeated keys are ignored (ids are resolved against the content, not a branch). Tabs: `tabsView` takes the tracker and a `TabAttention` (held by `ui/dom.ts` in `UiSelection`); `BuyableView.gated` marks a remembered purchase whose requirements are unmet (class `gated`, greyed).

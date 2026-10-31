@@ -38,8 +38,14 @@ function dropChances(engine: ItemQueries & ShopQueries & StateQueries, itemId: s
  * @param engine the engine to read from
  * @param factory number factory (for stack values)
  * @param text the display text
+ * @param revealAll development aid showing every configured slot
  */
-export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, factory: NumberFactory, text: UiText): InventoryView {
+export function inventoryView(
+  engine: ItemQueries & ShopQueries & StateQueries,
+  factory: NumberFactory,
+  text: UiText,
+  revealAll = false,
+): InventoryView {
   const state = engine.getState();
   const { items } = engine.getConfig();
   const channel = engine.backChannel();
@@ -74,10 +80,18 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
         itemId: item.id,
         rarityId: rarity.id,
         label,
+        name: item.name,
+        caption: item.hasRarity === false ? text.stash.consumable : text.stash.caption(rarity.name),
+        get sellOneText() {
+          return item.sellable === false ? null : text.stash.gain(formatBigNum(price));
+        },
+        get sellAllText() {
+          return item.sellable === false ? null : text.stash.gain(formatBigNum(price.mul(factory.fromNumber(count))));
+        },
         symbol: initials(item.name),
         rarityIndex: item.hasRarity === false ? null : items.rarities.indexOf(rarity),
         count,
-        unlocked: engine.hasSeenItem(item.id, rarity.id), // seen once (loading a save marks what it holds)
+        unlocked: revealAll || engine.hasSeenItem(item.id, rarity.id), // seen once (loading a save marks what it holds)
         countText: formatBigNum(factory.fromNumber(count)),
         augmentable: augment?.itemId === item.id,
         sellable: item.sellable !== false,
@@ -183,5 +197,8 @@ export function inventoryView(engine: ItemQueries & ShopQueries & StateQueries, 
     title: text.titles.inventory,
     visible: rows.some((r) => r.unlocked), // nothing shows until an item has been seen or is held
     rows,
+    legend: items.rarities.flatMap((rarity, rarityIndex) =>
+      rows.some((r) => r.sellable && r.unlocked && r.rarityIndex === rarityIndex) ? [{ rarityIndex, name: rarity.name }] : [],
+    ),
   };
 }
