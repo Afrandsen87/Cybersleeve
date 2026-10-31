@@ -349,7 +349,7 @@ describe('network growth that depends on an action level', () => {
     expect(grownAt({ copies: 2, netXp: 10 })).toBe(Math.floor(1000 * 1.02 ** 10));
   });
 
-  it('uses the plain action level of the source, not a level bonus from purchases', () => {
+  it('uses the effective source level, including an active bonus from purchases', () => {
     const g = withBuyables(
       [
         levelGrowth,
@@ -366,10 +366,11 @@ describe('network growth that depends on an action level', () => {
     setCredits(g, num(10));
     g.buy('lg');
     g.buy('bonus');
-    (g.getState().sleeve.actions['net'] as { xp: unknown }).xp = num(10); // level 1
+    (g.getState().sleeve.actions['net'] as { xp: unknown }).xp = num(10); // real level 1
+    (g.getState().sleeve.actions['net'] as { sleeveXp: unknown }).sleeveXp = num(10); // bonus 1
     setNetwork(g, num(1000));
     g.tick(10_000);
-    expect(g.getState().sleeve.network.toNumber()).toBe(Math.floor(1000 * 1.01 ** 10));
+    expect(g.getState().sleeve.network.toNumber()).toBe(Math.floor(1000 * 1.02 ** 10));
   });
 
   it('gives (almost) the same result for one long tick and many short ones', () => {

@@ -26,13 +26,13 @@ export type SleeveEffect =
   /** Multiplies the ICE Rating stat by this factor per copy. */
   | { readonly kind: 'iceRatingMultiplier'; readonly factor: number }
   /**
-   * Adds `perLevel` per copy owned and per plain action level of `sourceActionId` to the BASE ICE Rating, that is, before the
+   * Adds `perLevel` per copy owned and per effective action level of `sourceActionId` to the BASE ICE Rating, that is, before the
    * `iceRatingMultiplier` buyables multiply it (so it does not matter in which order they are bought).
    */
   | { readonly kind: 'iceRatingFromActionLevel'; readonly sourceActionId: ActionId; readonly perLevel: number }
   /**
    * While owned, every critical success of `critActionId` (counted by `CritTally` in `sleeve.hardeningCrits`) adds `perCrit` to the ICE
-   * Rating each plain level of `levelActionId` gives, on top of the `perLevel` of its `iceRatingFromActionLevel` buyable (Hardened payload):
+   * Rating each effective level of `levelActionId` gives, on top of the `perLevel` of its `iceRatingFromActionLevel` buyable (Hardened payload):
    * the base ICE Rating bonus is `(perLevel + crits x perCrit) x level`. Added to the same base bonus, so the multipliers apply to it.
    */
   | {
@@ -44,7 +44,7 @@ export type SleeveEffect =
   /** Network nodes grow by this fraction of themselves per second (0.000001 = 0.0001 percent), compounding; only whole nodes are added, the rest is carried. */
   | { readonly kind: 'networkGrowth'; readonly ratePerSecond: number }
   /**
-   * Network nodes grow by `level * percentPerLevel` percent of themselves per second, where `level` is the (plain) action level of
+   * Network nodes grow by `level * percentPerLevel` percent of themselves per second, where `level` is the effective action level of
    * `sourceActionId`, per copy owned. E.g. `percentPerLevel: 0.001` at level 50 gives 0.05 percent per second. Same compounding and
    * whole-node rules as `networkGrowth`.
    */

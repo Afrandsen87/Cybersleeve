@@ -9,6 +9,8 @@ import type { ActionId } from '../../actions/actionTypes';
 
 /** Effects on heat: cooling speed, idle cooling, Moles, burn leads and the heat tax. */
 export type HeatEffect =
+  /** Heat/effects contexts: multiply tax by (1 - perSkill)^distinct sleeve skills; survives re-sleeving. */
+  | { readonly kind: 'heatReductionPerSleeveSkill'; readonly perSkill: number }
   /** Heat cools down `factor` times as fast per copy (shorter cooldown cycles). */
   | { readonly kind: 'heatCooldownSpeed'; readonly factor: number }
   /**

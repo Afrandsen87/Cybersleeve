@@ -10,6 +10,7 @@
  * Called by: `heat/cooldowns.ts`, `heat/heatPace.ts`, `ui/view/sleeveView.ts`, `ui/view/moleBonus.ts`.
  * Calls: `kernel/curves` (`orders`).
  */
+import { heatTaxFactor } from './heat';
 import { orders } from '../kernel/curves';
 import type { SleeveConfig } from '../types';
 
@@ -35,16 +36,18 @@ export function coolsNow(heat: number, amount: number): boolean {
 }
 
 /**
- * The share (0..1) of earned credits the heat tax takes: `heat x (1 - reduction) x taxPerPoint`, at most `maxShare`.
+ * Heat/economy contexts: the share (0..1) of node credits taxed, delegated to heatTaxFactor.
+ * Called by: sleeveView tooltips. Calls: heatTaxFactor.
  *
  * @param heat current heat
  * @param reduction share of the heat's effect removed by ICE Rating (0..1)
  * @param taxPerPoint share one heat point takes (`sleeve.heatTaxPerPoint`)
  * @param maxShare the most the tax may take (`heatTaxCap`; 1 = no cap)
- * @returns the share taken (not clamped below, so it follows the heat)
+ * @param taxScale resolved sleeve-skill tax multiplier (heat/economy contexts)
+ * @returns the share taken, as reported by the single heatTaxFactor owner
  */
-export function heatTaxShare(heat: number, reduction: number, taxPerPoint: number, maxShare: number): number {
-  return Math.min(maxShare, heat * (1 - reduction) * taxPerPoint);
+export function heatTaxShare(heat: number, reduction: number, taxPerPoint: number, maxShare: number, taxScale = 1): number {
+  return 1 - heatTaxFactor(heat, reduction, taxPerPoint, maxShare, taxScale);
 }
 
 /**
@@ -53,9 +56,10 @@ export function heatTaxShare(heat: number, reduction: number, taxPerPoint: numbe
  * @param reduction share of the heat's effect removed by ICE Rating (0..1)
  * @param taxPerPoint share one heat point takes
  * @param maxShare the tax cap (1 = none)
+ * @param taxScale resolved sleeve-skill tax multiplier (heat/economy contexts)
  */
-export function heatStopPoint(reduction: number, taxPerPoint: number, maxShare: number): number | null {
-  const keep = 1 - reduction;
+export function heatStopPoint(reduction: number, taxPerPoint: number, maxShare: number, taxScale = 1): number | null {
+  const keep = (1 - reduction) * taxScale;
   return maxShare >= 1 && keep > 0 && taxPerPoint > 0 ? 1 / taxPerPoint / keep : null;
 }
 

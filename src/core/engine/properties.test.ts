@@ -48,6 +48,15 @@ const richTestConfig: GameConfig = createConfig(testConfig, {
   ],
   buyables: [
     ...testConfig.buyables,
+    buyable({ id: 'networked', effect: { kind: 'levelBonusFromSleeveSkills', targetActionId: 'net' } }),
+    buyable({
+      id: 'run-ice',
+      actionId: 'net',
+      maxPurchases: Infinity,
+      costGrowth: 3,
+      effect: { kind: 'runIceChance', chance: 0.05, perCopy: 0.01 },
+    }),
+    buyable({ id: 'cloaking', effect: { kind: 'heatReductionPerSleeveSkill', perSkill: 0.03 } }),
     ...automationLaneBuyables(),
     buyable({ id: 'unlock', effect: { kind: 'accessLevel', amount: 1 } }),
     buyable({

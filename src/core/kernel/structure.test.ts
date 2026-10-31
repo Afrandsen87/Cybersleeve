@@ -29,6 +29,7 @@ describe('effect traits', () => {
       'overclockUnlock',
       'rarityShiftFromProficiency',
       'rewardMultiplier',
+      'runIceChance',
       'startCostReduction',
     ]);
   });

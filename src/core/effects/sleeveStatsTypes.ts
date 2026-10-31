@@ -70,6 +70,8 @@ export interface SleeveStats {
   readonly moleAggregation: number | null;
   /** The largest share of node income the heat tax may take (1 = no cap), from `heatTaxCap` buyables. */
   readonly heatTaxCap: number;
+  /** Heat/effects contexts: multiplier on heat tax from sleeve skills (0..1). */
+  readonly heatTaxScale: number;
   /** Chance that a completed run of any action is a critical success: the sum of owned `criticalChance` copies. It may exceed 1 (150% is one sure success and a 50% chance of a second). */
   readonly criticalChance: number;
   /** What each completed run of an action may also pay: one reward of another action, by chance (`paysActionReward` buyables). */

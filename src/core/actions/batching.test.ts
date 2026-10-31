@@ -270,3 +270,38 @@ describe('per-run events at a certain chance do not depend on how long the tick 
     expect(creditsOf(once)).toBeCloseTo(creditsOf(stepped), 9);
   });
 });
+
+describe('effective levels and run ICE preserve closed-form batching', () => {
+  it('one long tick and many short ticks agree with an active sleeve-level bonus', () => {
+    const config = createConfig(runsOnly(), {
+      buyables: [
+        ...testConfig.buyables,
+        buy({ id: 'transfer', effect: { kind: 'levelBonusFromSleeveLevel', sourceActionId: 'net', targetActionId: 'a' } }),
+      ],
+    });
+    const setup: Setup = (g) => {
+      const state = g.getState() as import('../types').GameState;
+      Object.assign(state.sleeve.purchased, { auto: 1, transfer: 1 });
+      state.sleeve.actions['net']!.sleeveXp = num(110);
+    };
+    const { once, stepped } = twins(100_033, 2000, setup, config);
+    expect(once.levelBonus('a')).toBeGreaterThan(0);
+    expectSame(once, stepped, ['a', 'net']);
+  });
+  it('seeded run ICE agrees across batch partitions, with no unrelated random effects', () => {
+    const safety = buy({ id: 'safety', actionId: 'a', effect: { kind: 'runIceChance', chance: 0.25, perCopy: 0.1 } });
+    const config = createConfig(cyberneticsConfig([safety]), { engine: { maxSliceMs: 1e6, maxSlicesPerTick: 1 } });
+    const once = cyberneticsGame(config, 42);
+    const stepped = cyberneticsGame(config, 42);
+    for (const game of [once, stepped]) {
+      game.buy('auto');
+      game.buy('safety');
+      game.startAction('a');
+    }
+    once.tick(500_033);
+    for (let i = 0; i < 1000; i++) stepped.tick(500.033);
+    expectSame(once, stepped, ['a']);
+    expect(once.getState().sleeve.iceRating.eq(stepped.getState().sleeve.iceRating)).toBe(true);
+    expect(once.getState().sleeve.iceRating.toNumber()).toBeGreaterThan(config.sleeve.baseIceRating);
+  });
+});

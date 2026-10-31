@@ -84,6 +84,8 @@ export interface SleeveAccumulator {
   moleAggregation: number | null;
   /** The largest share of node income the heat tax may take (1 = no cap; `heatTaxCap` lowers it). */
   heatTaxCap: number;
+  /** Heat/effects contexts: compounded multiplier on heat tax. */
+  heatTaxScale: number;
   criticalChance: number;
   /** The `paysActionReward` rules: each completed run of a source action may also pay one reward of a target action. */
   paysActions: PaysActionRule[];
@@ -114,13 +116,15 @@ export interface ActionHookContext {
 
 /** What a sleeve hook may look at besides the effect. */
 export interface SleeveHookContext {
+  /** Distinct sleeve skills owned, injected from economy. */
+  readonly sleeveSkillsOwned: () => number;
   /** The buyable whose effect this is (for per-buyable state such as the hardening count). */
   readonly id: BuyableId;
   /** Copies of the buyable owned (>= 1). */
   readonly owned: number;
   readonly state: StateSlice<'network' | 'inventory' | 'synths' | 'hardeningCrits'>;
   readonly factory: NumberFactory;
-  /** Plain action level of an action (without level bonuses). */
+  /** Effective action level of an action (including level bonuses). */
   readonly actionLevelOf: (actionId: ActionId) => number;
   /** Sleeve level of an action. */
   readonly sleeveLevelOf: (actionId: ActionId) => number;

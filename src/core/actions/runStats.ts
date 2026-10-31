@@ -71,7 +71,7 @@ export class RunStats {
     private readonly definition: ActionLookup,
     private readonly economy: Economy,
     private readonly progression: Pick<Progression, 'actionLevel' | 'sleeveLevel'>,
-    private readonly toggles: Pick<ToggleStats, 'activeOverclock' | 'chainLinks' | 'levelBonus' | 'focusStatus'>,
+    private readonly toggles: Pick<ToggleStats, 'activeOverclock' | 'chainLinks' | 'effectiveActionLevel' | 'focusStatus'>,
     private readonly sleeveStats: () => SleeveStats,
     private readonly critical: CriticalLimits,
     private readonly speedModifiers: readonly SpeedModifier[],
@@ -83,7 +83,7 @@ export class RunStats {
    * (`1 + rewardBonus`). It scales that reward only.
    */
   rewardMultiplier(id: ActionId): BigNum {
-    const fromLevel = levelRewardFactor(this.config.buyables, this.state, id, (a) => this.progression.actionLevel(this.state, a));
+    const fromLevel = levelRewardFactor(this.config.buyables, this.state, id, (a) => this.toggles.effectiveActionLevel(a));
     const effects = resolveEffects(this.config.buyables, this.state, id, this.factory).rewardMultiplier;
     const bought = fromLevel === 1 ? effects : effects.mul(this.factory.fromNumber(fromLevel));
     const overclock = this.toggles.activeOverclock(id);
@@ -97,7 +97,7 @@ export class RunStats {
     const focus = this.state.sleeve.focused[id] === true ? this.toggles.focusStatus(id) : null;
     return {
       actionId: id,
-      actionLevel: this.progression.actionLevel(this.state, id) + this.toggles.levelBonus(id),
+      actionLevel: this.toggles.effectiveActionLevel(id),
       sleeveLevel: this.progression.sleeveLevel(this.state, id),
       interfaceSpeed: this.sleeveStats().interfaceSpeed,
       overclockBonus: overclock?.speedBonus ?? 0,

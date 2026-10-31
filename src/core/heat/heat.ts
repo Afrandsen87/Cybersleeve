@@ -87,12 +87,16 @@ function settle(heat: number): number {
  * @param reduction share of the heat's effect removed by ICE Rating (0..1)
  * @param taxPerPoint share of earned credits one heat point takes (`sleeve.heatTaxPerPoint`, 0.01 = 1%)
  * @param maxShare the most the tax may take (`heatTaxCap` buyables; default 1 = no cap, 0.5 = never more than half)
- * @returns `1 - heat * (1 - reduction) * taxPerPoint`, never below `1 - maxShare` (and never below 0). With 1% per point and no
+ * @param taxScale heat/economy contexts: compounded sleeve-skill tax multiplier (NaN means unchanged)
+ * @returns `1 - heat * (1 - reduction) * taxPerPoint * taxScale`, never below `1 - maxShare` (and never below 0). With 1% per point and no
  *   reduction, 100 heat keeps nothing; with a 50% reduction, credits only stop at 200 heat; with a cap of 0.5 half is always kept.
  */
-export function heatTaxFactor(heat: number, reduction: number, taxPerPoint: number, maxShare = 1): number {
+export function heatTaxFactor(heat: number, reduction: number, taxPerPoint: number, maxShare = 1, taxScale = 1): number {
   if (!(heat > 0)) return 1;
-  return Math.max(0, 1 - maxShare, 1 - heat * (1 - reduction) * taxPerPoint);
+  const scale = Number.isNaN(taxScale) ? 1 : Math.max(0, Math.min(1, taxScale));
+  const remaining = Number.isNaN(reduction) ? 1 : Math.max(0, Math.min(1, 1 - reduction));
+  if (scale === 0 || remaining === 0 || !(taxPerPoint > 0)) return 1;
+  return Math.max(0, 1 - maxShare, 1 - heat * remaining * taxPerPoint * scale);
 }
 
 /**

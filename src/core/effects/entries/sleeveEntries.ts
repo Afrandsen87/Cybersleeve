@@ -28,6 +28,7 @@ type Kind =
   | 'iceRatingFromActionLevel'
   | 'hardenedPayloadFromCrits'
   | 'interfaceSpeedPerLnNodes'
+  | 'levelBonusFromSleeveSkills'
   | 'levelBonusFromSleeveLevel'
   | 'sleeveXpReduction';
 
@@ -129,6 +130,12 @@ export const SLEEVE_ENTRIES: { readonly [K in Kind]: EffectDefinition<Extract<Bu
     },
     sleeve: (acc, e, { owned, state }) => {
       acc.interfaceNetworkFactor *= (1 + e.perLn * naturalLog(state.sleeve.network)) ** owned;
+    },
+  },
+  levelBonusFromSleeveSkills: {
+    traits: sleeveWide,
+    validate: (e, { where, actionIds, errors }) => {
+      if (!actionIds.has(e.targetActionId)) errors.push(where + ': unknown level bonus target');
     },
   },
   levelBonusFromSleeveLevel: {

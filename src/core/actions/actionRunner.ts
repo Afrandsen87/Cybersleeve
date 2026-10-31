@@ -3,6 +3,7 @@
  *
  * Running actions: access gating, start costs, run progress and the closed-form completion of runs.
  */
+import { earnRunIce } from './runIce';
 import type { BigNum, NumberFactory } from '../../numbers';
 import type { ActionLookup } from './actionLookup';
 import { applyCompletionEffects } from './completion';
@@ -222,8 +223,8 @@ export class ActionRunner {
    * network nodes produce, never what a run pays (see `Economy.passiveCreditsPerNode`).
    *
    * @remarks
-   * The steps run in a fixed order, which fixes the order of the random draws (critical successes, linked payouts, heat, drops):
-   * claim covers and settle the critical successes, pay, charge heat, roll drops, extend the chain, apply completion effects, give XP.
+   * The steps run in a fixed order, which fixes the order of the random draws (critical successes, linked payouts, run ICE, heat, drops):
+   * claim covers and settle the critical successes, pay, earn base run ICE, charge heat, roll drops, extend the chain, apply completion effects, give XP.
    * Runs without a critical success pay and teach as usual; every critical success pays `rewardMultiplier` times the reward and gives
    * `xpMultiplier` times the action XP, and applies the rule's own completion effects once. Heat, drops and the runs counted towards
    * sleeve XP do not depend on it.
@@ -233,6 +234,7 @@ export class ActionRunner {
     const rule = this.stats.criticalRule(def.id);
     const overclock = this.stats.activeOverclock(def.id);
     this.payBatch(def, runs, plainRuns, critical, rule.rewardMultiplier);
+    earnRunIce(this.config.buyables, this.state, def.id, runs, this.factory, this.random);
     this.chargeRunHeat(def, runs);
     this.drops.roll(def.id, runs);
     this.extendChain(def.id, runs);

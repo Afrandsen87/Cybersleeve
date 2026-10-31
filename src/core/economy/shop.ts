@@ -6,7 +6,8 @@
 import type { BigNum, NumberFactory } from '../../numbers';
 import { BuyableCaps } from '../effects/buyableCaps';
 import { traitsOf } from '../effects/effectTraits';
-import { currencyInfo, heldBalance, isPointCurrency, sleeveSkillIds, spendHeld } from '../kernel/currencies';
+import { currencyInfo, heldBalance, isPointCurrency, spendHeld } from '../kernel/currencies';
+import { sleeveSkillsOwned } from './sleeveSkills';
 import { Snapshot } from '../kernel/snapshot';
 import type { BuyableDefinition, BuyableId, Currency, GameState, PointCurrency } from '../types';
 
@@ -23,7 +24,6 @@ export type PurchaseResult = 'purchased' | 'max-reached' | 'locked' | 'cannot-af
  */
 export class Shop {
   private readonly byId = new Map<BuyableId, BuyableDefinition>();
-  private readonly sleeveSkillIds: readonly BuyableId[];
   private readonly caps: BuyableCaps;
 
   /**
@@ -47,7 +47,6 @@ export class Shop {
     private readonly onPurchased: PurchaseListener = () => {},
   ) {
     for (const b of buyables) this.byId.set(b.id, b);
-    this.sleeveSkillIds = sleeveSkillIds(buyables);
     this.caps = new BuyableCaps(buyables);
   }
 
@@ -117,11 +116,7 @@ export class Shop {
   isAvailable(state: GameState, id: BuyableId): boolean {
     const b = this.byId.get(id);
     if (!b) return false;
-    if (
-      b.requiresSleeveSkills !== undefined &&
-      this.sleeveSkillIds.filter((skillId) => this.owned(state, skillId) > 0).length < b.requiresSleeveSkills
-    )
-      return false;
+    if (b.requiresSleeveSkills !== undefined && sleeveSkillsOwned([...this.byId.values()], state) < b.requiresSleeveSkills) return false;
     return [...(b.requires ?? []), ...(b.parents ?? [])].every((r) => this.owned(state, r) > 0);
   }
 

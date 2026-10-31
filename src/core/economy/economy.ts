@@ -43,9 +43,10 @@ export class Economy {
    * @param heat current heat
    * @param reduction share of the heat's effect removed by ICE Rating (0..1)
    * @param maxShare the most the tax may take (default 1 = no cap; see `heatTaxCap`)
+   * @param taxScale heat/economy contexts: resolved multiplier on the tax (default 1)
    */
-  keepFactor(heat: number, reduction: number, maxShare = 1): number {
-    return heatTaxFactor(heat, reduction, this.taxPerPoint, maxShare);
+  keepFactor(heat: number, reduction: number, maxShare = 1, taxScale = 1): number {
+    return heatTaxFactor(heat, reduction, this.taxPerPoint, maxShare, taxScale);
   }
 
   /**
@@ -103,9 +104,18 @@ export class Economy {
    * @param payoutMultiplier multiplier on what each node produces (from buyables; default 1)
    * @param baseBonus credits per second added to the base of every node (earned by actions; default 0)
    * @param maxTaxShare the most the heat tax may take (default 1 = no cap)
+   * @param taxScale heat/economy contexts: compounded multiplier on tax from sleeve skills (default 1)
    */
-  passiveCreditsPerSecond(network: BigNum, heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0, maxTaxShare = 1): BigNum {
-    return network.mul(this.taxedCreditsPerNode(heat, reduction, payoutMultiplier, baseBonus, maxTaxShare));
+  passiveCreditsPerSecond(
+    network: BigNum,
+    heat: number,
+    reduction = 0,
+    payoutMultiplier = 1,
+    baseBonus = 0,
+    maxTaxShare = 1,
+    taxScale = 1,
+  ): BigNum {
+    return network.mul(this.taxedCreditsPerNode(heat, reduction, payoutMultiplier, baseBonus, maxTaxShare, taxScale));
   }
 
   /**
@@ -119,10 +129,11 @@ export class Economy {
    * @param payoutMultiplier multiplier on what each node produces (from buyables; default 1)
    * @param baseBonus credits per second added to the base of every node (earned by actions; default 0)
    * @param maxTaxShare the most the heat tax may take (default 1 = no cap)
+   * @param taxScale heat/economy contexts: compounded multiplier on tax from sleeve skills (default 1)
    */
-  taxedCreditsPerNode(heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0, maxTaxShare = 1): BigNum {
+  taxedCreditsPerNode(heat: number, reduction = 0, payoutMultiplier = 1, baseBonus = 0, maxTaxShare = 1, taxScale = 1): BigNum {
     return this.passiveCreditsPerNode(payoutMultiplier, baseBonus).mul(
-      this.factory.fromNumber(this.keepFactor(heat, reduction, maxTaxShare)),
+      this.factory.fromNumber(this.keepFactor(heat, reduction, maxTaxShare, taxScale)),
     );
   }
 
