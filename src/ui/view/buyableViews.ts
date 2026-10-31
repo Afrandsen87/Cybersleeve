@@ -20,6 +20,7 @@ import {
 } from '../../core';
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { BuyableValues, SleeveSectionId, UiText } from '../uiText';
+import type { RevealTracker } from './revealTracker';
 import { initials } from './viewFormat';
 import type { BuyableView } from './viewTypes';
 
@@ -115,18 +116,21 @@ const sortedCache = new WeakMap<GameConfig, readonly BuyableDefinition[]>();
  * The view of every buyable in the configuration, in base-price order ({@link sortByBasePrice}). Every widget filters this list, so
  * each of them shows its purchases cheapest first.
  *
- * Called by: {@link buildViewModel}. Calls: `GameQueries.ownedCount`, `canBuy`, `costOf`, `isBuyableAvailable`, the text table.
+ * Called by: {@link buildViewModel}. Calls: `GameQueries.ownedCount`, `canBuy`, `costOf`, `isBuyableAvailable`, `RevealTracker.reveals`, the text table.
  *
  * @param engine the engine to read from
  * @param config game configuration
  * @param text the display text
  * @param revealAll test aid: every purchase is `available`, whatever its requirements and reveal rules say
+ * @param tracker the reveal ledger reader: a purchase it holds (`buyable:<id>`) stays shown, greyed and unbuyable (`gated`) while its requirements are unmet.
+ *   Purchases paid in points are skills: the skill tree notes those (`skill:<id>`), not this list.
  */
 export function buildBuyableViews(
   engine: LevelQueries & ShopQueries & StateQueries,
   config: GameConfig,
   text: UiText,
   revealAll = false,
+  tracker?: RevealTracker,
 ): BuyableView[] {
   let sorted = sortedCache.get(config);
   if (!sorted) {
@@ -142,6 +146,9 @@ export function buildBuyableViews(
     const costText = formatBigNum(engine.costOf(b.id));
     const costUnit = text.costUnits[engine.currencyOf(b.id)];
     const repeatable = (b.maxPurchases ?? 1) > 1;
+    const requirementsMet = engine.isBuyableAvailable(b.id);
+    const natural = requirementsMet && (SQUARE_EFFECTS.includes(b.effect.kind) || engine.isBuyableRevealed(b.id));
+    const shown = tracker && !isPointCurrency(b.currency) ? tracker.reveals('buyable', b.id, natural) : natural;
     return {
       id: b.id,
       name: b.name,
@@ -153,8 +160,8 @@ export function buildBuyableViews(
       owned,
       repeatable,
       maxed,
-      available:
-        revealAll || (engine.isBuyableAvailable(b.id) && (SQUARE_EFFECTS.includes(b.effect.kind) || engine.isBuyableRevealed(b.id))),
+      available: revealAll || shown,
+      gated: shown && !requirementsMet,
       affordable,
       toggleable,
       enabled,

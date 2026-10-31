@@ -36,6 +36,8 @@ export interface ViewModel {
   readonly creditsText: string;
   /** The balance line, e.g. `"12 credits"`. */
   readonly creditsLine: string;
+  /** Ledger keys the screen showed that `wallet.revealed` does not hold yet; the UI hands them to `noteRevealed` (usually empty). */
+  readonly newlyRevealed: readonly string[];
   /** The tabs at the top, in order. */
   readonly tabs: readonly TabView[];
   readonly skills: SkillsView;

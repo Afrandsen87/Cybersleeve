@@ -26,6 +26,8 @@ export { SkillShards } from './items/skillShards';
 export { CriticalLinks } from './crits/criticalLinks';
 export { ActionToggles } from './actions/actionToggles';
 export { earnedSkillPoints } from './skills/skills';
+export { REVEALABLE_STATS, TAB_IDS, isKnownRevealKey, noteRevealed, revealKey, type RevealKind } from './economy/revealLedger';
+export { addRevealedLedger } from './economy/revealLedgerSave';
 export { ItemDrops } from './items/drops';
 export {
   AUTOMATION_FEATURES,

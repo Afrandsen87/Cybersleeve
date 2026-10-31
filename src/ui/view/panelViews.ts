@@ -9,6 +9,7 @@
 import {
   AUTOMATION_FEATURES,
   AUTO_BURN_SWITCHES,
+  type TAB_IDS,
   type CorporationQueries,
   type GameConfig,
   type SkillQueries,
@@ -18,8 +19,10 @@ import {
 import { formatBigNum, formatPlain } from '../../numbers';
 import type { UiText } from '../uiText';
 import { branchMaskedFn } from './branchMask';
+import type { RevealTracker } from './revealTracker';
 import { GENERAL_LANE, buildSkillLanes } from './skillTree';
 import { resleeveSkillsShown } from './sleeveGate';
+import { TabAttention } from './tabAttention';
 import type { AutomationView, BuyableView, RunRowView, RunsView, SkillLaneView, SkillsView, TabView } from './viewTypes';
 
 /** The latest finished sleeve-runs, newest first. */
@@ -44,36 +47,45 @@ export function runsView(runs: GameStateView['wallet']['runs'], config: GameConf
 }
 
 /**
- * The tabs at the top. None shows until something is worth a tab: a skill point, an automation point or a finished sleeve-run.
+ * The tabs at the top. None shows until something is worth a tab: a skill point, an automation point or a finished sleeve-run. A tab the reveal
+ * ledger holds stays shown. The Skills and Automation tabs blink while they have earned points the player has not looked at (`TabAttention`).
  *
- * Called by: {@link buildViewModel}. Calls: `GameQueries.skillPoints`, `resleevePoints`, `automation`.
+ * Called by: {@link buildViewModel}. Calls: `GameQueries.skillPoints`, `resleevePoints`, `automation`, `RevealTracker.reveals`, `TabAttention.blinks`.
  *
  * @param engine the engine to read from
  * @param state the game state
  * @param text the display text
+ * @param tracker the reveal ledger reader (default: tabs show by their own rule only)
+ * @param attention which points the player has seen (default: a fresh memory, so a tab blinks while it has unspent points)
+ * @param activeTab the tab the player is looking at; looking at a tab counts its points as seen
  */
-export function tabsView(engine: SkillQueries & CorporationQueries, state: GameStateView, text: UiText): TabView[] {
+export function tabsView(
+  engine: SkillQueries & CorporationQueries,
+  state: GameStateView,
+  text: UiText,
+  tracker?: RevealTracker,
+  attention: TabAttention = new TabAttention(),
+  activeTab?: string,
+): TabView[] {
   const automation = engine.automation();
   const statsShown = state.wallet.runs.length > 0; // the first re-sleeve writes the first run down
-  const skillsShown = engine.skillPointsEarned() > 0 || statsShown; // a finished sleeve-run has earned a re-sleeve point
-  const automationShown = automation.pointsEarned() > 0;
-  const corporationShown = engine.isCorporationUnlocked();
-  const tabsShown = skillsShown || automationShown || statsShown || corporationShown;
+  const shown = (id: (typeof TAB_IDS)[number], natural: boolean): boolean => (tracker ? tracker.reveals('tab', id, natural) : natural);
+  const skillsNatural = engine.skillPointsEarned() > 0 || statsShown; // a finished sleeve-run has earned a re-sleeve point
+  const automationNatural = automation.pointsEarned() > 0;
+  const corporationNatural = engine.isCorporationUnlocked();
+  const skillsShown = shown('skills', skillsNatural);
+  const automationShown = shown('automation', automationNatural);
+  const statsTab = shown('stats', statsShown);
+  const corporationShown = shown('corporation', corporationNatural);
+  const tabsShown = shown('character', skillsNatural || automationNatural || statsShown || corporationNatural);
+  const skillPoints = engine.skillPoints() + engine.resleevePoints();
+  const skillBlink = attention.blinks('skills', engine.skillPointsEarned() + engine.resleevePointsEarned(), skillPoints, activeTab === 'skills');
+  const automationBlink = attention.blinks('automation', automation.pointsEarned(), automation.pointsAvailable(), activeTab === 'automation');
   return [
     { id: 'character', label: text.tabs.character, visible: tabsShown, attention: false },
-    {
-      id: 'skills',
-      label: text.tabs.skills(engine.skillPoints() + engine.resleevePoints()),
-      visible: skillsShown,
-      attention: engine.skillPoints() + engine.resleevePoints() > 0,
-    },
-    {
-      id: 'automation',
-      label: text.tabs.automation(automation.pointsAvailable()),
-      visible: automationShown,
-      attention: automation.pointsAvailable() > 0,
-    },
-    { id: 'stats', label: text.tabs.stats, visible: statsShown, attention: false },
+    { id: 'skills', label: text.tabs.skills(skillPoints), visible: skillsShown, attention: skillBlink },
+    { id: 'automation', label: text.tabs.automation(automation.pointsAvailable()), visible: automationShown, attention: automationBlink },
+    { id: 'stats', label: text.tabs.stats, visible: statsTab, attention: false },
     { id: 'corporation', label: text.tabs.corporation, visible: corporationShown, attention: false },
   ];
 }
@@ -93,6 +105,7 @@ export function tabsView(engine: SkillQueries & CorporationQueries, state: GameS
  * @param stats the sleeve stats (for the branches whose text waits for a stat to be revealed)
  * @param text the display text
  * @param revealAll test aid: no skill is masked
+ * @param tracker the reveal ledger reader (a skill it holds stays readable)
  */
 export function skillsView(
   engine: SkillQueries,
@@ -102,14 +115,15 @@ export function skillsView(
   stats: SleeveStats,
   text: UiText,
   revealAll = false,
+  tracker?: RevealTracker,
 ): SkillsView {
   const owned = (id: string): number => viewById.get(id)?.owned ?? 0;
-  const common = { viewById, owned, hiddenText: text.skills.hidden, revealAll };
+  const common = { viewById, owned, hiddenText: text.skills.hidden, revealAll, ...(tracker ? { tracker } : {}) };
   const branchTitle = (id: string): string => (id === GENERAL_LANE ? text.skills.generalBranch : (text.skills.branches[id] ?? id));
   const lanes = buildSkillLanes({
     ...common,
     skills: config.buyables.filter((b) => b.currency === 'skillPoints'),
-    branchMasked: branchMaskedFn(config, state, stats),
+    branchMasked: branchMaskedFn(config, state, stats, tracker),
     laneTitle: branchTitle,
     open: true,
   });
@@ -152,6 +166,7 @@ export function skillsView(
  * @param viewById the view of every buyable, by id
  * @param text the display text
  * @param revealAll test aid: no skill is masked (none is anyway)
+ * @param tracker the reveal ledger reader
  */
 export function automationView(
   engine: SkillQueries,
@@ -159,6 +174,7 @@ export function automationView(
   viewById: ReadonlyMap<string, BuyableView>,
   text: UiText,
   revealAll = false,
+  tracker?: RevealTracker,
 ): AutomationView {
   const automation = engine.automation();
   const burn = automation.autoBurn();
@@ -169,6 +185,7 @@ export function automationView(
       owned,
       hiddenText: text.skills.hidden,
       revealAll,
+      ...(tracker ? { tracker } : {}),
       skills: config.buyables.filter((b) => b.currency === 'automationPoints' && b.branch === feature),
       laneTitle: () => '', // the feature's own heading says it
       open: true,

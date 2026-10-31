@@ -18,6 +18,7 @@ const withSeen = () => {
   const state = fresh();
   state.wallet.seenItems = { file: { common: true } };
   state.wallet.lastLifeAutoRunOn = { auto: true };
+  state.wallet.revealed = ['tab:skills'];
   return state;
 };
 const names = SAVE_PARTS.map((p) => p.name);

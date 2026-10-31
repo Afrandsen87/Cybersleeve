@@ -1,3 +1,5 @@
+import type { TabAttention } from './tabAttention';
+
 /** Display data of one stack of items (one item in one rarity). */
 export interface InventoryRowView {
   readonly itemId: string;
@@ -42,6 +44,10 @@ export interface ViewSelection {
   readonly augmentRarityId: string | null;
   /** Test aid: show everything the rules of the game hide (tabs, stats, purchases, items). Default: off. */
   readonly revealAll?: boolean;
+  /** Which points the player has looked at, per tab (UI memory, not saved; default: a fresh one on every build). */
+  readonly tabAttention?: TabAttention;
+  /** The tab the player is looking at, for `tabAttention`. */
+  readonly activeTab?: string;
 }
 
 /** Nothing selected. */

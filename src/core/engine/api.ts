@@ -187,6 +187,8 @@ export interface SkillQueries {
   resleevePoints(): number;
   /** Skill points earned in total, spent or not: 0 until an action first reaches level 1. */
   skillPointsEarned(): number;
+  /** Re-sleeve points earned in total, spent or not. */
+  resleevePointsEarned(): number;
   /** The automation features: points, what is unlocked and the settings (the commands are on the same object). */
   automation(): AutomationControls;
 }
@@ -238,6 +240,11 @@ export interface ShopCommands {
    * Auto-run switches take effect on the next tick.
    */
   activateBuyable(id: BuyableId): ActivateResult;
+  /**
+   * Records what the screen has shown in the reveal ledger (`wallet.revealed`, see `economy/revealLedger.ts`) so it stays shown. Keys already
+   * noted, repeated or unknown are ignored.
+   */
+  noteRevealed(keys: readonly string[]): void;
 }
 
 /** Commands on items: using, toggling, selling and giving them up. Called by: `ui/widgets/inventoryWidget.ts`. */

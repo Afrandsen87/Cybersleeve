@@ -6,16 +6,16 @@
  * @remarks
  * Part of the view types; `viewTypes.ts` re-exports them, so import from there.
  */
-import type { AutoBurnSwitch, AutomationFeature } from '../../core';
+import type { AutoBurnSwitch, AutomationFeature, TAB_IDS } from '../../core';
 import type { SkillLaneView } from './skillTreeTypes';
 
 /** One tab at the top. */
 export interface TabView {
-  readonly id: 'character' | 'skills' | 'automation' | 'stats' | 'corporation';
+  readonly id: (typeof TAB_IDS)[number];
   readonly label: string;
   /** Shown once the tab is useful: no tab shows until the first skill point has been earned. */
   readonly visible: boolean;
-  /** The tab blinks: something in it waits for the player (a skill point to spend). */
+  /** The tab blinks: it has earned points the player has not looked at yet (see `tabAttention.ts`). */
   readonly attention: boolean;
 }
 

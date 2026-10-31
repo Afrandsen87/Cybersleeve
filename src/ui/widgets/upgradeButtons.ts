@@ -56,6 +56,7 @@ export function renderUpgrades(buttons: ReadonlyMap<string, HTMLButtonElement>, 
     upgrade.classList.toggle('single', !b.repeatable);
     upgrade.classList.toggle('off', b.toggleable && b.owned > 0 && !b.enabled);
     upgrade.classList.toggle('ready', b.ready);
+    upgrade.classList.toggle('gated', b.gated);
     upgrade.classList.toggle('purchasable', b.available && !b.maxed && b.affordable);
     tips.set(upgrade, () => b.tip);
   }
