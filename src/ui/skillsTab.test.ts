@@ -166,7 +166,7 @@ describe('the screen', () => {
   it('has the two tabs on the credits line, and the Skills tab blinks while a point waits', () => {
     const { root } = mount();
     const tabs = root.querySelector<HTMLElement>('.tabs')!;
-    expect([...tabs.querySelectorAll('.tab')].map((t) => t.textContent)).toEqual([
+    expect([...tabs.querySelectorAll('.tab')].map((t) => t.querySelector('.tab-label')!.textContent)).toEqual([
       'Character',
       'Skills',
       'Automation',
@@ -175,9 +175,9 @@ describe('the screen', () => {
     ]);
     expect(tabs.querySelectorAll<HTMLElement>('.tab[hidden]')).toHaveLength(3); // Automation waits for its first point, Stats for the first re-sleeve, Corporation for its unlock
     expect(tabs.parentElement).toBe(root.querySelector('header')); // the same line as the credits
-    expect(tabs.previousElementSibling).toBe(root.querySelector('.credits'));
+    expect(root.querySelector('header .credits')).not.toBeNull(); // the balance is in the same bar
     expect(tabs.hidden).toBe(false);
-    expect(root.querySelector('.tab.attention')!.textContent).toBe('Skills');
+    expect(root.querySelector('.tab.attention .tab-label')!.textContent).toBe('Skills');
   });
 
   it('hides the tab bar until the first skill point is earned, then shows it', () => {
@@ -215,7 +215,7 @@ describe('the screen', () => {
 
   it('the credits stay visible on both tabs', () => {
     const { root } = mount();
-    expect(root.querySelector('.credits')!.parentElement).toBe(root.querySelector('header')!);
+    expect(root.querySelector('.credits')!.closest('header')).toBe(root.querySelector('header')!);
     expect(root.querySelector('header')!.closest('.tab-panel')).toBeNull();
   });
 
@@ -228,7 +228,7 @@ describe('the screen', () => {
     expect(game.ownedCount('s1')).toBe(1);
     render(); // the game loop redraws the screen a moment after a click
     expect(root.querySelector('.skills-points')!.textContent).toBe('Skill points: 0');
-    expect([...root.querySelectorAll('.tab')][1]!.textContent).toBe('Skills');
+    expect([...root.querySelectorAll('.tab-label')][1]!.textContent).toBe('Skills');
     expect(buttons[1]!.disabled).toBe(true);
     expect(buttons[0]!.classList.contains('owned')).toBe(true);
   });

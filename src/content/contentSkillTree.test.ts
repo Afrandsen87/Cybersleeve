@@ -45,7 +45,9 @@ import {
 } from './ids';
 
 const skills = gameConfig.buyables.filter((b) => b.currency === 'skillPoints');
-const css = ['../ui/style.css', '../ui/styles/skills.css'].map((p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8')).join(String.fromCharCode(10));
+const css = ['../ui/style.css', '../ui/styles/skills.css']
+  .map((p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8'))
+  .join(String.fromCharCode(10));
 
 describe('the skill tree of the real content', () => {
   it('every skill is in one of the three branches, and a parent is always in the same branch', () => {
