@@ -15,7 +15,12 @@
  */
 import type { BuyableDefinition, GameConfig, StateSlice } from '../types';
 
-/** The stats that start hidden (one `stat:` key each): three sleeve stat rows and the top bar's income rate. */
+/**
+ * The stats that start hidden (one `stat:` key each): three sleeve stat rows and the top bar's income rate.
+ *
+ * A new hidden stat needs its id here, or `noteRevealed` silently drops its key and the stat hides again once its natural
+ * reason passes; it also needs an entry in `REVEAL_RULES` (`ui/view/statReveal.ts`).
+ */
 export const REVEALABLE_STATS = ['heat', 'iceRating', 'legend', 'incomeRate'] as const;
 
 /** The tabs (one `tab:` key each). */
