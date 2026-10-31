@@ -39,6 +39,8 @@ export interface MountOptions {
   readonly icons?: IconSource;
   /** Export and import of the save as text; the buttons are shown only when given. */
   readonly saveTransfer?: { exportSave(): void; importSave(): void };
+  /** Asks the player to confirm, then wipes the game and the save; the Wipe save button is shown only when given. */
+  readonly wipeSave?: () => void;
   /** The entries of the changelog modal, newest first (default: none, which the modal says). */
   readonly changelog?: readonly ChangelogEntry[];
 }
@@ -110,7 +112,7 @@ export function mountUi(
   const corporation = mountCorporationPanel(ctx, initial.corporation);
   const skills = mountSkillsPanel(ctx, initial.skills);
   const stats = mountStatsPanel(ctx, initial.runs);
-  const saveRow = buildSaveRow(ctx, options.saveTransfer, options.changelog ?? []);
+  const saveRow = buildSaveRow(ctx, options.saveTransfer, options.changelog ?? [], options.wipeSave);
   root.append(saveRow.modal);
 
   // Top band: Sleeve on the left; to its right Network beside Upgrades, with Inventory under both. A line splits it from the actions.

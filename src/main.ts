@@ -71,10 +71,14 @@ async function start(root: HTMLElement): Promise<void> {
   );
 
   const speed = new SpeedToggle(runtime.fastForwardFactor);
-  const render = mountUi(root, engine, speed, createNewGameHandler(engine, saveGame), {
+  const resetGame = createNewGameHandler(engine, saveGame);
+  const render = mountUi(root, engine, speed, resetGame, {
     debugControls: debug,
     icons: createIconSource({ size: ICON_SIZE, palette: ICON_PALETTE, grids: ICON_GRIDS, assignment: ENTITY_ICONS }),
     saveTransfer: { exportSave: () => void transfer.exportSave(), importSave: () => transfer.importSave() },
+    wipeSave: () => {
+      if (window.confirm(uiText.saveTools.wipeConfirm)) resetGame();
+    },
     changelog: CHANGELOG,
   });
 

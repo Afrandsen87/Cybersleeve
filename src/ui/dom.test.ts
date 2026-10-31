@@ -238,3 +238,20 @@ describe('mountUi - the changelog modal', () => {
     expect(root.querySelector('.modal li')?.textContent).toBe('First change');
   });
 });
+
+describe('mountUi - the Wipe save button', () => {
+  function mountWipe(wipeSave?: () => void) {
+    document.body.innerHTML = '<div id="app"></div>';
+    const root = document.getElementById('app') as HTMLElement;
+    mountTestUi(root, createGame({ config: testConfig }), { wipeSave });
+    return root.querySelector('.save-wipe') as HTMLButtonElement | null;
+  }
+
+  it('is shown only when a wipe handler is given, and calls it on click', () => {
+    expect(mountWipe()).toBeNull();
+    let calls = 0;
+    const button = mountWipe(() => calls++);
+    button?.click();
+    expect(calls).toBe(1);
+  });
+});

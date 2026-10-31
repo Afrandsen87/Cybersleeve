@@ -82,12 +82,14 @@ export function buildDebugControls(ctx: UiContext, page: HTMLElement, speed: Spe
  * @param ctx what the row needs from the screen
  * @param saveTransfer export and import of the save as text; the buttons are shown only when given
  * @param changelog the changelog entries, newest first
+ * @param wipeSave asks for confirmation and wipes the game and the save; the Wipe save button is shown only when given
  * @returns the row, and the modal to append to the page
  */
 export function buildSaveRow(
   ctx: UiContext,
   saveTransfer: { exportSave(): void; importSave(): void } | undefined,
   changelog: readonly ChangelogEntry[],
+  wipeSave?: () => void,
 ): { row: HTMLElement; modal: HTMLElement } {
   const { text } = ctx;
   const saveRow = h('div', 'save-row');
@@ -106,5 +108,14 @@ export function buildSaveRow(
   changelogBtn.title = text.changelog.tip;
   changelogBtn.addEventListener('click', () => changelogModal.open());
   saveRow.append(changelogBtn);
+  if (wipeSave) {
+    const wipeBtn = h('button', 'save-wipe', text.saveTools.wipe) as HTMLButtonElement;
+    wipeBtn.title = text.saveTools.wipeTip;
+    wipeBtn.addEventListener('click', () => {
+      wipeSave();
+      ctx.refresh();
+    });
+    saveRow.append(wipeBtn);
+  }
   return { row: saveRow, modal: changelogModal.root };
 }
