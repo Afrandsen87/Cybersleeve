@@ -11,7 +11,7 @@ Code: `src/core/ui/` (see `docs/contexts/_folders.md`). Text below is moved verb
 - **Tabs:** `TabView.count` carries the skill or automation points (`null` at 0); the label holds no count.
 - **Sleeve groups** (`view/sleeveGroups.ts`): a table puts every sleeve stat row in ACCESS, SKILL, DEFENSE (ICE Rating, Legend) or RISK (heat); a group is hidden when all its rows are. The Legend decay bar is hidden while Legend is 0 (`StatBarView.hidden`).
 - **Heat gauge:** `SleeveView.heatGauge` (`null` while the heat row is hidden) places heat on a strip from `view/heatStrip.ts` (`heatStripLayout`, the one owner of strip positions, also meant for the Auto Burn panel: span `1.5 x` the largest of the tax start and markers, heat beyond pinned with `overflow`). The tax zone starts at `heatStopPoint`; with a capped tax there is no zone and the legend names the cap. While heat cools the heat bar's label is the cycle (`-amount / seconds`, seconds from `cycleSeconds` in `heat/heatModel.ts`, the one owner the heat tip also reads).
-- **Network:** `NetworkView.taxNote` (red, from `creditKeepFactor` and `heatStopPoint`, `null` at no tax or with no nodes) and `status` (`LINKED` while there are nodes). Main screen wording is `uiText.mainScreen` (`ui/hudText.ts`).
+- **Network:** `NetworkView.taxNote` (red, the share from `creditKeepFactor` only, `null` at no tax or with no nodes) and `status` (`LINKED` while there are nodes). Main screen wording is `uiText.mainScreen` (`ui/hudText.ts`).
 
 ### Look of the main screen (presentation, 2026-10-31)
 

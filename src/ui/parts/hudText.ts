@@ -25,8 +25,8 @@ export interface MainScreenText {
   readonly resleeveTitle: string;
   /** The heat written on the heat strip, e.g. `HEAT 652`. */
   heatValue(value: string): string;
-  /** The red note under the network income: the share the heat tax takes, the heat, and where it takes everything (`null`: capped). */
-  taxNote(percent: string, heat: string, stop: string | null): string;
+  /** The red note under the network income: the share the heat tax takes, e.g. `heat tax takes 25%`. */
+  taxNote(percent: string): string;
   /** The total income per second in the top bar, e.g. `+34.73T/s`. */
   rate(value: string): string;
   /** Under the heat strip: the heat from which every credit is taxed. */

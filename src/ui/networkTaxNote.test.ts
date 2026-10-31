@@ -18,21 +18,21 @@ describe('network tax note', () => {
     expect(buildViewModel(g).network.status).toBe('LINKED');
   });
 
-  it('shows partial tax with the heat and stop point', () => {
+  it('shows the share a partial tax takes', () => {
     const g = game();
     flat<{ network: unknown }>(g).network = num(1);
     flat<{ heat: number }>(g).heat = 25;
-    expect(buildViewModel(g).network.taxNote).toBe('heat tax takes 25% (heat 25 ≥ 100)');
+    expect(buildViewModel(g).network.taxNote).toBe('heat tax takes 25%');
   });
 
   it('shows full tax beyond the stop point', () => {
     const g = game();
     flat<{ network: unknown }>(g).network = num(1);
     flat<{ heat: number }>(g).heat = 150;
-    expect(buildViewModel(g).network.taxNote).toBe('heat tax takes 100% (heat 150 ≥ 100)');
+    expect(buildViewModel(g).network.taxNote).toBe('heat tax takes 100%');
   });
 
-  it('omits the stop point while tax is capped', () => {
+  it('shows the capped share while tax is capped', () => {
     const g = game({
       buyables: [{ id: 'cap', name: 'Cap', description: '', cost: num(1), effect: { kind: 'heatTaxCap', maxShare: 0.8 } }],
     });
@@ -41,8 +41,7 @@ describe('network tax note', () => {
     flat<{ network: unknown }>(g).network = num(1);
     flat<{ heat: number }>(g).heat = 150;
     const note = buildViewModel(g).network.taxNote;
-    expect(note).toBe('heat tax takes 80% (heat 150)');
-    expect(note).not.toContain('≥');
+    expect(note).toBe('heat tax takes 80%');
   });
 
   it('shows no note and no red +0 while there are no nodes, whatever the heat', () => {

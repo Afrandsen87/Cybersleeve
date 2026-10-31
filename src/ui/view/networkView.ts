@@ -6,7 +6,7 @@
  * @remarks
  * Called by: `ui/viewModel.ts`. Calls: `GameQueries`, the helpers in `viewFormat.ts`.
  */
-import { heatStopPoint, type GameConfig, type ItemQueries, type SleeveQueries, type GameStateView, type SleeveStats } from '../../core';
+import type { GameConfig, GameStateView, ItemQueries, SleeveQueries, SleeveStats } from '../../core';
 import { formatBigNum, formatPlain, formatSignificant } from '../../numbers';
 import type { UiText } from '../uiText';
 import { aggregatedMoleText } from './moleBonus';
@@ -34,17 +34,9 @@ export function networkView(
   const keep = engine.creditKeepFactor();
   const taxShare = 1 - keep;
   const income = engine.passiveCreditsPerSecond();
-  const stop = heatStopPoint(stats.heatReduction, config.sleeve.heatTaxPerPoint, stats.heatTaxCap);
   const linked = !state.sleeve.network.isZero();
   // with no nodes there is no network income for the tax to take, so no note (and no red +0)
-  const taxNote =
-    linked && taxShare > 0
-      ? text.mainScreen.taxNote(
-          formatSignificant(taxShare * 100, PANEL_DIGITS),
-          formatSignificant(stats.heat, PANEL_DIGITS),
-          stop === null ? null : formatSignificant(stop, PANEL_DIGITS),
-        )
-      : null;
+  const taxNote = linked && taxShare > 0 ? text.mainScreen.taxNote(formatSignificant(taxShare * 100, PANEL_DIGITS)) : null;
   return {
     title: text.titles.network,
     status: linked ? text.mainScreen.linked : null,

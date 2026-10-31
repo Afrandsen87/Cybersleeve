@@ -18,7 +18,7 @@ export const hudText: MainScreenText = {
   zoneText: 'FULLY TAXED ZONE',
   resleeveTitle: 'RE-SLEEVE',
   heatValue: (value) => `HEAT ${value}`,
-  taxNote: (percent, heat, stop) => `heat tax takes ${percent}% (heat ${heat}${stop === null ? '' : ` ≥ ${stop}`})`,
+  taxNote: (percent) => `heat tax takes ${percent}%`,
   rate: (value) => `+${value}/s`,
   stopLegend: (stop) => `all credits taxed ≥ ${stop}`,
   capLegend: (percent) => `tax capped at ${percent}%`,
