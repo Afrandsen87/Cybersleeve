@@ -19,6 +19,10 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-11-01 20:10',
+    changes: ['Show the real heat cooldown time and name Grow network in Network Safety', 'Raise the sleeve levels needed to re-sleeve'],
+  },
+  {
     version: '2026-10-31 23:54',
     changes: ['Put the Inventory panels side by side'],
   },
