@@ -56,7 +56,7 @@ export const practiceHackingBuyables: BuyableDefinition[] = [
     name: 'Network Safety Protocols',
     symbol: 'NPs',
     description:
-      'Each completed run has a 5% chance to add 1 base ICE Rating. Each further copy adds 1 percentage point, up to 100%. Each copy costs 50x more.',
+      'Each completed Grow network run has a 5% chance to add 1 base ICE Rating. Each further copy adds 1 percentage point, up to 100%. Each copy costs 50x more.',
     currency: 'networkNodes',
     cost: num(3500),
     requiresSleeveSkills: 1,

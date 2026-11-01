@@ -53,7 +53,7 @@ Skill Transfer adds Practice Hacking's sleeve level to Grow network's effective 
 | Buyable | Location and cost | Effect |
 |---|---|---|
 | Networked Sleeve | Upgrades, NETWORK row; 10,000 nodes once; two Sleeve Firmware | Adds the distinct sleeve skill count to Practice Hacking's effective level. |
-| Network Safety Protocols | Upgrades, NETWORK row (affects Grow network runs); 3,500 nodes, ×50 per copy, unlimited; one sleeve skill and Grow network Overclock | Each run has 5% chance to earn 1 base ICE Rating; each additional copy adds 1 percentage point, capped at 100%. |
+| Network Safety Protocols | Upgrades, NETWORK row (affects Grow network runs); 3,500 nodes, ×50 per copy, unlimited; one sleeve skill and Grow network Overclock | Each Grow network run has 5% chance to earn 1 base ICE Rating; each additional copy adds 1 percentage point, capped at 100%. |
 | Cloaking Protocols | Upgrades, SLEEVE row; 5e11 credits once; one sleeve skill and Grow network Overclock | Multiplies heat tax by 0.97 per distinct sleeve skill. Survives re-sleeve; ordinary credit-paid improvements reset. |
 
 *Moved to [docs/contexts/economy.md](docs/contexts/economy.md).*

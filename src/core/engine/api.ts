@@ -143,6 +143,8 @@ export interface SleeveQueries {
   resleeveRequirements(sleeveId?: SleeveId): readonly ResleeveRequirement[];
   /** True while heat cannot cool or be reduced at all (an action is running with an Overclock that stops heat cooling). */
   heatCoolingBlocked(sleeveId?: SleeveId): boolean;
+  /** True while no action is in progress, so heat cools at the idle pace (Quiet Hours). */
+  heatIsIdle(sleeveId?: SleeveId): boolean;
 }
 
 /** Read-only questions about items: where they drop from, and whether the tiles of the inventory can be used. */

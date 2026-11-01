@@ -628,6 +628,11 @@ export class GameEngine implements GameQueries, GameCommands {
     return this.stats.heatCoolingBlocked();
   }
 
+  /** True while no action is in progress, so heat cools at the idle pace (Quiet Hours). Called by: `ui/viewModel.ts`. */
+  heatIsIdle(): boolean {
+    return this.stats.heatIsIdle();
+  }
+
   /** True when this item in this rarity has ever entered the inventory (over all lives). Called by: `ui/view/inventoryView.ts`. */
   hasSeenItem(itemId: ItemId, rarityId: RarityId): boolean {
     return hasSeenItem(this.state, itemId, rarityId);

@@ -18,6 +18,7 @@ import {
   cycleSeconds as heatCycleSeconds,
   heatStopPoint,
   heatTaxShare,
+  effectiveCoolingSpeed,
   ownsAutoRun,
 } from '../../core';
 import { formatBigNum, formatPlain, formatSignificant, numberFactory } from '../../numbers';
@@ -38,6 +39,7 @@ import type { BuyableView, SleeveView, StatRowView } from './viewTypes';
  * Called by: {@link sleeveView}. Calls: `isStatHidden`, the heat model, `formatSignificant`.
  *
  * @param stopPoint the heat at which the tax takes every credit (`heatStopPoint`), shared with the heat gauge
+ * @param heatIdle true when no action is in progress, so the displayed cooldown time includes the Quiet Hours factor
  */
 function sleeveRows(
   stats: SleeveStats,
@@ -45,6 +47,7 @@ function sleeveRows(
   config: GameConfig,
   text: UiText,
   stopPoint: number | null,
+  heatIdle: boolean,
   tracker?: RevealTracker,
 ): StatRowView[] {
   const ownedCount = (id: string): number => state.sleeve.purchased[id] ?? 0;
@@ -70,7 +73,18 @@ function sleeveRows(
     ...(beyond && beyond.exponent !== sleeve.earnedSpeedExponent ? { beyond } : {}),
   };
   const proficiency = state.sleeve.hackingProficiency.mul(numberFactory.fromNumber(stats.hackingProficiencyFactor));
-  const cycleSeconds = heatCycleSeconds(sleeve, stats.legend, stats.heatCooldownSpeed);
+  const cycleSeconds = heatCycleSeconds(
+    sleeve,
+    stats.legend,
+    effectiveCoolingSpeed({
+      speed: stats.heatCooldownSpeed,
+      boost: stats.heatCooldownBoost,
+      moles: state.sleeve.moles,
+      idle: heatIdle,
+      idleFactor: stats.idleHeatCooldown,
+      moleAggregation: stats.moleAggregation,
+    }),
+  );
   const coolsNow = heatCoolsNow(stats.heat, stats.heatCooldownAmount);
   const panel = (n: number): string => formatSignificant(n, PANEL_DIGITS);
   const heatTip = (): string =>
@@ -208,6 +222,7 @@ function sleeveRows(
  * @param buyableViews the view of every buyable
  * @param viewById the same views by id
  * @param text the display text
+ * @param heatIdle true when no action is in progress (Quiet Hours speeds the displayed cooldown)
  * @param tracker the reveal ledger reader (default: none, the stat rules decide alone)
  */
 export function sleeveView(
@@ -217,10 +232,11 @@ export function sleeveView(
   buyableViews: readonly BuyableView[],
   viewById: ReadonlyMap<string, BuyableView>,
   text: UiText,
+  heatIdle: boolean,
   tracker?: RevealTracker,
 ): SleeveView {
   const stopPoint = heatStopPoint(stats.heatReduction, config.sleeve.heatTaxPerPoint, stats.heatTaxCap, stats.heatTaxScale);
-  const { groups, stats: rows } = sleeveGroups(sleeveRows(stats, state, config, text, stopPoint, tracker), text);
+  const { groups, stats: rows } = sleeveGroups(sleeveRows(stats, state, config, text, stopPoint, heatIdle, tracker), text);
   const heatHidden = rows.find((r) => r.id === 'heat')?.hidden ?? true;
   return {
     title: text.titles.sleeve,

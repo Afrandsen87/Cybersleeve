@@ -20,7 +20,7 @@ export { Inventory, hasSeenItem, itemCount } from './items/inventory';
 export { Augments, augmentXpFactor } from './items/augments';
 export { BackChannel } from './items/backChannel';
 export { BurnLeads } from './items/burnLeads';
-export { type CoolingPaceInputs, coolingPace } from './heat/heatPace';
+export { type CoolingPaceInputs, coolingPace, effectiveCoolingSpeed, idleAdjustedSpeed } from './heat/heatPace';
 export { ZeroDays } from './crits/zeroDays';
 export { SkillShards } from './items/skillShards';
 export { CriticalLinks } from './crits/criticalLinks';

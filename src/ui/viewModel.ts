@@ -60,7 +60,7 @@ function buildScoped(engine: GameQueries, factory: NumberFactory, text: UiText, 
   const tracker = new RevealTracker(state.wallet.revealed);
   const buyableViews = buildBuyableViews(engine, config, text, revealAll, tracker);
   const viewById = new Map(buyableViews.map((v) => [v.id, v]));
-  const sleeve = sleeveView(stats, state, config, buyableViews, viewById, text, tracker);
+  const sleeve = sleeveView(stats, state, config, buyableViews, viewById, text, engine.heatIsIdle(), tracker);
 
   const skills = skillsView(engine, state, config, viewById, stats, text, revealAll, tracker);
   const canResleeve = engine.canResleeve();

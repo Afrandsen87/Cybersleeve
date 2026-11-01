@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { coolingPace, heatTaxFactor, type CoolingPaceInputs } from '..';
+import { coolingPace, effectiveCoolingSpeed, heatTaxFactor, idleAdjustedSpeed, type CoolingPaceInputs } from '..';
 
 const base: CoolingPaceInputs = { speed: 1, boost: 0, moles: 0, idle: false, idleFactor: 1, moleAggregation: null };
+
+describe('idleAdjustedSpeed', () => {
+  it('applies the Quiet Hours factor only while idle (the displayed cooldown time uses this too)', () => {
+    expect(idleAdjustedSpeed(2, true, 5)).toBe(10);
+    expect(idleAdjustedSpeed(2, false, 5)).toBe(2);
+  });
+});
+
+describe('effectiveCoolingSpeed', () => {
+  it('is the speed shown as the cooldown time: skills, Quiet Hours while idle, and the Mole boost only while Moles remain', () => {
+    expect(effectiveCoolingSpeed({ ...base, speed: 2, idle: true, idleFactor: 5, boost: 0.5, moles: 10 })).toBe(15);
+    expect(effectiveCoolingSpeed({ ...base, speed: 2, idle: true, idleFactor: 5, boost: 0.5, moles: 0 })).toBe(10);
+    expect(effectiveCoolingSpeed({ ...base, speed: 2, boost: 0.5, moles: 10 })).toBe(3);
+  });
+
+  it('with Deep Cover the Moles multiply the speed and the boost is not counted twice', () => {
+    expect(effectiveCoolingSpeed({ ...base, boost: 2, moles: 10, moleAggregation: 0.05 })).toBeCloseTo(1.05, 12);
+  });
+});
 
 describe('coolingPace', () => {
   it('without Quiet Hours or Deep Cover the speed and the Mole boost pass through unchanged', () => {
