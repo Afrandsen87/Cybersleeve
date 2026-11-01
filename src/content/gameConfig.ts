@@ -36,8 +36,8 @@ export const gameConfig: GameConfig = {
   focus: { speedBonus: 0.25, baseSlots: 1 },
 
   /** Each re-sleeve gives one sleeve skill point; the Stats tab lists the last 10 sleeve-runs. */
-  // Progress gate: a re-sleeve needs this many total sleeve levels, plus `perResleeve` more for each earlier re-sleeve (5, then 6, 7...).
-  resleeve: { pointsPerResleeve: 1, runsShown: 10, lockoutMs: 5_000, progressNeeded: { sleeveLevels: 5, perResleeve: 1 } },
+  // Progress gate: a re-sleeve needs this many total sleeve levels, plus `perResleeve` more for each earlier re-sleeve (7, then 9, 11...).
+  resleeve: { pointsPerResleeve: 1, runsShown: 10, lockoutMs: 5_000, progressNeeded: { sleeveLevels: 7, perResleeve: 2 } },
 
   /** Skill points: one each at total action levels 1 and 5, then one more per 10 total levels (10, 20, 30...). */
   skills: { earlyThresholds: [1, 5], every: 10 },

@@ -27,7 +27,7 @@ The Inventory stash adds no tuning: captions and gain signs live in `uiText.stas
 | Levels worth more / less speed | `speed.actionLevel.perLevel` (0.01, +1% per level; linear) or switch to `{ kind: 'exponential', base: 1.5 }` |
 | Everything cheaper / dearer | `global.costMultiplier` |
 | Start with credits | `progression.startingCredits` |
-| Re-sleeve sleeve-level gate | `resleeve.progressNeeded`: optional `{ sleeveLevels: 5, perResleeve: 1 }`; required total = sleeveLevels + earlier re-sleeves * perResleeve; integer base >= 1, step >= 0; omit for no gate |
+| Re-sleeve sleeve-level gate | `resleeve.progressNeeded`: optional `{ sleeveLevels: 7, perResleeve: 2 }`; required total = sleeveLevels + earlier re-sleeves * perResleeve; integer base >= 1, step >= 0; omit for no gate |
 | One action levels differently | `actions[i].levels` / `actions[i].speedScaling` |
 
 ## `actions[]` – one entry per action
