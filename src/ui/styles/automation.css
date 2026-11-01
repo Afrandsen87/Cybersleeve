@@ -18,14 +18,22 @@ html.automation-anchoring {
 .automation-feat > .panel {
   align-content: start;
 }
+/* The measured height sits on the slot as plain px, never as max(100%, ...) on the pane:
+   Firefox sizes the grid row as if a percentage min-height were auto, so the row stayed
+   short and the slot's overflow clipped the install button. */
 .automation-slot {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   overflow: hidden;
 }
+.automation-feat.open > .automation-slot {
+  min-height: var(--automation-inspector-height, 0px);
+}
 .automation-slot > .inspector-docked {
+  flex: 1 0 auto;
   position: static;
   width: 300px;
-  min-height: max(100%, var(--automation-inspector-height, 0px));
   opacity: 0;
   transition: opacity 200ms ease 50ms;
 }
