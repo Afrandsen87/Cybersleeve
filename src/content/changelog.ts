@@ -19,6 +19,10 @@ export interface ChangelogEntry {
  */
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    version: '2026-11-01 20:20',
+    changes: ['Fix the Automation inspector cutting off its Install button in Firefox'],
+  },
+  {
     version: '2026-11-01 20:10',
     changes: ['Show the real heat cooldown time and name Grow network in Network Safety', 'Raise the sleeve levels needed to re-sleeve'],
   },
