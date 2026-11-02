@@ -12,7 +12,7 @@ One file per bounded context: its design text, architecture notes, config variab
 | [crits](crits.md) | Critical successes, Zero-days, Admin keys, links. | 3.5 KB |
 | [items](items.md) | Items, rarities, drops, the Inventory, Burn leads, Skill shards, Augments, Back channel. | 14.4 KB |
 | [economy](economy.md) | Credits, network nodes, passive income, the shop and price growth, purchase reveal. | 6.6 KB |
-| [skills](skills.md) | Skill trees and skill points. | 12.6 KB |
+| [skills](skills.md) | Skill trees and skill points; planned redesign in [skills-redesign.md](skills-redesign.md). | 12.6 KB |
 | [automation](automation.md) | Automation points, lanes and features. | 4.7 KB |
 | [sleeve](sleeve.md) | Sleeve stats: access level, ICE Rating, Hacking Proficiency, sleeve levels, Sleeve Euphoria. | 5.2 KB |
 | [resleeve](resleeve.md) | Re-sleeving (first prestige): gate, carry-over lists, run record, sleeve skills. | 17.0 KB |
